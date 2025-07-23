@@ -47,8 +47,7 @@ source venv/bin/activate
 ### 3. Install Dependencies
 
 ```bash
-pip install django
-pip install djangorestframework
+pip install -r requirements.txt
 ```
 
 ### 4. Start Development Server
@@ -87,7 +86,7 @@ Using yarn:
 yarn install
 ```
 
-Using bun:
+Using bun (recommended):
 
 ```bash
 bun install
@@ -98,7 +97,9 @@ bun install
 Create a `.env.local` file in the frontend directory:
 
 ```env
-DATABASE_URL="your_postgresql_connection_string"
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+DATABASE_URL="your_database_url"
 ```
 
 **Note:** The project uses Supabase/PostgreSQL for the frontend database. Configure your database connection string accordingly.
@@ -176,7 +177,6 @@ npm run dev
 ### Backend (Django)
 
 - REST API for disease detection
-- SQLite database for development
 - Django admin interface
 - CSRF exemption for API endpoints
 - JSON request/response handling
@@ -195,7 +195,6 @@ npm run dev
 - **Backend:** Django REST API that processes symptoms and returns disease predictions
 - **Frontend:** Next.js application with server-side rendering and client-side interactions
 - **Database:**
-  - SQLite for Django backend (development)
   - PostgreSQL for Next.js frontend (via Prisma/Supabase)
 
 ## Troubleshooting
