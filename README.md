@@ -51,22 +51,7 @@ pip install django
 pip install djangorestframework
 ```
 
-### 4. Database Setup
-
-Run migrations to set up the SQLite database:
-
-```bash
-python manage.py makemigrations
-python manage.py migrate
-```
-
-### 5. Create Superuser (Optional)
-
-```bash
-python manage.py createsuperuser
-```
-
-### 6. Start Development Server
+### 4. Start Development Server
 
 ```bash
 python manage.py runserver
