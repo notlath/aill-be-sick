@@ -66,6 +66,36 @@ The Django backend will be available at `http://localhost:8000`
 
 ## Frontend Setup (Next.js)
 
+The `frontend` directory contains everything related to the web interface of the application. Its main job is to display pages, provide interactive features, and communicate with backend services or databases.
+
+### Key Technologies
+
+- **Next.js:** A popular framework for building modern web apps. It helps with routing (deciding which page to show), server-side rendering (faster page loads), and more.
+- **Prisma:** An easy-to-use toolkit for working with databases in JavaScript/TypeScript projects.
+- **TypeScript:** A language built on top of JavaScript that helps you catch mistakes before you run your code. It's just JavaScript with types.
+
+### Folder Structure
+
+Here’s a breakdown of what you’ll typically find inside:
+
+#### `/app`
+This is where most of the web pages live. With Next.js, each folder or file under `app` usually becomes a route (a web page or API endpoint). For example:
+- `/app/page.tsx` might be your home page.
+- `/app/about/page.tsx` might be the "About" page.
+
+You’ll also find special files here for layouts, loading indicators, and error handling.
+
+#### `/actions`
+This folder is for functions that handle things like submitting forms, fetching data, or other logic that needs to happen when users interact with the app. Each file corresponds to exactly one server action. These are sometimes called "actions" or "controllers".
+
+#### `/prisma`
+Here you’ll find files related to the database. Most importantly:
+- `schema.prisma`: Defines the shape of your data (tables, fields, etc).
+- You might also see migration files that help update the database as the project grows.
+
+#### `/utils`
+Short for "utilities," this folder stores helper functions and reusable code snippets. For example, you might have a function that formats dates or cleans up text.
+
 ### 1. Navigate to Frontend Directory
 
 ```bash
