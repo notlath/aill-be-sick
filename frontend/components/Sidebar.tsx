@@ -40,7 +40,7 @@ export default function Sidebar({ sidebarOpen, setSidebarOpen }: SidebarProps) {
 
           {/* New Chat Button */}
           <div className="p-4">
-            <button className="btn btn-block btn-primary font-normal">
+            <button className="btn btn-block btn-primary font-normal rounded-field">
               <Plus size={16} />
               New Chat
             </button>

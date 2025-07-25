@@ -59,7 +59,7 @@ export default function ChatPage() {
     <Layout pageTitle="AI'll Be Sick">
       <div className="flex-1 flex flex-col w-full overflow-hidden">
         {/* Chat Container */}
-        <div className="flex-1 bg-base-100 flex flex-col overflow-hidden">
+        <div className="flex-1 bg-base-200 flex flex-col overflow-hidden">
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto space-y-4 pt-16 px-6 pb-6">
             <div className="max-w-4xl mx-auto space-y-4">
@@ -97,13 +97,13 @@ export default function ChatPage() {
           </div>
 
           {/* Input Area - Fixed at bottom of chat container */}
-          <div className=" pb-4 pt-2 bg-base-100">
+          <div className=" pb-4 pt-2 bg-base-200">
             <div className="max-w-4xl mx-auto">
               <form onSubmit={sendMessage} className="flex gap-2 items-end">
                 <div className="flex-1">
                   <textarea
-                    className="textarea textarea-bordered w-full resize-none focus:textarea-primary rounded-xl text-base leading-tight py-3"
-                    rows={1}
+                    className="textarea textarea-bordered w-full resize-none focus:textarea-primary rounded-xl text-base leading-tight"
+                    rows={2}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -115,6 +115,7 @@ export default function ChatPage() {
                     placeholder="Type your message..."
                     disabled={loading}
                     autoFocus
+                    suppressHydrationWarning={true}
                     onInput={(e) => {
                       const target = e.target as HTMLTextAreaElement;
                       target.style.height = "auto";
@@ -125,7 +126,7 @@ export default function ChatPage() {
                 </div>
                 <button
                   type="submit"
-                  className={`btn font-medium btn-square rounded-xl mb-2 ${
+                  className={`btn font-medium btn-lg btn-square  ${
                     loading || !input.trim() ? "btn-disabled" : "btn-primary"
                   }`}
                   disabled={loading || !input.trim()}

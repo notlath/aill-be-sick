@@ -1,5 +1,6 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
+import type { Config } from "tailwindcss";
+
+const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx}",
     "./pages/**/*.{js,ts,jsx,tsx}",
@@ -8,79 +9,12 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Onest", "sans-serif"],
-        onest: ["Onest", "sans-serif"],
+        sans: ["var(--font-onest)", "sans-serif"],
+        onest: ["var(--font-onest)", "sans-serif"],
       },
     },
   },
   plugins: [require("daisyui")],
-  // @ts-ignore - DaisyUI configuration
-  daisyui: {
-    themes: [
-      {
-        "aill-be-sick": {
-          "color-scheme": "light",
-          primary: "oklch(60% 0.118 184.704)",
-          "primary-content": "oklch(98% 0.014 180.72)",
-          secondary: "oklch(40% 0.17 325.612)",
-          "secondary-content": "oklch(98% 0.014 180.72)",
-          accent: "oklch(37% 0.01 67.558)",
-          "accent-content": "oklch(98% 0.014 180.72)",
-          neutral: "oklch(97% 0.001 106.424)",
-          "neutral-content": "oklch(26% 0.007 34.298)",
-          "base-100": "oklch(98% 0.014 180.72)",
-          "base-200": "oklch(97% 0.001 106.424)",
-          "base-300": "oklch(92% 0.003 48.717)",
-          "base-content": "oklch(21% 0.006 56.043)",
-          info: "oklch(62% 0.214 259.815)",
-          "info-content": "oklch(97% 0.014 254.604)",
-          success: "oklch(72% 0.219 149.579)",
-          "success-content": "oklch(98% 0.018 155.826)",
-          warning: "oklch(76% 0.188 70.08)",
-          "warning-content": "oklch(98% 0.016 73.684)",
-          error: "oklch(64% 0.246 16.439)",
-          "error-content": "oklch(96% 0.015 12.422)",
-          "--rounded-box": "1rem",
-          "--rounded-btn": "0.5rem",
-          "--rounded-badge": "1.9rem",
-          "--animation-btn": "0.25s",
-          "--animation-input": "0.2s",
-          "--btn-focus-scale": "0.95",
-          "--border-btn": "1px",
-          "--tab-border": "1px",
-          "--tab-radius": "0.5rem",
-        },
-      },
-      "light",
-      "dark",
-      "cupcake",
-      "bumblebee",
-      "emerald",
-      "corporate",
-      "synthwave",
-      "retro",
-      "cyberpunk",
-      "valentine",
-      "halloween",
-      "garden",
-      "forest",
-      "aqua",
-      "lofi",
-      "pastel",
-      "fantasy",
-      "wireframe",
-      "black",
-      "luxury",
-      "dracula",
-      "cmyk",
-      "autumn",
-      "business",
-      "acid",
-      "lemonade",
-      "night",
-      "coffee",
-      "winter",
-    ],
-    defaultTheme: "aill-be-sick",
-  },
 };
+
+export default config;

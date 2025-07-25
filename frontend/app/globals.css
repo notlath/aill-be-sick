@@ -6,7 +6,7 @@
   prefersdark: false;
   color-scheme: light;
 
-  --color-base-100: oklch(98% 0.014 180.72);
+  --color-base-100: oklch(98% 0.001 106.423);
   --color-base-200: oklch(97% 0.001 106.424);
   --color-base-300: oklch(92% 0.003 48.717);
   --color-base-content: oklch(21% 0.006 56.043);
@@ -103,37 +103,4 @@
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--bc) / 0.3);
-}
-
-/* Enhanced chat bubble hover effects */
-.chat-bubble {
-  transition: all 0.2s ease-in-out;
-}
-
-.chat-bubble:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.3);
-}
-
-/* Button enhancements */
-.btn {
-  transition: all 0.2s ease-in-out;
-}
-
-.btn:hover {
-  transform: translateY(-1px);
-}
-
-/* Input focus effects */
-.input:focus {
-  box-shadow: 0 0 0 3px hsl(var(--p) / 0.2);
-}
-
-/* Card hover effect */
-.card {
-  transition: all 0.3s ease-in-out;
-}
-
-.card:hover {
-  transform: translateY(-2px);
 }
