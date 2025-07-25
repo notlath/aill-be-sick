@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI'll Be Sick - Chat Assistant",
+  title: "AI'll Be Sick",
   description: "AI-powered chat assistant for health consultations",
 };
 

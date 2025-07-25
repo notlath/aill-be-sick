@@ -32,11 +32,11 @@ export async function POST(request: NextRequest) {
     } else {
       // Random responses for variety
       const responses = [
-        "That's an interesting question! Let me think about that...",
-        "I understand what you're asking. Here's what I think...",
-        "Great question! Based on what you've shared...",
-        "I see what you mean. From my perspective...",
-        "That's a good point to consider. I'd say...",
+        "Mamamatay ka na",
+        "WALA AKONG PAKE",
+        "Subscribe to william bagets milker",
+        "???",
+        "MA'AM MONA THE BEST PROF",
       ];
       reply = responses[Math.floor(Math.random() * responses.length)];
     }
