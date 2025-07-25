@@ -1,6 +1,48 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "daisyui";
+@plugin "daisyui/theme" {
+  name: "aill-be-sick";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: oklch(98% 0.014 180.72);
+  --color-base-200: oklch(97% 0.001 106.424);
+  --color-base-300: oklch(92% 0.003 48.717);
+  --color-base-content: oklch(21% 0.006 56.043);
+  --color-primary: oklch(60% 0.118 184.704);
+  --color-primary-content: oklch(98% 0.014 180.72);
+  --color-secondary: oklch(40% 0.17 325.612);
+  --color-secondary-content: oklch(98% 0.014 180.72);
+  --color-accent: oklch(37% 0.01 67.558);
+  --color-accent-content: oklch(98% 0.014 180.72);
+  --color-neutral: oklch(97% 0.001 106.424);
+  --color-neutral-content: oklch(26% 0.007 34.298);
+  --color-info: oklch(62% 0.214 259.815);
+  --color-info-content: oklch(97% 0.014 254.604);
+  --color-success: oklch(72% 0.219 149.579);
+  --color-success-content: oklch(98% 0.018 155.826);
+  --color-warning: oklch(76% 0.188 70.08);
+  --color-warning-content: oklch(98% 0.016 73.684);
+  --color-error: oklch(64% 0.246 16.439);
+  --color-error-content: oklch(96% 0.015 12.422);
+
+  /* border radius */
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+
+  /* base sizes */
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+
+  /* border size */
+  --border: 1px;
+
+  /* effects */
+  --depth: 0;
+  --noise: 0;
+}
 
 /* Custom animations */
 @keyframes fade-in {

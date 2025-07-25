@@ -74,7 +74,7 @@ export default function ChatPage() {
                     className={`px-4 py-2 rounded-2xl max-w-2xl break-words whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "bg-primary text-primary-content ml-auto"
-                        : "bg-base-200 text-base-content"
+                        : "bg-base-300 text-base-content"
                     }`}
                   >
                     {msg.content}
@@ -84,7 +84,7 @@ export default function ChatPage() {
 
               {loading && (
                 <div className="chat chat-start">
-                  <div className="px-4 py-2 rounded-2xl max-w-xs bg-base-200 text-base-content break-words whitespace-pre-wrap">
+                  <div className="px-4 py-2 rounded-2xl max-w-xs bg-base-300 text-base-content break-words whitespace-pre-wrap">
                     <div className="flex items-center space-x-2">
                       <span className="loading loading-spinner loading-xs"></span>
                       <span>Thinking...</span>
@@ -97,7 +97,7 @@ export default function ChatPage() {
           </div>
 
           {/* Input Area - Fixed at bottom of chat container */}
-          <div className=" p-4 bg-base-100">
+          <div className=" pb-4 pt-2 bg-base-100">
             <div className="max-w-4xl mx-auto">
               <form onSubmit={sendMessage} className="flex gap-2 items-end">
                 <div className="flex-1">
@@ -133,7 +133,6 @@ export default function ChatPage() {
                   {loading ? (
                     <>
                       <span className="loading loading-spinner loading-xs"></span>
-                      Sending...
                     </>
                   ) : (
                     <>
