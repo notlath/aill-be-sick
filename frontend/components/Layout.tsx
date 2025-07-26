@@ -9,16 +9,16 @@ interface LayoutProps {
 }
 
 export default function Layout({ children, pageTitle }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
   return (
-    <div className="h-screen bg-base-100 text-base-content flex overflow-hidden">
-      <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+    <div className="drawer h-screen lg:drawer-open">
+      <input id="drawer-toggle" type="checkbox" className="drawer-toggle" />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <MobileHeader setSidebarOpen={setSidebarOpen} title={pageTitle} />
-        {children}
+      <div className="drawer-content flex h-full flex-col">
+        <MobileHeader title={pageTitle} />
+        <main className="flex-1 overflow-hidden bg-base-100">{children}</main>
       </div>
+
+      <Sidebar />
     </div>
   );
 }

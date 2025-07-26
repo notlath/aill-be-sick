@@ -57,7 +57,7 @@ export default function ChatPage() {
 
   return (
     <Layout pageTitle="AI'll Be Sick">
-      <div className="flex w-full flex-1 flex-col overflow-hidden">
+      <div className="flex h-full flex-col">
         {/* Chat Container */}
         <div className="flex flex-1 flex-col overflow-hidden bg-base-200">
           {/* Chat Messages */}
@@ -71,7 +71,7 @@ export default function ChatPage() {
                   }`}
                 >
                   <div
-                    className={`max-w-2xl rounded-2xl px-4 py-2 break-words whitespace-pre-wrap ${
+                    className={`max-w-2xl rounded-field px-4 py-2 break-words whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "ml-auto bg-primary text-primary-content"
                         : "bg-base-300 text-base-content"
@@ -97,7 +97,7 @@ export default function ChatPage() {
           </div>
 
           {/* Input Area - Fixed at bottom of chat container */}
-          <div className="bg-base-200 pt-2 pb-4">
+          <div className="shrink-0 bg-base-200 pt-2 pb-4">
             <div className="mx-auto max-w-4xl">
               <form onSubmit={sendMessage} className="flex items-end gap-2">
                 <div className="flex-1">
