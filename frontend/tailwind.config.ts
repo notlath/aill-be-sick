@@ -6,15 +6,8 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
   ],
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ["var(--font-onest)", "sans-serif"],
-        onest: ["var(--font-onest)", "sans-serif"],
-      },
-    },
-  },
-  plugins: [require("daisyui")],
+  // Note: In Tailwind CSS v4, most config is moved to CSS
+  // Keep minimal config here, move theme customization to globals.css
 };
 
 export default config;

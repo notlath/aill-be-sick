@@ -11,7 +11,7 @@ export default function MobileHeader({
   title = "AI'll Be Sick",
 }: MobileHeaderProps) {
   return (
-    <div className="lg:hidden flex items-center justify-between p-4 border-b border-base-300 bg-base-100 flex-shrink-0">
+    <div className="lg:hidden flex items-center justify-between p-4 border-b border-base-300 bg-base-100 shrink-0">
       <button
         onClick={() => setSidebarOpen(true)}
         className="btn btn-ghost btn-sm"

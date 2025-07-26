@@ -69,7 +69,7 @@ export default function NewPage() {
           <input
             id="symptoms"
             name="symptoms"
-            className="flex justify-center items-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] px-4 sm:px-5 border dark:border-white/[.145] hover:border-transparent border-black/[.08] border-solid rounded-full h-10 sm:h-12 font-medium text-sm sm:text-base transition-colors"
+            className="flex justify-center items-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] px-4 sm:px-5 border dark:border-white/[.145] hover:border-transparent border-black/8 border-solid rounded-full h-10 sm:h-12 font-medium text-sm sm:text-base transition-colors"
             placeholder="Symptoms (e.g., fever, cough)"
             required
           />

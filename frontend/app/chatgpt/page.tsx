@@ -57,12 +57,12 @@ export default function ChatPage() {
 
   return (
     <Layout pageTitle="AI'll Be Sick">
-      <div className="flex-1 flex flex-col w-full overflow-hidden">
+      <div className="flex w-full flex-1 flex-col overflow-hidden">
         {/* Chat Container */}
-        <div className="flex-1 bg-base-200 flex flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden bg-base-200">
           {/* Chat Messages */}
-          <div className="flex-1 overflow-y-auto space-y-4 pt-16 px-6 pb-6">
-            <div className="max-w-4xl mx-auto space-y-4">
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 pt-16 pb-6">
+            <div className="mx-auto max-w-4xl space-y-4">
               {messages.map((msg, i) => (
                 <div
                   key={i}
@@ -71,9 +71,9 @@ export default function ChatPage() {
                   }`}
                 >
                   <div
-                    className={`px-4 py-2 rounded-2xl max-w-2xl break-words whitespace-pre-wrap ${
+                    className={`max-w-2xl rounded-2xl px-4 py-2 break-words whitespace-pre-wrap ${
                       msg.role === "user"
-                        ? "bg-primary text-primary-content ml-auto"
+                        ? "ml-auto bg-primary text-primary-content"
                         : "bg-base-300 text-base-content"
                     }`}
                   >
@@ -83,10 +83,10 @@ export default function ChatPage() {
               ))}
 
               {loading && (
-                <div className="chat chat-start">
-                  <div className="px-4 py-2 rounded-2xl max-w-xs bg-base-300 text-base-content break-words whitespace-pre-wrap">
+                <div className="chat-start chat">
+                  <div className="max-w-xs rounded-2xl bg-base-300 px-4 py-2 break-words whitespace-pre-wrap text-base-content">
                     <div className="flex items-center space-x-2">
-                      <span className="loading loading-spinner loading-xs"></span>
+                      <span className="loading loading-xs loading-spinner"></span>
                       <span>Thinking...</span>
                     </div>
                   </div>
@@ -97,12 +97,12 @@ export default function ChatPage() {
           </div>
 
           {/* Input Area - Fixed at bottom of chat container */}
-          <div className=" pb-4 pt-2 bg-base-200">
-            <div className="max-w-4xl mx-auto">
-              <form onSubmit={sendMessage} className="flex gap-2 items-end">
+          <div className="bg-base-200 pt-2 pb-4">
+            <div className="mx-auto max-w-4xl">
+              <form onSubmit={sendMessage} className="flex items-end gap-2">
                 <div className="flex-1">
                   <textarea
-                    className="textarea textarea-bordered w-full resize-none focus:textarea-primary rounded-xl text-base leading-tight"
+                    className="textarea w-full resize-none rounded-xl text-base leading-tight focus:textarea-primary"
                     rows={2}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
@@ -126,14 +126,14 @@ export default function ChatPage() {
                 </div>
                 <button
                   type="submit"
-                  className={`btn font-medium btn-lg btn-square  ${
+                  className={`btn btn-square font-medium btn-lg ${
                     loading || !input.trim() ? "btn-disabled" : "btn-primary"
                   }`}
                   disabled={loading || !input.trim()}
                 >
                   {loading ? (
                     <>
-                      <span className="loading loading-spinner loading-xs"></span>
+                      <span className="loading loading-xs loading-spinner"></span>
                     </>
                   ) : (
                     <>

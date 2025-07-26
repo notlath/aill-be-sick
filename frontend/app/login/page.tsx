@@ -32,7 +32,7 @@ export default function Home() {
             id="email"
             name="email"
             type="email"
-            className="flex justify-center items-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] px-4 sm:px-5 border dark:border-white/[.145] hover:border-transparent border-black/[.08] border-solid rounded-full h-10 sm:h-12 font-medium text-sm sm:text-base transition-colors"
+            className="flex justify-center items-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] px-4 sm:px-5 border dark:border-white/[.145] hover:border-transparent border-black/8 border-solid rounded-full h-10 sm:h-12 font-medium text-sm sm:text-base transition-colors"
             placeholder="Email"
             required
           />
@@ -40,7 +40,7 @@ export default function Home() {
             id="password"
             name="password"
             type="password"
-            className="flex justify-center items-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] px-4 sm:px-5 border dark:border-white/[.145] hover:border-transparent border-black/[.08] border-solid rounded-full h-10 sm:h-12 font-medium text-sm sm:text-base transition-colors"
+            className="flex justify-center items-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] px-4 sm:px-5 border dark:border-white/[.145] hover:border-transparent border-black/8 border-solid rounded-full h-10 sm:h-12 font-medium text-sm sm:text-base transition-colors"
             placeholder="Password"
             required
           />
@@ -62,7 +62,7 @@ export default function Home() {
             <button
               formAction={signup}
               type="submit"
-              className="flex justify-center items-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] px-4 sm:px-5 border dark:border-white/[.145] hover:border-transparent border-black/[.08] border-solid rounded-full w-full sm:w-auto md:w-[158px] h-10 sm:h-12 font-medium text-sm sm:text-base transition-colors cursor-pointer"
+              className="flex justify-center items-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] px-4 sm:px-5 border dark:border-white/[.145] hover:border-transparent border-black/8 border-solid rounded-full w-full sm:w-auto md:w-[158px] h-10 sm:h-12 font-medium text-sm sm:text-base transition-colors cursor-pointer"
             >
               Sign up
             </button>

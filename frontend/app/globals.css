@@ -1,5 +1,8 @@
 @import "tailwindcss";
-@plugin "daisyui";
+@plugin "daisyui" {
+  themes: aill-be-sick --default;
+}
+
 @plugin "daisyui/theme" {
   name: "aill-be-sick";
   default: true;
@@ -42,6 +45,12 @@
   /* effects */
   --depth: 0;
   --noise: 0;
+}
+
+/* Custom font configuration for v4 */
+@theme {
+  --font-family-sans: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
+  --font-family-onest: var(--font-onest), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Custom animations */
