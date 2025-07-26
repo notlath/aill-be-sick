@@ -102,7 +102,7 @@ export default function ChatPage() {
               <form onSubmit={sendMessage} className="flex items-end gap-2">
                 <div className="flex-1">
                   <textarea
-                    className="textarea w-full resize-none rounded-xl text-base leading-tight focus:textarea-primary"
+                    className="textarea w-full resize-none text-base leading-tight focus:textarea-primary"
                     rows={2}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
