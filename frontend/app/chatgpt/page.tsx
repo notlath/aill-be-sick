@@ -30,6 +30,12 @@ export default function ChatPage() {
     setLoading(true);
     setInput("");
 
+    // Reset textarea height after clearing input
+    const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
+    if (textarea) {
+      textarea.style.height = "auto";
+    }
+
     try {
       // Replace this with your backend API call
       const res = await fetch("/api/chat", {
@@ -57,21 +63,21 @@ export default function ChatPage() {
 
   return (
     <Layout pageTitle="AI'll Be Sick">
-      <div className="flex h-full flex-col">
+      <div className="flex h-screen flex-col">
         {/* Chat Container */}
         <div className="flex flex-1 flex-col overflow-hidden bg-base-200">
           {/* Chat Messages */}
-          <div className="flex-1 space-y-4 overflow-y-auto px-6 pt-16 pb-6">
+          <div className="scrollbar-overlay flex-1 overflow-y-auto pt-14 pl-4">
             <div className="mx-auto max-w-4xl space-y-4">
               {messages.map((msg, i) => (
                 <div
                   key={i}
-                  className={`chat ${
+                  className={` ${
                     msg.role === "user" ? "chat-end" : "chat-start"
                   }`}
                 >
                   <div
-                    className={`max-w-2xl rounded-field px-4 py-2 break-words whitespace-pre-wrap ${
+                    className={`max-w-2xl rounded-3xl px-4 py-2 break-words whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "ml-auto bg-primary text-primary-content"
                         : "bg-base-300 text-base-content"
@@ -84,7 +90,7 @@ export default function ChatPage() {
 
               {loading && (
                 <div className="chat-start chat">
-                  <div className="max-w-xs rounded-2xl bg-base-300 px-4 py-2 break-words whitespace-pre-wrap text-base-content">
+                  <div className="max-w-xs rounded-3xl bg-base-300 px-4 py-2 break-words whitespace-pre-wrap text-base-content">
                     <div className="flex items-center space-x-2">
                       <span className="loading loading-xs loading-spinner"></span>
                       <span>Thinking...</span>
@@ -97,13 +103,16 @@ export default function ChatPage() {
           </div>
 
           {/* Input Area - Fixed at bottom of chat container */}
-          <div className="shrink-0 bg-base-200 pt-2 pb-4">
+          <div className="flex-shrink-0 bg-base-200 pt-2 pb-4">
             <div className="mx-auto max-w-4xl">
-              <form onSubmit={sendMessage} className="flex items-end gap-2">
+              <form
+                onSubmit={sendMessage}
+                className="flex items-end gap-2 rounded-2xl border-2 border-base-300 p-2"
+              >
                 <div className="flex-1">
                   <textarea
-                    className="textarea w-full resize-none text-base leading-tight focus:textarea-primary"
-                    rows={2}
+                    className="textarea min-h-12 w-full resize-none overflow-hidden border-0 p-2 text-base leading-tight focus:outline-none"
+                    rows={1}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
@@ -120,7 +129,7 @@ export default function ChatPage() {
                       const target = e.target as HTMLTextAreaElement;
                       target.style.height = "auto";
                       target.style.height =
-                        Math.min(target.scrollHeight, 120) + "px";
+                        Math.min(target.scrollHeight, 200) + "px";
                     }}
                   />
                 </div>

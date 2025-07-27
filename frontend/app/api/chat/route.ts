@@ -36,14 +36,14 @@ export async function POST(request: NextRequest) {
         "WALA AKONG PAKE",
         "Subscribe to william bagets milker",
         "???",
-        "MA'AM MONA THE BEST PROF",
+        "WiGuiTeurCe best thesis group ever",
       ];
       reply = responses[Math.floor(Math.random() * responses.length)];
     }
 
     // Simulate some processing time
     await new Promise((resolve) =>
-      setTimeout(resolve, 500 + Math.random() * 1000)
+      setTimeout(resolve, 500 + Math.random() * 1000),
     );
 
     return NextResponse.json({ reply });
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     console.error("Chat API error:", error);
     return NextResponse.json(
       { error: "Failed to process message" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
