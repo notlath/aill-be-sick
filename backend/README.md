@@ -1,22 +1,21 @@
-# Aill-Be-Sick Backend (Django)
+# Aill-Be-Sick Backend (Flask)
 
-This is the Django REST API backend for the Aill-Be-Sick disease detection system. It provides endpoints for symptom analysis and disease prediction, serving as the machine learning and data processing layer for the application.
+This is the Flask REST API backend for the Aill-Be-Sick disease detection system. It provides endpoints for symptom analysis and disease prediction, serving as the machine learning and data processing layer for the application.
 
 ## Features
 
 - **Disease Detection API**: Process symptoms and return disease predictions
 - **REST API**: JSON-based API endpoints for frontend integration
-- **Django Admin**: Administrative interface for data management
-- **SQLite Database**: Lightweight database for development
-- **CSRF Protection**: Configurable CSRF protection for API endpoints
+- **CORS Support**: Cross-Origin Resource Sharing for frontend integration
+- **Lightweight**: Minimal dependencies and fast startup
+- **Simple Deployment**: Easy to deploy and scale
 
 ## Tech Stack
 
-- **Framework**: Django 5.2
-- **Database**: SQLite3 (development)
-- **API**: Django REST Framework patterns
+- **Framework**: Flask 3.0
+- **CORS**: Flask-CORS for frontend integration
 - **Python**: 3.8+
-- **Admin Interface**: Django Admin
+- **Server**: Gunicorn for production deployment
 
 ## Prerequisites
 
@@ -30,24 +29,13 @@ Before running this application, make sure you have:
 
 ```
 backend/
-├── manage.py                 # Django management utility
-├── db.sqlite3               # SQLite database file
-├── abs/                     # Main project directory
-│   ├── __init__.py
-│   ├── settings.py          # Django settings configuration
-│   ├── urls.py              # Main URL routing
-│   ├── wsgi.py              # WSGI application
-│   └── asgi.py              # ASGI application
-└── classifications/         # Disease classification app
-    ├── __init__.py
-    ├── admin.py             # Admin interface configuration
-    ├── apps.py              # App configuration
-    ├── models.py            # Database models
-    ├── views.py             # API views and logic
-    ├── urls.py              # App-specific URL routing
-    ├── tests.py             # Unit tests
-    └── migrations/          # Database migrations
-        └── __init__.py
+├── app.py                   # Main Flask application
+├── requirements.txt         # Python dependencies
+├── run_flask.bat           # Windows batch file to run the app
+├── test_flask.py           # Testing utilities
+├── README.md               # This file
+├── README-flask.md         # Flask-specific documentation
+└── MIGRATION_GUIDE.md      # Django to Flask migration guide
 ```
 
 ## Installation & Setup
@@ -77,44 +65,38 @@ source venv/bin/activate
 ### 3. Install Dependencies
 
 ```bash
-pip install django
-pip install djangorestframework  # Optional: for advanced REST features
+pip install -r requirements.txt
 ```
 
-### 4. Environment Configuration
+### 4. Start Development Server
 
-The backend uses Django's default settings. For production, create a `.env` file:
-
-```env
-SECRET_KEY=your_secret_key_here
-DEBUG=False
-ALLOWED_HOSTS=localhost,127.0.0.1
-```
-
-### 5. Database Setup
-
-Run migrations to set up the SQLite database:
+**Option 1: Direct Python execution**
 
 ```bash
-python manage.py makemigrations
-python manage.py migrate
+python app.py
 ```
 
-### 6. Create Superuser (Optional)
-
-To access the Django admin interface:
+**Option 2: Using the batch file (Windows only)**
 
 ```bash
-python manage.py createsuperuser
+run_flask.bat
 ```
 
-### 7. Start Development Server
+**Option 3: Using Gunicorn (Production)**
 
 ```bash
-python manage.py runserver
+gunicorn app:app
 ```
 
-The Django backend will be available at `http://localhost:8000`
+The Flask backend will be available at `http://localhost:8000`
+
+## Testing
+
+Run the test script to verify the API is working:
+
+```bash
+python test_flask.py
+```
 
 ## API Endpoints
 
@@ -143,23 +125,13 @@ The Django backend will be available at `http://localhost:8000`
   }
   ```
 - **Status**: 201 Created
-- **Error Response**:
+- **Error Responses**:
   ```json
   {
-    "error": "Method not allowed"
+    "error": "No JSON data provided"
   }
   ```
-- **Error Status**: 405 Method Not Allowed
-
-### Admin Interface
-
-#### GET `/admin/`
-
-- **Description**: Django admin interface
-- **Access**: Requires superuser credentials
-- **Features**:
-  - User management
-  - Database inspection
+- **Error Status**: 400 Bad Request
   - Model administration
 
 ## Development
@@ -187,68 +159,53 @@ detected_disease = "Jabetis"  # Placeholder for actual disease detection logic
 To integrate actual ML models:
 
 1. Install ML dependencies (scikit-learn, pandas, etc.)
-2. Load trained models in the view
+2. Load trained models in the Flask app
 3. Process symptoms through the model
 4. Return predictions
 
-### Database Models
+### Adding Database Support
 
-Currently, the backend uses Django's default models. To add custom models for storing predictions, symptoms, or user data:
+Flask doesn't include an ORM by default, but you can add one easily:
+
+**Option 1: SQLAlchemy**
+
+```bash
+pip install flask-sqlalchemy
+```
+
+**Option 2: Simple JSON file storage**
 
 ```python
-# classifications/models.py
-from django.db import models
+import json
+from datetime import datetime
 
-class Symptom(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField()
-
-class Disease(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField()
-
-class Prediction(models.Model):
-    symptoms = models.JSONField()
-    predicted_disease = models.CharField(max_length=100)
-    confidence = models.FloatField()
-    timestamp = models.DateTimeField(auto_now_add=True)
+def save_prediction(symptoms, disease):
+    prediction = {
+        "symptoms": symptoms,
+        "predicted_disease": disease,
+        "timestamp": datetime.now().isoformat()
+    }
+    # Save to file or database
 ```
 
 ## Configuration
 
-### Settings Overview
+### Flask Configuration
 
-Key configuration options in `abs/settings.py`:
-
-- **DEBUG**: Set to `False` in production
-- **ALLOWED_HOSTS**: Configure for production domains
-- **DATABASE**: SQLite for development, PostgreSQL/MySQL for production
-- **SECRET_KEY**: Change for production deployment
-
-### CORS Configuration
-
-For frontend integration, you may need to install and configure CORS:
-
-```bash
-pip install django-cors-headers
-```
-
-Add to `settings.py`:
+Configure your Flask app in `app.py`:
 
 ```python
-INSTALLED_APPS = [
-    'corsheaders',
-    # ... other apps
-]
+app.config['DEBUG'] = True  # Set to False in production
+app.config['CORS_ORIGINS'] = ['http://localhost:3000']  # Frontend URL
+```
 
-MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    # ... other middleware
-]
+### Environment Variables
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Next.js frontend
-]
+For production, use environment variables:
+
+```python
+import os
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key')
 ```
 
 ## Testing
@@ -256,26 +213,20 @@ CORS_ALLOWED_ORIGINS = [
 ### Running Tests
 
 ```bash
-python manage.py test
+python test_flask.py
 ```
+
+This will test both API endpoints and verify the Flask app is working correctly.
 
 ### Adding Tests
 
-Add test cases in `classifications/tests.py`:
+You can extend `test_flask.py` with additional test cases:
 
 ```python
-from django.test import TestCase, Client
-import json
-
-class ClassificationAPITest(TestCase):
-    def setUp(self):
-        self.client = Client()
-
-    def test_new_case_endpoint(self):
-        response = self.client.post('/classifications/new',
-                                  json.dumps({"symptoms": ["fever", "cough"]}),
-                                  content_type='application/json')
-        self.assertEqual(response.status_code, 201)
+def test_error_handling():
+    """Test error responses"""
+    response = requests.post(f"{base_url}/classifications/new")
+    assert response.status_code == 400
 ```
 
 ## Deployment
@@ -283,34 +234,31 @@ class ClassificationAPITest(TestCase):
 ### Production Considerations
 
 1. **Environment Variables**: Use environment variables for sensitive settings
-2. **Database**: Switch to PostgreSQL or MySQL for production
-3. **Static Files**: Configure static file serving
-4. **Security**: Update `SECRET_KEY`, disable `DEBUG`, configure `ALLOWED_HOSTS`
-5. **WSGI/ASGI**: Use production WSGI server like Gunicorn
+2. **WSGI Server**: Use Gunicorn for production deployment
+3. **Security**: Configure proper CORS, disable debug mode
+4. **Logging**: Add proper logging configuration
+5. **Process Management**: Use supervisor or systemd for process management
 
-### Example Production Settings
+### Production Deployment with Gunicorn
+
+```bash
+# Install gunicorn (already in requirements.txt)
+pip install gunicorn
+
+# Run with gunicorn
+gunicorn -w 4 -b 0.0.0.0:8000 app:app
+```
+
+### Example Production Configuration
 
 ```python
 import os
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+class Config:
+    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-key')
 
-SECRET_KEY = os.environ.get('SECRET_KEY')
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
-
-# Production database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
-    }
-}
+app.config.from_object(Config)
 ```
 
 ## API Usage Examples
@@ -347,39 +295,27 @@ print(response.json())
 
 ### Common Issues
 
-1. **Port already in use**: Change port with `python manage.py runserver 8001`
-2. **Migration errors**: Delete `db.sqlite3` and run migrations again
+1. **Port already in use**: Change port in `app.py`: `app.run(port=8001)`
+2. **CORS errors**: Verify Flask-CORS is installed and configured
 3. **Import errors**: Ensure virtual environment is activated
-4. **CSRF errors**: Use `@csrf_exempt` decorator for API endpoints
+4. **Module not found**: Install dependencies with `pip install -r requirements.txt`
 
 ### Debug Mode
 
-Enable detailed error messages by setting `DEBUG = True` in `settings.py`:
+Debug mode is enabled by default in `app.py`:
 
 ```python
-DEBUG = True
+app.run(debug=True)  # Shows detailed error messages
 ```
 
 ### Logging
 
-Add logging configuration for debugging:
+Add logging to your Flask app:
 
 ```python
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-        },
-    },
-}
+import logging
+logging.basicConfig(level=logging.INFO)
+app.logger.info('Flask app starting...')
 ```
 
 ## Frontend Integration
@@ -392,12 +328,13 @@ This backend is designed to work with the Next.js frontend. The frontend makes r
 ## Future Enhancements
 
 1. **Machine Learning Models**: Integrate actual ML models for disease prediction
-2. **User Authentication**: Add user management and authentication
-3. **Data Persistence**: Store predictions and user history
-4. **Advanced Analytics**: Add analytics and reporting features
-5. **API Documentation**: Implement Swagger/OpenAPI documentation
-6. **Rate Limiting**: Add API rate limiting for production use
-7. **Caching**: Implement Redis caching for improved performance
+2. **Database Integration**: Add SQLAlchemy for data persistence
+3. **User Authentication**: Add Flask-Login for user management
+4. **API Documentation**: Implement Flask-RESTX or Swagger for API docs
+5. **Rate Limiting**: Add Flask-Limiter for API rate limiting
+6. **Caching**: Implement Flask-Caching for improved performance
+7. **Input Validation**: Add request validation with marshmallow
+8. **Error Handling**: Implement comprehensive error handling and logging
 
 ## Contributing
 
