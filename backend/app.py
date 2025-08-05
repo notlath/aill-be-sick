@@ -9,6 +9,7 @@ CORS(app)  # Enable CORS for frontend integration
 # Initialize ML model
 predictor = None
 model_loaded = False
+available_symptoms = []
 
 # Try to load the trained model on startup
 try:
@@ -20,6 +21,16 @@ try:
         model_loaded = predictor.load_model("models")
         if model_loaded:
             print("✅ Naive Bayes model loaded successfully!")
+            # Load available symptoms for reference
+            try:
+                metadata_path = "models/model_metadata.json"
+                if os.path.exists(metadata_path):
+                    with open(metadata_path, "r") as f:
+                        metadata = json.load(f)
+                        available_symptoms = metadata.get("feature_columns", [])
+                        print(f"📊 Loaded {len(available_symptoms)} symptoms")
+            except Exception as e:
+                print(f"⚠️ Could not load symptom list: {e}")
         else:
             print(
                 "❌ Failed to load model. Train the model first with: python quick_start.py"
@@ -38,23 +49,29 @@ except Exception as e:
 @app.route("/classifications/", methods=["GET"])
 def index():
     """Main index endpoint with model status"""
-    return jsonify(
-        {
-            "message": "AI'll Be Sick - Disease Detection API",
-            "status": "online",
-            "model_loaded": model_loaded,
-            "model_type": "Naive Bayes" if model_loaded else "None",
-            "features": (
-                [
-                    "Disease prediction using Naive Bayes",
-                    "Trained on symbipredict_2022.csv dataset",
-                    "Probability-based symptom analysis",
-                ]
-                if model_loaded
-                else ["Model not loaded - train first"]
-            ),
-        }
-    )
+    response_data = {
+        "message": "AI'll Be Sick - Disease Detection API",
+        "status": "online",
+        "model_loaded": model_loaded,
+        "model_type": "Naive Bayes" if model_loaded else "None",
+        "available_symptoms_count": len(available_symptoms),
+        "features": (
+            [
+                "Disease prediction using Naive Bayes",
+                "Trained on symbipredict_2022.csv dataset",
+                "41 disease classes supported",
+                "132 symptom features",
+            ]
+            if model_loaded
+            else ["No model loaded - train first"]
+        ),
+    }
+
+    # Include sample symptoms for testing
+    if model_loaded and available_symptoms:
+        response_data["sample_symptoms"] = available_symptoms[:10]
+
+    return jsonify(response_data)
 
 
 @app.route("/classifications/new", methods=["POST"])
@@ -76,76 +93,52 @@ def new_case():
             # Convert symptom list to feature dictionary for the model
             symptoms_dict = {}
 
-            # Map symptoms to model features
-            # This will depend on your dataset column names
+            # Direct symptom matching with available features
             for symptom in symptoms:
                 symptom_clean = symptom.lower().strip().replace(" ", "_")
-                # Try to match with model features
-                for feature in predictor.feature_columns:
-                    if (
-                        symptom_clean in feature.lower()
-                        or feature.lower() in symptom_clean
-                    ):
-                        symptoms_dict[feature] = 1
-                        break
 
-            # If no direct matches, try some common mappings
-            if not symptoms_dict:
-                # Create generic symptom features (you can customize these)
-                common_mappings = {
-                    "fever": ["fever", "high_temperature", "temperature"],
-                    "cough": ["cough", "coughing"],
-                    "headache": ["headache", "head_pain"],
-                    "fatigue": ["fatigue", "tiredness", "weakness"],
-                    "nausea": ["nausea", "vomiting"],
-                    "diarrhea": ["diarrhea", "loose_stool"],
-                    "sore throat": ["sore_throat", "throat_pain"],
-                    "muscle pain": ["muscle_pain", "body_ache", "myalgia"],
-                    "shortness of breath": ["shortness_breath", "dyspnea"],
-                    "chest pain": ["chest_pain"],
-                }
+                # Try exact match first
+                if symptom_clean in available_symptoms:
+                    symptoms_dict[symptom_clean] = 1
+                else:
+                    # Try partial matching
+                    for feature in available_symptoms:
+                        if symptom_clean in feature or feature in symptom_clean:
+                            symptoms_dict[feature] = 1
+                            break
 
-                for symptom in symptoms:
-                    symptom_clean = symptom.lower().strip()
-                    for mapped_symptom, variations in common_mappings.items():
-                        if any(var in symptom_clean for var in variations):
-                            # Find matching feature in model
-                            for feature in predictor.feature_columns:
-                                if any(var in feature.lower() for var in variations):
-                                    symptoms_dict[feature] = 1
-                                    break
+            print(f"Mapped symptoms: {symptoms_dict}")
 
-            # Get ML prediction
-            prediction = predictor.predict_disease(symptoms_dict)
+            if symptoms_dict:
+                # Get ML prediction
+                prediction = predictor.predict_disease(symptoms_dict)
 
-            if "error" in prediction:
-                # Fallback to simple prediction
-                detected_disease = predict_disease_simple(symptoms)
-                response_data = {
-                    "data": detected_disease,
-                    "confidence": 0.5,
-                    "model_used": "Fallback (rule-based)",
-                    "note": "Model prediction failed, using simple rules",
-                    "error": prediction["error"],
-                }
-            else:
                 response_data = {
                     "data": prediction["predicted_disease"],
                     "confidence": prediction["confidence"],
-                    "all_probabilities": prediction["all_probabilities"],
+                    "all_probabilities": prediction.get("all_probabilities", {}),
                     "model_used": "Naive Bayes",
-                    "features_matched": len(symptoms_dict),
+                    "symptoms_mapped": list(symptoms_dict.keys()),
                     "input_symptoms": symptoms,
                 }
-
+            else:
+                # No symptoms could be mapped
+                response_data = {
+                    "data": "Unknown - symptoms not recognized",
+                    "confidence": 0.0,
+                    "error": "Could not map input symptoms to model features",
+                    "available_symptoms": available_symptoms[
+                        :20
+                    ],  # Show first 20 for reference
+                    "input_symptoms": symptoms,
+                }
         else:
-            # Fallback to simple rule-based prediction
-            detected_disease = predict_disease_simple(symptoms)
+            # Fallback when model is not loaded
             response_data = {
-                "data": detected_disease,
-                "confidence": 0.5,
-                "model_used": "Rule-based (no ML model)",
-                "note": "Train ML model with 'python quick_start.py'",
+                "data": "Model not available",
+                "confidence": 0.0,
+                "error": "ML model not loaded. Run 'python quick_start.py' to train.",
+                "input_symptoms": symptoms,
             }
 
         return jsonify(response_data), 201
@@ -154,76 +147,30 @@ def new_case():
         return jsonify({"error": str(e)}), 500
 
 
-def predict_disease_simple(symptoms):
-    """Simple rule-based fallback prediction"""
-    symptoms_lower = [s.lower() for s in symptoms]
-
-    # Simple rule-based logic as fallback
-    if any(s in symptoms_lower for s in ["fever", "headache", "joint pain", "rash"]):
-        return "Dengue"
-    elif any(
-        s in symptoms_lower for s in ["cough", "fever", "weight loss", "night sweats"]
-    ):
-        return "Tuberculosis"
-    elif any(s in symptoms_lower for s in ["fever", "cough", "fatigue", "muscle pain"]):
-        return "Influenza"
-    elif any(s in symptoms_lower for s in ["chest pain", "shortness of breath"]):
-        return "Respiratory condition"
-    elif any(s in symptoms_lower for s in ["diarrhea", "nausea", "vomiting"]):
-        return "Gastroenteritis"
+@app.route("/symptoms", methods=["GET"])
+def get_symptoms():
+    """Get list of available symptoms for the model"""
+    if model_loaded and available_symptoms:
+        return jsonify(
+            {
+                "available_symptoms": available_symptoms,
+                "total_count": len(available_symptoms),
+                "sample_usage": {
+                    "endpoint": "/classifications/new",
+                    "method": "POST",
+                    "body": {"symptoms": ["itching", "skin_rash", "fatigue"]},
+                },
+            }
+        )
     else:
-        return "General illness"
-
-
-@app.route("/train", methods=["POST"])
-def train_model():
-    """Endpoint to trigger model training"""
-    try:
-        print("Starting model training...")
-
-        # Import and run training
-        from train_naive_bayes import main as train_main
-
-        train_main()
-
-        # Reload the model
-        global model_loaded, predictor
-        if predictor:
-            model_loaded = predictor.load_model("models")
-
         return (
             jsonify(
                 {
-                    "message": "Model training completed successfully",
-                    "model_loaded": model_loaded,
+                    "error": "Model not loaded",
+                    "message": "Train the model first with: python quick_start.py",
                 }
             ),
-            200,
-        )
-
-    except Exception as e:
-        return jsonify({"error": f"Training failed: {str(e)}"}), 500
-
-
-@app.route("/model/status", methods=["GET"])
-def model_status():
-    """Get model status and metadata"""
-    if model_loaded and predictor:
-        return jsonify(
-            {
-                "model_loaded": True,
-                "model_metadata": predictor.model_metadata,
-                "features_count": len(predictor.feature_columns),
-                "diseases_count": len(predictor.disease_mapping),
-                "diseases": list(predictor.disease_mapping.values()),
-            }
-        )
-    else:
-        return jsonify(
-            {
-                "model_loaded": False,
-                "message": "No model loaded. Train first with 'python quick_start.py'",
-            }
+            500,
         )
 
 

@@ -9,12 +9,12 @@ import sys
 
 def check_dependencies():
     """Check if required packages are installed"""
-    required_packages = ["pandas", "numpy", "scikit-learn", "joblib"]
+    required_packages = ["pandas", "numpy", "sklearn", "joblib"]
 
     missing_packages = []
     for package in required_packages:
         try:
-            __import__(package.replace("-", "_"))
+            __import__(package)
         except ImportError:
             missing_packages.append(package)
 
