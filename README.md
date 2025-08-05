@@ -1,12 +1,12 @@
 # AILL-BE-SICK - A Predictive Intelligent Health Screening and Analysis System
 
-A full-stack application for disease detection based on symptoms, built with Django backend and Next.js frontend.
+A full-stack application for disease detection based on symptoms, built with Flask backend and Next.js frontend.
 
 ## Project Structure
 
 ```
 aill-be-sick-test/
-├── backend/          # Django REST API
+├── backend/          # Flask REST API
 ├── frontend/         # Next.js React application
 └── README.md
 ```
@@ -15,12 +15,14 @@ aill-be-sick-test/
 
 Before setting up the project, ensure you have the following installed:
 
-- **Python 3.8+** (for Django backend)
+- **Python 3.8+** (for Flask backend)
 - **Node.js 18+** (for Next.js frontend)
 - **npm** or **yarn** or **bun** (package manager)
 - **Git** (for version control)
 
-## Backend Setup (Django)
+## Backend Setup (Flask)
+
+For detailed backend docs, see backend/README.md.
 
 ### 1. Navigate to Backend Directory
 
@@ -52,17 +54,30 @@ pip install -r requirements.txt
 
 ### 4. Start Development Server
 
+Option 1: Direct Python execution
+
 ```bash
-python manage.py runserver
+python app.py
 ```
 
-The Django backend will be available at `http://localhost:8000`
+Option 2: Windows batch file
+
+```bash
+run_flask.bat
+```
+
+Option 3: Gunicorn (production-like)
+
+```bash
+gunicorn -w 4 -b 0.0.0.0:8000 app:app
+```
+
+The Flask backend will be available at `http://localhost:8000`.
 
 ### API Endpoints
 
-- `GET /classifications/` - Test endpoint
+- `GET /classifications/` - Health check / greeting
 - `POST /classifications/new` - Disease detection endpoint
-- `GET /admin/` - Django admin panel
 
 ## Frontend Setup (Next.js)
 
@@ -70,9 +85,9 @@ The `frontend` directory contains everything related to the web interface of the
 
 ### Key Technologies
 
-- **Next.js:** A popular framework for building modern web apps. It helps with routing (deciding which page to show), server-side rendering (faster page loads), and more.
-- **Prisma:** An easy-to-use toolkit for working with databases in JavaScript/TypeScript projects.
-- **TypeScript:** A language built on top of JavaScript that helps you catch mistakes before you run your code. It's just JavaScript with types.
+- **Next.js:** A popular framework for building modern web apps. It helps with routing, server-side rendering, and more.
+- **Prisma:** Toolkit for working with databases in JavaScript/TypeScript projects.
+- **TypeScript:** JavaScript with types for safer development.
 
 ### Folder Structure
 
@@ -86,15 +101,15 @@ This is where most of the web pages live. With Next.js, each folder or file unde
 You’ll also find special files here for layouts, loading indicators, and error handling.
 
 #### `/actions`
-This folder is for functions that handle things like submitting forms, fetching data, or other logic that needs to happen when users interact with the app. Each file corresponds to exactly one server action. These are sometimes called "actions" or "controllers".
+This folder holds server actions that handle submitting forms, fetching data, and other app logic.
 
 #### `/prisma`
-Here you’ll find files related to the database. Most importantly:
-- `schema.prisma`: Defines the shape of your data (tables, fields, etc).
-- You might also see migration files that help update the database as the project grows.
+Database-related files:
+- `schema.prisma`: Defines the data model.
+- Migration files as the project evolves.
 
 #### `/utils`
-Short for "utilities," this folder stores helper functions and reusable code snippets. For example, you might have a function that formats dates or cleans up text.
+Helper functions and reusable code (e.g., formatting, data transforms).
 
 ### 1. Navigate to Frontend Directory
 
@@ -132,8 +147,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 DATABASE_URL="your_database_url"
 ```
 
-**Note:** The project uses Supabase/PostgreSQL for the frontend database. Configure your database connection string accordingly.
-
 ### 4. Database Setup (Prisma)
 
 Generate Prisma client:
@@ -168,7 +181,7 @@ Using bun:
 bun dev
 ```
 
-The Next.js frontend will be available at `http://localhost:3000`
+The Next.js frontend will be available at `http://localhost:3000`.
 
 ## Running the Full Application
 
@@ -177,8 +190,10 @@ The Next.js frontend will be available at `http://localhost:3000`
 In the `backend` directory:
 
 ```bash
-python manage.py runserver
+python app.py
 ```
+
+(or use `run_flask.bat` on Windows)
 
 ### 2. Start Frontend Server
 
@@ -192,7 +207,6 @@ npm run dev
 
 - **Frontend:** http://localhost:3000
 - **Backend API:** http://localhost:8000
-- **Django Admin:** http://localhost:8000/admin
 
 ## Usage
 
@@ -204,12 +218,12 @@ npm run dev
 
 ## Development Features
 
-### Backend (Django)
+### Backend (Flask)
 
 - REST API for disease detection
-- Django admin interface
-- CSRF exemption for API endpoints
+- CORS enabled for frontend integration
 - JSON request/response handling
+- Simple, lightweight setup with fast startup
 
 ### Frontend (Next.js)
 
@@ -222,7 +236,7 @@ npm run dev
 
 ## Project Architecture
 
-- **Backend:** Django REST API that processes symptoms and returns disease predictions
+- **Backend:** Flask REST API that processes symptoms and returns disease predictions
 - **Frontend:** Next.js application with server-side rendering and client-side interactions
 - **Database:**
   - PostgreSQL for Next.js frontend (via Prisma/Supabase)
@@ -232,16 +246,16 @@ npm run dev
 ### Common Issues
 
 1. **Port conflicts:** Ensure ports 3000 and 8000 are available
-2. **CORS issues:** The backend is configured to accept requests from the frontend
+2. **CORS issues:** Ensure Flask-CORS is installed and configured
 3. **Database connections:** Verify your DATABASE_URL in the frontend `.env.local`
 4. **Python path:** Make sure your virtual environment is activated for the backend
 
-### Backend Issues
+### Backend Checks
 
-- Check if Django is properly installed: `python -m django --version`
-- Verify database migrations: `python manage.py showmigrations`
+- Verify Flask is installed and venv is active
+- Ensure the server is listening on the expected port (`app.run(..., port=8000)`)
 
-### Frontend Issues
+### Frontend Checks
 
 - Clear node modules and reinstall: `rm -rf node_modules && npm install`
 - Check Prisma client generation: `npx prisma generate`
