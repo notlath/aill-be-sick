@@ -20,6 +20,6 @@ model Case {
   disease   String
   createdAt DateTime @default(now())
   userId    Int
-  symptoms  String[]
+  symptoms  String
   user      User     @relation(fields: [userId], references: [id])
 }

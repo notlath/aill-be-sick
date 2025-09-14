@@ -280,3 +280,6 @@ frontend/prisma/migrations/
 prisma/dev.db
 prisma/*.db
 **/prisma/*.db
+
+# Models
+backend/models

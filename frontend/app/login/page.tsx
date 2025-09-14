@@ -1,9 +1,3 @@
-// export default function LoginPage() {
-//   return (
-
-//   );
-// }
-
 import Image from "next/image";
 import { login, signup } from "@/actions/auth";
 

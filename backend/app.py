@@ -1,10 +1,18 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
+from transformers import pipeline
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend integration
 
+model_path = "models/BioClinical-ModernBERT-base-Symptom2Disease-dataset"
+classifier = pipeline(
+    "text-classification",
+    model=model_path,
+    tokenizer=model_path,
+    device=0,  # Use GPU if available; set to -1 for CPU
+)
 
 @app.route("/classifications/", methods=["GET"])
 def index():
@@ -17,17 +25,18 @@ def new_case():
     """Create new case endpoint - equivalent to Django's new_case view"""
     try:
         data = request.get_json()
+
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
 
-        symptoms = data.get("symptoms", [])
+        symptoms = data.get("symptoms", "")
 
         print("Detecting disease for symptoms:", symptoms)
 
         # Insert machine learning stuff
-        detected_disease = "Jabetis"  # Placeholder for actual disease detection logic
+        result = classifier(symptoms)[0]
 
-        return jsonify({"data": detected_disease}), 201
+        return jsonify({"data": result['label']}), 201
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

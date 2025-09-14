@@ -17,8 +17,7 @@ export default function NewPage() {
       return;
     }
 
-    const symptomsString = formData.get("symptoms") as string;
-    const symptoms = symptomsString.split(",").map((symptom) => symptom.trim());
+    const symptoms = formData.get("symptoms") as string;
 
     const {
       success: addSuccess,
@@ -38,8 +37,8 @@ export default function NewPage() {
       error
         ? `Error: ${error}`
         : `Detected disease: ${detectedDisease} for symptoms: ${formData.get(
-            "symptoms"
-          )}`
+            "symptoms",
+          )}`,
     );
   };
 
@@ -56,7 +55,7 @@ export default function NewPage() {
         />
         <ol className="font-mono text-sm/6 sm:text-left text-center list-decimal list-inside">
           <li className="mb-2 tracking-[-.01em]">
-            Enter your symptoms separated by commas (e.g., "fever, cough").
+            Enter what you're currently feeling
           </li>
           <li className="tracking-[-.01em]">
             Click the "Detect disease" button to analyze your symptoms.
@@ -70,7 +69,7 @@ export default function NewPage() {
             id="symptoms"
             name="symptoms"
             className="flex justify-center items-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] px-4 sm:px-5 border dark:border-white/[.145] hover:border-transparent border-black/[.08] border-solid rounded-full h-10 sm:h-12 font-medium text-sm sm:text-base transition-colors"
-            placeholder="Symptoms (e.g., fever, cough)"
+            placeholder="Symptoms (e.g., I'm feeling tired, I have a headache)"
             required
           />
           <div className="flex sm:flex-row flex-col items-center gap-4">
