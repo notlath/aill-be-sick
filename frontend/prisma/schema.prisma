@@ -14,6 +14,7 @@ model User {
   authId    String? @unique
   name      String?
   cases     Case[]
+  role      String  @default("PATIENT")
 }
 
 model Case {

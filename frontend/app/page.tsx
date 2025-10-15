@@ -7,46 +7,46 @@ import { createClient } from "@/utils/supabase/client";
 import { getAuthUser } from "@/utils/user";
 
 const HomePage = () => {
-	const supabase = createClient();
-	const router = useRouter();
-	const [user, setUser] = useState<User | null>(null);
+  const supabase = createClient();
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
 
-	const fetchUser = async () => {
-		try {
-			const authUser = await getAuthUser();
+  const fetchUser = async () => {
+    try {
+      const authUser = await getAuthUser();
 
-			setUser(authUser);
+      setUser(authUser);
 
-			console.log(authUser);
-		} catch (error) {
-			console.error(`Error fetching user: ${error}`);
-		}
-	};
+      console.log(authUser);
+    } catch (error) {
+      console.error(`Error fetching user: ${error}`);
+    }
+  };
 
-	useEffect(() => {
-		fetchUser();
-	}, []);
+  useEffect(() => {
+    fetchUser();
+  }, []);
 
-	const handleSignOut = async () => {
-		try {
-			await supabase.auth.signOut();
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
 
-			router.refresh();
+      router.refresh();
 
-			console.log("Successfully signed out!");
-		} catch (error) {
-			console.error(`Error signing out: ${error}`);
-		}
-	};
+      console.log("Successfully signed out!");
+    } catch (error) {
+      console.error(`Error signing out: ${error}`);
+    }
+  };
 
-	return (
-		<main>
-			<h1>Hello, {user?.user_metadata.full_name}!</h1>
-			<button onClick={handleSignOut} type="button">
-				Sign out
-			</button>
-		</main>
-	);
+  return (
+    <main className="flex flex-col justify-center items-center h-full">
+      <h1>Hello, {user?.user_metadata.full_name}!</h1>
+      <button onClick={handleSignOut} type="button">
+        Sign out
+      </button>
+    </main>
+  );
 };
 
 export default HomePage;
