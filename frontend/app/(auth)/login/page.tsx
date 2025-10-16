@@ -10,7 +10,7 @@ const HomePage = () => {
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `http://aill-be-sick.vercel.app/auth/callback`,
+          redirectTo: `https://aill-be-sick.vercel.app/auth/callback`,
         },
       });
 
@@ -27,10 +27,7 @@ const HomePage = () => {
           <h1 className="font-bold text-5xl">AI'll Be Sick</h1>
           <p className="text-muted">Please continue with your Google account</p>
         </div>
-        <button
-          onClick={handleSignIn}
-          className="bg-primary px-3 py-2 rounded-md text-primary-foreground cursor-pointer"
-        >
+        <button onClick={handleSignIn} className="btn btn-primary">
           Sign in with Google
         </button>
         <p className="text-muted text-sm">

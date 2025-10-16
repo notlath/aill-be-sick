@@ -11,7 +11,7 @@ const DiagnosisForm = () => {
             </h1>
             <p className="text-muted">Describe your symptoms</p>
           </div>
-          <div className="flex justify-between items-start shadow-2xl/10 py-3 w-full h-auto input">
+          <div className="flex justify-between items-start shadow-2xl/10 py-3 border outline-none w-full h-auto input">
             <textarea
               className="flex-1 pl-1 border-none outline-none"
               placeholder="I'm feeling..."

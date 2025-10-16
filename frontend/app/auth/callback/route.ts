@@ -50,7 +50,10 @@ export async function GET(request: Request) {
             user.user_metadata?.full_name ??
             user.user_metadata?.name ??
             undefined,
+          avatar: user.user_metadata?.avatar_url ?? undefined,
         };
+
+        console.log({ metadata: user.user_metadata });
 
         try {
           await prisma.user.upsert({
@@ -59,6 +62,7 @@ export async function GET(request: Request) {
               authId: upsertData.authId,
               email: upsertData.email ?? "",
               name: upsertData.name ?? null,
+              avatar: upsertData.avatar ?? null,
             },
             update: {
               // Only update fields that are present to avoid overwriting with undefined
