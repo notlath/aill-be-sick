@@ -11,6 +11,7 @@
   --color-base-300: #e3e4e4;
   --color-base-content: #393939;
   --color-muted: #797979;
+  --color-border: #d9d9d9;
   --color-primary: oklch(59% 0.145 163.225);
   --color-primary-content: oklch(97% 0.021 166.113);
   --color-secondary: oklch(71% 0.203 305.504);
@@ -39,6 +40,7 @@
 
 @theme inline {
   --color-muted: #797979;
+  --color-border: #d9d9d9;
 }
 
 .prose {
