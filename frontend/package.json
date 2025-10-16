@@ -12,6 +12,7 @@
   "dependencies": {
     "@prisma/client": "^6.17.1",
     "@prisma/extension-accelerate": "^2.0.2",
+    "@prisma/nextjs-monorepo-workaround-plugin": "^6.17.1",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.75.0",
     "@tailwindcss/typography": "^0.5.19",
