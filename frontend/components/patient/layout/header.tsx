@@ -25,7 +25,7 @@ const Header = async () => {
                 <img src={dbUser.avatar || ""} />
               </div>
             </div>
-            <p className="flex-1 min-w-60 font-medium">{dbUser.name}</p>
+            <p className="flex-1 font-medium">{dbUser.name}</p>
           </div>
         </div>
         <ul
