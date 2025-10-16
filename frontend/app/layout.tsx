@@ -4,6 +4,7 @@ import "./globals.css";
 import LayoutWrapper from "@/components/layout/layout-wrapper";
 import { ReactNode } from "react";
 import { getCurrentDbUser } from "@/utils/user";
+import { redirect } from "next/navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,7 @@ export default async function RootLayout({
   const { success: dbUser, error } = await getCurrentDbUser();
 
   if (error || !dbUser) {
-    throw new Error(error);
+    return redirect("/login");
   }
 
   return (
