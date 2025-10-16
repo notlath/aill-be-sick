@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import LayoutWrapper from "@/components/layout/layout-wrapper";
-import { ReactNode } from "react";
-import { getCurrentDbUser } from "@/utils/user";
-import { redirect } from "next/navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,28 +19,15 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children,
-  patient,
-  clinician,
 }: Readonly<{
   children: React.ReactNode;
-  patient: ReactNode;
-  clinician: ReactNode;
 }>) {
-  const { success: dbUser, error } = await getCurrentDbUser();
-
-  if (error || !dbUser) {
-    return redirect("/login");
-  }
-
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistSans.className} ${geistMono.variable} w-full bg-base-300 antialiased`}
       >
-        <LayoutWrapper>
-          {dbUser.role === "PATIENT" && patient}
-          {dbUser.role === "CLINICIAN" && clinician}
-        </LayoutWrapper>
+        {children}
       </body>
     </html>
   );
