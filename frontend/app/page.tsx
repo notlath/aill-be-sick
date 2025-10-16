@@ -4,8 +4,6 @@ import { redirect } from "next/navigation";
 const HomePage = async () => {
   const { success: dbUser, error } = await getCurrentDbUser();
 
-  console.log({ dbUser });
-
   if (!dbUser) {
     return redirect("/login");
   }
