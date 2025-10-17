@@ -10,7 +10,7 @@ const HomePage = () => {
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `https://aill-be-sick.vercel.app/auth/callback`,
+          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
         },
       });
 

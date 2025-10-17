@@ -20,11 +20,19 @@ const Header = async () => {
       <div className="dropdown">
         <div tabIndex={0} role="button">
           <div className="flex flex-1 items-center gap-2 hover:bg-base-200 p-2 rounded-xl transition-colors cursor-pointer">
-            <div className="cursor-pointer avatar">
-              <div className="rounded-full size-8">
-                <img src={dbUser.avatar || ""} />
+            {dbUser.avatar ? (
+              <div className="cursor-pointer avatar">
+                <div className="rounded-full size-8">
+                  <img src={dbUser.avatar} />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="cursor-pointer avatar avatar-placeholder">
+                <div className="bg-base-200 rounded-full size-8">
+                  <span className="font-medium">{dbUser.name?.charAt(0)}</span>
+                </div>
+              </div>
+            )}
             <p className="flex-1 font-medium">{dbUser.name}</p>
           </div>
         </div>

@@ -10,7 +10,7 @@ const NavLink = ({ name, href, icon: Icon, isActive }: NavLinkProps) => {
     <a
       href={href}
       className={cn(
-        "flex items-center gap-2 bg-base-300 hover:bg-base-200 opacity-75 p-2 border border-transparent hover:border-border rounded-xl transition-all",
+        "flex items-center gap-2 bg-base-300 hover:bg-base-200 opacity-65 p-2 border border-transparent hover:border-border rounded-xl transition-all",
         isActive && "bg-base-200 border-border opacity-100"
       )}
       key={href}
