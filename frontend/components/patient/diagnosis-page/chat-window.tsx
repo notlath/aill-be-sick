@@ -6,7 +6,6 @@ import DiagnosisForm from "./diagnosis-form";
 import { Message } from "@/app/generated/prisma";
 import { useAction, useOptimisticAction } from "next-safe-action/hooks";
 import { runDiagnosis } from "@/actions/run-diagnosis";
-import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   CreateDiagnosisSchema,
@@ -28,17 +27,7 @@ const ChatWindow = ({ chatId, messages }: ChatWindowProps) => {
     },
     resolver: zodResolver(CreateDiagnosisSchema),
   });
-  const router = useRouter();
-  const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } = useAction(
-    runDiagnosis,
-    {
-      onSuccess: ({ data }) => {
-        if (data.success) {
-          //   router.refresh();
-        }
-      },
-    }
-  );
+  const { execute: runDiagnosisExecute } = useAction(runDiagnosis);
   const { execute: createMessageExecute, optimisticState: optimisticMessages } =
     useOptimisticAction(createMessage, {
       currentState: messages,
