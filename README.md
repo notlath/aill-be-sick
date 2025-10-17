@@ -1,13 +1,13 @@
 # AILL-BE-SICK - A Predictive Intelligent Health Screening and Analysis System
 
-A full-stack application for disease detection based on symptoms, built with Flask backend and Next.js frontend.
+A full-stack application for disease detection based on symptoms, built with a Flask backend and a Next.js (App Router) frontend using TypeScript, Prisma, and Supabase.
 
 ## Project Structure
 
-```
-aill-be-sick-test/
+```text
+aill-be-sick/
 ├── backend/          # Flask REST API
-├── frontend/         # Next.js React application
+├── frontend/         # Next.js app (TypeScript, Prisma, Supabase)
 └── README.md
 ```
 
@@ -76,112 +76,110 @@ The Flask backend will be available at `http://localhost:8000`.
 
 ### API Endpoints
 
-- `GET /classifications/` - Health check / greeting
-- `POST /classifications/new` - Disease detection endpoint
+- `GET /diagnosis/` - Health check / greeting
+- `POST /diagnosis/new` - Disease diagnosis endpoint
 
-## Frontend Setup (Next.js)
+## Frontend Setup (Next.js App Router)
 
-The `frontend` directory contains everything related to the web interface of the application. Its main job is to display pages, provide interactive features, and communicate with backend services or databases.
+The `frontend` directory contains the Next.js application. It uses the App Router, Prisma (with PostgreSQL), and Supabase for authentication.
 
 ### Key Technologies
 
-- **Next.js:** A popular framework for building modern web apps. It helps with routing, server-side rendering, and more.
-- **Prisma:** Toolkit for working with databases in JavaScript/TypeScript projects.
-- **TypeScript:** JavaScript with types for safer development.
+- Next.js (App Router, TypeScript)
+- Prisma ORM with PostgreSQL
+- Supabase auth and helpers
+- Tailwind CSS
 
-### Folder Structure
+### Updated Folder Highlights
 
-Here’s a breakdown of what you’ll typically find inside:
+Below are the important paths you’ll use most often:
 
-#### `/app`
-This is where most of the web pages live. With Next.js, each folder or file under `app` usually becomes a route (a web page or API endpoint). For example:
-- `/app/page.tsx` might be your home page.
-- `/app/about/page.tsx` might be the "About" page.
+```text
+frontend/
+├── app/                         # App Router pages and layouts
+│   ├── page.tsx                 # Home page
+│   ├── (app)/                   # Main application flow
+│   │   ├── (patient)/
+│   │   │   ├── diagnosis/       # Patient diagnosis
+│   │   │   └── history/         # Patient history
+│   │   └── (clinician)/
+│   │       └── dashboard/       # Clinician dashboard
+│   ├── (auth)/                  # Auth flow
+│   │   ├── login/               # Patient login page
+│   │   └── clinician-login/     # Clinician login page
+│   └── auth/callback/route.ts   # Supabase auth callback route
+├── actions/                     # Server actions (create chat, message, diagnosis)
+├── components/                  # UI components
+├── utils/                       # Helpers (auth, chat, user, message)
+│   └── supabase/                # Supabase client/middleware/server helpers
+├── prisma/
+│   ├── schema.prisma            # Prisma schema
+│   └── migrations/              # Prisma migrations
+├── middleware.ts                # Next.js middleware (auth/session)
+├── next.config.ts               # Next.js config
+├── package.json                 # Scripts and deps
+└── tsconfig.json                # TypeScript config
+```
 
-You’ll also find special files here for layouts, loading indicators, and error handling.
+Note: A generated Prisma client may exist under `app/generated/prisma` or `frontend/generated/prisma` during builds; this is not typically edited by hand.
 
-#### `/actions`
-This folder holds server actions that handle submitting forms, fetching data, and other app logic.
+### 1) Navigate to Frontend
 
-#### `/prisma`
-Database-related files:
-- `schema.prisma`: Defines the data model.
-- Migration files as the project evolves.
-
-#### `/utils`
-Helper functions and reusable code (e.g., formatting, data transforms).
-
-### 1. Navigate to Frontend Directory
-
-```bash
+```powershell
 cd frontend
 ```
 
-### 2. Install Dependencies
+### 2) Install Dependencies
 
-Using npm:
+Choose one package manager (bun or npm recommended):
 
-```bash
+```powershell
+# bun (fast)
+bun install
+
+# or npm
 npm install
 ```
 
-Using yarn:
+### 3) Environment Variables
 
-```bash
-yarn install
-```
-
-Using bun (recommended):
-
-```bash
-bun install
-```
-
-### 3. Environment Configuration
-
-Create a `.env.local` file in the frontend directory:
+Create a `.env.local` in `frontend` (if one isn’t already present). These are the common variables used by the app:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-DATABASE_URL="your_database_url"
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
 ```
 
-### 4. Database Setup (Prisma)
+- Keep secrets out of version control; prefer `.env.local` for local dev.
+- If a `.env` already exists in the repo, `.env.local` will override for your machine.
 
-Generate Prisma client:
+### 4) Database and Prisma
 
-```bash
+Generate the Prisma client and apply your schema to the database:
+
+```powershell
 npx prisma generate
-```
-
-Run database migrations:
-
-```bash
 npx prisma db push
 ```
 
-### 5. Start Development Server
+If you prefer migrations for iterative changes:
 
-Using npm:
+```powershell
+npx prisma migrate dev --name init
+```
 
-```bash
+### 5) Start the Next.js Dev Server
+
+```powershell
+# bun
+bun dev
+
+# or npm
 npm run dev
 ```
 
-Using yarn:
-
-```bash
-yarn dev
-```
-
-Using bun:
-
-```bash
-bun dev
-```
-
-The Next.js frontend will be available at `http://localhost:3000`.
+The frontend runs at [http://localhost:3000](http://localhost:3000).
 
 ## Running the Full Application
 
@@ -205,16 +203,16 @@ npm run dev
 
 ### 3. Access the Application
 
-- **Frontend:** http://localhost:3000
-- **Backend API:** http://localhost:8000
+- Frontend: [http://localhost:3000](http://localhost:3000)
+- Backend API: [http://localhost:8000](http://localhost:8000)
 
 ## Usage
 
-1. Navigate to the homepage at `http://localhost:3000`
-2. Click on the `/new` page link or go to `http://localhost:3000/new`
-3. Enter your symptoms (comma-separated)
-4. Submit the form to get disease detection results
-5. Check the console logs for fetched data regarding diseases
+1. Open [http://localhost:3000](http://localhost:3000)
+2. Sign in (Patient: `/login`, Clinician: `/clinician-login`)
+3. For patients, start a diagnosis from the Diagnosis page in the UI
+4. Chat and submit symptoms to receive disease screening results
+5. View history (patients) or dashboard (clinicians) after login
 
 ## Development Features
 
@@ -227,38 +225,51 @@ npm run dev
 
 ### Frontend (Next.js)
 
-- TypeScript support
-- Tailwind CSS for styling
-- Prisma ORM for database operations
-- Supabase integration
-- Server actions for API calls
-- Responsive design
+- App Router with server components
+- TypeScript and Tailwind CSS
+- Prisma ORM (PostgreSQL) for data access
+- Supabase authentication and middleware
+- Server Actions for chat/message/diagnosis flows
+- Responsive UI components
 
 ## Project Architecture
 
-- **Backend:** Flask REST API that processes symptoms and returns disease predictions
-- **Frontend:** Next.js application with server-side rendering and client-side interactions
-- **Database:**
-  - PostgreSQL for Next.js frontend (via Prisma/Supabase)
+- Backend: Flask REST API that processes symptoms and returns disease predictions
+- Frontend: Next.js App Router app with server-side rendering and interactive chat
+- Database: PostgreSQL (Prisma) with Supabase auth integration
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Port conflicts:** Ensure ports 3000 and 8000 are available
-2. **CORS issues:** Ensure Flask-CORS is installed and configured
-3. **Database connections:** Verify your DATABASE_URL in the frontend `.env.local`
-4. **Python path:** Make sure your virtual environment is activated for the backend
+1. Port conflicts: Ensure 3000 (frontend) and 8000 (backend) are free
+2. CORS issues: Ensure Flask-CORS is installed and configured on the backend
+3. Database connection: Verify `DATABASE_URL` in `frontend/.env.local`
+4. Prisma client: Re-run `npx prisma generate` after schema changes
+5. Windows line endings: If shell scripts misbehave, prefer PowerShell commands
 
 ### Backend Checks
 
-- Verify Flask is installed and venv is active
-- Ensure the server is listening on the expected port (`app.run(..., port=8000)`)
+- Verify Flask is installed and the venv is active
+- Confirm the server runs on the expected port (`app.run(..., port=8000)`)
 
-### Frontend Checks
+### Frontend Checks (Windows-friendly)
 
-- Clear node modules and reinstall: `rm -rf node_modules && npm install`
-- Check Prisma client generation: `npx prisma generate`
+- Clean install if issues persist:
+
+  ```powershell
+  rd /s /q node_modules
+  npm install
+  ```
+
+- Regenerate Prisma client and push schema:
+
+  ```powershell
+  npx prisma generate
+  npx prisma db push
+  ```
+
+- Ensure `.env.local` exists and values are correct
 
 ## Contributing
 
