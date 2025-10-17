@@ -24,7 +24,7 @@ const DiagnosisForm = ({ createMessageExecute }: DiagnosisFormProps) => {
     <div className="flex justify-center items-center">
       <form onSubmit={form.handleSubmit(handleSubmit)}>
         <div className="space-y-16 w-[800px] text-center">
-          <div className="space-y-8">
+          <div className="space-y-4">
             <div className="flex justify-between items-start shadow-2xl/10 py-3 border rounded-xl outline-none w-full h-auto input">
               <textarea
                 className="flex-1 pl-1 border-none outline-none"

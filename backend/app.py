@@ -6,7 +6,7 @@ from transformers import pipeline
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend integration
 
-model_path = "models/BioClinical-ModernBERT-base-Symptom2Disease-dataset"
+model_path = "rchrdwllm/BioClinical-ModernBERT-base-Symptom2Disease_WITH-DROPOUT-42"
 classifier = pipeline(
     "text-classification",
     model=model_path,
@@ -14,13 +14,13 @@ classifier = pipeline(
     device=0,  # Use GPU if available; set to -1 for CPU
 )
 
-@app.route("/classifications/", methods=["GET"])
+@app.route("/diagnosis/", methods=["GET"])
 def index():
     """Main index endpoint - equivalent to Django's index view"""
     return jsonify({"message": "Hello, world!"})
 
 
-@app.route("/classifications/new", methods=["POST"])
+@app.route("/diagnosis/new", methods=["POST"])
 def new_case():
     """Create new case endpoint - equivalent to Django's new_case view"""
     try:

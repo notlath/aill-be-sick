@@ -6,7 +6,7 @@ const LayoutWrapper = ({ children }: { children: ReactNode }) => {
     <div className="flex">
       <Sidebar />
       <div className="flex-1 p-2">
-        <div className="bg-base-200 card-border border-muted/25 w-full h-[calc(100vh-1rem)] card">
+        <div className="bg-base-200 card-border border-muted/25 w-full h-[calc(100vh-1rem)] overflow-y-scroll card">
           {children}
         </div>
       </div>

@@ -4,6 +4,7 @@ import { getCurrentDbUser } from "@/utils/user";
 import { actionClient } from "./client";
 import { RunDiagnosisSchema } from "@/schemas/RunDiagnosisSchema";
 import { createMessage } from "./create-message";
+import axios from "axios";
 
 export const runDiagnosis = actionClient
   .inputSchema(RunDiagnosisSchema)
@@ -18,8 +19,11 @@ export const runDiagnosis = actionClient
     }
 
     try {
-      // Python backend endpoint to run diagnosis
-      const diagnosis = "Jabetis"; // Placeholder disease
+      const {
+        data: { data: diagnosis },
+      } = await axios.post("http://127.0.0.1:8000/diagnosis/new", {
+        symptoms,
+      });
 
       await createMessage({
         content: diagnosis,
