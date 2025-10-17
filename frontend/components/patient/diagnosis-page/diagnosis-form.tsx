@@ -6,9 +6,13 @@ import { useFormContext } from "react-hook-form";
 
 type DiagnosisFormProps = {
   createMessageExecute: any;
+  isPending: boolean;
 };
 
-const DiagnosisForm = ({ createMessageExecute }: DiagnosisFormProps) => {
+const DiagnosisForm = ({
+  createMessageExecute,
+  isPending,
+}: DiagnosisFormProps) => {
   const form = useFormContext<CreateDiagnosisSchemaType>();
 
   const handleSubmit = (data: CreateDiagnosisSchemaType) => {
@@ -34,6 +38,7 @@ const DiagnosisForm = ({ createMessageExecute }: DiagnosisFormProps) => {
               <button
                 type="submit"
                 className="p-0 w-10 h-10 aspect-square btn btn-primary"
+                disabled={isPending}
               >
                 <ArrowUp className="size-4" />
               </button>

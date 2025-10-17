@@ -27,35 +27,30 @@ const ChatWindow = ({ chatId, messages }: ChatWindowProps) => {
     },
     resolver: zodResolver(CreateDiagnosisSchema),
   });
-  const { execute: runDiagnosisExecute } = useAction(runDiagnosis);
-  const { execute: createMessageExecute, optimisticState: optimisticMessages } =
-    useOptimisticAction(createMessage, {
-      currentState: messages,
-      updateFn: (currentMessages, newMessage: any) => {
-        const updatedMessages = [...currentMessages, newMessage];
+  const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } =
+    useAction(runDiagnosis);
+  const {
+    execute: createMessageExecute,
+    optimisticState: optimisticMessages,
+    isExecuting: isCreatingMessage,
+  } = useOptimisticAction(createMessage, {
+    currentState: messages,
+    updateFn: (currentMessages, newMessage: any) => {
+      const updatedMessages = [...currentMessages, newMessage];
 
-        updatedMessages.push({
-          id: -1,
-          content: "Diagnosing...",
-          role: "AI" as const,
-          type: "QUESTION" as const,
+      return updatedMessages;
+    },
+    onSuccess: ({ data }) => {
+      if (data.success) {
+        runDiagnosisExecute({
           chatId,
-          createdAt: new Date(),
+          symptoms: form.getValues("symptoms"),
         });
-
-        return updatedMessages;
-      },
-      onSuccess: ({ data }) => {
-        if (data.success) {
-          runDiagnosisExecute({
-            chatId,
-            symptoms: form.getValues("symptoms"),
-          });
-        } else if (data.error) {
-          console.error(data.error);
-        }
-      },
-    });
+      } else if (data.error) {
+        console.error(data.error);
+      }
+    },
+  });
   const hasRunInitialDiagnosis = useRef<boolean>(false);
 
   useEffect(() => {
@@ -71,9 +66,15 @@ const ChatWindow = ({ chatId, messages }: ChatWindowProps) => {
 
   return (
     <FormProvider {...form}>
-      <ChatContainer messages={optimisticMessages} />
+      <ChatContainer
+        messages={optimisticMessages}
+        isPending={isDiagnosing || isCreatingMessage}
+      />
       <div className="-bottom-0.5 sticky bg-base-200 p-4 pt-0">
-        <DiagnosisForm createMessageExecute={createMessageExecute} />
+        <DiagnosisForm
+          createMessageExecute={createMessageExecute}
+          isPending={isDiagnosing || isCreatingMessage}
+        />
       </div>
     </FormProvider>
   );
