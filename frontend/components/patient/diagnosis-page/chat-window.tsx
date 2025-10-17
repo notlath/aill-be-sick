@@ -72,7 +72,7 @@ const ChatWindow = ({ chatId, messages }: ChatWindowProps) => {
   return (
     <FormProvider {...form}>
       <ChatContainer messages={optimisticMessages} />
-      <div className="-bottom-1 sticky bg-base-200 p-4 pt-0">
+      <div className="-bottom-0.5 sticky bg-base-200 p-4 pt-0">
         <DiagnosisForm createMessageExecute={createMessageExecute} />
       </div>
     </FormProvider>
