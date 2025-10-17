@@ -8,21 +8,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int     @id @default(autoincrement())
-  email     String  @unique
-  authId    String? @unique
-  name      String?
-  avatar    String?
-  cases     Case[]
-  role      String  @default("PATIENT")
+enum Role {
+  PATIENT
+  CLINICIAN
 }
 
-model Case {
-  id        Int      @id @default(autoincrement())
-  disease   String
-  createdAt DateTime @default(now())
+enum MessageRole {
+  USER
+  AI
+}
+
+model User {
+  id        Int         @id @default(autoincrement())
+  email     String      @unique
+  authId    String?     @unique
+  name      String?
+  avatar    String?
+  role      Role        @default(PATIENT)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+  chats     Chat[]
+}
+
+model Chat {
+  id        Int         @id @default(autoincrement())
+  chatId    String      @unique
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  messages  Message[]
   userId    Int
-  symptoms  String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User        @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id        Int         @id @default(autoincrement())
+  content   String
+  role      MessageRole
+  createdAt DateTime    @default(now())
+  chatId    String      @unique
+  chat      Chat        @relation(fields: [chatId], references: [chatId])
 }
