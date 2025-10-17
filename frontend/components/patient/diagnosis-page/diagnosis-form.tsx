@@ -38,14 +38,6 @@ const DiagnosisForm = ({ createMessageExecute }: DiagnosisFormProps) => {
                 <ArrowUp className="size-4" />
               </button>
             </div>
-            {form.formState.errors.symptoms && (
-              <div
-                role="alert"
-                className="border border-error/30 rounded-xl alert alert-error alert-soft"
-              >
-                <span>Error! {form.formState.errors.symptoms.message}</span>
-              </div>
-            )}
           </div>
         </div>
       </form>
