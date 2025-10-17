@@ -1,5 +1,6 @@
 import { cn } from "@/utils/lib";
 import Markdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
 
 type ChatBubbleProps = {
   content: string;
@@ -11,7 +12,7 @@ const ChatBubble = ({ content, role, type }: ChatBubbleProps) => {
   return (
     <article
       className={cn(
-        "p-2 px-3 rounded-xl max-w-[60%]",
+        "p-3 px-4 rounded-xl max-w-[60%]",
         role === "USER"
           ? "bg-primary text-primary-content self-end"
           : "bg-gray-200 self-start"
@@ -19,8 +20,9 @@ const ChatBubble = ({ content, role, type }: ChatBubbleProps) => {
     >
       <div>
         <Markdown
+          remarkPlugins={[remarkBreaks]}
           components={{
-            p: ({ children }) => <p className="mb-0">{children}</p>,
+            p: ({ children }) => <p className="my-2">{children}</p>,
             strong: ({ children }) => (
               <strong className="font-bold">{children}</strong>
             ),
