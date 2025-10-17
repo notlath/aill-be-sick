@@ -22,11 +22,12 @@ const StartingDiagnosisForm = () => {
   const router = useRouter();
   const { execute } = useAction(createChat, {
     onSuccess: ({ data }) => {
-      router.push(
-        `/diagnosis/${data.success.chatId}?symptoms=${encodeURIComponent(
-          data.success.symptoms
-        )}`
-      );
+      if (data.success) {
+        router.push(`/diagnosis/${data.success.chatId}`);
+      } else if (data.error) {
+        // TODO: Error handling
+        console.error(data.error);
+      }
     },
   });
 

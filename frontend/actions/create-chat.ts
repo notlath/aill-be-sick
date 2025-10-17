@@ -14,13 +14,13 @@ export const createChat = actionClient
     if (!user) {
       console.error(`Error fetching current user: ${error}`);
 
-      throw new Error(`Error fetching current user: ${error}`);
+      return { error: `Error fetching current user: ${error}` };
     }
 
     if (error) {
       console.error(`Error fetching current user: ${error}`);
 
-      throw new Error(`Error fetching current user: ${error}`);
+      return { error: `Error fetching current user: ${error}` };
     }
 
     try {
@@ -41,6 +41,6 @@ export const createChat = actionClient
     } catch (error) {
       console.error(`Error creating new chat: ${error}`);
 
-      throw new Error(`Error creating new chat: ${error}`);
+      return { error: `Error creating new chat: ${error}` };
     }
   });

@@ -18,6 +18,13 @@ enum MessageRole {
   AI
 }
 
+enum MessageType {
+  SYMPTOMS
+  ANSWER
+  QUESTION
+  DIAGNOSIS
+}
+
 model User {
   id        Int         @id @default(autoincrement())
   email     String      @unique
@@ -44,7 +51,8 @@ model Message {
   id        Int         @id @default(autoincrement())
   content   String
   role      MessageRole
+  type      MessageType @default(SYMPTOMS)
   createdAt DateTime    @default(now())
-  chatId    String      @unique
+  chatId    String
   chat      Chat        @relation(fields: [chatId], references: [chatId])
 }

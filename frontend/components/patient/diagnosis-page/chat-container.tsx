@@ -1,27 +1,15 @@
-import { getMessagesByChatId } from "@/utils/message";
 import ChatBubble from "./chat-bubble";
+import { Message } from "@/app/generated/prisma";
 
 type ChatContainerProps = {
-  chatId: string;
+  messages: Message[];
 };
 
-const ChatContainer = async ({ chatId }: ChatContainerProps) => {
-  const { success: messages, error } = await getMessagesByChatId(chatId);
-
-  if (!messages) {
-    // TODO: Error handling
-    return null;
-  }
-
-  if (error) {
-    // TODO: Error handling
-    return null;
-  }
-
+const ChatContainer = ({ messages }: ChatContainerProps) => {
   return (
-    <section className="flex flex-col flex-1 px-52 py-8">
+    <section className="flex flex-col flex-1 space-y-2 px-52 py-8">
       {messages.map((message) => (
-        <ChatBubble key={message.id} {...message} />
+        <ChatBubble key={message.id + message.content} {...message} />
       ))}
     </section>
   );

@@ -1,28 +1,24 @@
 "use client";
 
-import {
-  CreateDiagnosisSchema,
-  CreateDiagnosisSchemaType,
-} from "@/schemas/CreateDiagnosisSchema";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { CreateDiagnosisSchemaType } from "@/schemas/CreateDiagnosisSchema";
 import { ArrowUp } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 
 type DiagnosisFormProps = {
-  chatId: string;
+  createMessageExecute: any;
 };
 
-const DiagnosisForm = ({ chatId }: DiagnosisFormProps) => {
-  const form = useForm<CreateDiagnosisSchemaType>({
-    defaultValues: {
-      symptoms: "",
-    },
-    resolver: zodResolver(CreateDiagnosisSchema),
-  });
-  const router = useRouter();
+const DiagnosisForm = ({ createMessageExecute }: DiagnosisFormProps) => {
+  const form = useFormContext<CreateDiagnosisSchemaType>();
 
-  const handleSubmit = (data: CreateDiagnosisSchemaType) => {};
+  const handleSubmit = (data: CreateDiagnosisSchemaType) => {
+    createMessageExecute({
+      chatId: data.chatId,
+      content: data.symptoms,
+      type: "SYMPTOMS",
+      role: "USER",
+    });
+  };
 
   return (
     <div className="flex justify-center items-center">
