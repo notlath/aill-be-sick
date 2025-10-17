@@ -24,9 +24,22 @@ export const runDiagnosis = actionClient
       } = await axios.post("http://127.0.0.1:8000/diagnosis/new", {
         symptoms,
       });
+      const { disease, score, model_used } = diagnosis;
+
+      const diagnosisMessage = `
+Based on your symptom description, you might be experiencing: **${disease}**. This diagnosis was made using the **${model_used}** model with a confidence score of **${(
+        score * 100
+      ).toFixed(2)}%**.
+
+Do you want to record this diagnosis?
+      `;
+
+      // const diagnosisMessage = `Based on your symptom description, I am **${(
+      //   score * 100
+      // ).toFixed(2)}%** confident that you may have **${disease}**.
 
       await createMessage({
-        content: diagnosis,
+        content: diagnosisMessage,
         chatId,
         type: "DIAGNOSIS",
         role: "AI",

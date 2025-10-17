@@ -2,17 +2,43 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
 from transformers import pipeline
+from langdetect import detect
+import numpy as np
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend integration
 
-model_path = "rchrdwllm/BioClinical-ModernBERT-base-Symptom2Disease_WITH-DROPOUT-42"
-classifier = pipeline(
+eng_model_path = "notlath/BioClinical-ModernBERT-base-Symptom2Disease_WITH-DROPOUT-42"
+eng_classifier = pipeline(
     "text-classification",
-    model=model_path,
-    tokenizer=model_path,
+    model=eng_model_path,
+    tokenizer=eng_model_path,
     device=0,  # Use GPU if available; set to -1 for CPU
 )
+
+fil_model_path = "notlath/RoBERTa-Tagalog-base-Symptom2Disease_WITH-DROPOUT-42"
+fil_classifier = pipeline(
+    "text-classification",
+    model=fil_model_path,
+    tokenizer=fil_model_path,
+    device=0,  # Use GPU if available; set to -1 for CPU
+)
+
+def classifier(text):
+    lang = detect(text)
+
+    if lang == "en": # English
+        result = eng_classifier(text)[0]
+        pred = result['label']
+        probs = result['score']
+        
+        return pred, probs, "BioClinical-ModernBERT"
+
+    elif lang in ["tl", "fil"]:  # Tagalog / Filipino
+        result = fil_classifier(text)[0]
+        pred = result['label']
+        probs = result['score']
+        return pred, probs, "RoBERTa-Tagalog"
 
 @app.route("/diagnosis/", methods=["GET"])
 def index():
@@ -31,12 +57,9 @@ def new_case():
 
         symptoms = data.get("symptoms", "")
 
-        print("Detecting disease for symptoms:", symptoms)
+        disease, score, model_used = classifier(symptoms)
 
-        # Insert machine learning stuff
-        result = classifier(symptoms)[0]
-
-        return jsonify({"data": result['label']}), 201
+        return jsonify({"data": {"disease": disease, "score": score, "model_used": model_used}}), 201
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

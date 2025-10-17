@@ -1,4 +1,5 @@
 import { cn } from "@/utils/lib";
+import Markdown from "react-markdown";
 
 type ChatBubbleProps = {
   content: string;
@@ -7,15 +8,6 @@ type ChatBubbleProps = {
 };
 
 const ChatBubble = ({ content, role, type }: ChatBubbleProps) => {
-  if (type === "DIAGNOSIS") {
-    return (
-      <article className="self-start bg-gray-200 p-2 px-3 rounded-xl max-w-[60%]">
-        Based on your symptom description, you might be experiencing{" "}
-        <span className="font-medium">{content}</span>.
-      </article>
-    );
-  }
-
   return (
     <article
       className={cn(
@@ -25,7 +17,23 @@ const ChatBubble = ({ content, role, type }: ChatBubbleProps) => {
           : "bg-gray-200 self-start"
       )}
     >
-      {content}
+      <div>
+        <Markdown
+          components={{
+            p: ({ children }) => <p className="mb-0">{children}</p>,
+            strong: ({ children }) => (
+              <strong className="font-bold">{children}</strong>
+            ),
+          }}
+        >
+          {content}
+        </Markdown>
+      </div>
+      {type === "DIAGNOSIS" && (
+        <div className="flex gap-2 mt-4">
+          <div className="flex-1 btn">Yes</div>
+        </div>
+      )}
     </article>
   );
 };
