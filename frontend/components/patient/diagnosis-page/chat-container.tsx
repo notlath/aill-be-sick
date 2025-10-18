@@ -6,9 +6,14 @@ import remarkBreaks from "remark-breaks";
 type ChatContainerProps = {
   messages: Message[];
   isPending: boolean;
+  hasDiagnosis?: boolean;
 };
 
-const ChatContainer = ({ messages, isPending }: ChatContainerProps) => {
+const ChatContainer = ({
+  messages,
+  isPending,
+  hasDiagnosis,
+}: ChatContainerProps) => {
   return (
     <section className="flex flex-col flex-1 space-y-2 px-[12.5rem] py-8">
       {messages.map((message, idx) => (
@@ -16,6 +21,7 @@ const ChatContainer = ({ messages, isPending }: ChatContainerProps) => {
           key={message.id + message.content}
           messagesLength={messages.length}
           idx={idx}
+          chatHasDiagnosis={hasDiagnosis}
           {...message}
         />
       ))}

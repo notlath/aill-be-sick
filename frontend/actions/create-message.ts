@@ -12,7 +12,7 @@ export const createMessage = actionClient
 
     try {
       if (tempDiagnosis) {
-        const message = await prisma.message.create({
+        await prisma.message.create({
           data: {
             content,
             chatId,
@@ -24,6 +24,8 @@ export const createMessage = actionClient
                 uncertainty: tempDiagnosis.uncertainty,
                 modelUsed: tempDiagnosis.modelUsed,
                 disease: tempDiagnosis.disease,
+                symptoms: tempDiagnosis.symptoms,
+                chatId,
               },
             },
           },

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
-import { Message } from "@/app/generated/prisma";
+import { Chat, Message } from "@/app/generated/prisma";
 import { useAction, useOptimisticAction } from "next-safe-action/hooks";
 import { runDiagnosis } from "@/actions/run-diagnosis";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,9 +17,10 @@ import { createMessage } from "@/actions/create-message";
 type ChatWindowProps = {
   chatId: string;
   messages: Message[];
+  chat: Chat;
 };
 
-const ChatWindow = ({ chatId, messages }: ChatWindowProps) => {
+const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
   const form = useForm<CreateChatSchemaType>({
     defaultValues: {
       symptoms: "",
@@ -69,13 +70,30 @@ const ChatWindow = ({ chatId, messages }: ChatWindowProps) => {
       <ChatContainer
         messages={optimisticMessages}
         isPending={isDiagnosing || isCreatingMessage}
+        hasDiagnosis={chat.hasDiagnosis}
       />
-      <div className="-bottom-0.5 sticky bg-base-200 p-4 pt-0">
-        <DiagnosisForm
-          createMessageExecute={createMessageExecute}
-          isPending={isDiagnosing || isCreatingMessage}
-        />
-      </div>
+      {!chat.hasDiagnosis && (
+        <div className="-bottom-0.5 sticky bg-base-200 p-4 pt-0">
+          <DiagnosisForm
+            createMessageExecute={createMessageExecute}
+            isPending={isDiagnosing || isCreatingMessage}
+          />
+        </div>
+      )}
+      <dialog id="record_success_modal" className="modal">
+        <div className="modal-box">
+          <form method="dialog">
+            <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
+              ✕
+            </button>
+          </form>
+          <h3 className="font-bold text-lg">Diagnosis recorded</h3>
+          <p className="py-4 text-muted">
+            This diagnosis has been successfully stored and saved in the
+            records!
+          </p>
+        </div>
+      </dialog>
     </FormProvider>
   );
 };

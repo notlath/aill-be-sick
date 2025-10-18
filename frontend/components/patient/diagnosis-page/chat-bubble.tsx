@@ -1,13 +1,14 @@
-import { Message } from "@/app/generated/prisma";
-import { TempDiagnosis } from "@/types";
+import { Message, TempDiagnosis } from "@/app/generated/prisma";
 import { cn } from "@/utils/lib";
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
+import RecordDiagnosisBtn from "./record-diagnosis-btn";
 
 type ChatBubbleProps = {
   messagesLength: number;
   idx?: number;
   tempDiagnosis?: TempDiagnosis;
+  chatHasDiagnosis?: boolean;
 } & Message;
 
 const ChatBubble = ({
@@ -17,6 +18,8 @@ const ChatBubble = ({
   messagesLength,
   idx,
   tempDiagnosis,
+  chatId,
+  chatHasDiagnosis,
 }: ChatBubbleProps) => {
   return (
     <article
@@ -41,15 +44,15 @@ const ChatBubble = ({
         </Markdown>
       </div>
       {type === "DIAGNOSIS" && (
-        <div className="flex gap-2 mt-4">
-          <button
-            disabled={!tempDiagnosis || messagesLength - 1 !== idx}
-            className="flex-1 btn"
-            onClick={() => console.log({ tempDiagnosis })}
-          >
-            Yes
-          </button>
-        </div>
+        <RecordDiagnosisBtn
+          disabled={
+            chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
+          }
+          tempDiagnosis={tempDiagnosis}
+          messagesLength={messagesLength}
+          chatId={chatId}
+          idx={idx}
+        />
       )}
     </article>
   );

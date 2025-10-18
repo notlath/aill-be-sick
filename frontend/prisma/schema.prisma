@@ -51,14 +51,16 @@ model User {
 }
 
 model Chat {
-  id         Int         @id @default(autoincrement())
-  chatId     String      @unique
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  messages   Message[]
-  userId     Int
-  user       User        @relation(fields: [userId], references: [id])
-  diagnosis  Diagnosis?
+  id            Int         @id @default(autoincrement())
+  chatId        String      @unique
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  messages      Message[]
+  userId        Int
+  user          User        @relation(fields: [userId], references: [id])
+  hasDiagnosis  Boolean     @default(false)
+  diagnosis     Diagnosis?
+  tempDiagnoses TempDiagnosis[]
 }
 
 model Message {
@@ -79,8 +81,11 @@ model TempDiagnosis {
   disease     Disease
   createdAt   DateTime @default(now())
   modelUsed   Model
+  symptoms    String
   messageId   Int      @unique
   message     Message  @relation(fields: [messageId], references: [id])
+  chatId      String
+  chat        Chat     @relation(fields: [chatId], references: [chatId])
 }
 
 model Diagnosis {
@@ -90,6 +95,7 @@ model Diagnosis {
   disease       Disease
   createdAt     DateTime @default(now())
   chatId        String   @unique
+  symptoms      String
   modelUsed     Model
   chat          Chat     @relation(fields: [chatId], references: [chatId])
   userId        Int

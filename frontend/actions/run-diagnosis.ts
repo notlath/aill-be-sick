@@ -123,6 +123,7 @@ Do you want to record this diagnosis?
         uncertainty,
         disease: pred.toUpperCase(),
         modelUsed: transformedModelUsed,
+        symptoms,
       };
 
       await createMessage({

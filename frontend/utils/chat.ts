@@ -38,3 +38,33 @@ export const getChats = async (include?: { messages?: boolean }) => {
     return { error: `Could not get chats: ${error}` };
   }
 };
+
+export const getChatById = async (chatId: string) => {
+  const { success: dbUser, error } = await getCurrentDbUser();
+
+  if (!dbUser) {
+    console.error(`Could not get user: ${error}`);
+
+    return { error: `Could not get user: ${error}` };
+  }
+
+  if (error) {
+    console.error(`Could not get user: ${error}`);
+
+    return { error: `Could not get user: ${error}` };
+  }
+
+  try {
+    const chat = await prisma.chat.findUnique({
+      where: {
+        chatId,
+      },
+    });
+
+    return { success: chat };
+  } catch (error) {
+    console.error(`Could not get chat: ${error}`);
+
+    return { error: `Could not get chat: ${error}` };
+  }
+};
