@@ -25,34 +25,73 @@ enum MessageType {
   DIAGNOSIS
 }
 
+enum Disease {
+  DENGUE          @map("Dengue")
+  PNEUMONIA       @map("Pneumonia")
+  TYPHOID         @map("Typhoid")
+  IMPETIGO        @map("Impetigo")
+}
+
+enum Model {
+  BIOCLINICAL_MODERNBERT  @map("BioClinical-ModernBERT")
+  ROBERTA_TAGALOG         @map("RoBERTa-Tagalog")
+}
+
 model User {
-  id        Int         @id @default(autoincrement())
-  email     String      @unique
-  authId    String?     @unique
-  name      String?
-  avatar    String?
-  role      Role        @default(PATIENT)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @default(now()) @updatedAt
-  chats     Chat[]
+  id         Int         @id @default(autoincrement())
+  email      String      @unique
+  authId     String?     @unique
+  name       String?
+  avatar     String?
+  role       Role        @default(PATIENT)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @default(now()) @updatedAt
+  chats      Chat[]
+  diagnoses  Diagnosis[]
 }
 
 model Chat {
-  id        Int         @id @default(autoincrement())
-  chatId    String      @unique
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  messages  Message[]
-  userId    Int
-  user      User        @relation(fields: [userId], references: [id])
+  id         Int         @id @default(autoincrement())
+  chatId     String      @unique
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  messages   Message[]
+  userId     Int
+  user       User        @relation(fields: [userId], references: [id])
+  diagnosis  Diagnosis?
 }
 
 model Message {
-  id        Int         @id @default(autoincrement())
-  content   String
-  role      MessageRole
-  type      MessageType @default(SYMPTOMS)
-  createdAt DateTime    @default(now())
-  chatId    String
-  chat      Chat        @relation(fields: [chatId], references: [chatId])
+  id                Int         @id @default(autoincrement())
+  content           String
+  role              MessageRole
+  type              MessageType @default(SYMPTOMS)
+  createdAt         DateTime    @default(now())
+  chatId            String
+  chat              Chat        @relation(fields: [chatId], references: [chatId])
+  tempDiagnosis     TempDiagnosis?
+}
+
+model TempDiagnosis {
+  id          Int      @id @default(autoincrement())
+  confidence  Float
+  uncertainty Float
+  disease     Disease
+  createdAt   DateTime @default(now())
+  modelUsed   Model
+  messageId   Int      @unique
+  message     Message  @relation(fields: [messageId], references: [id])
+}
+
+model Diagnosis {
+  id            Int      @id @default(autoincrement())
+  confidence    Float
+  uncertainty   Float
+  disease       Disease
+  createdAt     DateTime @default(now())
+  chatId        String   @unique
+  modelUsed     Model
+  chat          Chat     @relation(fields: [chatId], references: [chatId])
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
 }

@@ -123,7 +123,7 @@ def classifier(text):
             prob = float(result['mean_probabilities'][0][idx])
             probs.append(f"{label}: {prob*100:.2f}%")  # Format here instead
 
-        return pred, confidence, uncertainty, probs, "BioClinical-ModernBERT"
+        return pred, confidence, uncertainty, probs, "BioClinical ModernBERT"
 
     elif lang in ["tl", "fil"]:  # Tagalog / Filipino
         result = fil_classifier.predict_with_uncertainty(text)
@@ -141,7 +141,7 @@ def classifier(text):
             prob = float(result['mean_probabilities'][0][idx])
             probs.append(f"{label}: {prob*100:.2f}%")  # Format here instead
 
-        return pred, confidence, uncertainty, probs, "RoBERTa-Tagalog"
+        return pred, confidence, uncertainty, probs, "RoBERTa Tagalog"
     
     else:
         # Handle unsupported languages

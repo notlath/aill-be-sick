@@ -7,6 +7,14 @@ export const CreateMessageSchema = z.object({
     .enum(["SYMPTOMS", "ANSWER", "QUESTION", "DIAGNOSIS"])
     .default("QUESTION"),
   role: z.enum(["USER", "AI"]).default("USER"),
+  tempDiagnosis: z
+    .object({
+      confidence: z.number().min(0).max(1),
+      uncertainty: z.number().min(0).max(1),
+      modelUsed: z.enum(["BIOCLINICAL_MODERNBERT", "ROBERTA_TAGALOG"]),
+      disease: z.enum(["DENGUE", "PNEUMONIA", "TYPHOID", "IMPETIGO"]),
+    })
+    .optional(),
 });
 
 export type CreateMessageSchemaType = z.infer<typeof CreateMessageSchema>;

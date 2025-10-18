@@ -8,7 +8,9 @@ const ChatPage = async ({
   searchParams: Promise<{ symptoms: string }>;
 }) => {
   const { chatId } = await params;
-  const { success: messages, error } = await getMessagesByChatId(chatId);
+  const { success: messages, error } = await getMessagesByChatId(chatId, {
+    tempDiagnosis: true,
+  });
 
   if (!messages) {
     // TODO: Error handling

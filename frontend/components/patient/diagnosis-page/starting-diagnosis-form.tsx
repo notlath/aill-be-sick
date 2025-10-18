@@ -2,9 +2,9 @@
 
 import { createChat } from "@/actions/create-chat";
 import {
-  CreateDiagnosisSchema,
-  CreateDiagnosisSchemaType,
-} from "@/schemas/CreateDiagnosisSchema";
+  CreateChatSchema,
+  CreateChatSchemaType,
+} from "@/schemas/CreateChatSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUp } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -12,12 +12,12 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 const StartingDiagnosisForm = () => {
-  const form = useForm<CreateDiagnosisSchemaType>({
+  const form = useForm<CreateChatSchemaType>({
     defaultValues: {
       symptoms: "",
       chatId: crypto.randomUUID(),
     },
-    resolver: zodResolver(CreateDiagnosisSchema),
+    resolver: zodResolver(CreateChatSchema),
   });
   const router = useRouter();
   const { execute } = useAction(createChat, {
@@ -31,7 +31,7 @@ const StartingDiagnosisForm = () => {
     },
   });
 
-  const handleSubmit = (data: CreateDiagnosisSchemaType) => {
+  const handleSubmit = (data: CreateChatSchemaType) => {
     execute(data);
   };
 

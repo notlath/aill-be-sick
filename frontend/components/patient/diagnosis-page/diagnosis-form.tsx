@@ -1,6 +1,6 @@
 "use client";
 
-import { CreateDiagnosisSchemaType } from "@/schemas/CreateDiagnosisSchema";
+import { CreateChatSchemaType } from "@/schemas/CreateChatSchema";
 import { ArrowUp } from "lucide-react";
 import { useFormContext } from "react-hook-form";
 
@@ -13,9 +13,9 @@ const DiagnosisForm = ({
   createMessageExecute,
   isPending,
 }: DiagnosisFormProps) => {
-  const form = useFormContext<CreateDiagnosisSchemaType>();
+  const form = useFormContext<CreateChatSchemaType>();
 
-  const handleSubmit = (data: CreateDiagnosisSchemaType) => {
+  const handleSubmit = (data: CreateChatSchemaType) => {
     createMessageExecute({
       chatId: data.chatId,
       content: data.symptoms,

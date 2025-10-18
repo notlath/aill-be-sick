@@ -2,11 +2,17 @@
 
 import prisma from "@/prisma/prisma";
 
-export const getMessagesByChatId = async (chatId: string) => {
+export const getMessagesByChatId = async (
+  chatId: string,
+  include?: { tempDiagnosis?: boolean }
+) => {
   try {
     const messages = await prisma.message.findMany({
       where: {
         chatId,
+      },
+      include: {
+        tempDiagnosis: include?.tempDiagnosis,
       },
     });
 

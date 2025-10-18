@@ -8,9 +8,9 @@ import { useAction, useOptimisticAction } from "next-safe-action/hooks";
 import { runDiagnosis } from "@/actions/run-diagnosis";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  CreateDiagnosisSchema,
-  CreateDiagnosisSchemaType,
-} from "@/schemas/CreateDiagnosisSchema";
+  CreateChatSchema,
+  CreateChatSchemaType,
+} from "@/schemas/CreateChatSchema";
 import { FormProvider, useForm } from "react-hook-form";
 import { createMessage } from "@/actions/create-message";
 
@@ -20,12 +20,12 @@ type ChatWindowProps = {
 };
 
 const ChatWindow = ({ chatId, messages }: ChatWindowProps) => {
-  const form = useForm<CreateDiagnosisSchemaType>({
+  const form = useForm<CreateChatSchemaType>({
     defaultValues: {
       symptoms: "",
       chatId,
     },
-    resolver: zodResolver(CreateDiagnosisSchema),
+    resolver: zodResolver(CreateChatSchema),
   });
   const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } =
     useAction(runDiagnosis);

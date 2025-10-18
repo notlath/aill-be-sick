@@ -45,7 +45,7 @@ A high confidence score (${(confidence * 100).toFixed(
           4
         )}%) combined with a low uncertainty score (${uncertainty.toFixed(
           4
-        )}%) suggests that this is a reliable diagnosis.  \n
+        )}%) suggests that **this is a reliable diagnosis.**  \n
 
 Do you want to record this diagnosis?
               `;
@@ -108,54 +108,32 @@ A low confidence score (${(confidence * 100).toFixed(
           4
         )}%) combined with a low uncertainty score (${uncertainty.toFixed(
           4
-        )}%) suggests that the model is unsure about the diagnosis, and is aware that **it doesn't have enough information to make a confident prediction for this specific case.** It is recommended to seek further medical advice for an accurate diagnosis.  \n
+        )}%) suggests that **the model is unsure about the diagnosis,** and is aware that **it doesn't have enough information to make a confident prediction for this specific case.** It is recommended to seek further medical advice for an accurate diagnosis.  \n
 
 Do you want to record this diagnosis?
               `;
       }
 
-      //       let uncertaintyMessage = "";
+      const transformedModelUsed = model_used
+        .toUpperCase()
+        .replace(/\s+/g, "_");
 
-      //       if (uncertainty <= 0.05) {
-      //         uncertaintyMessage = `
-      // The **uncertainty score** associated with this diagnosis is **${uncertainty.toFixed(
-      //           4
-      //         )}%**. This score indicates how sure the system is about this diagnosis based on what it has learned so far. A low uncertainty value (${uncertainty.toFixed(
-      //           4
-      //         )}%) suggests that this is a reliable diagnosis.
-      //         `;
-      //       } else {
-      //         uncertaintyMessage = `
-      // The **uncertainty score** associated with this diagnosis is **${uncertainty.toFixed(
-      //           4
-      //         )}%**. This score indicates how sure the system is about this diagnosis based on what it has learned so far. A high uncertainty value (${uncertainty.toFixed(
-      //           4
-      //         )}%) suggests that this diagnosis may not be reliable, and more tests or expert opinions may be needed.
-      //         `;
-      //       }
-
-      //       const diagnosisMessage = `
-      // Based on your symptom description, you might be experiencing: **${pred}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
-      //         confidence * 100
-      //       ).toFixed(4)}%**.  \n
-
-      // Here are other most likely conditions based on your symptoms:
-
-      // ${probs.map((prob: any) => `- ${prob}`).join("\n")}  \n
-
-      // ${uncertaintyMessage}  \n
-
-      // Do you want to record this diagnosis?
-      //       `;
+      const tempDiagnosis = {
+        confidence,
+        uncertainty,
+        disease: pred.toUpperCase(),
+        modelUsed: transformedModelUsed,
+      };
 
       await createMessage({
         content: diagnosisMessage,
         chatId,
         type: "DIAGNOSIS",
         role: "AI",
+        tempDiagnosis,
       });
 
-      return { success: "Successfully ran diagnosis" };
+      return { success: "Successfully ran diagnosis and created message" };
     } catch (error) {
       console.error("Error running diagnosis:", error);
 

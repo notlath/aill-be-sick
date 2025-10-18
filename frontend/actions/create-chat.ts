@@ -1,12 +1,12 @@
 "use server";
 
-import { CreateDiagnosisSchema } from "@/schemas/CreateDiagnosisSchema";
+import { CreateChatSchema } from "@/schemas/CreateChatSchema";
 import { actionClient } from "./client";
 import prisma from "@/prisma/prisma";
 import { getCurrentDbUser } from "@/utils/user";
 
 export const createChat = actionClient
-  .inputSchema(CreateDiagnosisSchema)
+  .inputSchema(CreateChatSchema)
   .action(async ({ parsedInput }) => {
     const { symptoms, chatId } = parsedInput;
     const { success: user, error } = await getCurrentDbUser();
