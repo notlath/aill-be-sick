@@ -1,5 +1,7 @@
+import Markdown from "react-markdown";
 import ChatBubble from "./chat-bubble";
 import { Message } from "@/app/generated/prisma";
+import remarkBreaks from "remark-breaks";
 
 type ChatContainerProps = {
   messages: Message[];
@@ -18,13 +20,21 @@ const ChatContainer = ({ messages, isPending }: ChatContainerProps) => {
         />
       ))}
       {isPending && (
-        <ChatBubble
-          key="diagnosing"
-          content="Diagnosing..."
-          role="AI"
-          type="QUESTION"
-          messagesLength={messages.length}
-        />
+        <article className="self-start bg-gray-200 p-3 px-4 rounded-xl max-w-[60%]">
+          <div>
+            <Markdown
+              remarkPlugins={[remarkBreaks]}
+              components={{
+                p: ({ children }) => <p className="my-2">{children}</p>,
+                strong: ({ children }) => (
+                  <strong className="font-bold">{children}</strong>
+                ),
+              }}
+            >
+              Diagnosing...
+            </Markdown>
+          </div>
+        </article>
       )}
     </section>
   );
