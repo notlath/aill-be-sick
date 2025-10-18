@@ -1,4 +1,5 @@
 import { getChats } from "@/utils/chat";
+import Link from "next/link";
 
 const HistoryPage = async () => {
   const { success: chats, error } = await getChats({ messages: true });
@@ -27,7 +28,7 @@ const HistoryPage = async () => {
       </div>
       <section className="space-y-2">
         {chats.map((chat) => (
-          <a
+          <Link
             href={`/diagnosis/${chat.chatId}`}
             key={chat.id}
             className="bg-base-100 p-4 border border-border card"
@@ -35,7 +36,7 @@ const HistoryPage = async () => {
             <h2 className="font-semibold text-2xl">
               Diagnosis on {chat.createdAt.toDateString()}
             </h2>
-          </a>
+          </Link>
         ))}
       </section>
     </main>

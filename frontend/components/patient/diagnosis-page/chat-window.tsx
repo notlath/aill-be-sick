@@ -53,6 +53,49 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
     },
   });
   const hasRunInitialDiagnosis = useRef<boolean>(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const hasScrolledToBottom = useRef<boolean>(false);
+
+  // Smooth scroll to bottom on initial load
+  useEffect(() => {
+    if (chatEndRef.current && !hasScrolledToBottom.current) {
+      const scrollToBottom = () => {
+        const element = chatEndRef.current;
+        if (!element) return;
+
+        // Get the target position (bottom of the page)
+        const targetPosition =
+          element.getBoundingClientRect().top + window.scrollY;
+
+        // Calculate starting position (25% above the bottom)
+        const viewportHeight = window.innerHeight;
+        const startPosition = targetPosition - viewportHeight * 1.25;
+
+        // Scroll to starting position instantly, then smoothly to bottom
+        window.scrollTo({
+          top: Math.max(0, startPosition),
+          behavior: "instant",
+        });
+
+        // Use setTimeout to ensure the instant scroll completes first
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: "smooth", block: "end" });
+        }, 50);
+
+        hasScrolledToBottom.current = true;
+      };
+
+      // Small delay to ensure content is rendered
+      setTimeout(scrollToBottom, 100);
+    }
+  }, []);
+
+  // Scroll to bottom when new messages are added
+  useEffect(() => {
+    if (hasScrolledToBottom.current && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [optimisticMessages.length]);
 
   useEffect(() => {
     if (messages.length === 1 && !hasRunInitialDiagnosis.current) {
@@ -68,6 +111,7 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
   return (
     <FormProvider {...form}>
       <ChatContainer
+        ref={chatEndRef}
         messages={optimisticMessages}
         isPending={isDiagnosing || isCreatingMessage}
         hasDiagnosis={chat.hasDiagnosis}

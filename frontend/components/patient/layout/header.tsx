@@ -1,6 +1,7 @@
 import { getCurrentDbUser } from "@/utils/user";
 import { PanelLeft } from "lucide-react";
 import SignOutBtn from "./sign-out-btn";
+import Image from "next/image";
 
 const Header = async () => {
   const { success: dbUser, error } = await getCurrentDbUser();
@@ -22,8 +23,13 @@ const Header = async () => {
           <div className="flex flex-1 items-center gap-2 hover:bg-base-200 p-2 rounded-xl transition-colors cursor-pointer">
             {dbUser.avatar ? (
               <div className="cursor-pointer avatar">
-                <div className="rounded-full size-8">
-                  <img src={dbUser.avatar} />
+                <div className="rounded-full size-8 overflow-hidden">
+                  <Image
+                    src={dbUser.avatar}
+                    alt={dbUser.name || "Avatar"}
+                    className="size-8"
+                    fill
+                  />
                 </div>
               </div>
             ) : (

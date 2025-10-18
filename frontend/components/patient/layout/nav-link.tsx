@@ -1,5 +1,6 @@
 import { NavItem } from "@/constants/nav-items";
 import { cn } from "@/utils/lib";
+import Link from "next/link";
 
 type NavLinkProps = {
   isActive: boolean;
@@ -7,7 +8,7 @@ type NavLinkProps = {
 
 const NavLink = ({ name, href, icon: Icon, isActive }: NavLinkProps) => {
   return (
-    <a
+    <Link
       href={href}
       className={cn(
         "flex items-center gap-2 bg-base-300 hover:bg-base-200 opacity-65 p-2 border border-transparent hover:border-border rounded-xl transition-all",
@@ -19,7 +20,7 @@ const NavLink = ({ name, href, icon: Icon, isActive }: NavLinkProps) => {
         <Icon className="size-4" />
       </div>
       <div>{name}</div>
-    </a>
+    </Link>
   );
 };
 
