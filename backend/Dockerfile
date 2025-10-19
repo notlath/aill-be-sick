@@ -17,9 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Expose port (Render will assign PORT via environment variable, default 10000)
+# Expose port (Render will assign PORT via environment variable)
 EXPOSE 10000
 
-# Use gunicorn for production
-# Use sh -c to ensure environment variable expansion works
-CMD sh -c "gunicorn --bind 0.0.0.0:${PORT:-10000} --workers 2 --threads 4 --timeout 120 app:app"
+# Use only 1 worker with 1 thread to minimize memory usage
+# Increase timeout for ML model inference
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 300 --max-requests 100 --max-requests-jitter 10 app:app

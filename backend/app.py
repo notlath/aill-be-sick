@@ -9,8 +9,11 @@ import numpy as np
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from scipy.stats import entropy
 import os
+import gc
 
 app = Flask(__name__)
+
+# Configure CORS for production
 CORS(
     app,
     origins=[
@@ -29,12 +32,14 @@ class MonteCarloDropoutClassifier:
         self, model_path, n_iterations=50, inference_dropout_rate=0.05, device=None
     ):
         self.n_iterations = n_iterations
-        self.inference_dropout_rate = inference_dropout_rate  # NEW PARAMETER
-        self.device = device or torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
+        self.inference_dropout_rate = inference_dropout_rate
+        # Force CPU to save memory
+        self.device = torch.device("cpu")
 
-        self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
+        # Load model with lower precision to save memory
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            model_path, torch_dtype=torch.float32, low_cpu_mem_usage=True
+        )
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.model.to(self.device)
         self.model.eval()
@@ -49,7 +54,6 @@ class MonteCarloDropoutClassifier:
 
         for module in self.model.modules():
             if module.__class__.__name__.startswith("Dropout"):
-                # Set custom dropout rate for inference
                 module.p = dropout_rate
                 module.train()
             elif "Norm" in module.__class__.__name__:
@@ -57,10 +61,13 @@ class MonteCarloDropoutClassifier:
 
     def predict_with_uncertainty(self, text):
         inputs = self.tokenizer(
-            text, return_tensors="pt", truncation=True, padding=True
+            text,
+            return_tensors="pt",
+            truncation=True,
+            padding=True,
+            max_length=512,  # Limit token length
         ).to(self.device)
 
-        # Use LOWER dropout rate for inference
         self.enable_dropout_with_rate(dropout_rate=self.inference_dropout_rate)
 
         all_predictions = []
@@ -71,20 +78,21 @@ class MonteCarloDropoutClassifier:
                 probabilities = torch.softmax(outputs.logits, dim=-1)
                 all_predictions.append(probabilities.cpu().numpy())
 
-        # Stack predictions (shape: n_iterations, batch_size, n_classes)
+                # Clear cache periodically
+                if _ % 10 == 0:
+                    gc.collect()
+
         all_predictions = np.stack(all_predictions)
-
-        # Calculate statistics
-        mean_probs = all_predictions.mean(axis=0)  # Average probabilities
-        std_probs = all_predictions.std(axis=0)  # Standard deviation
-
-        # Predicted class (highest mean probability)
+        mean_probs = all_predictions.mean(axis=0)
+        std_probs = all_predictions.std(axis=0)
         predicted_class = mean_probs.argmax(axis=-1)
         confidence = mean_probs.max(axis=-1)
-
-        # Uncertainty metrics
         predictive_entropy = entropy(mean_probs, axis=-1)
         mutual_information = self.compute_mutual_information(all_predictions)
+
+        # Clear memory
+        del all_predictions
+        gc.collect()
 
         return {
             "predicted_class": predicted_class,
@@ -96,7 +104,6 @@ class MonteCarloDropoutClassifier:
             "confidence": confidence,
             "predictive_entropy": predictive_entropy,
             "mutual_information": mutual_information,
-            "all_predictions": all_predictions,  # For further analysis
         }
 
     def compute_mutual_information(self, predictions):
@@ -104,34 +111,29 @@ class MonteCarloDropoutClassifier:
         Compute mutual information as measure of epistemic uncertainty.
         MI = H(E[p]) - E[H(p)]
         """
-        # Expected entropy: average of entropies
         expected_entropy = np.mean([entropy(p, axis=-1) for p in predictions], axis=0)
-
-        # Entropy of expected probabilities
         mean_probs = predictions.mean(axis=0)
         entropy_of_expected = entropy(mean_probs, axis=-1)
-
         return entropy_of_expected - expected_entropy
 
 
+# Reduce iterations to save memory
 eng_classifier = MonteCarloDropoutClassifier(
-    eng_model_path, n_iterations=20, inference_dropout_rate=0.05
+    eng_model_path, n_iterations=10, inference_dropout_rate=0.05
 )
 fil_classifier = MonteCarloDropoutClassifier(
-    fil_model_path, n_iterations=20, inference_dropout_rate=0.05
+    fil_model_path, n_iterations=10, inference_dropout_rate=0.05
 )
 
 
 def classifier(text):
     lang = detect(text)
 
-    if lang == "en":  # English
+    if lang == "en":
         result = eng_classifier.predict_with_uncertainty(text)
         pred = result["predicted_label"][0]
-        confidence = float(result["confidence"][0])  # Return as float, not string
-        uncertainty = float(
-            result["mutual_information"][0]
-        )  # Return as float, not string
+        confidence = float(result["confidence"][0])
+        uncertainty = float(result["mutual_information"][0])
         sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
         probs = []
 
@@ -141,17 +143,17 @@ def classifier(text):
         for idx in sorted_idx:
             label = eng_classifier.model.config.id2label[idx]
             prob = float(result["mean_probabilities"][0][idx])
-            probs.append(f"{label}: {prob*100:.2f}%")  # Format here instead
+            probs.append(f"{label}: {prob*100:.2f}%")
 
+        # Clean up
+        gc.collect()
         return pred, confidence, uncertainty, probs, "BioClinical ModernBERT"
 
-    elif lang in ["tl", "fil"]:  # Tagalog / Filipino
+    elif lang in ["tl", "fil"]:
         result = fil_classifier.predict_with_uncertainty(text)
         pred = result["predicted_label"][0]
-        confidence = float(result["confidence"][0])  # Return as float, not string
-        uncertainty = float(
-            result["mutual_information"][0]
-        )  # Return as float, not string
+        confidence = float(result["confidence"][0])
+        uncertainty = float(result["mutual_information"][0])
         sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
         probs = []
 
@@ -161,24 +163,25 @@ def classifier(text):
         for idx in sorted_idx:
             label = fil_classifier.model.config.id2label[idx]
             prob = float(result["mean_probabilities"][0][idx])
-            probs.append(f"{label}: {prob*100:.2f}%")  # Format here instead
+            probs.append(f"{label}: {prob*100:.2f}%")
 
+        # Clean up
+        gc.collect()
         return pred, confidence, uncertainty, probs, "RoBERTa Tagalog"
 
     else:
-        # Handle unsupported languages
         raise ValueError(f"Unsupported language: {lang}")
 
 
 @app.route("/diagnosis/", methods=["GET"])
 def index():
-    """Main index endpoint - equivalent to Django's index view"""
+    """Main index endpoint"""
     return jsonify({"message": "Hello, world!"})
 
 
 @app.route("/diagnosis/new", methods=["POST"])
 def new_case():
-    """Create new case endpoint - equivalent to Django's new_case view"""
+    """Create new case endpoint"""
     try:
         data = request.get_json()
 
@@ -205,6 +208,7 @@ def new_case():
         )
 
     except Exception as e:
+        gc.collect()  # Clean up on error
         return jsonify({"error": str(e)}), 500
 
 
@@ -219,6 +223,5 @@ def method_not_allowed(error):
 
 
 if __name__ == "__main__":
-    # Railway provides PORT via environment variable
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", 10000))
     app.run(debug=False, host="0.0.0.0", port=port)
