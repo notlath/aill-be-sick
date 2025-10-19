@@ -17,8 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Expose port (Railway will assign PORT via environment variable)
-EXPOSE 8000
+# Expose port (Render will assign PORT via environment variable, default 10000)
+EXPOSE 10000
 
 # Use gunicorn for production
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 app:app
+# Use sh -c to ensure environment variable expansion works
+CMD sh -c "gunicorn --bind 0.0.0.0:${PORT:-10000} --workers 2 --threads 4 --timeout 120 app:app"
