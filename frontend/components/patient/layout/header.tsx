@@ -1,21 +1,13 @@
-import { getCurrentDbUser } from "@/utils/user";
 import { PanelLeft } from "lucide-react";
 import SignOutBtn from "./sign-out-btn";
 import Image from "next/image";
+import { User } from "@/app/generated/prisma";
 
-const Header = async () => {
-  const { success: dbUser, error } = await getCurrentDbUser();
+type HeaderProps = {
+  dbUser: User;
+};
 
-  if (!dbUser) {
-    // TODO: Error handling
-    return <div>Error: No user found</div>;
-  }
-
-  if (error) {
-    // TODO: Error handling
-    return <div>Error: {JSON.stringify(error)}</div>;
-  }
-
+const Header = ({ dbUser }: HeaderProps) => {
   return (
     <header className="flex justify-between items-center gap-2">
       <div className="dropdown">

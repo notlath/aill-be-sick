@@ -1,7 +1,7 @@
 import Sidebar from "@/components/patient/layout/sidebar";
 import { ReactNode } from "react";
 
-const LayoutWrapper = ({ children }: { children: ReactNode }) => {
+const LayoutWrapper = async ({ children }: { children: ReactNode }) => {
   return (
     <div className="flex">
       <Sidebar />

@@ -1,4 +1,10 @@
-import { History, Stethoscope } from "lucide-react";
+import {
+  History,
+  LayoutDashboard,
+  OctagonAlert,
+  Stethoscope,
+  TrendingUp,
+} from "lucide-react";
 
 export type NavItem = {
   name: string;
@@ -16,5 +22,28 @@ export const patientNavItems: NavItem[] = [
     name: "History",
     href: "/history",
     icon: History,
+  },
+];
+
+export const clinicianNavItems: NavItem[] = [
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Alerts",
+    href: "/alerts",
+    icon: OctagonAlert,
+  },
+  {
+    name: "Trends",
+    href: "/trends",
+    icon: TrendingUp,
+  },
+  {
+    name: "Healthcare Reports",
+    href: "/healthcare-reports",
+    icon: LayoutDashboard,
   },
 ];
