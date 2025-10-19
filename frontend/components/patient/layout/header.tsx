@@ -23,11 +23,11 @@ const Header = async () => {
           <div className="flex flex-1 items-center gap-2 hover:bg-base-200 p-2 rounded-xl transition-colors cursor-pointer">
             {dbUser.avatar ? (
               <div className="cursor-pointer avatar">
-                <div className="rounded-full size-8 overflow-hidden">
+                <div className="size-8 overflow-hidden">
                   <Image
                     src={dbUser.avatar}
                     alt={dbUser.name || "Avatar"}
-                    className="size-8"
+                    className="rounded-full size-8"
                     fill
                   />
                 </div>
