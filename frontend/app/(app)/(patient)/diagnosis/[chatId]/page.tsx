@@ -1,7 +1,7 @@
 import ChatWindow from "@/components/patient/diagnosis-page/chat-window";
 import { getChatById } from "@/utils/chat";
 import { getMessagesByChatId } from "@/utils/message";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 const ChatPage = async ({
   params,
@@ -13,8 +13,7 @@ const ChatPage = async ({
   const { success: chat, error: chatError } = await getChatById(chatId);
 
   if (!chat) {
-    // TODO: Error handling
-    return redirect("/diagnosis");
+    return notFound();
   }
 
   if (chatError) {
