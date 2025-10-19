@@ -1,5 +1,5 @@
+import DiagnosisLink from "@/components/patient/history-page/diagnosis-link";
 import { getChats } from "@/utils/chat";
-import Link from "next/link";
 
 const HistoryPage = async () => {
   const { success: chats, error } = await getChats({ messages: true });
@@ -19,24 +19,16 @@ const HistoryPage = async () => {
   }
 
   return (
-    <main className="space-y-8 p-8">
+    <main className="space-y-8 p-12">
       <div className="space-y-2">
         <h1 className="font-semibold text-5xl">Diagnosis history</h1>
         <p className="text-muted">
           You can view all your previous diagnoses and their details here.
         </p>
       </div>
-      <section className="space-y-2">
+      <section>
         {chats.map((chat) => (
-          <Link
-            href={`/diagnosis/${chat.chatId}`}
-            key={chat.id}
-            className="bg-base-100 p-4 border border-border card"
-          >
-            <h2 className="font-semibold text-2xl">
-              Diagnosis on {chat.createdAt.toDateString()}
-            </h2>
-          </Link>
+          <DiagnosisLink key={chat.id} {...chat} />
         ))}
       </section>
     </main>

@@ -42,7 +42,7 @@ const RecordDiagnosisBtn = ({
     <div className="flex gap-2 mt-4">
       <button
         disabled={isExecuting || disabled}
-        className="flex-1 btn"
+        className="flex-1 border border-border btn"
         onClick={handleRecordDiagnosis}
       >
         {isExecuting ? (
