@@ -112,7 +112,7 @@ A low confidence score (${(confidence * 100).toFixed(
           4
         )}%) combined with a low uncertainty score (${uncertainty.toFixed(
           4
-        )}%) suggests that **the model is unsure about the diagnosis,** and is aware that **it doesn't have enough information to make a confident prediction for this specific case.** It is recommended to seek further medical advice for an accurate diagnosis.  \n
+        )}%) suggests that **the model is unsure about the diagnosis,** and is aware that **it needs more information to make a confident prediction for this specific case.** It is recommended to seek further medical advice or provide additional context for an accurate diagnosis.  \n
 
 Do you want to record this diagnosis?
               `;
