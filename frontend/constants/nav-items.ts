@@ -4,6 +4,7 @@ import {
   OctagonAlert,
   Stethoscope,
   TrendingUp,
+  User,
 } from "lucide-react";
 
 export type NavItem = {
@@ -30,6 +31,11 @@ export const clinicianNavItems: NavItem[] = [
     name: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+  },
+  {
+    name: "Users",
+    href: "/users",
+    icon: User,
   },
   {
     name: "Alerts",
