@@ -15,3 +15,27 @@ export const getDiagnosisByChatId = async (chatId: string) => {
     return { error: `Could not fetch diagnosis for chatId ${chatId}` };
   }
 };
+
+export const getAllDiagnoses = async () => {
+  try {
+    const diagnoses = await prisma.diagnosis.findMany();
+
+    return { success: diagnoses };
+  } catch (error) {
+    console.error(`Error fetching all diagnoses:`, error);
+
+    return { error: `Could not fetch all diagnoses` };
+  }
+};
+
+export const getTotalDiagnosesCount = async () => {
+  try {
+    const count = await prisma.diagnosis.count();
+
+    return { success: count };
+  } catch (error) {
+    console.error(`Error fetching total diagnoses count: ${error}`);
+
+    return { error: `Error fetching total diagnoses count: ${error}` };
+  }
+};
