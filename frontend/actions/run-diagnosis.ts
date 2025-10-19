@@ -1,10 +1,14 @@
 "use server";
 
-import { getCurrentDbUser } from "@/utils/user";
-import { actionClient } from "./client";
 import { RunDiagnosisSchema } from "@/schemas/RunDiagnosisSchema";
-import { createMessage } from "./create-message";
+import { getCurrentDbUser } from "@/utils/user";
 import axios from "axios";
+import { actionClient } from "./client";
+import { createMessage } from "./create-message";
+
+// Use environment variable for backend URL
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
 export const runDiagnosis = actionClient
   .inputSchema(RunDiagnosisSchema)
@@ -21,7 +25,7 @@ export const runDiagnosis = actionClient
     try {
       const {
         data: { data: diagnosis },
-      } = await axios.post("http://127.0.0.1:8000/diagnosis/new", {
+      } = await axios.post(`${BACKEND_URL}/diagnosis/new`, {
         symptoms,
       });
       const { pred, confidence, uncertainty, probs, model_used } = diagnosis;
