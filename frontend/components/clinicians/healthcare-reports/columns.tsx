@@ -15,10 +15,6 @@ export type DiagnosisRow = {
 
 export const columns: ColumnDef<DiagnosisRow>[] = [
   {
-    accessorKey: "id",
-    header: "ID",
-  },
-  {
     accessorKey: "disease",
     header: ({ column }) => {
       return (
