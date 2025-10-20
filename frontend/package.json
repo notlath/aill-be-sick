@@ -17,6 +17,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.75.0",
     "@tailwindcss/typography": "^0.5.19",
+    "@tanstack/react-table": "^8.21.3",
     "axios": "^1.12.2",
     "clsx": "^2.1.1",
     "lucide-react": "^0.545.0",

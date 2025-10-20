@@ -16,8 +16,17 @@ export const getDiagnosisByChatId = async (chatId: string) => {
   }
 };
 
-export const getAllDiagnoses = async () => {
+export const getAllDiagnoses = async ({ skip, take }: { skip?: number; take?: number }) => {
   try {
+    if (skip || take) {
+      const diagnoses = await prisma.diagnosis.findMany({
+        skip,
+        take,
+      });
+
+      return { success: diagnoses };
+    }
+
     const diagnoses = await prisma.diagnosis.findMany();
 
     return { success: diagnoses };
