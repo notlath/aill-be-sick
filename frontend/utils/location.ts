@@ -40,7 +40,7 @@ export const getLocationDetails = async (
           data.address?.town ||
           data.address?.village ||
           data.address?.municipality,
-        region: data.address?.state || data.address?.province,
+        region: data.address?.region,
       },
     };
   } catch (error) {

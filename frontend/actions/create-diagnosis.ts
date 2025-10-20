@@ -45,6 +45,7 @@ export const createDiagnosis = actionClient
           latitude: location.latitude,
           longitude: location.longitude,
           city: location.city,
+          region: location.region,
         },
       });
 

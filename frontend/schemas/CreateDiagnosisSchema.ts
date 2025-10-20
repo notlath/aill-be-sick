@@ -11,5 +11,6 @@ export const CreateDiagnosisSchema = z.object({
     latitude: z.number(),
     longitude: z.number(),
     city: z.string().optional(),
+    region: z.string().optional(),
   }),
 });
