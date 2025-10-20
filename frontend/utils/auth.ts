@@ -1,7 +1,9 @@
 import { createClient } from "./supabase/client";
 
-const supabase = createClient();
+export const signOutClient = async () => {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
 
-export const signOutClient = () => {
-  supabase.auth.signOut();
+  revalidatePath("/", "layout");
+  redirect("/login");
 };

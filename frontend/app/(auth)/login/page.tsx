@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
+import Link from "next/link";
 
 const HomePage = () => {
   const supabase = createClient();
@@ -32,9 +33,9 @@ const HomePage = () => {
         </button>
         <p className="text-muted text-sm">
           Not a patient? Click{" "}
-          <a href="/clinician-login" className="text-primary">
+          <Link href="/clinician-login" className="text-primary">
             here
-          </a>{" "}
+          </Link>{" "}
           to log in as a clinician
         </p>
       </section>

@@ -1,32 +1,25 @@
 "use client";
 
-import { signOutClient } from "@/utils/auth";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { signOut } from "@/utils/auth";
+import { useState, useTransition } from "react";
 
 const SignOutBtn = () => {
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
-
-    signOutClient();
-
-    setIsSigningOut(false);
-
-    router.refresh();
-    router.push("/login");
+  const handleSignOut = () => {
+    startTransition(() => {
+      signOut();
+    });
   };
 
   return (
     <button
-      disabled={isSigningOut}
+      disabled={isPending}
       onClick={handleSignOut}
       role="button"
       className="active:bg-primary"
     >
-      Sign out
+      {isPending ? "Signing out..." : "Sign out"}
     </button>
   );
 };
