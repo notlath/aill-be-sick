@@ -44,6 +44,10 @@ model User {
   name       String?
   avatar     String?
   role       Role        @default(PATIENT)
+  latitude   Float?
+  longitude  Float?
+  city       String?
+  region     String?
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @default(now()) @updatedAt
   chats      Chat[]
@@ -97,6 +101,10 @@ model Diagnosis {
   chatId        String   @unique
   symptoms      String
   modelUsed     Model
+  latitude      Float?
+  longitude     Float?
+  city          String?
+  region        String?
   chat          Chat     @relation(fields: [chatId], references: [chatId])
   userId        Int
   user          User     @relation(fields: [userId], references: [id])

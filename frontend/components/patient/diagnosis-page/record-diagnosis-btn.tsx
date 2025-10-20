@@ -1,21 +1,20 @@
 import { createDiagnosis } from "@/actions/create-diagnosis";
 import { TempDiagnosis } from "@/app/generated/prisma";
 import { useAction } from "next-safe-action/hooks";
+import { LocationData } from "@/utils/location";
 
 type RecordDiagnosisBtnProps = {
   tempDiagnosis?: TempDiagnosis;
-  messagesLength: number;
   chatId: string;
-  idx?: number;
   disabled?: boolean;
+  location: LocationData;
 };
 
 const RecordDiagnosisBtn = ({
   tempDiagnosis,
-  messagesLength,
-  idx,
   chatId,
   disabled,
+  location,
 }: RecordDiagnosisBtnProps) => {
   const { execute, isExecuting } = useAction(createDiagnosis, {
     onSuccess: ({ data }) => {
@@ -35,6 +34,7 @@ const RecordDiagnosisBtn = ({
       modelUsed: tempDiagnosis.modelUsed,
       uncertainty: tempDiagnosis.uncertainty,
       symptoms: tempDiagnosis.symptoms,
+      location: location,
     });
   };
 

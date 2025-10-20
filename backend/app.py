@@ -33,12 +33,8 @@ class MonteCarloDropoutClassifier:
     ):
         self.n_iterations = n_iterations
         self.inference_dropout_rate = inference_dropout_rate
-        # Force CPU to save memory
-        self.device = torch.device("cpu")
-
-        # Load model with lower precision to save memory
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            model_path, torch_dtype=torch.float32, low_cpu_mem_usage=True
+            model_path
         )
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.model.to(self.device)
@@ -65,7 +61,6 @@ class MonteCarloDropoutClassifier:
             return_tensors="pt",
             truncation=True,
             padding=True,
-            max_length=512,  # Limit token length
         ).to(self.device)
 
         self.enable_dropout_with_rate(dropout_rate=self.inference_dropout_rate)
@@ -78,7 +73,6 @@ class MonteCarloDropoutClassifier:
                 probabilities = torch.softmax(outputs.logits, dim=-1)
                 all_predictions.append(probabilities.cpu().numpy())
 
-                # Clear cache periodically
                 if _ % 10 == 0:
                     gc.collect()
 
@@ -90,7 +84,6 @@ class MonteCarloDropoutClassifier:
         predictive_entropy = entropy(mean_probs, axis=-1)
         mutual_information = self.compute_mutual_information(all_predictions)
 
-        # Clear memory
         del all_predictions
         gc.collect()
 
@@ -117,60 +110,74 @@ class MonteCarloDropoutClassifier:
         return entropy_of_expected - expected_entropy
 
 
-# Reduce iterations to save memory
 eng_classifier = MonteCarloDropoutClassifier(
-    eng_model_path, n_iterations=10, inference_dropout_rate=0.05
+    eng_model_path, n_iterations=25, inference_dropout_rate=0.05
 )
 fil_classifier = MonteCarloDropoutClassifier(
-    fil_model_path, n_iterations=10, inference_dropout_rate=0.05
+    fil_model_path, n_iterations=25, inference_dropout_rate=0.05
 )
 
 
 def classifier(text):
-    lang = detect(text)
+    try:
+        print(f"Detecting language for text: {text}")
+        
+        lang = detect(text)
+        
+        print(f"Detected language: {lang}")
 
-    if lang == "en":
-        result = eng_classifier.predict_with_uncertainty(text)
-        pred = result["predicted_label"][0]
-        confidence = float(result["confidence"][0])
-        uncertainty = float(result["mutual_information"][0])
-        sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
-        probs = []
+        if lang == "en":
+            print("Using English classifier...")
+            result = eng_classifier.predict_with_uncertainty(text)
+            pred = result["predicted_label"][0]
+            confidence = float(result["confidence"][0])
+            uncertainty = float(result["mutual_information"][0])
+            sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
+            probs = []
 
-        print("Result:")
-        print(result)
+            print("Result:")
+            print(result)
 
-        for idx in sorted_idx:
-            label = eng_classifier.model.config.id2label[idx]
-            prob = float(result["mean_probabilities"][0][idx])
-            probs.append(f"{label}: {prob*100:.2f}%")
+            for idx in sorted_idx:
+                label = eng_classifier.model.config.id2label[idx]
+                prob = float(result["mean_probabilities"][0][idx])
+                probs.append(f"{label}: {prob*100:.2f}%")
 
-        # Clean up
-        gc.collect()
-        return pred, confidence, uncertainty, probs, "BioClinical ModernBERT"
+            gc.collect()
+            return pred, confidence, uncertainty, probs, "BioClinical ModernBERT"
 
-    elif lang in ["tl", "fil"]:
-        result = fil_classifier.predict_with_uncertainty(text)
-        pred = result["predicted_label"][0]
-        confidence = float(result["confidence"][0])
-        uncertainty = float(result["mutual_information"][0])
-        sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
-        probs = []
+        elif lang in ["tl", "fil"]:
+            print("Using Tagalog classifier...")
+            result = fil_classifier.predict_with_uncertainty(text)
+            pred = result["predicted_label"][0]
+            confidence = float(result["confidence"][0])
+            uncertainty = float(result["mutual_information"][0])
+            sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
+            probs = []
 
-        print("Result:")
-        print(result)
+            print("Result:")
+            print(result)
 
-        for idx in sorted_idx:
-            label = fil_classifier.model.config.id2label[idx]
-            prob = float(result["mean_probabilities"][0][idx])
-            probs.append(f"{label}: {prob*100:.2f}%")
+            for idx in sorted_idx:
+                label = fil_classifier.model.config.id2label[idx]
+                prob = float(result["mean_probabilities"][0][idx])
+                probs.append(f"{label}: {prob*100:.2f}%")
 
-        # Clean up
-        gc.collect()
-        return pred, confidence, uncertainty, probs, "RoBERTa Tagalog"
+            gc.collect()
+            return pred, confidence, uncertainty, probs, "RoBERTa Tagalog"
 
-    else:
-        raise ValueError(f"Unsupported language: {lang}")
+        else:
+            print(f"Unsupported language detected: {lang}")
+            
+            raise ValueError(f"UNSUPPORTED_LANGUAGE:{lang}")
+            
+    except Exception as e:
+        import traceback
+        error_msg = str(e)
+        print(f"ERROR in classifier: {error_msg}")
+        print(traceback.format_exc())
+        
+        raise
 
 
 @app.route("/diagnosis/", methods=["GET"])
@@ -189,6 +196,11 @@ def new_case():
             return jsonify({"error": "No JSON data provided"}), 400
 
         symptoms = data.get("symptoms", "")
+        
+        print(f"Making diagnosis with symptoms: {symptoms}")
+        
+        if not symptoms:
+            return jsonify({"error": "Symptoms cannot be empty"}), 400
 
         pred, confidence, uncertainty, probs, model_used = classifier(symptoms)
 
@@ -208,8 +220,32 @@ def new_case():
         )
 
     except Exception as e:
-        gc.collect()  # Clean up on error
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        error_msg = str(e)
+        
+        print(f"Exception caught in new_case: {error_msg}")
+        print(f"Exception type: {type(e)}")
+        
+        if "UNSUPPORTED_LANGUAGE:" in error_msg:
+            lang = error_msg.split("UNSUPPORTED_LANGUAGE:")[1].strip()
+            
+            print(f"Detected unsupported language: {lang}")
+            
+            return jsonify({
+                "error": "UNSUPPORTED_LANGUAGE",
+                "message": f"Sorry, the detected language '{lang}' is not supported. Please use English or Tagalog/Filipino.",
+                "detected_language": lang
+            }), 400
+        
+        error_details = traceback.format_exc()
+        print(f"ERROR in new_case:")
+        print(error_details)
+        gc.collect()
+        return jsonify({
+            "error": "INTERNAL_ERROR", 
+            "message": error_msg, 
+            "details": error_details
+        }), 500
 
 
 @app.errorhandler(404)

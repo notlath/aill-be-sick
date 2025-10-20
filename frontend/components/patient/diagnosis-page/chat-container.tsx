@@ -3,15 +3,17 @@ import ChatBubble from "./chat-bubble";
 import { Message } from "@/app/generated/prisma";
 import remarkBreaks from "remark-breaks";
 import { forwardRef } from "react";
+import { LocationData } from "@/utils/location";
 
 type ChatContainerProps = {
   messages: Message[];
   isPending: boolean;
   hasDiagnosis?: boolean;
+  location?: LocationData | null;
 };
 
 const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
-  ({ messages, isPending, hasDiagnosis }, ref) => {
+  ({ messages, isPending, hasDiagnosis, location }, ref) => {
     return (
       <section className="flex flex-col flex-1 space-y-2 px-[12.5rem] py-8">
         {messages.map((message, idx) => (
@@ -20,6 +22,7 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
             messagesLength={messages.length}
             idx={idx}
             chatHasDiagnosis={hasDiagnosis}
+            location={location}
             {...message}
           />
         ))}

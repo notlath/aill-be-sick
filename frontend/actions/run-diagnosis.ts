@@ -2,7 +2,7 @@
 
 import { RunDiagnosisSchema } from "@/schemas/RunDiagnosisSchema";
 import { getCurrentDbUser } from "@/utils/user";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { actionClient } from "./client";
 import { createMessage } from "./create-message";
 
@@ -140,6 +140,18 @@ Do you want to record this diagnosis?
       return { success: "Successfully ran diagnosis and created message" };
     } catch (error) {
       console.error("Error running diagnosis:", error);
+
+      if (error instanceof AxiosError && error.response) {
+        const errorData = error.response.data;
+
+        if (errorData.error === "UNSUPPORTED_LANGUAGE") {
+          return {
+            error: "UNSUPPORTED_LANGUAGE",
+            message: errorData.message,
+            detectedLanguage: errorData.detected_language,
+          };
+        }
+      }
 
       return { error: `Error running diagnosis: ${error}` };
     }

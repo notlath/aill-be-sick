@@ -9,8 +9,15 @@ import { revalidatePath } from "next/cache";
 export const createDiagnosis = actionClient
   .inputSchema(CreateDiagnosisSchema)
   .action(async ({ parsedInput }) => {
-    const { confidence, uncertainty, modelUsed, disease, chatId, symptoms } =
-      parsedInput;
+    const {
+      confidence,
+      uncertainty,
+      modelUsed,
+      disease,
+      chatId,
+      symptoms,
+      location,
+    } = parsedInput;
     const { success: dbUser, error } = await getCurrentDbUser();
 
     if (!dbUser) {
@@ -35,6 +42,9 @@ export const createDiagnosis = actionClient
           chatId,
           symptoms,
           userId: dbUser.id,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          city: location.city,
         },
       });
 

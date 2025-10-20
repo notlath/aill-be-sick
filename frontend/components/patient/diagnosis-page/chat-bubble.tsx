@@ -3,12 +3,14 @@ import { cn } from "@/utils/lib";
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import RecordDiagnosisBtn from "./record-diagnosis-btn";
+import { LocationData } from "@/utils/location";
 
 type ChatBubbleProps = {
   messagesLength: number;
   idx?: number;
   tempDiagnosis?: TempDiagnosis;
   chatHasDiagnosis?: boolean;
+  location?: LocationData | null;
 } & Message;
 
 const ChatBubble = ({
@@ -20,6 +22,7 @@ const ChatBubble = ({
   tempDiagnosis,
   chatId,
   chatHasDiagnosis,
+  location,
 }: ChatBubbleProps) => {
   return (
     <article
@@ -43,15 +46,14 @@ const ChatBubble = ({
           {content}
         </Markdown>
       </div>
-      {type === "DIAGNOSIS" && (
+      {type === "DIAGNOSIS" && location && (
         <RecordDiagnosisBtn
           disabled={
             chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
           }
           tempDiagnosis={tempDiagnosis}
-          messagesLength={messagesLength}
           chatId={chatId}
-          idx={idx}
+          location={location}
         />
       )}
     </article>

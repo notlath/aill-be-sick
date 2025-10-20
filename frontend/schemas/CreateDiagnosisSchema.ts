@@ -7,4 +7,9 @@ export const CreateDiagnosisSchema = z.object({
   modelUsed: z.enum(["BIOCLINICAL_MODERNBERT", "ROBERTA_TAGALOG"]),
   disease: z.enum(["DENGUE", "PNEUMONIA", "TYPHOID", "IMPETIGO"]),
   chatId: z.string().min(1, "Chat ID cannot be empty"),
+  location: z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    city: z.string().optional(),
+  }),
 });

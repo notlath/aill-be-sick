@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
 import { Chat, Message } from "@/app/generated/prisma";
@@ -13,6 +13,7 @@ import {
 } from "@/schemas/CreateChatSchema";
 import { FormProvider, useForm } from "react-hook-form";
 import { createMessage } from "@/actions/create-message";
+import { useUserLocation } from "@/hooks/use-location";
 
 type ChatWindowProps = {
   chatId: string;
@@ -21,6 +22,12 @@ type ChatWindowProps = {
 };
 
 const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
+  const { location, requestLocation } = useUserLocation();
+  const [error, setError] = useState<{
+    error: string;
+    message: string;
+    detectedLanguage: string;
+  } | null>(null);
   const form = useForm<CreateChatSchemaType>({
     defaultValues: {
       symptoms: "",
@@ -28,8 +35,26 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
     },
     resolver: zodResolver(CreateChatSchema),
   });
-  const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } =
-    useAction(runDiagnosis);
+  const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } = useAction(
+    runDiagnosis,
+    {
+      onSuccess: ({ data }) => {
+        if (data.error) {
+          if (data.error === "UNSUPPORTED_LANGUAGE") {
+            setError({
+              error: data.error,
+              message: data.message,
+              detectedLanguage: data.detectedLanguage,
+            });
+
+            (
+              document.querySelector("#diagnosis_error_modal") as any
+            ).showModal();
+          }
+        }
+      },
+    }
+  );
   const {
     execute: createMessageExecute,
     optimisticState: optimisticMessages,
@@ -55,6 +80,11 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
   const hasRunInitialDiagnosis = useRef<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const hasScrolledToBottom = useRef<boolean>(false);
+
+  // Request user location when component mounts
+  useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
 
   // Smooth scroll to bottom on initial load
   useEffect(() => {
@@ -115,6 +145,7 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
         messages={optimisticMessages}
         isPending={isDiagnosing || isCreatingMessage}
         hasDiagnosis={chat.hasDiagnosis}
+        location={location}
       />
       {!chat.hasDiagnosis && (
         <div className="-bottom-0.5 sticky bg-base-200 p-4 pt-0">
@@ -136,6 +167,17 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
             This diagnosis has been successfully stored and saved in the
             records!
           </p>
+        </div>
+      </dialog>
+      <dialog id="diagnosis_error_modal" className="modal">
+        <div className="modal-box">
+          <form method="dialog">
+            <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
+              ✕
+            </button>
+          </form>
+          <h3 className="font-bold text-lg">Diagnosis error</h3>
+          <p className="py-4 text-muted">{error?.message}</p>
         </div>
       </dialog>
     </FormProvider>
