@@ -6,9 +6,8 @@ import axios from "axios";
 import { actionClient } from "./client";
 import { createMessage } from "./create-message";
 
-// Use environment variable for backend URL
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
 
 export const runDiagnosis = actionClient
   .inputSchema(RunDiagnosisSchema)

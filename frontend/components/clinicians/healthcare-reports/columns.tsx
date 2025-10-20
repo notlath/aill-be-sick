@@ -43,7 +43,7 @@ export const columns: ColumnDef<DiagnosisRow>[] = [
     },
     cell: ({ row }) => {
       const confidence = parseFloat(row.getValue("confidence"));
-      return <span>{(confidence * 100).toFixed(2)}%</span>;
+      return <span>{(confidence * 100).toFixed(4)}%</span>;
     },
   },
   {
@@ -61,7 +61,7 @@ export const columns: ColumnDef<DiagnosisRow>[] = [
     },
     cell: ({ row }) => {
       const uncertainty = parseFloat(row.getValue("uncertainty"));
-      return <span>{(uncertainty * 100).toFixed(2)}%</span>;
+      return <span>{uncertainty.toFixed(4)}%</span>;
     },
   },
   {
