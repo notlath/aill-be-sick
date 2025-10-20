@@ -1,3 +1,5 @@
+"use server";
+
 import { createClient } from "./supabase/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
