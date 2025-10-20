@@ -11,7 +11,11 @@ const HomePage = () => {
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+          redirectTo: `${
+            process.env.NEXT_PUBLIC_APP_URL ??
+            process.env.NEXT_PUBLIC_VERCEL_URL ??
+            "http://localhost:3000"
+          }/auth/callback`,
         },
       });
 
