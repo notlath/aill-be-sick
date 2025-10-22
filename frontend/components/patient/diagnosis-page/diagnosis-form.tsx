@@ -33,6 +33,7 @@ const DiagnosisForm = ({
               <textarea
                 className="flex-1 pl-1 border-none outline-none"
                 placeholder="I'm feeling..."
+                suppressHydrationWarning
                 {...form.register("symptoms")}
               />
               <button

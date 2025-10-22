@@ -4,16 +4,24 @@ import { Message } from "@/app/generated/prisma";
 import remarkBreaks from "remark-breaks";
 import { forwardRef } from "react";
 import { LocationData } from "@/utils/location";
+import QuestionBubble from "./question-bubble";
 
 type ChatContainerProps = {
   messages: Message[];
   isPending: boolean;
   hasDiagnosis?: boolean;
   location?: LocationData | null;
+  currentQuestion?: {
+    id: string;
+    question: string;
+    positive_symptom: string;
+    negative_symptom: string;
+  } | null;
+  onQuestionAnswer?: (answer: "yes" | "no", symptom: string, questionId: string) => void;
 };
 
 const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
-  ({ messages, isPending, hasDiagnosis, location }, ref) => {
+  ({ messages, isPending, hasDiagnosis, location, currentQuestion, onQuestionAnswer }, ref) => {
     return (
       <section className="flex flex-col flex-1 space-y-2 px-[12.5rem] py-8">
         {messages.map((message, idx) => (
@@ -26,7 +34,18 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
             {...message}
           />
         ))}
-        {isPending && (
+        {currentQuestion && onQuestionAnswer && (
+          <QuestionBubble
+            question={currentQuestion.question}
+            questionId={currentQuestion.id}
+            positiveSymptom={currentQuestion.positive_symptom}
+            negativeSymptom={currentQuestion.negative_symptom}
+            category={(currentQuestion as any).category}
+            onAnswer={onQuestionAnswer}
+            disabled={isPending}
+          />
+        )}
+        {isPending && !currentQuestion && (
           <article className="self-start bg-gray-200 p-3 px-4 rounded-xl max-w-[60%]">
             <div>
               <Markdown
