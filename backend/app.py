@@ -37,7 +37,6 @@ class MonteCarloDropoutClassifier:
             model_path
         )
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        self.model.to(self.device)
         self.model.eval()
 
     def enable_dropout_with_rate(self, dropout_rate=None):
@@ -61,7 +60,7 @@ class MonteCarloDropoutClassifier:
             return_tensors="pt",
             truncation=True,
             padding=True,
-        ).to(self.device)
+        )
 
         self.enable_dropout_with_rate(dropout_rate=self.inference_dropout_rate)
 
