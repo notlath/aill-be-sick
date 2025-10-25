@@ -1,8 +1,8 @@
-import RecentReports from "@/components/clinicians/dashboard-page/recent-reports";
-import TotalOutbreaks from "@/components/clinicians/dashboard-page/total-outbreaks";
-import TotalPatients from "@/components/clinicians/dashboard-page/total-patients";
-import TotalReports from "@/components/clinicians/dashboard-page/total-reports";
-import Trends from "@/components/clinicians/dashboard-page/trends";
+import RecentReports from "@/components/clinician/dashboard-page/recent-reports";
+import TotalOutbreaks from "@/components/clinician/dashboard-page/total-outbreaks";
+import TotalPatients from "@/components/clinician/dashboard-page/total-patients";
+import TotalReports from "@/components/clinician/dashboard-page/total-reports";
+import Trends from "@/components/clinician/dashboard-page/trends";
 
 const ClinicianHomePage = () => {
   return (
