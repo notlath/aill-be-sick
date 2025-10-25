@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
 from transformers import pipeline
-from langdetect import detect, detect_langs
+from langdetect import detect_langs
 import numpy as np
 import torch
 import numpy as np
@@ -283,6 +283,21 @@ def classifier(text):
         # This prevents langdetect from misclassifying gibberish as random languages
         if _count_words(text) < SYMPTOM_MIN_WORDS and len(text) < SYMPTOM_MIN_CHARS:
             raise ValueError("INSUFFICIENT_SYMPTOM_EVIDENCE:Text too short")
+
+        """
+        Language Detection Strategy:
+        ---------------------------
+        This block uses langdetect's `detect_langs` to obtain language probabilities for the input text.
+        However, langdetect can misidentify short or medical symptom narratives (especially Tagalog) as unrelated languages (e.g., Indonesian, Slovenian).
+        To address this, we implement a fallback strategy:
+          1. Attempt to detect if English ('en'), Tagalog ('tl'), or Filipino ('fil') are among the top candidates.
+          2. If not, use medical keyword matching to infer the language:
+             - If only English keywords are present, set language to 'en'.
+             - If only Tagalog keywords are present, set language to 'tl'.
+             - If both or ambiguous, default to 'en'.
+             - If neither, use the top detected language even if unsupported.
+        This ensures robust handling of edge cases and improves reliability for medical symptom inputs.
+        """
 
         # Wrap language detection in try-except to handle edge cases
         try:
@@ -588,7 +603,7 @@ def follow_up_question():
         last_question_text = data.get("last_question_text")
 
         if last_answer and last_question_id:
-            indicator = "✓" if str(last_answer).lower() == "yes" else "✗"
+            indicator = "✅" if str(last_answer).lower() == "yes" else "❌"
             print(f"[FOLLOW-UP] Answer: {indicator} to [{last_question_id}]")
 
         # Check if too many questions have been asked - this indicates symptoms don't match well

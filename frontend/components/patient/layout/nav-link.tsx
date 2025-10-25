@@ -18,7 +18,7 @@ const NavLink = ({ name, href, icon: Icon, isActive }: NavLinkProps) => {
           : "bg-transparent"
       )}
       style={{
-        transitionProperty: "all, transform, background-color, box-shadow",
+        transitionProperty: "transform, background-color, box-shadow",
       }}
       key={href}
     >
