@@ -18,7 +18,7 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
   );
 
   return (
-    <div className="flex flex-col gap-0.5 mt-8">
+    <nav className="flex flex-col gap-1.5 mt-10">
       {navItems.map((navItem) => (
         <NavLink
           key={navItem.href}
@@ -26,7 +26,7 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
           isActive={pathname === navItem.href}
         />
       ))}
-    </div>
+    </nav>
   );
 };
 

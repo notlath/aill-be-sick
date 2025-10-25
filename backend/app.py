@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
 from transformers import pipeline
-from langdetect import detect
+from langdetect import detect_langs
 import numpy as np
 import torch
 import numpy as np
@@ -284,24 +284,77 @@ def classifier(text):
         if _count_words(text) < SYMPTOM_MIN_WORDS and len(text) < SYMPTOM_MIN_CHARS:
             raise ValueError("INSUFFICIENT_SYMPTOM_EVIDENCE:Text too short")
 
-        print(f"Detecting language for text: {text}")
+        """
+        Language Detection Strategy:
+        ---------------------------
+        This block uses langdetect's `detect_langs` to obtain language probabilities for the input text.
+        However, langdetect can misidentify short or medical symptom narratives (especially Tagalog) as unrelated languages (e.g., Indonesian, Slovenian).
+        To address this, we implement a fallback strategy:
+          1. Attempt to detect if English ('en'), Tagalog ('tl'), or Filipino ('fil') are among the top candidates.
+          2. If not, use medical keyword matching to infer the language:
+             - If only English keywords are present, set language to 'en'.
+             - If only Tagalog keywords are present, set language to 'tl'.
+             - If both or ambiguous, default to 'en'.
+             - If neither, use the top detected language even if unsupported.
+        This ensures robust handling of edge cases and improves reliability for medical symptom inputs.
+        """
 
         # Wrap language detection in try-except to handle edge cases
         try:
-            lang = detect(text)
+            # Get language probabilities instead of just top language
+            lang_probs = detect_langs(text)
+
+            # Check if English or Tagalog/Filipino are in top candidates
+            supported_langs = {"en", "tl", "fil"}
+            detected_lang = None
+
+            for lang_prob in lang_probs:
+                if lang_prob.lang in supported_langs:
+                    detected_lang = lang_prob.lang
+                    print(
+                        f"[LANG] Detected: {lang_prob.lang} (confidence: {lang_prob.prob:.2f})"
+                    )
+                    break
+
+            # If no supported language found, check for medical keywords to determine language
+            if detected_lang is None:
+                text_lower = text.lower()
+                has_en_keyword = any(
+                    keyword in text_lower for keyword in MEDICAL_KEYWORDS_EN
+                )
+                has_tl_keyword = any(
+                    keyword in text_lower for keyword in MEDICAL_KEYWORDS_TL
+                )
+
+                top_lang = lang_probs[0].lang if lang_probs else "unknown"
+
+                if has_en_keyword and not has_tl_keyword:
+                    detected_lang = "en"
+                    print(f"[LANG] Fallback: {top_lang} → en (English keywords found)")
+                elif has_tl_keyword and not has_en_keyword:
+                    detected_lang = "tl"
+                    print(f"[LANG] Fallback: {top_lang} → tl (Tagalog keywords found)")
+                elif has_en_keyword or has_tl_keyword:
+                    # Both or ambiguous, default to English
+                    detected_lang = "en"
+                    print(f"[LANG] Fallback: {top_lang} → en (ambiguous keywords)")
+                else:
+                    # Use the top detected language even if unsupported
+                    detected_lang = top_lang
+
+            lang = detected_lang
+
         except Exception as lang_err:
-            print(f"Language detection failed: {lang_err}")
+            print(f"[LANG] Detection failed: {lang_err}, defaulting to en")
             # Default to English if detection fails on edge cases
             lang = "en"
-
-        print(f"Detected language: {lang}")
 
         # Check for medical keywords to ensure the text is health-related
         if not _has_medical_keywords(text, lang):
             raise ValueError("INSUFFICIENT_SYMPTOM_EVIDENCE:No medical keywords found")
 
         if lang == "en":
-            print("Using English classifier...")
+            print("[CLASSIFIER] Using English BioClinical ModernBERT model")
             result = eng_classifier.predict_with_uncertainty(text)
             pred = result["predicted_label"][0]
             confidence = float(result["confidence"][0])
@@ -311,9 +364,6 @@ def classifier(text):
             top_diseases = []
             # Only consider allowed diseases
             allowed = {"Dengue", "Pneumonia", "Typhoid", "Impetigo"}
-
-            print("Result:")
-            print(result)
 
             # iterate over all labels but only keep allowed ones, preserving probabilities
             all_probs = result["mean_probabilities"][0]
@@ -328,6 +378,9 @@ def classifier(text):
             probs = [
                 f"{d['disease']}: {(d['probability']*100):.2f}%" for d in top_diseases
             ]
+
+            print(f"[RESULT] {pred} (conf: {confidence:.3f}, MI: {uncertainty:.4f})")
+
             # ensure pred is an allowed disease; if not, take top allowed
             if pred not in allowed and len(top_diseases) > 0:
                 pred = top_diseases[0]["disease"]
@@ -343,7 +396,7 @@ def classifier(text):
             )
 
         elif lang in ["tl", "fil"]:
-            print("Using Tagalog classifier...")
+            print("[CLASSIFIER] Using Tagalog RoBERTa model")
             result = fil_classifier.predict_with_uncertainty(text)
             pred = result["predicted_label"][0]
             confidence = float(result["confidence"][0])
@@ -351,9 +404,6 @@ def classifier(text):
             sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
             probs = []
             top_diseases = []
-
-            print("Result:")
-            print(result)
 
             all_probs = result["mean_probabilities"][0]
             allowed = {"Dengue", "Pneumonia", "Typhoid", "Impetigo"}
@@ -367,6 +417,9 @@ def classifier(text):
             probs = [
                 f"{d['disease']}: {(d['probability']*100):.2f}%" for d in top_diseases
             ]
+
+            print(f"[RESULT] {pred} (conf: {confidence:.3f}, MI: {uncertainty:.4f})")
+
             if pred not in allowed and len(top_diseases) > 0:
                 pred = top_diseases[0]["disease"]
 
@@ -405,7 +458,7 @@ def new_case():
 
         symptoms = data.get("symptoms", "").strip()
 
-        print(f"Making diagnosis with symptoms: {symptoms}")
+        print(f"\n[NEW CASE] Symptoms: {symptoms}")
 
         if not symptoms:
             return jsonify({"error": "Symptoms cannot be empty"}), 400
@@ -550,13 +603,8 @@ def follow_up_question():
         last_question_text = data.get("last_question_text")
 
         if last_answer and last_question_id:
-            indicator = "✅ YES" if str(last_answer).lower() == "yes" else "❌ NO"
-            print(
-                f"🧠 Follow-up answer: {indicator} to question [{last_question_id}]"
-                + (f": {last_question_text[:80]}" if last_question_text else "")
-            )
-
-        print(f"📥 Follow-up request received. Symptoms text: '{symptoms_text}'")
+            indicator = "✅" if str(last_answer).lower() == "yes" else "❌"
+            print(f"[FOLLOW-UP] Answer: {indicator} to [{last_question_id}]")
 
         # Check if too many questions have been asked - this indicates symptoms don't match well
         # Case 1: Low confidence after many questions
@@ -570,7 +618,7 @@ def follow_up_question():
             and confidence < LOW_CONFIDENCE_THRESHOLD
         ):
             print(
-                f"🛑 Too many questions asked ({len(asked_questions)}) with low confidence ({confidence:.4f})"
+                f"[FOLLOW-UP] Stopping: Too many questions ({len(asked_questions)}) with low confidence ({confidence:.3f})"
             )
             return (
                 jsonify(
@@ -588,9 +636,7 @@ def follow_up_question():
         # Also stop if we've asked too many questions regardless of confidence
         # This happens when initial symptom gives high confidence, but follow-ups don't confirm
         if len(asked_questions) >= EXHAUSTED_QUESTIONS_THRESHOLD:
-            print(
-                f"🛑 Exhausted questions ({len(asked_questions)}) - symptoms don't match our covered diseases"
-            )
+            print(f"[FOLLOW-UP] Stopping: Exhausted questions ({len(asked_questions)})")
             return (
                 jsonify(
                     {
@@ -606,25 +652,46 @@ def follow_up_question():
 
         # Detect language from symptoms to choose appropriate question bank
         try:
-            lang = detect(symptoms_text) if symptoms_text else "en"
-            print(
-                f"🌐 Follow-up language detection: '{lang}' from symptoms: '{symptoms_text[:100] if symptoms_text else 'EMPTY'}'"
-            )
+            if symptoms_text:
+                lang_probs = detect_langs(symptoms_text)
+
+                # Check if English or Tagalog/Filipino are in top candidates
+                supported_langs = {"en", "tl", "fil"}
+                lang = None
+
+                for lang_prob in lang_probs:
+                    if lang_prob.lang in supported_langs:
+                        lang = lang_prob.lang
+                        break
+
+                # Fallback to keyword detection if no supported language found
+                if lang is None:
+                    text_lower = symptoms_text.lower()
+                    has_en = any(k in text_lower for k in MEDICAL_KEYWORDS_EN)
+                    has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
+
+                    if has_tl and not has_en:
+                        lang = "tl"
+                    else:
+                        lang = "en"  # Default to English
+            else:
+                lang = "en"
+
         except Exception as e:
-            print(f"⚠️  Language detection failed: {e}")
+            print(f"[FOLLOW-UP] Language detection failed: {e}")
             lang = "en"  # Default to English if detection fails
 
         # Choose question bank based on language
         QUESTION_BANK = QUESTION_BANK_TL if lang in ["tl", "fil"] else QUESTION_BANK_EN
+
         print(
-            f"📚 Using {'Tagalog' if lang in ['tl', 'fil'] else 'English'} question bank"
+            f"[FOLLOW-UP] {current_disease} | Lang: {lang} | Conf: {confidence:.3f} | MI: {uncertainty:.4f} | Asked: {len(asked_questions)}"
         )
 
-        print(f"Follow-up request for {current_disease}")
-        print(f"Detected language: {lang}")
-        print(f"Confidence: {confidence}, Uncertainty: {uncertainty}")
-        print(f"Top diseases: {top_diseases}")
-        print(f"Already asked: {asked_questions}")
+        if top_diseases and len(top_diseases) >= 2:
+            print(
+                f"[FOLLOW-UP] Top 2: {top_diseases[0]['disease']} ({top_diseases[0]['probability']:.3f}), {top_diseases[1]['disease']} ({top_diseases[1]['probability']:.3f})"
+            )
 
         # Check if we should stop asking questions
         # If not forced, stop when confidence and uncertainty thresholds are met
@@ -831,12 +898,12 @@ def follow_up_question():
                 top_diseases[0]["probability"] - top_diseases[1]["probability"]
             )
 
-            print(
-                f"Close competition: {current_disease} vs {second_disease}, diff: {prob_diff}"
-            )
-
             # If diseases are close (within 20%), find discriminating question
             if prob_diff < 0.2 and second_disease in QUESTION_BANK:
+                print(
+                    f"[FOLLOW-UP] Close competition: {current_disease} vs {second_disease} (diff: {prob_diff:.3f})"
+                )
+
                 secondary_questions = QUESTION_BANK[second_disease]
 
                 # Find questions unique to primary disease (not in secondary)
@@ -853,7 +920,7 @@ def follow_up_question():
                         discriminating_questions, key=lambda q: q["weight"]
                     )
                     print(
-                        f"Selected discriminating question: {selected_question['id']}"
+                        f"[FOLLOW-UP] Selected discriminating Q: {selected_question['id']}"
                     )
 
         # If no discriminating question found, use standard priority
@@ -863,9 +930,7 @@ def follow_up_question():
                 available_questions,
                 key=lambda q: (q["category"] == "primary", q["weight"]),
             )
-            print(f"Selected standard question: {selected_question['id']}")
-
-        print(f"🎯 Returning question: {selected_question['question'][:50]}...")
+            print(f"[FOLLOW-UP] Selected standard Q: {selected_question['id']}")
 
         return (
             jsonify(

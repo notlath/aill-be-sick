@@ -17,11 +17,25 @@ type ChatContainerProps = {
     positive_symptom: string;
     negative_symptom: string;
   } | null;
-  onQuestionAnswer?: (answer: "yes" | "no", symptom: string, questionId: string) => void;
+  onQuestionAnswer?: (
+    answer: "yes" | "no",
+    symptom: string,
+    questionId: string
+  ) => void;
 };
 
 const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
-  ({ messages, isPending, hasDiagnosis, location, currentQuestion, onQuestionAnswer }, ref) => {
+  (
+    {
+      messages,
+      isPending,
+      hasDiagnosis,
+      location,
+      currentQuestion,
+      onQuestionAnswer,
+    },
+    ref
+  ) => {
     return (
       <section className="flex flex-col flex-1 space-y-2 px-[12.5rem] py-8">
         {messages.map((message, idx) => (
