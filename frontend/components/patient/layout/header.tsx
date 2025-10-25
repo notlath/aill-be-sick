@@ -1,13 +1,14 @@
-import { PanelLeft } from "lucide-react";
 import SignOutBtn from "./sign-out-btn";
+import SidebarToggle from "./sidebar-toggle";
 import Image from "next/image";
 import { User } from "@/app/generated/prisma";
 
 type HeaderProps = {
   dbUser: User;
+  onToggleSidebar: () => void;
 };
 
-const Header = ({ dbUser }: HeaderProps) => {
+const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
   return (
     <header className="flex justify-between items-center gap-2">
       <div className="dropdown">
@@ -48,9 +49,7 @@ const Header = ({ dbUser }: HeaderProps) => {
           </li>
         </ul>
       </div>
-      <button className="p-2 text-muted cursor-pointer">
-        <PanelLeft className="size-4" />
-      </button>
+      <SidebarToggle onClick={onToggleSidebar} />
     </header>
   );
 };

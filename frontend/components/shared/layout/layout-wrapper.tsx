@@ -1,16 +1,18 @@
 import Sidebar from "@/components/patient/layout/sidebar";
+import { SidebarProvider } from "./sidebar-provider";
+import SidebarToggleButton from "./sidebar-toggle-button";
+import MainContentWrapper from "./main-content-wrapper";
 import { ReactNode } from "react";
 
 const LayoutWrapper = async ({ children }: { children: ReactNode }) => {
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 p-2">
-        <div className="bg-base-200 card-border border-muted/25 w-full h-[calc(100vh-1rem)] overflow-y-scroll card">
-          {children}
-        </div>
+    <SidebarProvider>
+      <div className="flex relative">
+        <SidebarToggleButton />
+        <Sidebar />
+        <MainContentWrapper>{children}</MainContentWrapper>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
