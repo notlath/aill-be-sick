@@ -1,8 +1,15 @@
 import DiagnosisLink from "@/components/patient/history-page/diagnosis-link";
 import { getChats } from "@/utils/chat";
+import { getCurrentDbUser } from "@/utils/user";
+import { redirect } from "next/navigation";
 
 const HistoryPage = async () => {
   const { success: chats, error } = await getChats({ messages: true });
+  const { success: dbUser } = await getCurrentDbUser();
+
+  if (!dbUser) {
+    return redirect("/login");
+  }
 
   if (!chats) {
     // TODO: Error handling
