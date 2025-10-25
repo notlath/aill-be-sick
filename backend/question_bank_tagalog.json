@@ -2,17 +2,17 @@
   "Dengue": [
     {
       "id": "dengue_q1",
-      "question": "Nakakaranas ka ba ng matinding pananakit ng kasukasuan o kalamnan?",
-      "positive_symptom": "Mayroon din akong matinding pananakit ng kasukasuan o kalamnan",
-      "negative_symptom": "Wala akong matinding pananakit ng kasukasuan o kalamnan",
+      "question": "Nakakaranas ka ba ng matinding pananakit ng joints o muscles?",
+      "positive_symptom": "Mayroon din akong matinding pananakit ng joints o muscles",
+      "negative_symptom": "Wala akong matinding pananakit ng joints o muscles",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "dengue_q2",
-      "question": "Mayroon ka bang pantal o pulang batik sa iyong balat?",
-      "positive_symptom": "Mayroon din akong pantal o pulang batik sa aking balat",
-      "negative_symptom": "Wala akong pantal o pulang batik sa aking balat",
+      "question": "Mayroon ka bang pantal o pulang spot sa iyong balat?",
+      "positive_symptom": "Mayroon din akong pantal o pulang spot sa aking balat",
+      "negative_symptom": "Wala akong pantal o pulang spot sa aking balat",
       "weight": 0.9,
       "category": "primary"
     },
@@ -52,16 +52,16 @@
     },
     {
       "id": "pneumonia_q2",
-      "question": "Umuubo ka ba ng plema o may kulay na likido?",
-      "positive_symptom": "Umuubo din ako ng plema o may kulay na likido",
-      "negative_symptom": "Hindi ako umuubo ng plema o may kulay na likido",
+      "question": "Umuubo ka ba ng plema o may kulay na tubig?",
+      "positive_symptom": "Umuubo din ako ng plema o may kulay na tubig",
+      "negative_symptom": "Hindi ako umuubo ng plema o may kulay na tubig",
       "weight": 0.9,
       "category": "primary"
     },
     {
       "id": "pneumonia_q3",
-      "question": "Nahihirapan ka ba sa paghinga o nararamdaman mong kulang sa hangin?",
-      "positive_symptom": "Nahihirapan din ako sa paghinga o nararamdaman kong kulang sa hangin",
+      "question": "Nahihirapan ka ba sa paghinga o nararamdaman mong kulang sa hininga?",
+      "positive_symptom": "Nahihirapan din ako sa paghinga o nararamdaman kong kulang sa hininga",
       "negative_symptom": "Hindi ako nahihirapan sa paghinga",
       "weight": 0.85,
       "category": "primary"
@@ -76,8 +76,8 @@
     },
     {
       "id": "pneumonia_q5",
-      "question": "Nakakaranas ka ba ng labis na pagod kahit sa maliliit na aktibidad?",
-      "positive_symptom": "Nakakaranas din ako ng labis na pagod kahit sa maliliit na aktibidad",
+      "question": "Nakakaranas ka ba ng labis na pagod kahit sa mga simpleng aktibidad?",
+      "positive_symptom": "Nakakaranas din ako ng labis na pagod kahit sa mga simpleng aktibidad",
       "negative_symptom": "Hindi ako nakakaranas ng labis na pagod",
       "weight": 0.7,
       "category": "secondary"
@@ -128,9 +128,9 @@
   "Impetigo": [
     {
       "id": "impetigo_q1",
-      "question": "Mayroon ka bang mga sugat na may dilaw o kayumangging bubog?",
-      "positive_symptom": "Mayroon din akong mga sugat na may dilaw o kayumangging bubog",
-      "negative_symptom": "Wala akong mga sugat na may bubog",
+      "question": "Mayroon ka bang mga sugat na may dilaw o kayumangging scab?",
+      "positive_symptom": "Mayroon din akong mga sugat na may dilaw o kayumangging scab",
+      "negative_symptom": "Wala akong mga sugat na may scab",
       "weight": 0.95,
       "category": "primary"
     },

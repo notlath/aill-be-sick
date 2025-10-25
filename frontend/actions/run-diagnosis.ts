@@ -27,7 +27,8 @@ export const runDiagnosis = actionClient
       } = await axios.post(`${BACKEND_URL}/diagnosis/new`, {
         symptoms,
       });
-      const { pred, confidence, uncertainty, probs, model_used, top_diseases } = diagnosis;
+      const { pred, confidence, uncertainty, probs, model_used, top_diseases } =
+        diagnosis;
 
       // Check if diagnosis is confident enough
       const isConfident = confidence >= 0.9 && uncertainty <= 0.03;
@@ -144,7 +145,7 @@ Do you want to record this diagnosis?
       }
 
       // Always return diagnosis info for follow-up questions
-      return { 
+      return {
         success: "Successfully ran diagnosis",
         diagnosis: {
           disease: pred,
@@ -166,6 +167,14 @@ Do you want to record this diagnosis?
             error: "UNSUPPORTED_LANGUAGE",
             message: errorData.message,
             detectedLanguage: errorData.detected_language,
+          };
+        }
+
+        if (errorData.error === "INSUFFICIENT_SYMPTOM_EVIDENCE") {
+          return {
+            error: "INSUFFICIENT_SYMPTOM_EVIDENCE",
+            message: errorData.message,
+            details: errorData.details,
           };
         }
       }

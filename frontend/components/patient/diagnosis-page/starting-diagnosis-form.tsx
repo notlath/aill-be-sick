@@ -45,6 +45,18 @@ const StartingDiagnosisForm = () => {
                 className="flex-1 pl-1 border-none outline-none"
                 placeholder="I'm feeling..."
                 suppressHydrationWarning
+                onKeyDown={(e) => {
+                  // Submit on Enter, allow Shift+Enter for newline, and ignore IME composition
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey &&
+                    !(e.nativeEvent as any)?.isComposing
+                  ) {
+                    e.preventDefault();
+                    // Trigger form submit programmatically
+                    void form.handleSubmit(handleSubmit)();
+                  }
+                }}
                 {...form.register("symptoms")}
               />
               <button

@@ -97,6 +97,7 @@ enum MessageType {
   QUESTION
   DIAGNOSIS
   URGENT_WARNING
+  ERROR
 }
 
 enum Disease {

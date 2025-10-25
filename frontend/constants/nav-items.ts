@@ -15,7 +15,7 @@ export type NavItem = {
 
 export const patientNavItems: NavItem[] = [
   {
-    name: "Diagnosis",
+    name: "New chat",
     href: "/diagnosis",
     icon: Stethoscope,
   },
