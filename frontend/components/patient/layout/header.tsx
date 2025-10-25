@@ -10,7 +10,7 @@ type HeaderProps = {
 
 const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
   return (
-    <header className="flex justify-between items-center gap-3 mb-6">
+    <header className="flex justify-between items-center gap-3 mb-6 bg-base-300/40 p-1 rounded-xl -mx-1">
       <div className="dropdown">
         <div tabIndex={0} role="button">
           <div className="flex flex-1 items-center gap-3 hover:bg-base-200/60 p-2.5 rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer group backdrop-blur-sm">
@@ -34,7 +34,7 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
                 </div>
               </div>
             )}
-            <p className="flex-1 font-semibold text-base-content/90 tracking-tight">
+            <p className="flex-1 font-semibold text-base-content/90 tracking-tight text-sm">
               {dbUser.name}
             </p>
           </div>

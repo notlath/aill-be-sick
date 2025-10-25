@@ -11,7 +11,7 @@ const NavLink = ({ name, href, icon: Icon, isActive }: NavLinkProps) => {
     <Link
       href={href}
       className={cn(
-        "group flex items-center gap-3 p-3 rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] relative overflow-hidden",
+        "group flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] relative overflow-hidden",
         "hover:bg-base-200/60 hover:shadow-sm active:scale-[0.98]",
         isActive
           ? "bg-gradient-to-r from-primary/10 to-primary/5 shadow-sm"
@@ -45,7 +45,7 @@ const NavLink = ({ name, href, icon: Icon, isActive }: NavLinkProps) => {
 
       <div
         className={cn(
-          "relative z-10 font-semibold tracking-tight transition-all duration-300",
+          "relative z-10 font-medium text-sm tracking-tight transition-all duration-300",
           isActive
             ? "text-base-content"
             : "text-base-content/70 group-hover:text-base-content"
@@ -53,11 +53,6 @@ const NavLink = ({ name, href, icon: Icon, isActive }: NavLinkProps) => {
       >
         {name}
       </div>
-
-      {/* Active indicator */}
-      {isActive && (
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary shadow-sm shadow-primary/50" />
-      )}
     </Link>
   );
 };

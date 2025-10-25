@@ -13,7 +13,7 @@ const SidebarWrapper = ({ children }: SidebarWrapperProps) => {
   return (
     <aside
       className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/60 backdrop-blur-xl border-r border-base-300/30 ${
-        isOpen ? "w-80 opacity-100" : "w-0 opacity-0"
+        isOpen ? "w-64 opacity-100" : "w-0 opacity-0"
       }`}
       style={{
         transitionProperty: "width, opacity",
@@ -21,7 +21,7 @@ const SidebarWrapper = ({ children }: SidebarWrapperProps) => {
       }}
     >
       <div
-        className="w-80 p-4 pt-6 pr-2 transition-opacity duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] delay-100"
+        className="w-64 p-4 pt-6 transition-opacity duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] delay-100"
         style={{
           opacity: isOpen ? 1 : 0,
         }}
