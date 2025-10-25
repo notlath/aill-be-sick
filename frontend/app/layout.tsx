@@ -24,8 +24,12 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
+        suppressHydrationWarning
+        // Suppress hydration warnings caused by browser extensions (e.g., Grammarly)
+        // adding attributes like data-new-gr-c-s-check-loaded / data-gr-ext-installed on the client only.
+        // See: https://react.dev/link/hydration-mismatch
         className={`${geistSans.variable} ${geistSans.className} ${geistMono.variable} w-full bg-base-300 antialiased`}
       >
         <NextTopLoader showSpinner={false} color="#009764" />
