@@ -7,7 +7,7 @@ import { ReactNode } from "react";
 const LayoutWrapper = async ({ children }: { children: ReactNode }) => {
   return (
     <SidebarProvider>
-      <div className="flex relative">
+      <div className="flex relative min-h-screen bg-base-200">
         <SidebarToggleButton />
         <Sidebar />
         <MainContentWrapper>{children}</MainContentWrapper>

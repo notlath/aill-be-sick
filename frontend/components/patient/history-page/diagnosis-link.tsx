@@ -43,13 +43,17 @@ const DiagnosisLink = async ({
     <Link
       href={`/diagnosis/${chatId}`}
       key={id}
-      className="group flex items-center justify-between gap-4 py-5 border-b border-border w-full"
+      className="group flex items-center justify-between gap-6 py-4 px-3 rounded-2xl bg-base-100/90 border border-base-300/20 shadow-sm hover:shadow-xl hover:bg-base-100/100 hover:-translate-y-1 hover:scale-[1.015] transition-all duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]"
+      style={{
+        boxShadow:
+          "0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04)",
+      }}
     >
       {/* Left: content (disease + uncertainty or latest message) */}
-      <p className="group-hover:text-base-content transition-colors truncate">
+      <div className="flex flex-col min-w-0">
         {hasDiagnosis && diagnosis ? (
-          <>
-            <span className="font-semibold text-base-content">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-base-content text-lg tracking-tight">
               {diagnosis.disease
                 .split("_")
                 .map(
@@ -58,43 +62,50 @@ const DiagnosisLink = async ({
                 .join(" ")}
             </span>
             {typeof diagnosis.uncertainty === "number" && (
-              <span className="ml-2 opacity-80 text-muted">
+              <span className="ml-2 text-muted text-sm">
                 Uncertainty: {(diagnosis.uncertainty * 100).toFixed(2)}%
               </span>
             )}
-          </>
+          </div>
         ) : latestTemp ? (
-          <span className="text-muted">
-            {latestTemp.disease
-              .toString()
-              .split("_")
-              .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-              .join(" ")}
+          <div className="flex items-center gap-2">
+            <span className="text-muted font-medium">
+              {latestTemp.disease
+                .toString()
+                .split("_")
+                .map(
+                  (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+                )
+                .join(" ")}
+            </span>
             {typeof latestTemp.uncertainty === "number" && (
-              <span className="ml-2 opacity-80">
+              <span className="ml-2 text-muted text-sm">
                 Uncertainty: {(latestTemp.uncertainty * 100).toFixed(2)}%
               </span>
             )}
-          </span>
+          </div>
         ) : latestMessageContent ? (
-          <span className="text-muted">{latestMessageContent}</span>
+          <span className="text-muted text-sm">{latestMessageContent}</span>
         ) : null}
-      </p>
+      </div>
 
       {/* Right: date and time */}
-      <p className="font-medium text-muted group-hover:text-base-content transition-colors whitespace-nowrap min-w-80">
-        {new Date(createdAt).toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })}{" "}
-        at{" "}
-        {new Date(createdAt).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        })}
-      </p>
+      <div className="flex flex-col items-end min-w-48">
+        <span className="font-medium text-base-content/80 text-sm">
+          {new Date(createdAt).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </span>
+        <span className="text-muted text-xs">
+          {new Date(createdAt).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })}
+        </span>
+      </div>
     </Link>
   );
 };
