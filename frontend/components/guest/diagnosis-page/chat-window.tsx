@@ -1,90 +1,52 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import ChatContainer from "./chat-container";
-import DiagnosisForm from "./diagnosis-form";
-import { Chat, Message } from "@/app/generated/prisma";
-import { useAction, useOptimisticAction } from "next-safe-action/hooks";
-import { runDiagnosis } from "@/actions/run-diagnosis";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  CreateChatSchema,
-  CreateChatSchemaType,
-} from "@/schemas/CreateChatSchema";
 import { FormProvider, useForm } from "react-hook-form";
-import { createMessage } from "@/actions/create-message";
-import { useUserLocation } from "@/hooks/use-location";
+import useMessagesStore from "@/stores/messages-store";
+import { useAction } from "next-safe-action/hooks";
+import { runTempDiagnosis } from "@/actions/run-temp-diagnosis";
+import ChatContainer from "./chat-container";
 
-type ChatWindowProps = {
-  chatId: string;
-  messages: Message[];
-  chat: Chat;
-};
-
-const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
-  const { location, requestLocation } = useUserLocation();
+const ChatWindow = () => {
+  const form = useForm();
   const [error, setError] = useState<{
     error: string;
     message: string;
     detectedLanguage: string;
   } | null>(null);
-  const form = useForm<CreateChatSchemaType>({
-    defaultValues: {
-      symptoms: "",
-      chatId,
-    },
-    resolver: zodResolver(CreateChatSchema),
-  });
-  const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } = useAction(
-    runDiagnosis,
-    {
-      onSuccess: ({ data }) => {
-        if (data.error) {
-          if (data.error === "UNSUPPORTED_LANGUAGE") {
-            setError({
-              error: data.error,
-              message: data.message,
-              detectedLanguage: data.detectedLanguage,
-            });
-
-            (
-              document.querySelector("#diagnosis_error_modal") as any
-            ).showModal();
-          }
-        }
-      },
-    }
-  );
-  const {
-    execute: createMessageExecute,
-    optimisticState: optimisticMessages,
-    isExecuting: isCreatingMessage,
-  } = useOptimisticAction(createMessage, {
-    currentState: messages,
-    updateFn: (currentMessages, newMessage: any) => {
-      const updatedMessages = [...currentMessages, newMessage];
-
-      return updatedMessages;
-    },
+  const { messages, addMessage } = useMessagesStore();
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const hasScrolledToBottom = useRef<boolean>(false);
+  const { execute, isExecuting: isDiagnosing } = useAction(runTempDiagnosis, {
     onSuccess: ({ data }) => {
       if (data.success) {
-        runDiagnosisExecute({
-          chatId,
-          symptoms: form.getValues("symptoms"),
+        addMessage({
+          ...data.success,
+          type: "DIAGNOSIS",
+          role: "AI",
         });
       } else if (data.error) {
+        // TODO: Error handling
         console.error(data.error);
+
+        if (data.error === "UNSUPPORTED_LANGUAGE") {
+          setError({
+            error: data.error,
+            message: data.message,
+            detectedLanguage: data.detectedLanguage,
+          });
+        }
       }
     },
   });
-  const hasRunInitialDiagnosis = useRef<boolean>(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  const hasScrolledToBottom = useRef<boolean>(false);
 
-  // Request user location when component mounts
   useEffect(() => {
-    requestLocation();
-  }, [requestLocation]);
+    const lastMessage = messages[messages.length - 1];
+
+    if (lastMessage && lastMessage.type === "SYMPTOMS") {
+      execute({ symptoms: lastMessage.content });
+    }
+  }, [messages]);
 
   // Smooth scroll to bottom on initial load
   useEffect(() => {
@@ -120,67 +82,47 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
     }
   }, []);
 
-  // Scroll to bottom when new messages are added
   useEffect(() => {
     if (hasScrolledToBottom.current && chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
     }
-  }, [optimisticMessages.length]);
+  }, [messages.length]);
 
-  useEffect(() => {
-    if (messages.length === 1 && !hasRunInitialDiagnosis.current) {
-      runDiagnosisExecute({
-        chatId,
-        symptoms: messages[0].content,
-      });
-
-      hasRunInitialDiagnosis.current = true;
-    }
-  }, [messages.length, chatId, runDiagnosisExecute]);
-
-  return (
-    <FormProvider {...form}>
-      <ChatContainer
-        ref={chatEndRef}
-        messages={optimisticMessages}
-        isPending={isDiagnosing || isCreatingMessage}
-        hasDiagnosis={chat.hasDiagnosis}
-        location={location}
-      />
-      {!chat.hasDiagnosis && (
-        <div className="-bottom-0.5 sticky bg-base-200 p-4 pt-0">
-          <DiagnosisForm
-            createMessageExecute={createMessageExecute}
-            isPending={isDiagnosing || isCreatingMessage}
-          />
-        </div>
-      )}
-      <dialog id="record_success_modal" className="modal">
-        <div className="modal-box">
-          <form method="dialog">
-            <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
-              ✕
-            </button>
-          </form>
-          <h3 className="font-bold text-lg">Diagnosis recorded</h3>
-          <p className="py-4 text-muted">
-            This diagnosis has been successfully stored and saved in the
-            records!
-          </p>
-        </div>
-      </dialog>
-      <dialog id="diagnosis_error_modal" className="modal">
-        <div className="modal-box">
-          <form method="dialog">
-            <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
-              ✕
-            </button>
-          </form>
-          <h3 className="font-bold text-lg">Diagnosis error</h3>
-          <p className="py-4 text-muted">{error?.message}</p>
-        </div>
-      </dialog>
-    </FormProvider>
+  return messages.length === 0 ? null : (
+    <div className="flex-1 mx-auto pb-4 max-w-[768px]">
+      <FormProvider {...form}>
+        <ChatContainer
+          ref={chatEndRef}
+          messages={messages}
+          isPending={isDiagnosing}
+        />
+        <dialog id="record_success_modal" className="modal">
+          <div className="modal-box">
+            <form method="dialog">
+              <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
+                ✕
+              </button>
+            </form>
+            <h3 className="font-bold text-lg">Diagnosis recorded</h3>
+            <p className="py-4 text-muted">
+              This diagnosis has been successfully stored and saved in the
+              records!
+            </p>
+          </div>
+        </dialog>
+        <dialog id="diagnosis_error_modal" className="modal">
+          <div className="modal-box">
+            <form method="dialog">
+              <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
+                ✕
+              </button>
+            </form>
+            <h3 className="font-bold text-lg">Diagnosis error</h3>
+            <p className="py-4 text-muted">{error?.message}</p>
+          </div>
+        </dialog>
+      </FormProvider>
+    </div>
   );
 };
 

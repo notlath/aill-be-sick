@@ -1,29 +1,9 @@
-import { Message, TempDiagnosis } from "@/app/generated/prisma";
+import { Message } from "@/stores/messages-store";
 import { cn } from "@/utils/lib";
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
-import RecordDiagnosisBtn from "./record-diagnosis-btn";
-import { LocationData } from "@/utils/location";
 
-type ChatBubbleProps = {
-  messagesLength: number;
-  idx?: number;
-  tempDiagnosis?: TempDiagnosis;
-  chatHasDiagnosis?: boolean;
-  location?: LocationData | null;
-} & Message;
-
-const ChatBubble = ({
-  content,
-  role,
-  type,
-  messagesLength,
-  idx,
-  tempDiagnosis,
-  chatId,
-  chatHasDiagnosis,
-  location,
-}: ChatBubbleProps) => {
+const ChatBubble = ({ content, role }: Message) => {
   return (
     <article
       className={cn(
@@ -46,16 +26,6 @@ const ChatBubble = ({
           {content}
         </Markdown>
       </div>
-      {type === "DIAGNOSIS" && location && (
-        <RecordDiagnosisBtn
-          disabled={
-            chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
-          }
-          tempDiagnosis={tempDiagnosis}
-          chatId={chatId}
-          location={location}
-        />
-      )}
     </article>
   );
 };
