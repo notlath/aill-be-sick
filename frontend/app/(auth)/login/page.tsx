@@ -40,7 +40,10 @@ const HomePage = () => {
           <Link href="/clinician-login" className="text-primary">
             here
           </Link>{" "}
-          to log in as a clinician
+          to log in as a clinician <br /> or continue as{" "}
+          <Link href="/diagnosis" className="text-primary">
+            guest
+          </Link>
         </p>
       </section>
     </main>

@@ -4,18 +4,9 @@ import { redirect } from "next/navigation";
 import { ReactNode } from "react";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
-  const { success: dbUser, error } = await getCurrentDbUser();
+  const { success: dbUser } = await getCurrentDbUser();
 
-  if (!dbUser) {
-    return redirect("/login");
-  }
-
-  if (error) {
-    // TODO: Error handling
-    return <div>Error: {JSON.stringify(error)}</div>;
-  }
-
-  if (dbUser.role !== "PATIENT") {
+  if (dbUser && dbUser.role !== "PATIENT") {
     return redirect("/dashboard");
   }
 

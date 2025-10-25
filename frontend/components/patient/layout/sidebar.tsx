@@ -6,7 +6,6 @@ const Sidebar = async () => {
   const { success: dbUser, error } = await getCurrentDbUser();
 
   if (!dbUser) {
-    // TODO: Error handling
     return null;
   }
 
