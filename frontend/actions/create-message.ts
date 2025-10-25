@@ -11,8 +11,10 @@ export const createMessage = actionClient
     const { content, chatId, type, role, tempDiagnosis } = parsedInput;
 
     try {
+      let createdMessage;
+
       if (tempDiagnosis) {
-        await prisma.message.create({
+        createdMessage = await prisma.message.create({
           data: {
             content,
             chatId,
@@ -29,25 +31,24 @@ export const createMessage = actionClient
               },
             },
           },
+          include: {
+            tempDiagnosis: true,
+          },
         });
-
-        revalidatePath("/diagnosis/[chatId]", "page");
-
-        return { success: "Successfully created message with temp diagnosis" };
+      } else {
+        createdMessage = await prisma.message.create({
+          data: {
+            content,
+            chatId,
+            role,
+            type,
+          },
+        });
       }
-
-      await prisma.message.create({
-        data: {
-          content,
-          chatId,
-          role,
-          type,
-        },
-      });
 
       revalidatePath("/diagnosis/[chatId]", "page");
 
-      return { success: "Successfully created message" };
+      return { success: createdMessage };
     } catch (error) {
       console.error(`Error creating message: ${error}`);
 
