@@ -1,0 +1,5 @@
+-- CreateEnum
+CREATE TYPE "MessageType" AS ENUM ('USER_SYMPTOMS', 'USER_ANSWER', 'AI_QUESTION', 'AI_ANSWER');
+
+-- AlterTable
+ALTER TABLE "Message" ADD COLUMN     "type" "MessageType" NOT NULL DEFAULT 'USER_SYMPTOMS';

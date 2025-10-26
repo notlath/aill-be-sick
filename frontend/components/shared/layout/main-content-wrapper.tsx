@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useSidebar } from "./sidebar-provider";
 import { ReactNode } from "react";
+import { cn } from "@/utils/lib";
 
 type MainContentWrapperProps = {
   children: ReactNode;
@@ -22,7 +23,10 @@ const MainContentWrapper = ({ children }: MainContentWrapperProps) => {
       }}
     >
       <div
-        className="bg-base-100 shadow-sm border border-base-300/30 rounded-3xl w-full h-[calc(100vh-3rem)] overflow-y-auto"
+        className={cn(
+          "bg-base-100 shadow-sm rounded-3xl w-full h-[calc(100vh-3rem)] overflow-y-auto",
+          pathname !== "/diagnosis" && "border border-border/50"
+        )}
         style={{
           boxShadow:
             pathname !== "/diagnosis"

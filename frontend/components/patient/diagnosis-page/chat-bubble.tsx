@@ -36,15 +36,15 @@ const ChatBubble = ({
       ? "border border-red-400 bg-red-50 text-red-800"
       : role === "USER"
       ? "bg-primary text-primary-content"
-      : "bg-gray-200"
+      : "bg-gray-100"
   );
 
   return (
     <article className={containerClass}>
       {isError && (
-        <div className="mb-1 flex items-center gap-2 text-red-700">
-          <XCircle className="h-4 w-4" aria-hidden="true" />
-          <span className="text-sm font-semibold">Error</span>
+        <div className="flex items-center gap-2 mb-1 text-red-700">
+          <XCircle className="w-4 h-4" aria-hidden="true" />
+          <span className="font-semibold text-sm">Error</span>
         </div>
       )}
       <div>
