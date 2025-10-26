@@ -1,5 +1,7 @@
 import ChatWindow from "@/components/patient/diagnosis-page/chat-window";
 import { getChatById } from "@/utils/chat";
+import { getDiagnosisByChatId } from "@/utils/diagnosis";
+import { getExplanationByDiagnosisId } from "@/utils/explanation";
 import { getMessagesByChatId } from "@/utils/message";
 import { notFound } from "next/navigation";
 
@@ -21,23 +23,57 @@ const ChatPage = async ({
     return null;
   }
 
-  const { success: messages, error } = await getMessagesByChatId(chatId, {
-    tempDiagnosis: true,
-  });
+  const { success: messages, error: messagesError } = await getMessagesByChatId(
+    chatId,
+    {
+      tempDiagnosis: true,
+    }
+  );
 
   if (!messages) {
     // TODO: Error handling
     return null;
   }
 
-  if (error) {
+  if (messagesError) {
+    // TODO: Error handling
+    return null;
+  }
+
+  const { success: diagnosis, error: diagnosisError } =
+    await getDiagnosisByChatId(chatId);
+
+  if (!diagnosis) {
+    // TODO: Error handling
+    return null;
+  }
+
+  if (diagnosisError) {
+    // TODO: Error handling
+    return null;
+  }
+
+  const { success: explanation, error: explanationError } =
+    await getExplanationByDiagnosisId(diagnosis.id);
+
+  if (!explanation && diagnosis) {
+    // TODO: Error handling
+    return null;
+  }
+
+  if (explanationError) {
     // TODO: Error handling
     return null;
   }
 
   return (
     <main className="relative flex flex-col items-center h-full">
-      <ChatWindow chatId={chatId} messages={messages} chat={chat} />
+      <ChatWindow
+        dbExplanation={explanation ?? null}
+        chatId={chatId}
+        messages={messages}
+        chat={chat}
+      />
     </main>
   );
 };

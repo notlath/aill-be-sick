@@ -7,7 +7,6 @@ export type TempDiagnosis = {
 };
 
 export type Explanation = {
-  symptoms: string;
   tokens: string[];
   importances: number[];
 };

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
-import { Chat, Message } from "@/app/generated/prisma";
+import { Chat, Explanation, Message } from "@/app/generated/prisma";
 import { useAction, useOptimisticAction } from "next-safe-action/hooks";
 import { runDiagnosis } from "@/actions/run-diagnosis";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,16 +16,22 @@ import { createMessage } from "@/actions/create-message";
 import { useUserLocation } from "@/hooks/use-location";
 import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
 import { explainDiagnosis } from "@/actions/explain-diagnosis";
-import { Explanation } from "@/types";
+import { Explanation as TempExplanation } from "@/types";
 import InsightsModal from "./insights-modal";
 
 type ChatWindowProps = {
   chatId: string;
   messages: Message[];
   chat: Chat;
+  dbExplanation: Explanation | null;
 };
 
-const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
+const ChatWindow = ({
+  chatId,
+  messages,
+  chat,
+  dbExplanation,
+}: ChatWindowProps) => {
   const { location, requestLocation } = useUserLocation();
   const [currentQuestion, setCurrentQuestion] = useState<{
     id: string;
@@ -69,12 +75,13 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
     },
     resolver: zodResolver(CreateChatSchema),
   });
-  const [explanation, setExplanation] = useState<Explanation | null>(null);
+  const [tempExplanation, setTempExplanation] =
+    useState<TempExplanation | null>(null);
   const { execute: getExplanations, isExecuting: isGettingExplanations } =
     useAction(explainDiagnosis, {
       onSuccess: ({ data }) => {
         if (data.success) {
-          setExplanation(data.explanation);
+          setTempExplanation(data.explanation);
         } else if (data.error) {
           let errorMessage = "";
 
@@ -656,7 +663,7 @@ Do you want to record this diagnosis?`;
         isGettingExplanations={isGettingExplanations}
         isCreatingMessage={isCreatingMessage}
         hasDiagnosis={chat.hasDiagnosis}
-        explanation={explanation}
+        explanation={tempExplanation || dbExplanation}
         location={location}
         currentQuestion={currentQuestion}
         onQuestionAnswer={handleQuestionAnswer}
@@ -706,10 +713,10 @@ Do you want to record this diagnosis?`;
           </p>
         </div>
       </dialog>
-      {explanation && (
+      {(tempExplanation || dbExplanation || chat.hasDiagnosis) && (
         <InsightsModal
-          tokens={explanation.tokens}
-          importances={explanation.importances}
+          tokens={(tempExplanation || dbExplanation)?.tokens}
+          importances={(tempExplanation || dbExplanation)?.importances}
         />
       )}
     </FormProvider>

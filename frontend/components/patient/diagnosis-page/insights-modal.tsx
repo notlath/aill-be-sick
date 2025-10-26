@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 
 type InsightsModalProps = {
-  tokens: string[];
-  importances: number[];
+  tokens?: string[];
+  importances?: number[];
 };
 
 const normalize = (values: number[]): number[] => {
@@ -12,7 +12,10 @@ const normalize = (values: number[]): number[] => {
   return values.map((v) => (v - min) / (max - min || 1));
 };
 
-const InsightsModal = ({ tokens, importances }: InsightsModalProps) => {
+const InsightsModal = ({
+  tokens = [],
+  importances = [],
+}: InsightsModalProps) => {
   const normalizedImportances = useMemo(() => {
     return normalize(importances);
   }, [importances]);
