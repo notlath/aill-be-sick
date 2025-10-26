@@ -1,0 +1,142 @@
+import os
+
+# Model paths
+ENG_MODEL_PATH = os.getenv(
+    "ENG_MODEL_PATH",
+    "notlath/BioClinical-ModernBERT-base-Symptom2Disease_WITH-DROPOUT-42",
+)
+FIL_MODEL_PATH = os.getenv(
+    "FIL_MODEL_PATH",
+    "notlath/RoBERTa-Tagalog-base-Symptom2Disease_WITH-DROPOUT-42",
+)
+
+# Symptom gating thresholds
+SYMPTOM_MIN_CONF = float(os.getenv("SYMPTOM_MIN_CONF", "0.50"))
+SYMPTOM_MAX_MI = float(os.getenv("SYMPTOM_MAX_MI", "0.10"))
+SYMPTOM_MIN_WORDS = int(os.getenv("SYMPTOM_MIN_WORDS", "3"))
+SYMPTOM_MIN_CHARS = int(os.getenv("SYMPTOM_MIN_CHARS", "15"))
+
+# CORS origins (frontend)
+CORS_ORIGINS = [
+    "http://localhost:3000",
+    "http://aill-be-sick.vercel.app/",
+    os.getenv("FRONTEND_URL", "*"),
+]
+
+# Allowed diseases - used to restrict predictions shown to clients
+ALLOWED_DISEASES = {"Dengue", "Pneumonia", "Typhoid", "Impetigo"}
+
+# Medical keywords (English + Tagalog)
+MEDICAL_KEYWORDS_EN = {
+    "fever",
+    "cough",
+    "pain",
+    "ache",
+    "sick",
+    "ill",
+    "hurt",
+    "sore",
+    "headache",
+    "nausea",
+    "vomit",
+    "dizzy",
+    "fatigue",
+    "tired",
+    "weak",
+    "rash",
+    "bleeding",
+    "swelling",
+    "infection",
+    "cold",
+    "chills",
+    "head",
+    "eye",
+    "throat",
+    "chest",
+    "stomach",
+    "abdomen",
+    "back",
+    "muscle",
+    "joint",
+    "skin",
+    "nose",
+    "ear",
+    "mouth",
+    "body",
+    "symptom",
+    "disease",
+    "diagnosis",
+    "treatment",
+    "medicine",
+    "doctor",
+    "hospital",
+    "clinic",
+    "health",
+    "medical",
+    "feel",
+    "feeling",
+    "breathe",
+    "breathing",
+    "swallow",
+    "appetite",
+    "sleep",
+    "temperature",
+}
+
+MEDICAL_KEYWORDS_TL = {
+    "lagnat",
+    "ubo",
+    "inuubo",
+    "sakit",
+    "masakit",
+    "sumasakit",
+    "nilalagnat",
+    "pananakit",
+    "pagdurugo",
+    "pantal",
+    "singaw",
+    "sipon",
+    "hilo",
+    "nahihilo",
+    "suka",
+    "nasusuka",
+    "pagod",
+    "kapaguran",
+    "nanghihina",
+    "pamumula",
+    "pamamaga",
+    "impeksyon",
+    "ginaw",
+    "panginginig",
+    "ulo",
+    "mata",
+    "lalamunan",
+    "dibdib",
+    "tiyan",
+    "likod",
+    "katawan",
+    "balat",
+    "ilong",
+    "tainga",
+    "bibig",
+    "kalamnan",
+    "kasukasuan",
+    "sintomas",
+    "gamot",
+    "doktor",
+    "ospital",
+    "klinika",
+    "kalusugan",
+    "medikal",
+    "pakiramdam",
+    "nararamdaman",
+    "ramdam",
+    "paghinga",
+    "huminga",
+    "lunok",
+    "gana",
+    "tulog",
+    "temperatura",
+    "meron",
+    "mayroon",
+}
