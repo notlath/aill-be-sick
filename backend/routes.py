@@ -1,7 +1,7 @@
 import traceback
 from flask import Blueprint, request, jsonify, current_app
 
-from classifier import classifier
+from classifier import classifier, explainer
 import config
 from utils import _count_words, normalize_symptoms
 
@@ -28,7 +28,7 @@ def new_case():
         if _count_words(symptoms) < config.SYMPTOM_MIN_WORDS and len(symptoms) < config.SYMPTOM_MIN_CHARS:
             return jsonify({"error": "INSUFFICIENT_SYMPTOM_EVIDENCE"}), 422
 
-        pred, confidence, uncertainty, probs, model_used, top_diseases = classifier(symptoms)
+        pred, confidence, uncertainty, probs, model_used, top_diseases, mean_probs = classifier(symptoms)
 
         # Gate low-confidence / high-uncertainty predictions
         if confidence < config.SYMPTOM_MIN_CONF or uncertainty > config.SYMPTOM_MAX_MI:
@@ -37,7 +37,7 @@ def new_case():
                 "details": {"confidence": confidence, "mutual_information": uncertainty},
             }), 422
 
-        return jsonify({"data": {"pred": pred, "confidence": confidence, "uncertainty": uncertainty, "probs": probs, "model_used": model_used, "disease": pred, "top_diseases": top_diseases}}), 201
+        return jsonify({"data": {"pred": pred, "confidence": confidence, "uncertainty": uncertainty, "probs": probs, "model_used": model_used, "disease": pred, "top_diseases": top_diseases, "mean_probs": mean_probs.tolist()}}), 201
 
     except Exception as e:
         msg = str(e)
@@ -79,6 +79,33 @@ def follow_up_question():
         # simple priority selection: primary category & weight
         selected = max(available_questions, key=lambda q: (q.get("category") == "primary", q.get("weight", 0)))
         return jsonify({"data": {"should_stop": False, "question": {"id": selected["id"], "question": selected["question"], "positive_symptom": selected.get("positive_symptom"), "negative_symptom": selected.get("negative_symptom"), "category": selected.get("category")}}}), 200
+
+    except Exception as e:
+        error_msg = str(e)
+        error_details = traceback.format_exc()
+        return jsonify({"error": "INTERNAL_ERROR", "message": error_msg, "details": error_details}), 500
+
+
+@bp.route("/diagnosis/explain", methods=["POST"])
+def explain_diagnosis():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+
+        text = data.get("symptoms", "")
+        if not text:
+            return jsonify({"error": "Symptoms cannot be empty"}), 400
+        
+        mean_probs = data.get("mean_probs", None)
+        if mean_probs is None:
+            return jsonify({"error": "mean_probs is required"}), 400
+
+        # Get model explanations (explainer returns a plain serializable dict)
+        result = explainer(text, mean_probs)
+
+        # Return the real symptoms and tokens from the explainer result
+        return jsonify({"symptoms": result.get("symptoms"), "tokens": result.get("tokens")}), 200
 
     except Exception as e:
         error_msg = str(e)

@@ -27,8 +27,17 @@ export const runDiagnosis = actionClient
       } = await axios.post(`${BACKEND_URL}/diagnosis/new`, {
         symptoms,
       });
-      const { pred, confidence, uncertainty, probs, model_used, top_diseases } =
-        diagnosis;
+      const {
+        pred,
+        confidence,
+        uncertainty,
+        probs,
+        model_used,
+        top_diseases,
+        mean_probs,
+      } = diagnosis;
+
+      console.log({ mean_probs });
 
       // Check if diagnosis is confident enough
       const isConfident = confidence >= 0.9 && uncertainty <= 0.03;
@@ -153,6 +162,7 @@ Do you want to record this diagnosis?
           uncertainty,
           model_used: transformedModelUsed,
           top_diseases: top_diseases || [],
+          mean_probs,
         },
         isConfident,
       };

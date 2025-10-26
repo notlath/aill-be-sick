@@ -15,6 +15,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { createMessage } from "@/actions/create-message";
 import { useUserLocation } from "@/hooks/use-location";
 import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
+import { explainDiagnosis } from "@/actions/explain-diagnosis";
 
 type ChatWindowProps = {
   chatId: string;
@@ -66,6 +67,12 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
     },
     resolver: zodResolver(CreateChatSchema),
   });
+  const { execute: getExplanations, isExecuting: isGettingExplanations } =
+    useAction(explainDiagnosis, {
+      onSuccess: ({ data }) => {
+        console.log({ data });
+      },
+    });
 
   const { execute: getFollowUpExecute, isExecuting: isGettingQuestion } =
     useAction(getFollowUpQuestion, {
@@ -230,8 +237,14 @@ Do you want to record this diagnosis?`;
           });
         } else if (data?.success && data?.diagnosis) {
           // Store diagnosis info
-          const { disease, confidence, uncertainty, top_diseases } =
+          const { disease, confidence, uncertainty, top_diseases, mean_probs } =
             data.diagnosis;
+
+          getExplanations({
+            symptoms: getCurrentSymptoms(),
+            meanProbs: mean_probs,
+          });
+
           setCurrentDiagnosis({
             disease,
             confidence,
@@ -593,7 +606,12 @@ Do you want to record this diagnosis?`;
       <ChatContainer
         ref={chatEndRef}
         messages={optimisticMessages}
-        isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
+        isPending={
+          isDiagnosing ||
+          isCreatingMessage ||
+          isGettingQuestion ||
+          isGettingExplanations
+        }
         hasDiagnosis={chat.hasDiagnosis}
         location={location}
         currentQuestion={currentQuestion}
