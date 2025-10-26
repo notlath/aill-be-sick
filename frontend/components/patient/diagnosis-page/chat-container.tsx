@@ -37,7 +37,7 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
     ref
   ) => {
     return (
-      <section className="flex flex-col flex-1 space-x-auto space-y-2 py-8 max-w-[768px]">
+      <section className="flex flex-col flex-1 space-x-auto space-y-2 py-8 w-full max-w-[768px]">
         {messages.map((message, idx) => (
           <ChatBubble
             key={message.id + message.content}
