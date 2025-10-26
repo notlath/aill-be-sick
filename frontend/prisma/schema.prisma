@@ -87,7 +87,6 @@ model Explanation {
   id              Int             @id @default(autoincrement())
   createdAt       DateTime        @default(now())
   diagnosisId     Int?            @unique
-  tempDiagnosisId Int?            @unique
   messageId       Int?            @unique
   tokens          String[]
   importances     Float[]
