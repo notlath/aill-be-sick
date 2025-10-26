@@ -237,7 +237,7 @@ Do you want to record this diagnosis?`;
           });
         } else if (data?.success && data?.diagnosis) {
           // Store diagnosis info
-          const { disease, confidence, uncertainty, top_diseases, mean_probs } =
+          const { disease, confidence, uncertainty, top_diseases } =
             data.diagnosis;
 
           setCurrentDiagnosis({
@@ -306,7 +306,7 @@ Do you want to record this diagnosis?`;
     },
     onSuccess: ({ data }) => {
       if (data.success) {
-        const created = data.success as any;
+        const created = data.success;
         console.log("Message created successfully:", created);
 
         // Only run diagnosis automatically for user-submitted SYMPTOMS messages (from the form)
@@ -321,23 +321,25 @@ Do you want to record this diagnosis?`;
         // NEW: when a DIAGNOSIS message (with a tempDiagnosis attached) is created,
         // call the explainDiagnosis action so backend SHAP explainer runs and we can
         // persist/expose token importances. Requires mean_probs from lastDiagnosisRef.
-        if (created.type === "DIAGNOSIS" && created.tempDiagnosis?.id) {
-          const tempDiagnosisId = created.tempDiagnosis.id as number;
-          const symptomsText =
-            created.tempDiagnosis?.symptoms ||
-            form.getValues("symptoms") ||
-            created.content ||
-            "";
-
-          // mean_probs should have been stored on the last runDiagnosis result
+        if (created.type === "DIAGNOSIS") {
+          const symptomsText = lastDiagnosisRef.current?.symptoms;
           const meanProbs = lastDiagnosisRef.current?.mean_probs;
+
+          console.log(
+            "Preparing to request explanation for diagnosis message:",
+            {
+              symptoms: symptomsText,
+              mean_probs: meanProbs,
+              messageId: created.id,
+            }
+          );
 
           if (meanProbs && Array.isArray(meanProbs)) {
             // call the server action wrapper that posts to backend /diagnosis/explain
             getExplanations({
               symptoms: symptomsText,
               meanProbs,
-              tempDiagnosisId,
+              messageId: created.id,
             });
           } else {
             console.warn("No meanProbs available to request explanation");
@@ -627,12 +629,10 @@ Do you want to record this diagnosis?`;
       <ChatContainer
         ref={chatEndRef}
         messages={optimisticMessages}
-        isPending={
-          isDiagnosing ||
-          isCreatingMessage ||
-          isGettingQuestion ||
-          isGettingExplanations
-        }
+        isGettingQuestion={isGettingQuestion}
+        isDiagnosing={isDiagnosing}
+        isGettingExplanations={isGettingExplanations}
+        isCreatingMessage={isCreatingMessage}
         hasDiagnosis={chat.hasDiagnosis}
         location={location}
         currentQuestion={currentQuestion}

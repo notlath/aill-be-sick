@@ -17,7 +17,7 @@ export const createDiagnosis = actionClient
       chatId,
       symptoms,
       location,
-      tempDiagnosisId,
+      messageId,
     } = parsedInput;
     const { success: dbUser, error } = await getCurrentDbUser();
 
@@ -35,16 +35,14 @@ export const createDiagnosis = actionClient
 
     try {
       const explanation = await prisma.explanation.findUnique({
-        where: { tempDiagnosisId },
+        where: { messageId },
       });
 
       if (!explanation) {
-        console.error(
-          `Explanation not found for tempDiagnosisId: ${tempDiagnosisId}`
-        );
+        console.error(`Explanation not found for messageId: ${messageId}`);
 
         return {
-          error: `Explanation not found for tempDiagnosisId: ${tempDiagnosisId}`,
+          error: `Explanation not found for messageId: ${messageId}`,
         };
       }
 
@@ -62,9 +60,8 @@ export const createDiagnosis = actionClient
           city: location.city,
           region: location.region,
           explanation: {
-            create: {
-              tokens: explanation.tokens,
-              importances: explanation.importances,
+            connect: {
+              id: explanation.id,
             },
           },
         },
@@ -76,7 +73,7 @@ export const createDiagnosis = actionClient
       });
 
       await prisma.tempDiagnosis.deleteMany({
-        where: { id: tempDiagnosisId },
+        where: { chatId },
       });
 
       revalidatePath("/diagnosis/[chatId]", "page");

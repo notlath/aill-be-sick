@@ -34,7 +34,7 @@ const RecordDiagnosisBtn = ({
       modelUsed: tempDiagnosis.modelUsed,
       uncertainty: tempDiagnosis.uncertainty,
       symptoms: tempDiagnosis.symptoms,
-      tempDiagnosisId: tempDiagnosis.id,
+      messageId: tempDiagnosis.messageId,
       location: location,
     });
   };

@@ -47,6 +47,7 @@ model Message {
   type          MessageType    @default(SYMPTOMS)
   chat          Chat           @relation(fields: [chatId], references: [chatId])
   tempDiagnosis TempDiagnosis?
+  explanation   Explanation?
 }
 
 model TempDiagnosis {
@@ -61,7 +62,6 @@ model TempDiagnosis {
   symptoms    String
   chat        Chat     @relation(fields: [chatId], references: [chatId])
   message     Message  @relation(fields: [messageId], references: [id])
-  explanation Explanation?
 }
 
 model Diagnosis {
@@ -88,10 +88,11 @@ model Explanation {
   createdAt       DateTime        @default(now())
   diagnosisId     Int?            @unique
   tempDiagnosisId Int?            @unique
+  messageId       Int?            @unique
   tokens          String[]
   importances     Float[]
   diagnosis       Diagnosis?      @relation(fields: [diagnosisId], references: [id])
-  tempDiagnosis   TempDiagnosis?  @relation(fields: [tempDiagnosisId], references: [id])
+  message         Message?        @relation(fields: [messageId], references: [id])
 }
 
 enum Role {

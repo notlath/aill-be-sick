@@ -161,6 +161,7 @@ Do you want to record this diagnosis?
           model_used: transformedModelUsed,
           top_diseases: top_diseases || [],
           mean_probs,
+          symptoms,
         },
         isConfident,
       };

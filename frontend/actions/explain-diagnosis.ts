@@ -11,14 +11,14 @@ const BACKEND_URL =
 export const explainDiagnosis = actionClient
   .inputSchema(ExplainDiagnosisSchema)
   .action(async ({ parsedInput }) => {
-    const { symptoms, meanProbs, tempDiagnosisId } = parsedInput;
+    const { meanProbs, messageId, symptoms } = parsedInput;
 
     try {
       const {
         data: { symptoms: text, tokens },
       } = await axios.post(`${BACKEND_URL}/diagnosis/explain`, {
-        symptoms,
         mean_probs: meanProbs,
+        symptoms,
       });
 
       // Normalize the tokens response into two arrays so we can store them in Prisma
@@ -85,7 +85,7 @@ export const explainDiagnosis = actionClient
         data: {
           tokens: tokensArray,
           importances: importancesArray,
-          tempDiagnosisId,
+          messageId: messageId,
         },
       });
 

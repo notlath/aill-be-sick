@@ -8,7 +8,10 @@ import QuestionBubble from "./question-bubble";
 
 type ChatContainerProps = {
   messages: Message[];
-  isPending: boolean;
+  isCreatingMessage: boolean;
+  isDiagnosing: boolean;
+  isGettingQuestion: boolean;
+  isGettingExplanations: boolean;
   hasDiagnosis?: boolean;
   location?: LocationData | null;
   currentQuestion?: {
@@ -28,7 +31,10 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
   (
     {
       messages,
-      isPending,
+      isCreatingMessage,
+      isDiagnosing,
+      isGettingQuestion,
+      isGettingExplanations,
       hasDiagnosis,
       location,
       currentQuestion,
@@ -56,10 +62,10 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
             negativeSymptom={currentQuestion.negative_symptom}
             category={(currentQuestion as any).category}
             onAnswer={onQuestionAnswer}
-            disabled={isPending}
+            disabled={isCreatingMessage || isDiagnosing}
           />
         )}
-        {isPending && !currentQuestion && (
+        {(isDiagnosing || isCreatingMessage) && (
           <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
             <div>
               <Markdown
@@ -72,6 +78,40 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
                 }}
               >
                 Diagnosing...
+              </Markdown>
+            </div>
+          </article>
+        )}
+        {isGettingQuestion && !currentQuestion && (
+          <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
+            <div>
+              <Markdown
+                remarkPlugins={[remarkBreaks]}
+                components={{
+                  p: ({ children }) => <p className="my-2">{children}</p>,
+                  strong: ({ children }) => (
+                    <strong className="font-bold">{children}</strong>
+                  ),
+                }}
+              >
+                Asking you follow-up questions...
+              </Markdown>
+            </div>
+          </article>
+        )}
+        {isGettingExplanations && (
+          <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
+            <div>
+              <Markdown
+                remarkPlugins={[remarkBreaks]}
+                components={{
+                  p: ({ children }) => <p className="my-2">{children}</p>,
+                  strong: ({ children }) => (
+                    <strong className="font-bold">{children}</strong>
+                  ),
+                }}
+              >
+                Generating insights for your diagnosis...
               </Markdown>
             </div>
           </article>
