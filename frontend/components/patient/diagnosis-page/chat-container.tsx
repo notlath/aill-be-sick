@@ -5,6 +5,7 @@ import remarkBreaks from "remark-breaks";
 import { forwardRef } from "react";
 import { LocationData } from "@/utils/location";
 import QuestionBubble from "./question-bubble";
+import { Explanation } from "@/types";
 
 type ChatContainerProps = {
   messages: Message[];
@@ -25,6 +26,7 @@ type ChatContainerProps = {
     symptom: string,
     questionId: string
   ) => void;
+  explanation: Explanation | null;
 };
 
 const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
@@ -39,6 +41,7 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
       location,
       currentQuestion,
       onQuestionAnswer,
+      explanation,
     },
     ref
   ) => {
@@ -50,6 +53,8 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
             messagesLength={messages.length}
             idx={idx}
             chatHasDiagnosis={hasDiagnosis}
+            isGettingExplanations={isGettingExplanations}
+            explanation={explanation}
             location={location}
             {...message}
           />

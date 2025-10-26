@@ -110,7 +110,7 @@ def explain_diagnosis():
     except Exception as e:
         error_msg = str(e)
         error_details = traceback.format_exc()
-        return jsonify({"error": "INTERNAL_ERROR", "message": error_msg, "details": error_details}), 500
+        return jsonify({"error": "EXPLANATION_ERROR", "message": error_msg, "details": error_details}), 500
 
 
 @bp.app_errorhandler(404)

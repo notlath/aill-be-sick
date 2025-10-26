@@ -2,7 +2,7 @@
 
 import { ExplainDiagnosisSchema } from "@/schemas/ExplainDiagnosisSchema";
 import { actionClient } from "./client";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import prisma from "@/prisma/prisma";
 
 const BACKEND_URL =
@@ -98,8 +98,20 @@ export const explainDiagnosis = actionClient
         },
       };
     } catch (error) {
-      console.error(error);
+      console.error("Error running diagnosis:", error);
 
-      return { error };
+      if (error instanceof AxiosError && error.response) {
+        const errorData = error.response.data;
+
+        if (errorData.error === "EXPLANATION_ERROR") {
+          return {
+            error: "EXPLANATION_ERROR",
+            message: errorData.message,
+            detectedLanguage: errorData.detected_language,
+          };
+        }
+      }
+
+      return { error: `Error running explanation: ${error}` };
     }
   });

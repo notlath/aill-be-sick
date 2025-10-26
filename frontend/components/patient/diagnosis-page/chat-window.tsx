@@ -16,6 +16,8 @@ import { createMessage } from "@/actions/create-message";
 import { useUserLocation } from "@/hooks/use-location";
 import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
 import { explainDiagnosis } from "@/actions/explain-diagnosis";
+import { Explanation } from "@/types";
+import InsightsModal from "./insights-modal";
 
 type ChatWindowProps = {
   chatId: string;
@@ -67,10 +69,30 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
     },
     resolver: zodResolver(CreateChatSchema),
   });
+  const [explanation, setExplanation] = useState<Explanation | null>(null);
   const { execute: getExplanations, isExecuting: isGettingExplanations } =
     useAction(explainDiagnosis, {
       onSuccess: ({ data }) => {
-        console.log({ data });
+        if (data.success) {
+          setExplanation(data.explanation);
+        } else if (data.error) {
+          let errorMessage = "";
+
+          if (data.error === "EXPLANATION_ERROR") {
+            errorMessage = `Sorry, there was an error generating the explanation for your diagnosis: ${data.message}`;
+          } else {
+            errorMessage =
+              data.message ||
+              "An error occurred while processing your symptoms. Please try again.";
+          }
+
+          createMessageExecute({
+            chatId,
+            content: errorMessage,
+            type: "ERROR",
+            role: "AI",
+          });
+        }
       },
     });
 
@@ -634,6 +656,7 @@ Do you want to record this diagnosis?`;
         isGettingExplanations={isGettingExplanations}
         isCreatingMessage={isCreatingMessage}
         hasDiagnosis={chat.hasDiagnosis}
+        explanation={explanation}
         location={location}
         currentQuestion={currentQuestion}
         onQuestionAnswer={handleQuestionAnswer}
@@ -683,6 +706,12 @@ Do you want to record this diagnosis?`;
           </p>
         </div>
       </dialog>
+      {explanation && (
+        <InsightsModal
+          tokens={explanation.tokens}
+          importances={explanation.importances}
+        />
+      )}
     </FormProvider>
   );
 };

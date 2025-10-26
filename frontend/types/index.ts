@@ -5,3 +5,9 @@ export type TempDiagnosis = {
   disease: string;
   chatId: string;
 };
+
+export type Explanation = {
+  symptoms: string;
+  tokens: string[];
+  importances: number[];
+};
