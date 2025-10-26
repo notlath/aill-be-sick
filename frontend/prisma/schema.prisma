@@ -8,6 +8,79 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        Int         @id @default(autoincrement())
+  email     String      @unique
+  name      String?
+  authId    String?     @unique
+  avatar    String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+  role      Role        @default(PATIENT)
+  city      String?
+  latitude  Float?
+  longitude Float?
+  region    String?
+  chats     Chat[]
+  diagnoses Diagnosis[]
+}
+
+model Chat {
+  id            Int             @id @default(autoincrement())
+  chatId        String          @unique
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  userId        Int
+  hasDiagnosis  Boolean         @default(false)
+  user          User            @relation(fields: [userId], references: [id])
+  diagnosis     Diagnosis?
+  messages      Message[]
+  tempDiagnoses TempDiagnosis[]
+}
+
+model Message {
+  id            Int            @id @default(autoincrement())
+  content       String
+  role          MessageRole
+  createdAt     DateTime       @default(now())
+  chatId        String
+  type          MessageType    @default(SYMPTOMS)
+  chat          Chat           @relation(fields: [chatId], references: [chatId])
+  tempDiagnosis TempDiagnosis?
+}
+
+model TempDiagnosis {
+  id          Int      @id @default(autoincrement())
+  confidence  Float
+  uncertainty Float
+  disease     Disease
+  createdAt   DateTime @default(now())
+  messageId   Int      @unique
+  modelUsed   Model
+  chatId      String
+  symptoms    String
+  chat        Chat     @relation(fields: [chatId], references: [chatId])
+  message     Message  @relation(fields: [messageId], references: [id])
+}
+
+model Diagnosis {
+  id          Int      @id @default(autoincrement())
+  confidence  Float
+  uncertainty Float
+  disease     Disease
+  createdAt   DateTime @default(now())
+  chatId      String   @unique
+  userId      Int
+  modelUsed   Model
+  symptoms    String
+  city        String?
+  latitude    Float?
+  longitude   Float?
+  region      String?
+  chat        Chat     @relation(fields: [chatId], references: [chatId])
+  user        User     @relation(fields: [userId], references: [id])
+}
+
 enum Role {
   PATIENT
   CLINICIAN
@@ -23,89 +96,18 @@ enum MessageType {
   ANSWER
   QUESTION
   DIAGNOSIS
+  URGENT_WARNING
+  ERROR
 }
 
 enum Disease {
-  DENGUE          @map("Dengue")
-  PNEUMONIA       @map("Pneumonia")
-  TYPHOID         @map("Typhoid")
-  IMPETIGO        @map("Impetigo")
+  DENGUE    @map("Dengue")
+  PNEUMONIA @map("Pneumonia")
+  TYPHOID   @map("Typhoid")
+  IMPETIGO  @map("Impetigo")
 }
 
 enum Model {
-  BIOCLINICAL_MODERNBERT  @map("BioClinical-ModernBERT")
-  ROBERTA_TAGALOG         @map("RoBERTa-Tagalog")
-}
-
-model User {
-  id         Int         @id @default(autoincrement())
-  email      String      @unique
-  authId     String?     @unique
-  name       String?
-  avatar     String?
-  role       Role        @default(PATIENT)
-  latitude   Float?
-  longitude  Float?
-  city       String?
-  region     String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @default(now()) @updatedAt
-  chats      Chat[]
-  diagnoses  Diagnosis[]
-}
-
-model Chat {
-  id            Int         @id @default(autoincrement())
-  chatId        String      @unique
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  messages      Message[]
-  userId        Int
-  user          User        @relation(fields: [userId], references: [id])
-  hasDiagnosis  Boolean     @default(false)
-  diagnosis     Diagnosis?
-  tempDiagnoses TempDiagnosis[]
-}
-
-model Message {
-  id                Int         @id @default(autoincrement())
-  content           String
-  role              MessageRole
-  type              MessageType @default(SYMPTOMS)
-  createdAt         DateTime    @default(now())
-  chatId            String
-  chat              Chat        @relation(fields: [chatId], references: [chatId])
-  tempDiagnosis     TempDiagnosis?
-}
-
-model TempDiagnosis {
-  id          Int      @id @default(autoincrement())
-  confidence  Float
-  uncertainty Float
-  disease     Disease
-  createdAt   DateTime @default(now())
-  modelUsed   Model
-  symptoms    String
-  messageId   Int      @unique
-  message     Message  @relation(fields: [messageId], references: [id])
-  chatId      String
-  chat        Chat     @relation(fields: [chatId], references: [chatId])
-}
-
-model Diagnosis {
-  id            Int      @id @default(autoincrement())
-  confidence    Float
-  uncertainty   Float
-  disease       Disease
-  createdAt     DateTime @default(now())
-  chatId        String   @unique
-  symptoms      String
-  modelUsed     Model
-  latitude      Float?
-  longitude     Float?
-  city          String?
-  region        String?
-  chat          Chat     @relation(fields: [chatId], references: [chatId])
-  userId        Int
-  user          User     @relation(fields: [userId], references: [id])
+  BIOCLINICAL_MODERNBERT @map("BioClinical-ModernBERT")
+  ROBERTA_TAGALOG        @map("RoBERTa-Tagalog")
 }

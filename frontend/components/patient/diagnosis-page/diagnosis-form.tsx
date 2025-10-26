@@ -33,6 +33,20 @@ const DiagnosisForm = ({
               <textarea
                 className="flex-1 pl-1 border-none outline-none"
                 placeholder="I'm feeling..."
+                suppressHydrationWarning
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey &&
+                    !(e.nativeEvent as any)?.isComposing
+                  ) {
+                    e.preventDefault();
+                    void form.handleSubmit(handleSubmit)();
+                  }
+                }}
                 {...form.register("symptoms")}
               />
               <button

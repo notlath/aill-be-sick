@@ -1,5 +1,5 @@
-import Header from "./header";
-import NavLinks from "./nav-links";
+import SidebarWrapper from "./sidebar-wrapper";
+import SidebarContent from "./sidebar-content";
 import { getCurrentDbUser } from "@/utils/user";
 
 const Sidebar = async () => {
@@ -16,10 +16,9 @@ const Sidebar = async () => {
   }
 
   return (
-    <aside className="p-2 pt-4 pr-0 min-w-80">
-      <Header dbUser={dbUser} />
-      <NavLinks dbUser={dbUser} />
-    </aside>
+    <SidebarWrapper>
+      <SidebarContent dbUser={dbUser} />
+    </SidebarWrapper>
   );
 };
 

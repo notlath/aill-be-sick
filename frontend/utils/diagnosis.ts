@@ -16,7 +16,33 @@ export const getDiagnosisByChatId = async (chatId: string) => {
   }
 };
 
-export const getAllDiagnoses = async ({ skip, take }: { skip?: number; take?: number }) => {
+export const getLatestTempDiagnosisByChatId = async (chatId: string) => {
+  try {
+    const temp = await prisma.tempDiagnosis.findFirst({
+      where: { chatId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: temp };
+  } catch (error) {
+    console.error(
+      `Error fetching latest temp diagnosis for chatId ${chatId}:`,
+      error
+    );
+
+    return {
+      error: `Could not fetch latest temp diagnosis for chatId ${chatId}`,
+    };
+  }
+};
+
+export const getAllDiagnoses = async ({
+  skip,
+  take,
+}: {
+  skip?: number;
+  take?: number;
+}) => {
   try {
     if (skip || take) {
       const diagnoses = await prisma.diagnosis.findMany({
