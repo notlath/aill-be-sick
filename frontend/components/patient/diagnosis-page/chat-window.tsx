@@ -240,11 +240,6 @@ Do you want to record this diagnosis?`;
           const { disease, confidence, uncertainty, top_diseases, mean_probs } =
             data.diagnosis;
 
-          getExplanations({
-            symptoms: getCurrentSymptoms(),
-            meanProbs: mean_probs,
-          });
-
           setCurrentDiagnosis({
             disease,
             confidence,
@@ -321,6 +316,32 @@ Do you want to record this diagnosis?`;
             symptoms: created.content,
             skipMessage: true, // Skip message - will show after confirmatory if confident
           });
+        }
+
+        // NEW: when a DIAGNOSIS message (with a tempDiagnosis attached) is created,
+        // call the explainDiagnosis action so backend SHAP explainer runs and we can
+        // persist/expose token importances. Requires mean_probs from lastDiagnosisRef.
+        if (created.type === "DIAGNOSIS" && created.tempDiagnosis?.id) {
+          const tempDiagnosisId = created.tempDiagnosis.id as number;
+          const symptomsText =
+            created.tempDiagnosis?.symptoms ||
+            form.getValues("symptoms") ||
+            created.content ||
+            "";
+
+          // mean_probs should have been stored on the last runDiagnosis result
+          const meanProbs = lastDiagnosisRef.current?.mean_probs;
+
+          if (meanProbs && Array.isArray(meanProbs)) {
+            // call the server action wrapper that posts to backend /diagnosis/explain
+            getExplanations({
+              symptoms: symptomsText,
+              meanProbs,
+              tempDiagnosisId,
+            });
+          } else {
+            console.warn("No meanProbs available to request explanation");
+          }
         }
       } else if (data.error) {
         console.error("Error creating message:", data.error);

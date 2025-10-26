@@ -17,6 +17,7 @@ export const createDiagnosis = actionClient
       chatId,
       symptoms,
       location,
+      tempDiagnosisId,
     } = parsedInput;
     const { success: dbUser, error } = await getCurrentDbUser();
 
@@ -33,6 +34,20 @@ export const createDiagnosis = actionClient
     }
 
     try {
+      const explanation = await prisma.explanation.findUnique({
+        where: { tempDiagnosisId },
+      });
+
+      if (!explanation) {
+        console.error(
+          `Explanation not found for tempDiagnosisId: ${tempDiagnosisId}`
+        );
+
+        return {
+          error: `Explanation not found for tempDiagnosisId: ${tempDiagnosisId}`,
+        };
+      }
+
       await prisma.diagnosis.create({
         data: {
           confidence,
@@ -46,6 +61,12 @@ export const createDiagnosis = actionClient
           longitude: location.longitude,
           city: location.city,
           region: location.region,
+          explanation: {
+            create: {
+              tokens: explanation.tokens,
+              importances: explanation.importances,
+            },
+          },
         },
       });
 
@@ -55,7 +76,7 @@ export const createDiagnosis = actionClient
       });
 
       await prisma.tempDiagnosis.deleteMany({
-        where: { chatId },
+        where: { id: tempDiagnosisId },
       });
 
       revalidatePath("/diagnosis/[chatId]", "page");

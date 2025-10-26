@@ -37,8 +37,6 @@ export const runDiagnosis = actionClient
         mean_probs,
       } = diagnosis;
 
-      console.log({ mean_probs });
-
       // Check if diagnosis is confident enough
       const isConfident = confidence >= 0.9 && uncertainty <= 0.03;
 

@@ -61,6 +61,7 @@ model TempDiagnosis {
   symptoms    String
   chat        Chat     @relation(fields: [chatId], references: [chatId])
   message     Message  @relation(fields: [messageId], references: [id])
+  explanation Explanation?
 }
 
 model Diagnosis {
@@ -79,6 +80,18 @@ model Diagnosis {
   region      String?
   chat        Chat     @relation(fields: [chatId], references: [chatId])
   user        User     @relation(fields: [userId], references: [id])
+  explanation Explanation?
+}
+
+model Explanation {
+  id              Int             @id @default(autoincrement())
+  createdAt       DateTime        @default(now())
+  diagnosisId     Int?            @unique
+  tempDiagnosisId Int?            @unique
+  tokens          String[]
+  importances     Float[]
+  diagnosis       Diagnosis?      @relation(fields: [diagnosisId], references: [id])
+  tempDiagnosis   TempDiagnosis?  @relation(fields: [tempDiagnosisId], references: [id])
 }
 
 enum Role {

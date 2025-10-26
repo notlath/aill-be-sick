@@ -60,7 +60,7 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
           />
         )}
         {isPending && !currentQuestion && (
-          <article className="self-start bg-gray-200 p-3 px-4 rounded-xl max-w-[60%]">
+          <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
             <div>
               <Markdown
                 remarkPlugins={[remarkBreaks]}
