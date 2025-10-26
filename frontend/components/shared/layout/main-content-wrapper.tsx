@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useSidebar } from "./sidebar-provider";
 import { ReactNode } from "react";
 
@@ -9,6 +10,7 @@ type MainContentWrapperProps = {
 
 const MainContentWrapper = ({ children }: MainContentWrapperProps) => {
   const { isOpen } = useSidebar();
+  const pathname = usePathname();
 
   return (
     <div
@@ -20,10 +22,12 @@ const MainContentWrapper = ({ children }: MainContentWrapperProps) => {
       }}
     >
       <div
-        className="bg-base-100 border border-base-300/30 w-full h-[calc(100vh-3rem)] overflow-y-scroll rounded-3xl shadow-sm"
+        className="bg-base-100 shadow-sm border border-base-300/30 rounded-3xl w-full h-[calc(100vh-3rem)] overflow-y-auto"
         style={{
           boxShadow:
-            "0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04), 0 0 0 1px rgb(0 0 0 / 0.02)",
+            pathname !== "/diagnosis"
+              ? "0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04), 0 0 0 1px rgb(0 0 0 / 0.02)"
+              : "none",
         }}
       >
         {children}

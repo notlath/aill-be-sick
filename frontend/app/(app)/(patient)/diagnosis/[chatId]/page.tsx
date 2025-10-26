@@ -36,7 +36,7 @@ const ChatPage = async ({
   }
 
   return (
-    <main className="relative flex flex-col h-full">
+    <main className="relative flex flex-col items-center h-full">
       <ChatWindow chatId={chatId} messages={messages} chat={chat} />
     </main>
   );

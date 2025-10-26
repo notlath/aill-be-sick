@@ -15,7 +15,6 @@ import { FormProvider, useForm } from "react-hook-form";
 import { createMessage } from "@/actions/create-message";
 import { useUserLocation } from "@/hooks/use-location";
 import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
-import QuestionBubble from "./question-bubble";
 
 type ChatWindowProps = {
   chatId: string;
@@ -601,18 +600,18 @@ Do you want to record this diagnosis?`;
         onQuestionAnswer={handleQuestionAnswer}
       />
       {!chat.hasDiagnosis && !currentQuestion && (
-        <div className="-bottom-0.5 sticky bg-base-200 p-4 pt-0">
+        <div className="-bottom-0.5 sticky bg-base-100 p-4 pt-0">
           <DiagnosisForm
             createMessageExecute={createMessageExecute}
             isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
           />
-          <div className="mt-2 flex items-center justify-between">
+          <div className="flex justify-between items-center mt-2">
             <label className="label">
               <span className="label-text">Mode</span>
             </label>
             <div className="btn-group">
               <button
-                className={`btn ${
+                className={`btn btn-ghost ${
                   diagnosisMode === "adaptive" ? "btn-active" : ""
                 }`}
                 onClick={() => setDiagnosisMode("adaptive")}
@@ -620,7 +619,7 @@ Do you want to record this diagnosis?`;
                 Adaptive
               </button>
               <button
-                className={`btn ${
+                className={`btn btn-ghost ${
                   diagnosisMode === "legacy" ? "btn-active" : ""
                 }`}
                 onClick={() => setDiagnosisMode("legacy")}
