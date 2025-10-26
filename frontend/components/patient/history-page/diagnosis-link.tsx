@@ -43,7 +43,7 @@ const DiagnosisLink = async ({
     <Link
       href={`/diagnosis/${chatId}`}
       key={id}
-      className="group flex items-center justify-between gap-6 py-4 px-3 rounded-2xl bg-base-100/90 border border-base-300/20 shadow-sm hover:shadow-xl hover:bg-base-100/100 hover:-translate-y-1 hover:scale-[1.015] transition-all duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]"
+      className="group flex justify-between items-center gap-6 bg-base-100/90 hover:bg-base-100/100 shadow-sm hover:shadow-xl px-3 py-4 border border-base-300/20 rounded-2xl hover:scale-[1.015] transition-all hover:-translate-y-1 duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]"
       style={{
         boxShadow:
           "0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04)",
@@ -69,7 +69,7 @@ const DiagnosisLink = async ({
           </div>
         ) : latestTemp ? (
           <div className="flex items-center gap-2">
-            <span className="text-muted font-medium">
+            <span className="font-medium text-muted">
               {latestTemp.disease
                 .toString()
                 .split("_")
@@ -80,7 +80,7 @@ const DiagnosisLink = async ({
             </span>
             {typeof latestTemp.uncertainty === "number" && (
               <span className="ml-2 text-muted text-sm">
-                Uncertainty: {(latestTemp.uncertainty * 100).toFixed(2)}%
+                Uncertainty: {(latestTemp.uncertainty * 100).toFixed(4)}%
               </span>
             )}
           </div>
@@ -91,7 +91,7 @@ const DiagnosisLink = async ({
 
       {/* Right: date and time */}
       <div className="flex flex-col items-end min-w-48">
-        <span className="font-medium text-base-content/80 text-sm">
+        <span className="font-medium text-sm text-base-content/80">
           {new Date(createdAt).toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
