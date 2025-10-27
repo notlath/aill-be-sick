@@ -1,0 +1,50 @@
+# Python virtual environments
+venv/
+.venv/
+backend/venv/
+backend/.venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Database files
+*.sqlite3
+*.db
+
+# Logs
+logs/
+*.log
+
+# VS Code
+.vscode/
+
+# Python compiled files
+*.pyc
+*.pyo
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model files (if they're large, you might want to use Git LFS instead)
+# ml_models/
+
+# Environment variables
+.env
+.env.local
