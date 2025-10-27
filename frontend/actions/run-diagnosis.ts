@@ -27,8 +27,15 @@ export const runDiagnosis = actionClient
       } = await axios.post(`${BACKEND_URL}/diagnosis/new`, {
         symptoms,
       });
-      const { pred, confidence, uncertainty, probs, model_used, top_diseases } =
-        diagnosis;
+      const {
+        pred,
+        confidence,
+        uncertainty,
+        probs,
+        model_used,
+        top_diseases,
+        mean_probs,
+      } = diagnosis;
 
       // Check if diagnosis is confident enough
       const isConfident = confidence >= 0.9 && uncertainty <= 0.03;
@@ -50,15 +57,17 @@ Based on your symptom description, you might be experiencing: **${pred}**. This 
 Here are other most likely conditions based on your symptoms:
 ${probs.map((prob: any) => `- ${prob}`).join("\n")}  \n
 
-The **uncertainty score** associated with this diagnosis is **${uncertainty.toFixed(
-            4
-          )}%**.
+The **uncertainty score** associated with this diagnosis is **${(
+            uncertainty * 100
+          ).toFixed(4)}%**.
 
 A high confidence score (${(confidence * 100).toFixed(
             4
-          )}%) combined with a low uncertainty score (${uncertainty.toFixed(
+          )}%) combined with a low uncertainty score (${(
+            uncertainty * 100
+          ).toFixed(
             4
-          )}%) suggests that **this is a reliable diagnosis.**  \n
+          )}%) suggests that **the model is confident about this diagnosis and that there's very little disagreement in predictions after repeated tests.**  \n
 
 Do you want to record this diagnosis?
                 `;
@@ -71,13 +80,15 @@ Based on your symptom description, you might be experiencing: **${pred}**. This 
 Here are other most likely conditions based on your symptoms:
 ${probs.map((prob: any) => `- ${prob}`).join("\n")}  \n
 
-The **uncertainty score** associated with this diagnosis is **${uncertainty.toFixed(
-            4
-          )}%**.
+The **uncertainty score** associated with this diagnosis is **${(
+            uncertainty * 100
+          ).toFixed(4)}%**.
           
 A low confidence score (${(confidence * 100).toFixed(
             4
-          )}%) combined with a high uncertainty score (${uncertainty.toFixed(
+          )}%) combined with a high uncertainty score (${(
+            uncertainty * 100
+          ).toFixed(
             4
           )}%) suggests that the model does not know the diagnosis and also does not know what the best diagnosis could be. **These results should not be trusted without further validation or a human expert's opinion.**  \n
 
@@ -92,13 +103,15 @@ Based on your symptom description, you might be experiencing: **${pred}**. This 
 Here are other most likely conditions based on your symptoms:
 ${probs.map((prob: any) => `- ${prob}`).join("\n")}  \n
 
-The **uncertainty score** associated with this diagnosis is **${uncertainty.toFixed(
-            4
-          )}%**.
+The **uncertainty score** associated with this diagnosis is **${(
+            uncertainty * 100
+          ).toFixed(4)}%**.
 
 A high confidence score (${(confidence * 100).toFixed(
             4
-          )}%) combined with a high uncertainty score (${uncertainty.toFixed(
+          )}%) combined with a high uncertainty score (${(
+            uncertainty * 100
+          ).toFixed(
             4
           )}%) indicates **overconfidence** of the model in this diagnosis. The model is confident about the diagnosis, but is also not sure what the best diagnosis could be. This could be a sign of distribution shift, where the model is encountering data that is different from what it was trained on. **These results should not be trusted without further validation or a human expert's opinion.**  \n
 
@@ -113,13 +126,15 @@ Based on your symptom description, you might be experiencing: **${pred}**. This 
 Here are other most likely conditions based on your symptoms:
 ${probs.map((prob: any) => `- ${prob}`).join("\n")}  \n
 
-The **uncertainty score** associated with this diagnosis is **${uncertainty.toFixed(
-            4
-          )}%**.
+The **uncertainty score** associated with this diagnosis is **${(
+            uncertainty * 100
+          ).toFixed(4)}%**.
 
 A low confidence score (${(confidence * 100).toFixed(
             4
-          )}%) combined with a low uncertainty score (${uncertainty.toFixed(
+          )}%) combined with a low uncertainty score (${(
+            uncertainty * 100
+          ).toFixed(
             4
           )}%) suggests that **the model is unsure about the diagnosis,** and is aware that **it needs more information to make a confident prediction for this specific case.** It is recommended to seek further medical advice or provide additional context for an accurate diagnosis.  \n
 
@@ -153,6 +168,8 @@ Do you want to record this diagnosis?
           uncertainty,
           model_used: transformedModelUsed,
           top_diseases: top_diseases || [],
+          mean_probs,
+          symptoms,
         },
         isConfident,
       };

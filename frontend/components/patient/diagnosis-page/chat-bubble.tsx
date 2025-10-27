@@ -5,6 +5,9 @@ import remarkBreaks from "remark-breaks";
 import RecordDiagnosisBtn from "./record-diagnosis-btn";
 import { LocationData } from "@/utils/location";
 import { XCircle } from "lucide-react";
+import { Explanation } from "@/types";
+import ViewInsightsBtn from "./view-insights-btn";
+import InsightsModal from "./insights-modal";
 
 type ChatBubbleProps = {
   messagesLength: number;
@@ -12,6 +15,8 @@ type ChatBubbleProps = {
   tempDiagnosis?: TempDiagnosis;
   chatHasDiagnosis?: boolean;
   location?: LocationData | null;
+  isGettingExplanations: boolean;
+  explanation: Explanation | null;
 } & Message;
 
 const ChatBubble = ({
@@ -24,6 +29,8 @@ const ChatBubble = ({
   chatId,
   chatHasDiagnosis,
   location,
+  isGettingExplanations,
+  explanation,
 }: ChatBubbleProps) => {
   const isError = type === "ERROR";
 
@@ -61,13 +68,26 @@ const ChatBubble = ({
         </Markdown>
       </div>
       {type === "DIAGNOSIS" && location && (
-        <RecordDiagnosisBtn
-          disabled={
-            chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
-          }
-          tempDiagnosis={tempDiagnosis}
-          chatId={chatId}
-          location={location}
+        <>
+          <RecordDiagnosisBtn
+            disabled={
+              chatHasDiagnosis ||
+              !tempDiagnosis ||
+              messagesLength - 1 !== idx ||
+              isGettingExplanations ||
+              !explanation
+            }
+            tempDiagnosis={tempDiagnosis}
+            chatId={chatId}
+            location={location}
+          />
+          <ViewInsightsBtn disabled={isGettingExplanations || !explanation} />
+        </>
+      )}
+      {explanation && (
+        <InsightsModal
+          tokens={explanation.tokens}
+          importances={explanation.importances}
         />
       )}
     </article>

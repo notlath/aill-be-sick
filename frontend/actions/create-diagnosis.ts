@@ -17,6 +17,7 @@ export const createDiagnosis = actionClient
       chatId,
       symptoms,
       location,
+      messageId,
     } = parsedInput;
     const { success: dbUser, error } = await getCurrentDbUser();
 
@@ -33,6 +34,18 @@ export const createDiagnosis = actionClient
     }
 
     try {
+      const explanation = await prisma.explanation.findUnique({
+        where: { messageId },
+      });
+
+      if (!explanation) {
+        console.error(`Explanation not found for messageId: ${messageId}`);
+
+        return {
+          error: `Explanation not found for messageId: ${messageId}`,
+        };
+      }
+
       await prisma.diagnosis.create({
         data: {
           confidence,
@@ -46,6 +59,11 @@ export const createDiagnosis = actionClient
           longitude: location.longitude,
           city: location.city,
           region: location.region,
+          explanation: {
+            connect: {
+              id: explanation.id,
+            },
+          },
         },
       });
 
