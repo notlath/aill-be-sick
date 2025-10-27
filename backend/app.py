@@ -14,6 +14,11 @@ from captum.attr import GradientShap
 import html
 import unicodedata
 import torch.nn.functional as F
+from dotenv import load_dotenv
+import traceback
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -224,7 +229,9 @@ class MCDClassifierWithSHAP:
             return_tensors="pt",
             truncation=True,
             padding=True,
-        ).to(self.device) # Move inputs to device and ensure correct type
+        ).to(
+            self.device
+        )  # Move inputs to device and ensure correct type
         inputs["input_ids"] = inputs["input_ids"].to(torch.long)
         inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
 
@@ -275,7 +282,9 @@ class MCDClassifierWithSHAP:
 
         return entropy_of_expected - expected_entropy
 
-    def explain_with_gradient_shap(self, text, mean_probs=None, target_class=None, n_baselines=5):
+    def explain_with_gradient_shap(
+        self, text, mean_probs=None, target_class=None, n_baselines=5
+    ):
         """
         Compute token-level attributions using Captum's GradientSHAP on embeddings.
         """
@@ -291,9 +300,7 @@ class MCDClassifierWithSHAP:
 
         mean_probs = torch.tensor(mean_probs, device=self.device)
         predicted_class = (
-            mean_probs.argmax(dim=-1).item()
-            if target_class is None
-            else target_class
+            mean_probs.argmax(dim=-1).item() if target_class is None else target_class
         )
 
         # 1️⃣ Get embeddings from the model
@@ -340,7 +347,11 @@ class MCDClassifierWithSHAP:
         # of relying on an external mc_result variable which isn't in scope.
         try:
             # mean_probs may be a torch tensor here
-            mp = mean_probs.detach().cpu().numpy() if hasattr(mean_probs, "detach") else np.array(mean_probs)
+            mp = (
+                mean_probs.detach().cpu().numpy()
+                if hasattr(mean_probs, "detach")
+                else np.array(mean_probs)
+            )
             confidence_val = float(np.max(mp, axis=-1).tolist()) if mp.size else 0.0
         except Exception:
             confidence_val = 0.0
@@ -365,8 +376,6 @@ eng_classifier = MCDClassifierWithSHAP(
 fil_classifier = MCDClassifierWithSHAP(
     fil_model_path, n_iterations=25, inference_dropout_rate=0.05
 )
-
-
 
 
 def classifier(text):
@@ -486,7 +495,7 @@ def classifier(text):
                 probs,
                 "BioClinical ModernBERT",
                 top_diseases,
-                mean_probs
+                mean_probs,
             )
 
         elif lang in ["tl", "fil"]:
@@ -519,7 +528,15 @@ def classifier(text):
                 pred = top_diseases[0]["disease"]
 
             gc.collect()
-            return pred, confidence, uncertainty, probs, "RoBERTa Tagalog", top_diseases, mean_probs
+            return (
+                pred,
+                confidence,
+                uncertainty,
+                probs,
+                "RoBERTa Tagalog",
+                top_diseases,
+                mean_probs,
+            )
 
         else:
             print(f"Unsupported language detected: {lang}")
@@ -534,7 +551,8 @@ def classifier(text):
         print(traceback.format_exc())
 
         raise
-    
+
+
 def aggregate_subword_attributions(tokens, attributions):
     """
     Merge subword tokens (e.g., Ġirrit + ating -> 'irritating')
@@ -577,6 +595,7 @@ def aggregate_subword_attributions(tokens, attributions):
 
     return words, np.array(word_attrs)
 
+
 def clean_token(t):
     # Decode weird UTF-8 artifacts and normalize apostrophes
     t = t.encode("utf-8", "ignore").decode("utf-8", "ignore")
@@ -585,13 +604,14 @@ def clean_token(t):
     t = unicodedata.normalize("NFKC", t)
     return t.strip()
 
+
 def explainer(text: str, mean_probs=None):
     try:
         # Language hint: prefer Tagalog if Tagalog keywords appear
         text_lower = (text or "").lower()
         has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
         lang = "tl" if has_tl else "en"
-        
+
         # Normalize mean_probs to a numpy array/list for downstream use
         if mean_probs is None:
             raise ValueError("mean_probs required for explainer")
@@ -612,8 +632,10 @@ def explainer(text: str, mean_probs=None):
         model = eng_classifier if lang == "en" else fil_classifier
 
         # explain_with_gradient_shap expects mean_probs as a tensor or array
-        explanation_result = model.explain_with_gradient_shap(text, mean_probs=mean_probs_arr)
-        
+        explanation_result = model.explain_with_gradient_shap(
+            text, mean_probs=mean_probs_arr
+        )
+
         tokens = explanation_result["tokens"]
         attrs = explanation_result["attributions"]
 
@@ -625,7 +647,9 @@ def explainer(text: str, mean_probs=None):
 
         return {
             "symptoms": text,
-            "tokens": [{"token": w, "importance": float(a)} for w, a in zip(words, word_attrs)]
+            "tokens": [
+                {"token": w, "importance": float(a)} for w, a in zip(words, word_attrs)
+            ],
         }
 
     except Exception:
@@ -674,8 +698,8 @@ def new_case():
                 422,
             )
 
-        pred, confidence, uncertainty, probs, model_used, top_diseases, mean_probs = classifier(
-            symptoms
+        pred, confidence, uncertainty, probs, model_used, top_diseases, mean_probs = (
+            classifier(symptoms)
         )
 
         # Gate low-confidence / high-uncertainty predictions
@@ -1161,6 +1185,7 @@ def follow_up_question():
             500,
         )
 
+
 @app.route("/diagnosis/explain", methods=["POST"])
 def explain_diagnosis():
     try:
@@ -1171,7 +1196,7 @@ def explain_diagnosis():
         text = data.get("symptoms", "")
         if not text:
             return jsonify({"error": "Symptoms cannot be empty"}), 400
-        
+
         mean_probs = data.get("mean_probs", None)
         if mean_probs is None:
             return jsonify({"error": "mean_probs is required"}), 400
@@ -1180,12 +1205,26 @@ def explain_diagnosis():
         result = explainer(text, mean_probs)
 
         # Return the real symptoms and tokens from the explainer result
-        return jsonify({"symptoms": result.get("symptoms"), "tokens": result.get("tokens")}), 200
+        return (
+            jsonify(
+                {"symptoms": result.get("symptoms"), "tokens": result.get("tokens")}
+            ),
+            200,
+        )
 
     except Exception as e:
         error_msg = str(e)
         error_details = traceback.format_exc()
-        return jsonify({"error": "EXPLANATION_ERROR", "message": error_msg, "details": error_details}), 500
+        return (
+            jsonify(
+                {
+                    "error": "EXPLANATION_ERROR",
+                    "message": error_msg,
+                    "details": error_details,
+                }
+            ),
+            500,
+        )
 
 
 @app.errorhandler(404)
@@ -1196,6 +1235,139 @@ def not_found(error):
 @app.errorhandler(405)
 def method_not_allowed(error):
     return jsonify({"error": "Method not allowed"}), 405
+
+
+# --- K-means clustering endpoint ---
+from kmeans_cluster import fetch_patient_data, run_kmeans, get_cluster_statistics
+
+
+@app.route("/api/patient-clusters", methods=["GET"])
+def patient_clusters():
+    try:
+        # You may want to allow n_clusters as a query param
+        # Default to 4 clusters to align with 4 primary diseases
+        n_clusters = int(request.args.get("n_clusters", 4))
+
+        # Fetch data from PostgreSQL using DATABASE_URL
+        data, patient_info = fetch_patient_data()
+
+        if data.size == 0:
+            return jsonify({"error": "No patient data available"}), 404
+
+        # Run K-means clustering
+        clusters, centers = run_kmeans(data, n_clusters=n_clusters)
+
+        # Get cluster statistics
+        cluster_stats = get_cluster_statistics(patient_info, clusters, n_clusters)
+
+        # Add cluster assignment to each patient
+        for i, patient in enumerate(patient_info):
+            patient["cluster"] = int(clusters[i])
+
+        print(
+            f"[KMEANS] Clustered {len(patient_info)} patients into {n_clusters} clusters"
+        )
+        for stat in cluster_stats:
+            print(
+                f"[KMEANS] Cluster {stat['cluster_id']}: {stat['count']} patients, avg age {stat['avg_age']}"
+            )
+
+        return jsonify(
+            {
+                "n_clusters": n_clusters,
+                "total_patients": len(patient_info),
+                "cluster_statistics": cluster_stats,
+                "patients": patient_info,
+                "centers": centers.tolist(),
+            }
+        )
+    except Exception as e:
+        import traceback
+
+        error_details = traceback.format_exc()
+        print(f"ERROR in patient_clusters: {str(e)}")
+        print(error_details)
+        return jsonify({"error": str(e), "details": error_details}), 500
+
+
+@app.route("/api/patient-clusters/silhouette", methods=["GET"])
+def patient_clusters_silhouette():
+    """Evaluate KMeans clustering quality across a range of k using silhouette score.
+    Query params:
+      - range: e.g. "3-10" or "4" (defaults to 3-10)
+    Returns JSON with best k and per-k metrics (silhouette, inertia, cluster sizes).
+    """
+    try:
+        # Parse k range
+        range_param = request.args.get("range", "3-10")
+        try:
+            parts = [int(p) for p in range_param.split("-") if p.strip()]
+            if len(parts) == 1:
+                k_min = k_max = parts[0]
+            else:
+                k_min, k_max = parts[0], parts[1]
+        except Exception:
+            k_min, k_max = 3, 10
+
+        # Fetch encoded data
+        data, _ = fetch_patient_data()
+        n_samples = len(data)
+        if n_samples < 3:
+            return (
+                jsonify(
+                    {
+                        "error": "Not enough samples for silhouette (need >= 3)",
+                        "n_samples": n_samples,
+                    }
+                ),
+                400,
+            )
+
+        from sklearn.cluster import KMeans
+        from sklearn.metrics import silhouette_score
+        from collections import Counter
+
+        results = []
+        for k in range(k_min, k_max + 1):
+            # Valid k range for silhouette: 2 <= k < n_samples
+            if k < 2 or k >= n_samples:
+                continue
+            try:
+                model = KMeans(n_clusters=k, random_state=42, n_init=10)
+                labels = model.fit_predict(data)
+                score = float(silhouette_score(data, labels))
+                counts = Counter(labels.tolist())
+                results.append(
+                    {
+                        "k": k,
+                        "silhouette": round(score, 4),
+                        "inertia": float(model.inertia_),
+                        "cluster_sizes": dict(counts),
+                    }
+                )
+            except Exception as e:
+                # Skip problematic k
+                results.append({"k": k, "error": str(e)})
+
+        # Sort by silhouette desc, filter only entries with silhouette
+        scored = [r for r in results if "silhouette" in r]
+        best = None
+        if scored:
+            best = sorted(scored, key=lambda x: x["silhouette"], reverse=True)[0]
+
+        return jsonify(
+            {
+                "n_samples": n_samples,
+                "range": [k_min, k_max],
+                "best": best,
+                "results": results,
+            }
+        )
+    except Exception as e:
+        import traceback
+
+        error_details = traceback.format_exc()
+        return jsonify({"error": str(e), "details": error_details}), 500
 
 
 if __name__ == "__main__":
