@@ -17,7 +17,7 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
           <div className="flex flex-1 items-center gap-3 hover:bg-base-200/60 p-2.5 rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer group backdrop-blur-sm">
             {dbUser.avatar ? (
               <div className="cursor-pointer avatar">
-                <div className="size-9 overflow-hidden ring-2 ring-base-300/50 transition-all duration-300 group-hover:ring-primary/30">
+                <div className="size-9 rounded-full overflow-hidden ring-2 ring-base-300/50 transition-all duration-300 group-hover:ring-primary/30">
                   <Image
                     src={dbUser.avatar}
                     alt={dbUser.name || "Avatar"}

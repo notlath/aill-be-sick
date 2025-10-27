@@ -21,6 +21,8 @@ model User {
   latitude  Float?
   longitude Float?
   region    String?
+  gender    Gender?
+  age       Int?
   chats     Chat[]
   diagnoses Diagnosis[]
 }
@@ -98,6 +100,12 @@ enum Role {
   PATIENT
   CLINICIAN
   DEVELOPER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
 }
 
 enum MessageRole {
