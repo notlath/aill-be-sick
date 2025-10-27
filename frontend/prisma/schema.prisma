@@ -65,12 +65,12 @@ model TempDiagnosis {
 }
 
 model Diagnosis {
-  id          Int      @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   confidence  Float
   uncertainty Float
   disease     Disease
-  createdAt   DateTime @default(now())
-  chatId      String   @unique
+  createdAt   DateTime     @default(now())
+  chatId      String       @unique
   userId      Int
   modelUsed   Model
   symptoms    String
@@ -78,25 +78,26 @@ model Diagnosis {
   latitude    Float?
   longitude   Float?
   region      String?
-  chat        Chat     @relation(fields: [chatId], references: [chatId])
-  user        User     @relation(fields: [userId], references: [id])
+  chat        Chat         @relation(fields: [chatId], references: [chatId])
+  user        User         @relation(fields: [userId], references: [id])
   explanation Explanation?
 }
 
 model Explanation {
-  id              Int             @id @default(autoincrement())
-  createdAt       DateTime        @default(now())
-  diagnosisId     Int?            @unique
-  messageId       Int?            @unique
-  tokens          String[]
-  importances     Float[]
-  diagnosis       Diagnosis?      @relation(fields: [diagnosisId], references: [id])
-  message         Message?        @relation(fields: [messageId], references: [id])
+  id          Int        @id @default(autoincrement())
+  createdAt   DateTime   @default(now())
+  diagnosisId Int?       @unique
+  messageId   Int?       @unique
+  tokens      String[]
+  importances Float[]
+  diagnosis   Diagnosis? @relation(fields: [diagnosisId], references: [id])
+  message     Message?   @relation(fields: [messageId], references: [id])
 }
 
 enum Role {
   PATIENT
   CLINICIAN
+  DEVELOPER
 }
 
 enum MessageRole {

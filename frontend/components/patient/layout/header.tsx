@@ -1,5 +1,6 @@
 import SignOutBtn from "./sign-out-btn";
 import SidebarToggle from "./sidebar-toggle";
+import ViewSwitcherBtn from "./view-switcher-btn";
 import Image from "next/image";
 import { User } from "@/app/generated/prisma";
 
@@ -47,6 +48,11 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
               "0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08)",
           }}
         >
+          {dbUser.role === ("DEVELOPER" as any) && (
+            <li>
+              <ViewSwitcherBtn isDeveloper={true} />
+            </li>
+          )}
           <li>
             <button
               role="button"
