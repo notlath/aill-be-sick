@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
-import { Chat, Message } from "@/app/generated/prisma";
+import { Chat, Explanation, Message } from "@/app/generated/prisma";
 import { useAction, useOptimisticAction } from "next-safe-action/hooks";
 import { runDiagnosis } from "@/actions/run-diagnosis";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,14 +15,22 @@ import { FormProvider, useForm } from "react-hook-form";
 import { createMessage } from "@/actions/create-message";
 import { useUserLocation } from "@/hooks/use-location";
 import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
+import { explainDiagnosis } from "@/actions/explain-diagnosis";
+import { Explanation as TempExplanation } from "@/types";
 
 type ChatWindowProps = {
   chatId: string;
   messages: Message[];
   chat: Chat;
+  dbExplanation: Explanation | null;
 };
 
-const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
+const ChatWindow = ({
+  chatId,
+  messages,
+  chat,
+  dbExplanation,
+}: ChatWindowProps) => {
   const { location, requestLocation } = useUserLocation();
   const [currentQuestion, setCurrentQuestion] = useState<{
     id: string;
@@ -66,6 +74,33 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
     },
     resolver: zodResolver(CreateChatSchema),
   });
+  const [tempExplanation, setTempExplanation] =
+    useState<TempExplanation | null>(null);
+  const { execute: getExplanations, isExecuting: isGettingExplanations } =
+    useAction(explainDiagnosis, {
+      onSuccess: ({ data }) => {
+        if (data.success) {
+          setTempExplanation(data.explanation);
+        } else if (data.error) {
+          let errorMessage = "";
+
+          if (data.error === "EXPLANATION_ERROR") {
+            errorMessage = `Sorry, there was an error generating the explanation for your diagnosis: ${data.message}`;
+          } else {
+            errorMessage =
+              data.message ||
+              "An error occurred while processing your symptoms. Please try again.";
+          }
+
+          createMessageExecute({
+            chatId,
+            content: errorMessage,
+            type: "ERROR",
+            role: "AI",
+          });
+        }
+      },
+    });
 
   const { execute: getFollowUpExecute, isExecuting: isGettingQuestion } =
     useAction(getFollowUpQuestion, {
@@ -139,23 +174,101 @@ const ChatWindow = ({ chatId, messages, chat }: ChatWindowProps) => {
                   .filter(Boolean)
                   .join(". ");
 
-                // Build diagnosis message (moderate confidence since questions exhausted)
-                const diagnosisMessage = `Based on your symptom description, you might be experiencing: **${disease}**.
+                let diagnosisMessage = "";
 
+                if (uncertainty <= 0.03 && confidence >= 0.9) {
+                  // Safe
+                  diagnosisMessage = `
+After asking all available questions, you might be experiencing: **${disease}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
+                    confidence * 100
+                  ).toFixed(4)}%**.  \n
 Here are other most likely conditions based on your symptoms:
-${probsList}
+${probsList}  \n
 
 The **uncertainty score** associated with this diagnosis is **${(
-                  uncertainty * 100
-                ).toFixed(4)}%**.
+                    uncertainty * 100
+                  ).toFixed(4)}%**.
 
-After asking all available questions, the confidence score is ${(
-                  confidence * 100
-                ).toFixed(
-                  4
-                )}%. It is recommended to seek professional medical advice for confirmation.
+A high confidence score (${(confidence * 100).toFixed(
+                    4
+                  )}%) combined with a low uncertainty score (${(
+                    uncertainty * 100
+                  ).toFixed(
+                    4
+                  )}%) suggests that **the model is confident about this diagnosis and that there's very little disagreement in predictions after repeated tests.**  \n
 
-Do you want to record this diagnosis?`;
+Do you want to record this diagnosis?
+                `;
+                } else if (uncertainty > 0.03 && confidence < 0.9) {
+                  // Escalate to clinician
+                  diagnosisMessage = `
+After asking all available questions, you might be experiencing: **${disease}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
+                    confidence * 100
+                  ).toFixed(4)}%**.  \n
+Here are other most likely conditions based on your symptoms:
+${probsList}  \n
+
+The **uncertainty score** associated with this diagnosis is **${(
+                    uncertainty * 100
+                  ).toFixed(4)}%**.
+          
+A low confidence score (${(confidence * 100).toFixed(
+                    4
+                  )}%) combined with a high uncertainty score (${(
+                    uncertainty * 100
+                  ).toFixed(
+                    4
+                  )}%) suggests that the model does not know the diagnosis and also does not know what the best diagnosis could be. **These results should not be trusted without further validation or a human expert's opinion.**  \n
+
+Do you want to record this diagnosis?
+                `;
+                } else if (uncertainty > 0.03 && confidence >= 0.9) {
+                  // Potential distribution shift
+                  diagnosisMessage = `
+After asking all available questions, you might be experiencing: **${disease}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
+                    confidence * 100
+                  ).toFixed(4)}%**.  \n
+Here are other most likely conditions based on your symptoms:
+${probsList}  \n
+
+The **uncertainty score** associated with this diagnosis is **${(
+                    uncertainty * 100
+                  ).toFixed(4)}%**.
+
+A high confidence score (${(confidence * 100).toFixed(
+                    4
+                  )}%) combined with a high uncertainty score (${(
+                    uncertainty * 100
+                  ).toFixed(
+                    4
+                  )}%) indicates **overconfidence** of the model in this diagnosis. The model is confident about the diagnosis, but is also not sure what the best diagnosis could be. This could be a sign of distribution shift, where the model is encountering data that is different from what it was trained on. **These results should not be trusted without further validation or a human expert's opinion.**  \n
+
+Do you want to record this diagnosis?
+                `;
+                } else if (uncertainty <= 0.03 && confidence < 0.9) {
+                  // Ambiguous case, the model doesn't know and knows that it doesn't know
+                  diagnosisMessage = `
+After asking all available questions, you might be experiencing: **${disease}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
+                    confidence * 100
+                  ).toFixed(4)}%**.  \n
+Here are other most likely conditions based on your symptoms:
+${probsList}  \n
+
+The **uncertainty score** associated with this diagnosis is **${(
+                    uncertainty * 100
+                  ).toFixed(4)}%**.
+
+A low confidence score (${(confidence * 100).toFixed(
+                    4
+                  )}%) combined with a low uncertainty score (${(
+                    uncertainty * 100
+                  ).toFixed(
+                    4
+                  )}%) suggests that **the model is unsure about the diagnosis,** and is aware that **it needs more information to make a confident prediction for this specific case.** It is recommended to seek further medical advice or provide additional context for an accurate diagnosis.  \n
+
+Do you want to record this diagnosis?
+                `;
+                }
 
                 // Create the AI diagnosis message with tempDiagnosis
                 createMessageExecute({
@@ -232,6 +345,7 @@ Do you want to record this diagnosis?`;
           // Store diagnosis info
           const { disease, confidence, uncertainty, top_diseases } =
             data.diagnosis;
+
           setCurrentDiagnosis({
             disease,
             confidence,
@@ -298,7 +412,7 @@ Do you want to record this diagnosis?`;
     },
     onSuccess: ({ data }) => {
       if (data.success) {
-        const created = data.success as any;
+        const created = data.success;
         console.log("Message created successfully:", created);
 
         // Only run diagnosis automatically for user-submitted SYMPTOMS messages (from the form)
@@ -308,6 +422,34 @@ Do you want to record this diagnosis?`;
             symptoms: created.content,
             skipMessage: true, // Skip message - will show after confirmatory if confident
           });
+        }
+
+        // NEW: when a DIAGNOSIS message (with a tempDiagnosis attached) is created,
+        // call the explainDiagnosis action so backend SHAP explainer runs and we can
+        // persist/expose token importances. Requires mean_probs from lastDiagnosisRef.
+        if (created.type === "DIAGNOSIS") {
+          const symptomsText = lastDiagnosisRef.current?.symptoms;
+          const meanProbs = lastDiagnosisRef.current?.mean_probs;
+
+          console.log(
+            "Preparing to request explanation for diagnosis message:",
+            {
+              symptoms: symptomsText,
+              mean_probs: meanProbs,
+              messageId: created.id,
+            }
+          );
+
+          if (meanProbs && Array.isArray(meanProbs)) {
+            // call the server action wrapper that posts to backend /diagnosis/explain
+            getExplanations({
+              symptoms: symptomsText,
+              meanProbs,
+              messageId: created.id,
+            });
+          } else {
+            console.warn("No meanProbs available to request explanation");
+          }
         }
       } else if (data.error) {
         console.error("Error creating message:", data.error);
@@ -441,7 +583,9 @@ A high confidence score (${(confidence * 100).toFixed(
             4
           )}%) combined with a low uncertainty score (${(
             uncertainty * 100
-          ).toFixed(4)}%) suggests that **this is a reliable diagnosis.**
+          ).toFixed(
+            4
+          )}%) suggests that **the model is confident about this diagnosis and that there's very little disagreement in predictions after repeated tests.**
 
 Do you want to record this diagnosis?`;
         } else if (confidence < 0.9 && uncertainty <= 0.03) {
@@ -593,11 +737,15 @@ Do you want to record this diagnosis?`;
       <ChatContainer
         ref={chatEndRef}
         messages={optimisticMessages}
-        isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
+        isGettingQuestion={isGettingQuestion}
+        isDiagnosing={isDiagnosing}
+        isGettingExplanations={isGettingExplanations}
+        isCreatingMessage={isCreatingMessage}
         hasDiagnosis={chat.hasDiagnosis}
         location={location}
         currentQuestion={currentQuestion}
         onQuestionAnswer={handleQuestionAnswer}
+        dbExplanation={dbExplanation}
       />
       {!chat.hasDiagnosis && !currentQuestion && (
         <div className="-bottom-0.5 sticky bg-base-100 p-4 pt-0">
