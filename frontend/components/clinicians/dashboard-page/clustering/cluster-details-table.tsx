@@ -41,10 +41,55 @@ interface ClusterDetailsTableProps {
   statistics: ClusterStatistics[];
 }
 
-const CLUSTER_BADGE_COLORS = [
-  "bg-blue-100 text-blue-700 hover:bg-blue-200",
-  "bg-green-100 text-green-700 hover:bg-green-200",
-  "bg-purple-100 text-purple-700 hover:bg-purple-200",
+const CLUSTER_THEMES = [
+  {
+    bg: "bg-blue-500/15",
+    text: "text-blue-700",
+    border: "border-blue-300/40",
+    dot: "bg-blue-500",
+  },
+  {
+    bg: "bg-emerald-500/15",
+    text: "text-emerald-700",
+    border: "border-emerald-300/40",
+    dot: "bg-emerald-500",
+  },
+  {
+    bg: "bg-purple-500/15",
+    text: "text-purple-700",
+    border: "border-purple-300/40",
+    dot: "bg-purple-500",
+  },
+  {
+    bg: "bg-orange-500/15",
+    text: "text-orange-700",
+    border: "border-orange-300/40",
+    dot: "bg-orange-500",
+  },
+  {
+    bg: "bg-pink-500/15",
+    text: "text-pink-700",
+    border: "border-pink-300/40",
+    dot: "bg-pink-500",
+  },
+  {
+    bg: "bg-indigo-500/15",
+    text: "text-indigo-700",
+    border: "border-indigo-300/40",
+    dot: "bg-indigo-500",
+  },
+  {
+    bg: "bg-cyan-500/15",
+    text: "text-cyan-700",
+    border: "border-cyan-300/40",
+    dot: "bg-cyan-500",
+  },
+  {
+    bg: "bg-rose-500/15",
+    text: "text-rose-700",
+    border: "border-rose-300/40",
+    dot: "bg-rose-500",
+  },
 ];
 
 const ClusterDetailsTable: React.FC<ClusterDetailsTableProps> = ({
@@ -97,163 +142,220 @@ const ClusterDetailsTable: React.FC<ClusterDetailsTableProps> = ({
   });
 
   return (
-    <Card>
+    <Card className="group hover:border-primary/30">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <User className="size-5" />
-          Patient Details by Cluster
-        </CardTitle>
-        <CardDescription>
-          Detailed patient information with cluster assignments for population
-          analysis
-        </CardDescription>
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-3 rounded-[12px]">
+            <User className="size-6 text-primary stroke-[2]" />
+          </div>
+          <div>
+            <CardTitle className="text-2xl tracking-tight">
+              Patient Details by Cluster
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Detailed patient information with cluster assignments for
+              population analysis
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
+        <div className="flex flex-col md:flex-row gap-3 mb-6 p-5 bg-gradient-to-br from-base-200/40 to-base-200/20 backdrop-blur-sm rounded-[16px] border border-base-300/40 shadow-sm">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 size-5 text-base-content stroke-[2.5] transition-colors group-focus-within:text-primary" />
             <Input
               placeholder="Search by name, email, or city..."
               value={searchTerm}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setSearchTerm(e.target.value)
               }
-              className="pl-10"
+              className="pl-12 h-11 font-medium"
             />
           </div>
 
-          <Select value={selectedCluster} onValueChange={setSelectedCluster}>
-            <SelectTrigger className="w-full md:w-[200px]">
-              <Filter className="size-4 mr-2" />
-              <SelectValue placeholder="All Clusters" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Clusters</SelectItem>
-              {Array.from({ length: nClusters }, (_, i) => (
-                <SelectItem key={i} value={i.toString()}>
-                  {clusterNameMap[i] || `Cluster ${i + 1}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="dropdown dropdown-bottom w-full md:w-[220px]">
+            <Select value={selectedCluster} onValueChange={setSelectedCluster}>
+              <SelectTrigger className="h-11">
+                <Filter className="size-4 text-muted" />
+                <SelectValue placeholder="All Clusters" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Clusters</SelectItem>
+                {Array.from({ length: nClusters }, (_, i) => (
+                  <SelectItem key={i} value={i.toString()}>
+                    {clusterNameMap[i] || `Cluster ${i + 1}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-            <SelectTrigger className="w-full md:w-[200px]">
-              <MapPin className="size-4 mr-2" />
-              <SelectValue placeholder="All Regions" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Regions</SelectItem>
-              {uniqueRegions.map((region) => (
-                <SelectItem key={region} value={region}>
-                  {region}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="dropdown dropdown-bottom w-full md:w-[220px]">
+            <Select value={selectedRegion} onValueChange={setSelectedRegion}>
+              <SelectTrigger className="h-11">
+                <MapPin className="size-4 text-muted" />
+                <SelectValue placeholder="All Regions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Regions</SelectItem>
+                {uniqueRegions.map((region) => (
+                  <SelectItem key={region} value={region}>
+                    {region}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <Select value={selectedDisease} onValueChange={setSelectedDisease}>
-            <SelectTrigger className="w-full md:w-[200px]">
-              <Activity className="size-4 mr-2" />
-              <SelectValue placeholder="All Diseases" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Diseases</SelectItem>
-              {uniqueDiseases.map((d) => (
-                <SelectItem key={d} value={d}>
-                  {d}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="dropdown dropdown-bottom w-full md:w-[220px]">
+            <Select value={selectedDisease} onValueChange={setSelectedDisease}>
+              <SelectTrigger className="h-11">
+                <Activity className="size-4 text-muted" />
+                <SelectValue placeholder="All Diseases" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Diseases</SelectItem>
+                {uniqueDiseases.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         {/* Results Count */}
-        <div className="mb-4 text-sm text-muted-foreground">
-          Showing {filteredPatients.length} of {patients.length} patients
+        <div className="mb-4 flex items-center justify-between">
+          <div className="text-sm font-medium text-muted">
+            Showing{" "}
+            <span className="text-base-content font-semibold">
+              {filteredPatients.length}
+            </span>{" "}
+            of {patients.length} patients
+          </div>
+          {filteredPatients.length !== patients.length && (
+            <button
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedCluster("all");
+                setSelectedRegion("all");
+                setSelectedDisease("all");
+              }}
+              className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
 
         {/* Table */}
-        <div className="border rounded-lg overflow-hidden">
+        <div className="border border-base-300/50 rounded-[14px] overflow-hidden shadow-sm">
           <Table>
             <TableHeader>
-              <TableRow className="bg-muted/50">
-                <TableHead className="font-semibold">Cluster</TableHead>
-                <TableHead className="font-semibold">Patient ID</TableHead>
-                <TableHead className="font-semibold">Demographics</TableHead>
-                <TableHead className="font-semibold">
+              <TableRow className="bg-gradient-to-br from-base-200/50 to-base-200/30 border-b-2 border-base-300/50 hover:bg-gradient-to-br hover:from-base-200/50 hover:to-base-200/30">
+                <TableHead className="font-semibold text-sm text-base-content/80 uppercase tracking-wide">
+                  Cluster
+                </TableHead>
+                <TableHead className="font-semibold text-sm text-base-content/80 uppercase tracking-wide">
+                  Patient ID
+                </TableHead>
+                <TableHead className="font-semibold text-sm text-base-content/80 uppercase tracking-wide">
+                  Demographics
+                </TableHead>
+                <TableHead className="font-semibold text-sm text-base-content/80 uppercase tracking-wide">
                   Latest Diagnosis
                 </TableHead>
-                <TableHead className="font-semibold">Location</TableHead>
+                <TableHead className="font-semibold text-sm text-base-content/80 uppercase tracking-wide">
+                  Location
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPatients.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    No patients found matching your filters
+                  <TableCell colSpan={5} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-16 h-16 bg-base-200/50 rounded-full flex items-center justify-center">
+                        <Search className="size-8 text-muted" />
+                      </div>
+                      <p className="text-sm font-medium text-muted">
+                        No patients found matching your filters
+                      </p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredPatients.map((patient) => (
-                  <TableRow key={patient.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <Badge
-                        className={
-                          CLUSTER_BADGE_COLORS[
-                            patient.cluster % CLUSTER_BADGE_COLORS.length
-                          ]
-                        }
-                      >
-                        {clusterNameMap[patient.cluster] ||
-                          `Cluster ${patient.cluster + 1}`}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <User className="size-4 text-muted-foreground" />
-                        <span className="font-medium font-mono text-xs">
-                          PT-{patient.id.toString().padStart(4, "0")}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="size-3 text-muted-foreground" />
-                          <span>{patient.age} years</span>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {patient.gender}
+                filteredPatients.map((patient) => {
+                  const theme =
+                    CLUSTER_THEMES[patient.cluster % CLUSTER_THEMES.length];
+                  return (
+                    <TableRow
+                      key={patient.id}
+                      className="hover:bg-base-200/20 transition-colors border-b border-base-300/60"
+                    >
+                      <TableCell>
+                        <Badge
+                          className={`${theme.bg} ${theme.text} border ${theme.border} font-medium`}
+                        >
+                          <div
+                            className={`w-2 h-2 rounded-full ${theme.dot} mr-1.5`}
+                          ></div>
+                          {clusterNameMap[patient.cluster] ||
+                            `Cluster ${patient.cluster + 1}`}
                         </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {patient.disease ? (
-                        <Badge variant="secondary" className="text-xs">
-                          {patient.disease}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="size-3 text-muted-foreground" />
-                          <span className="font-medium">{patient.city}</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2.5">
+                          <div className="bg-base-200/50 p-2 rounded-[8px]">
+                            <User className="size-3.5 text-muted" />
+                          </div>
+                          <span className="font-semibold font-mono text-xs text-base-content/80">
+                            PT-{patient.id.toString().padStart(4, "0")}
+                          </span>
                         </div>
-                        <div className="text-muted-foreground text-xs">
-                          {patient.region}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="size-3.5 text-muted" />
+                            <span className="font-medium text-base-content">
+                              {patient.age} years
+                            </span>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {patient.gender}
+                          </Badge>
                         </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                      <TableCell>
+                        {patient.disease ? (
+                          <Badge className="bg-primary/10 text-primary border-primary/30 font-medium">
+                            {patient.disease}
+                          </Badge>
+                        ) : (
+                          <span className="text-sm text-muted/40 font-light">
+                            —
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1.5 text-sm">
+                          <div className="flex items-center gap-2">
+                            <MapPin className="size-3.5 text-muted" />
+                            <span className="font-semibold text-base-content">
+                              {patient.city}
+                            </span>
+                          </div>
+                          <div className="text-muted text-xs ml-5">
+                            {patient.region}
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

@@ -42,17 +42,32 @@ const SelectTrigger = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("btn btn-outline w-full justify-start", className)}
+      className={cn(
+        "flex items-center gap-2 w-full justify-between",
+        "px-4 py-2.5 rounded-[10px]",
+        "bg-white/50 backdrop-blur-sm",
+        "border border-base-300/50",
+        "hover:bg-white/70 hover:border-base-300/70",
+        "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40",
+        "transition-all duration-200",
+        "text-sm font-medium text-base-content",
+        className
+      )}
       onClick={(e) => {
         onClick?.(e);
         ctx?.setOpen(!ctx.open);
       }}
       {...props}
     >
-      <span className="flex-1 text-left truncate">{children}</span>
+      <span className="flex items-center gap-2 flex-1 text-left truncate">
+        {children}
+      </span>
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        className="h-4 w-4 opacity-60"
+        className={cn(
+          "h-4 w-4 text-muted transition-transform duration-200",
+          ctx?.open && "rotate-180"
+        )}
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -76,7 +91,12 @@ const SelectContent = React.forwardRef<
     <ul
       ref={ref}
       className={cn(
-        "dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52",
+        "dropdown-content z-[1] menu mt-2 p-1.5 shadow-lg",
+        "bg-white/95 backdrop-blur-xl",
+        "border border-base-300/50",
+        "rounded-[12px] w-full min-w-[200px]",
+        "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2",
+        "duration-200",
         !ctx?.open && "hidden",
         className
       )}
@@ -121,7 +141,17 @@ const SelectItem = React.forwardRef<HTMLLIElement, SelectItemProps>(
         }}
         {...props}
       >
-        <a className={cn(selected && "active")}>{children}</a>
+        <a
+          className={cn(
+            "px-3 py-2 rounded-[8px]",
+            "text-sm font-medium",
+            "transition-all duration-150",
+            "hover:bg-primary/10 hover:text-primary",
+            selected && "bg-primary/15 text-primary font-semibold"
+          )}
+        >
+          {children}
+        </a>
       </li>
     );
   }

@@ -98,9 +98,11 @@ const PatientClusters: React.FC = () => {
     return (
       <Card className="col-span-2">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="size-5 animate-pulse" />
-            Loading Patient Clusters...
+          <CardTitle className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-3 rounded-[12px]">
+              <Activity className="size-6 animate-pulse text-primary" />
+            </div>
+            <span>Loading Patient Clusters...</span>
           </CardTitle>
         </CardHeader>
       </Card>
@@ -109,13 +111,15 @@ const PatientClusters: React.FC = () => {
 
   if (error || !clusterData) {
     return (
-      <Card className="col-span-2 border-red-200 bg-red-50">
+      <Card className="col-span-2 border-red-200/50 bg-red-50/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-700">
-            <AlertCircle className="size-5" />
-            Error Loading Clusters
+          <CardTitle className="flex items-center gap-3 text-red-700">
+            <div className="bg-red-100 p-3 rounded-[12px]">
+              <AlertCircle className="size-6" />
+            </div>
+            <span>Error Loading Clusters</span>
           </CardTitle>
-          <CardDescription className="text-red-600">
+          <CardDescription className="text-red-600 ml-[60px]">
             {error || "No data available"}
           </CardDescription>
         </CardHeader>
@@ -126,64 +130,83 @@ const PatientClusters: React.FC = () => {
   return (
     <div className="col-span-2 space-y-6">
       {/* Header Section */}
-      <Card>
+      <Card className="group hover:border-primary/30">
         <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <Users className="size-6 text-primary" />
-                Patient Population Analysis
-              </CardTitle>
-              <CardDescription className="mt-2">
-                Machine learning-based patient clustering for population health
-                insights
-              </CardDescription>
-            </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold text-primary">
-                {clusterData.total_patients}
+          {/* Title Row */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-3.5 rounded-[14px]">
+                <Users className="size-7 text-primary stroke-[2]" />
               </div>
-              <div className="text-sm text-muted-foreground">
+              <div>
+                <CardTitle className="text-3xl tracking-tight">
+                  Patient Population Analysis
+                </CardTitle>
+                <CardDescription className="text-base mt-1.5">
+                  Machine learning-based clustering for population health
+                  insights
+                </CardDescription>
+              </div>
+            </div>
+            <div className="text-right space-y-1">
+              <div className="text-5xl font-semibold tracking-tight tabular-nums bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
+                {clusterData.total_patients.toLocaleString()}
+              </div>
+              <div className="text-sm font-medium text-muted">
                 Total Patients
               </div>
             </div>
           </div>
-          <div className="flex gap-2 mt-4">
-            <form onSubmit={onSubmitK} className="flex items-center gap-2">
-              <label
-                htmlFor="cluster-k"
-                className="text-sm text-muted-foreground"
-              >
-                Clusters (k)
-              </label>
-              <Input
-                id="cluster-k"
-                type="number"
-                className="w-20"
-                min={2}
-                max={20}
-                value={kInput}
-                onChange={(e) => setKInput(e.target.value)}
-              />
-              <button
-                type="submit"
-                className="px-3 py-1.5 rounded-md border text-sm hover:bg-accent"
-                title="Apply clusters"
-              >
-                Apply
-              </button>
-              <span className="text-xs text-muted-foreground italic ml-1">
-                (recommended: 8)
+
+          {/* Divider */}
+          <div className="h-px bg-gradient-to-r from-transparent via-base-300/50 to-transparent my-6" />
+
+          {/* Controls Row - Clean separation */}
+          <div className="flex items-center justify-between">
+            {/* Left: Cluster Settings */}
+            <form onSubmit={onSubmitK} className="flex items-center gap-4">
+              <div className="flex items-center gap-3 bg-base-200/30 rounded-[12px] px-4 py-2.5 border border-base-300/30">
+                <label
+                  htmlFor="cluster-k"
+                  className="text-sm font-medium text-base-content/80"
+                >
+                  Clusters
+                </label>
+                <Input
+                  id="cluster-k"
+                  type="number"
+                  className="w-16 h-8 text-center font-semibold"
+                  min={2}
+                  max={20}
+                  value={kInput}
+                  onChange={(e) => setKInput(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 rounded-[8px] bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/20 transition-all duration-300"
+                  title="Apply cluster settings"
+                >
+                  Apply
+                </button>
+              </div>
+              <span className="text-xs text-muted/70 font-medium">
+                Recommended: 8 clusters
               </span>
             </form>
-            <Badge variant="outline" className="gap-1">
-              <MapPin className="size-3" />
-              Geographic + Demographics
-            </Badge>
-            <Badge variant="outline" className="gap-1">
-              <TrendingUp className="size-3" />
-              {clusterData.n_clusters} Clusters Identified
-            </Badge>
+
+            {/* Right: Info Badges */}
+            <div className="flex items-center gap-2.5">
+              <Badge variant="outline" className="gap-2 px-3 py-2">
+                <MapPin className="size-3.5 opacity-70" />
+                <span className="font-medium">Geographic + Demographics</span>
+              </Badge>
+              <Badge variant="default" className="gap-2 px-3 py-2">
+                <TrendingUp className="size-3.5" />
+                <span className="font-semibold">
+                  {clusterData.n_clusters} Clusters
+                </span>
+              </Badge>
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -193,7 +216,7 @@ const PatientClusters: React.FC = () => {
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="diseases" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 h-auto">
           <TabsTrigger value="diseases">Diseases</TabsTrigger>
           <TabsTrigger value="demographics">Demographics</TabsTrigger>
           <TabsTrigger value="geographic">Geographic</TabsTrigger>
