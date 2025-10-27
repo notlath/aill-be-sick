@@ -42,8 +42,8 @@ const ChatBubble = ({
     isError
       ? "border border-red-400 bg-red-50 text-red-800"
       : role === "USER"
-      ? "bg-primary text-primary-content"
-      : "bg-gray-100"
+      ? "bg-primary text-primary-content chat-bubble-user"
+      : "bg-gray-100 chat-bubble-ai"
   );
 
   return (
@@ -58,7 +58,7 @@ const ChatBubble = ({
         <Markdown
           remarkPlugins={[remarkBreaks]}
           components={{
-            p: ({ children }) => <p className="my-2">{children}</p>,
+            p: ({ children }) => <p className="my-0">{children}</p>,
             strong: ({ children }) => (
               <strong className="font-bold">{children}</strong>
             ),

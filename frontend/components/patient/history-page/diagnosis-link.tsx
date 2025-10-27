@@ -43,11 +43,7 @@ const DiagnosisLink = async ({
     <Link
       href={`/diagnosis/${chatId}`}
       key={id}
-      className="group flex justify-between items-center gap-6 bg-base-100/90 hover:bg-base-100/100 shadow-sm hover:shadow-xl px-3 py-4 border border-base-300/20 rounded-2xl hover:scale-[1.015] transition-all hover:-translate-y-1 duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]"
-      style={{
-        boxShadow:
-          "0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04)",
-      }}
+      className="group flex justify-between items-center gap-6 bg-base-100/90 hover:bg-base-100/100 hover:shadow-lg p-4 border border-base-300/80 rounded-2xl hover:scale-[1.015] transition-all hover:-translate-y-1 duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]"
     >
       {/* Left: content (disease + uncertainty or latest message) */}
       <div className="flex flex-col min-w-0">

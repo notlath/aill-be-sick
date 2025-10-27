@@ -17,7 +17,7 @@ const HistoryPage = async () => {
   }
 
   return (
-    <main className="space-y-10 mx-auto p-8 max-w-5xl">
+    <main className="space-y-10 mx-auto p-8 pt-12 max-w-5xl">
       <div className="space-y-2">
         <h1 className="mb-1 font-semibold text-base-content text-4xl tracking-tight">
           Diagnosis history
@@ -26,7 +26,7 @@ const HistoryPage = async () => {
           You can view all your previous diagnoses and their details here.
         </p>
       </div>
-      <section className="flex flex-col gap-2 bg-base-100/80 shadow-xl backdrop-blur-xl p-6 border border-base-300/30 rounded-3xl">
+      <section className="flex flex-col gap-2">
         {chats.map((chat) => (
           <DiagnosisLink key={chat.id} {...chat} />
         ))}
