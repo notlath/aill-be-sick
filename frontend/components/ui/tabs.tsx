@@ -42,9 +42,64 @@ function Tabs({
 const TabsList = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("tabs tabs-bordered", className)} {...props} />
-));
+>(({ className, children, ...props }, ref) => {
+  const ctx = React.useContext(TabsContext);
+  const listRef = React.useRef<HTMLDivElement>(null);
+  const [indicatorStyle, setIndicatorStyle] = React.useState({
+    left: 0,
+    width: 0,
+  });
+  // Avoid animating on first paint to prevent jank
+  const [ready, setReady] = React.useState(false);
+
+  React.useEffect(() => {
+    const container = listRef.current;
+    if (!container || !ctx?.value) return;
+
+    const activeButton = container.querySelector(
+      `[data-value="${ctx.value}"]`
+    ) as HTMLElement | null;
+    if (!activeButton) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const buttonRect = activeButton.getBoundingClientRect();
+
+    setIndicatorStyle({
+      left: buttonRect.left - containerRect.left,
+      width: buttonRect.width,
+    });
+    // Enable animation after first measurement
+    if (!ready) setReady(true);
+  }, [ctx?.value, ready]);
+
+  return (
+    <div
+      ref={listRef}
+      className={cn(
+        "relative inline-flex items-center justify-center rounded-[14px] bg-base-200/50 p-1.5 text-muted backdrop-blur-sm border border-base-300/50",
+        className
+      )}
+      {...props}
+    >
+      {/* Sliding highlight indicator */}
+      <div
+        className={cn(
+          "absolute bg-white shadow-sm rounded-[10px] pointer-events-none",
+          ready
+            ? "transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
+            : "transition-none"
+        )}
+        style={{
+          left: `${indicatorStyle.left}px`,
+          width: `${indicatorStyle.width}px`,
+          height: "calc(100% - 12px)",
+          top: "6px",
+        }}
+      />
+      {children}
+    </div>
+  );
+});
 TabsList.displayName = "TabsList";
 
 interface TabsTriggerProps
@@ -59,7 +114,14 @@ const TabsTrigger = React.forwardRef<HTMLButtonElement, TabsTriggerProps>(
     return (
       <button
         ref={ref}
-        className={cn("tab", active && "tab-active", className)}
+        data-value={value}
+        className={cn(
+          "relative inline-flex items-center justify-center whitespace-nowrap rounded-[10px] px-5 py-2.5 text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50 z-10",
+          active
+            ? "text-base-content"
+            : "text-muted hover:text-base-content/80",
+          className
+        )}
         onClick={(e) => {
           onClick?.(e);
           ctx?.setValue(value);
@@ -82,7 +144,7 @@ const TabsContent = React.forwardRef<HTMLDivElement, TabsContentProps>(
     const ctx = React.useContext(TabsContext);
     if (ctx?.value !== value) return null;
     return (
-      <div ref={ref} className={cn("mt-2", className)} {...props}>
+      <div ref={ref} className={cn("mt-6", className)} {...props}>
         {children}
       </div>
     );

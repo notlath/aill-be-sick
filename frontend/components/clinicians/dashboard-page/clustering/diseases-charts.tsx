@@ -104,22 +104,30 @@ const DiseasesCharts: React.FC<DiseasesChartsProps> = ({ statistics }) => {
       </Card>
 
       {/* Cluster x Disease matrix */}
-      <Card>
+      <Card className="group hover:border-primary/30">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="size-5" />
-            Cluster × Disease Matrix
-          </CardTitle>
-          <CardDescription>
-            Counts of latest diagnoses by disease across clusters
-          </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-3 rounded-[12px]">
+              <BarChart3 className="size-6 text-primary stroke-[2]" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl tracking-tight">
+                Cluster × Disease Matrix
+              </CardTitle>
+              <CardDescription className="mt-1">
+                Distribution of diagnosed diseases across patient clusters
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-8 px-8">
+            <table className="w-full border-separate border-spacing-0">
               <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-semibold">Disease</th>
+                <tr>
+                  <th className="sticky left-0 z-10 bg-white/80 backdrop-blur-sm text-left py-4 px-5 font-semibold text-sm text-base-content/80 uppercase tracking-wide border-b-2 border-base-300/50">
+                    Disease
+                  </th>
                   {statistics.map((s, i) => {
                     const dist = s.disease_distribution || {};
                     const entries = Object.entries(dist).sort(
@@ -127,38 +135,57 @@ const DiseasesCharts: React.FC<DiseasesChartsProps> = ({ statistics }) => {
                     );
                     const dominantDisease =
                       entries.length > 0 ? entries[0][0] : null;
+                    const colors = [
+                      "from-blue-500 to-blue-600",
+                      "from-emerald-500 to-emerald-600",
+                      "from-purple-500 to-purple-600",
+                      "from-orange-500 to-orange-600",
+                      "from-pink-500 to-pink-600",
+                      "from-indigo-500 to-indigo-600",
+                      "from-cyan-500 to-cyan-600",
+                      "from-rose-500 to-rose-600",
+                    ];
                     return (
-                      <th key={s.cluster_id} className="text-center py-3 px-4">
-                        <div className="flex flex-col items-center gap-1">
+                      <th
+                        key={s.cluster_id}
+                        className="text-center py-4 px-4 border-b-2 border-base-300/50 min-w-[120px]"
+                      >
+                        <div className="flex flex-col items-center gap-2">
                           <div
-                            className="w-4 h-4 rounded"
-                            style={{
-                              backgroundColor:
-                                CLUSTER_COLORS[i % CLUSTER_COLORS.length],
-                            }}
+                            className={`w-8 h-8 rounded-[10px] bg-gradient-to-br ${
+                              colors[i % colors.length]
+                            } shadow-sm`}
                           ></div>
-                          <span className="font-semibold">
-                            {dominantDisease
-                              ? `${s.cluster_id + 1}. ${dominantDisease}`
-                              : `Cluster ${s.cluster_id + 1}`}
-                          </span>
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-semibold text-muted/70 uppercase tracking-wider">
+                              {s.cluster_id + 1}. {dominantDisease || "Mixed"}
+                            </div>
+                          </div>
                         </div>
                       </th>
                     );
                   })}
-                  <th className="text-center py-3 px-4 font-semibold">Total</th>
+                  <th className="text-center py-4 px-5 font-semibold text-sm text-base-content/80 uppercase tracking-wide border-b-2 border-base-300/50">
+                    Total
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {allDiseases.map((d) => {
+                {allDiseases.map((d, diseaseIdx) => {
                   const rowTotal = statistics.reduce(
                     (sum, s) => sum + (s.disease_distribution?.[d]?.count || 0),
                     0
                   );
                   return (
-                    <tr key={d} className="border-b hover:bg-muted/50">
-                      <td className="py-3 px-4">
-                        <Badge variant="secondary" className="text-xs">
+                    <tr
+                      key={d}
+                      className="group/row hover:bg-base-200/30 transition-colors duration-200"
+                    >
+                      <td className="sticky left-0 z-10 bg-white/80 backdrop-blur-sm group-hover/row:bg-base-200/50 transition-colors duration-200 py-4 px-5 border-b border-base-300/30">
+                        <Badge
+                          variant="outline"
+                          className="text-sm font-medium"
+                        >
                           {d}
                         </Badge>
                       </td>
@@ -167,38 +194,51 @@ const DiseasesCharts: React.FC<DiseasesChartsProps> = ({ statistics }) => {
                         return (
                           <td
                             key={s.cluster_id}
-                            className="text-center py-3 px-4"
+                            className="text-center py-4 px-4 border-b border-base-300/30"
                           >
                             {info ? (
-                              <div className="flex flex-col items-center gap-1">
-                                <span className="font-semibold">
+                              <div className="inline-flex flex-col items-center gap-1 min-w-[60px]">
+                                <span className="text-base font-semibold text-base-content/80 tabular-nums">
                                   {info.count}
                                 </span>
-                                <span className="text-xs text-muted-foreground">
-                                  ({info.percent}%)
+                                <span className="text-[10px] font-medium text-muted/60">
+                                  {info.percent}%
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-muted-foreground">-</span>
+                              <span className="text-base text-muted/20 font-light">
+                                –
+                              </span>
                             )}
                           </td>
                         );
                       })}
-                      <td className="text-center py-3 px-4">
-                        <span className="font-bold">{rowTotal}</span>
+                      <td className="text-center py-4 px-5 border-b border-base-300/30">
+                        <span className="text-base font-bold text-base-content/90 tabular-nums">
+                          {rowTotal}
+                        </span>
                       </td>
                     </tr>
                   );
                 })}
-                <tr className="bg-muted/30 font-semibold">
-                  <td className="py-3 px-4">Total</td>
+                <tr className="bg-gradient-to-br from-base-200/50 to-base-200/30 font-semibold">
+                  <td className="sticky left-0 z-10 bg-gradient-to-br from-base-200/80 to-base-200/60 backdrop-blur-sm py-4 px-5 text-sm uppercase tracking-wide text-base-content/80 rounded-bl-[12px]">
+                    Total
+                  </td>
                   {statistics.map((s) => (
-                    <td key={s.cluster_id} className="text-center py-3 px-4">
-                      {s.count}
+                    <td
+                      key={s.cluster_id}
+                      className="text-center py-4 px-4 text-base"
+                    >
+                      <span className="font-semibold text-base-content/80 tabular-nums">
+                        {s.count}
+                      </span>
                     </td>
                   ))}
-                  <td className="text-center py-3 px-4">
-                    {statistics.reduce((sum, s) => sum + s.count, 0)}
+                  <td className="text-center py-4 px-5 rounded-br-[12px]">
+                    <span className="text-lg font-bold text-primary tabular-nums">
+                      {statistics.reduce((sum, s) => sum + s.count, 0)}
+                    </span>
                   </td>
                 </tr>
               </tbody>
