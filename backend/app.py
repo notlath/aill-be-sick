@@ -10,6 +10,10 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from scipy.stats import entropy
 import os
 import gc
+from captum.attr import GradientShap
+import html
+import unicodedata
+import torch.nn.functional as F
 
 app = Flask(__name__)
 
@@ -186,7 +190,7 @@ def _has_medical_keywords(text: str, lang: str = "en") -> bool:
     return has_en_keyword or has_tl_keyword
 
 
-class MonteCarloDropoutClassifier:
+class MCDClassifierWithSHAP:
     def __init__(
         self, model_path, n_iterations=50, inference_dropout_rate=0.05, device=None
     ):
@@ -220,7 +224,9 @@ class MonteCarloDropoutClassifier:
             return_tensors="pt",
             truncation=True,
             padding=True,
-        )
+        ).to(self.device) # Move inputs to device and ensure correct type
+        inputs["input_ids"] = inputs["input_ids"].to(torch.long)
+        inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
 
         self.enable_dropout_with_rate(dropout_rate=self.inference_dropout_rate)
 
@@ -266,15 +272,101 @@ class MonteCarloDropoutClassifier:
         expected_entropy = np.mean([entropy(p, axis=-1) for p in predictions], axis=0)
         mean_probs = predictions.mean(axis=0)
         entropy_of_expected = entropy(mean_probs, axis=-1)
+
         return entropy_of_expected - expected_entropy
 
+    def explain_with_gradient_shap(self, text, mean_probs=None, target_class=None, n_baselines=5):
+        """
+        Compute token-level attributions using Captum's GradientSHAP on embeddings.
+        """
+        self.model.zero_grad()
 
-eng_classifier = MonteCarloDropoutClassifier(
+        # Tokenize input
+        inputs = self.tokenizer(
+            text,
+            return_tensors="pt",
+            truncation=True,
+            padding=True,
+        ).to(self.device)
+
+        mean_probs = torch.tensor(mean_probs, device=self.device)
+        predicted_class = (
+            mean_probs.argmax(dim=-1).item()
+            if target_class is None
+            else target_class
+        )
+
+        # 1️⃣ Get embeddings from the model
+        embeddings = self.model.get_input_embeddings()(inputs["input_ids"])
+
+        # 2️⃣ Define a forward function that takes embeddings
+        def forward_func(embeds):
+            attention_mask = inputs["attention_mask"]
+            outputs = self.model(inputs_embeds=embeds, attention_mask=attention_mask)
+            probs = F.softmax(outputs.logits, dim=-1)
+            return probs[:, predicted_class]
+
+        # 3️⃣ Create random baselines around zero embeddings
+        baseline_embeds = torch.zeros_like(embeddings).repeat(n_baselines, 1, 1)
+
+        # 4️⃣ Initialize GradientSHAP
+        gradient_shap = GradientShap(forward_func)
+
+        # 5️⃣ Compute attributions on embeddings
+        attributions, delta = gradient_shap.attribute(
+            embeddings,
+            baselines=baseline_embeds,
+            n_samples=25,
+            stdevs=0.01,
+            return_convergence_delta=True,
+        )
+
+        # 6️⃣ Aggregate across embedding dimensions (token-level importance)
+        token_attributions = attributions.sum(dim=-1).squeeze().detach().cpu()
+
+        # 7️⃣ Decode tokens
+        tokens = self.tokenizer.convert_ids_to_tokens(
+            inputs["input_ids"][0].detach().cpu().numpy()
+        )
+
+        # 8️⃣ Normalize to [0, 1]
+        token_attributions = (token_attributions - token_attributions.min()) / (
+            token_attributions.max() - token_attributions.min() + 1e-8
+        )
+
+        explanation = list(zip(tokens, token_attributions.numpy().tolist()))
+
+        # Derive confidence from provided mean_probs (if available) instead
+        # of relying on an external mc_result variable which isn't in scope.
+        try:
+            # mean_probs may be a torch tensor here
+            mp = mean_probs.detach().cpu().numpy() if hasattr(mean_probs, "detach") else np.array(mean_probs)
+            confidence_val = float(np.max(mp, axis=-1).tolist()) if mp.size else 0.0
+        except Exception:
+            confidence_val = 0.0
+
+        # We cannot compute mutual information without the full MC samples here,
+        # so return None to indicate it's unavailable when only mean_probs supplied.
+        mi_val = None
+
+        return {
+            "tokens": tokens,
+            "attributions": token_attributions.numpy().tolist(),
+            "predicted_label": self.model.config.id2label[predicted_class],
+            "confidence": confidence_val,
+            "mutual_information": mi_val,
+            "explanation": explanation,
+        }
+
+
+eng_classifier = MCDClassifierWithSHAP(
     eng_model_path, n_iterations=25, inference_dropout_rate=0.05
 )
-fil_classifier = MonteCarloDropoutClassifier(
+fil_classifier = MCDClassifierWithSHAP(
     fil_model_path, n_iterations=25, inference_dropout_rate=0.05
 )
+
+
 
 
 def classifier(text):
@@ -378,6 +470,7 @@ def classifier(text):
             probs = [
                 f"{d['disease']}: {(d['probability']*100):.2f}%" for d in top_diseases
             ]
+            mean_probs = result["mean_probabilities"].tolist()
 
             print(f"[RESULT] {pred} (conf: {confidence:.3f}, MI: {uncertainty:.4f})")
 
@@ -393,6 +486,7 @@ def classifier(text):
                 probs,
                 "BioClinical ModernBERT",
                 top_diseases,
+                mean_probs
             )
 
         elif lang in ["tl", "fil"]:
@@ -404,6 +498,7 @@ def classifier(text):
             sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
             probs = []
             top_diseases = []
+            mean_probs = result["mean_probabilities"].tolist()
 
             all_probs = result["mean_probabilities"][0]
             allowed = {"Dengue", "Pneumonia", "Typhoid", "Impetigo"}
@@ -424,7 +519,7 @@ def classifier(text):
                 pred = top_diseases[0]["disease"]
 
             gc.collect()
-            return pred, confidence, uncertainty, probs, "RoBERTa Tagalog", top_diseases
+            return pred, confidence, uncertainty, probs, "RoBERTa Tagalog", top_diseases, mean_probs
 
         else:
             print(f"Unsupported language detected: {lang}")
@@ -438,6 +533,103 @@ def classifier(text):
         print(f"ERROR in classifier: {error_msg}")
         print(traceback.format_exc())
 
+        raise
+    
+def aggregate_subword_attributions(tokens, attributions):
+    """
+    Merge subword tokens (e.g., Ġirrit + ating -> 'irritating')
+    and sum their attributions to produce word-level importance.
+    Works for both BPE (Ġ) and WordPiece (##) style tokenizers.
+    """
+    words = []
+    word_attrs = []
+    current_word = ""
+    current_attr = 0.0
+
+    for token, attr in zip(tokens, attributions):
+        if token in ["[CLS]", "[SEP]", "[PAD]"]:
+            continue
+
+        if token.startswith("Ġ"):
+            if current_word:
+                words.append(current_word.strip())
+                word_attrs.append(current_attr)
+            current_word = token.replace("Ġ", " ")
+            current_attr = attr
+
+        elif token.startswith("##"):
+            current_word += token[2:]
+            current_attr += attr
+
+        else:
+            if current_word and current_word.endswith(" "):
+                words.append(current_word.strip())
+                word_attrs.append(current_attr)
+                current_word = token
+                current_attr = attr
+            else:
+                current_word += token
+                current_attr += attr
+
+    if current_word:
+        words.append(current_word.strip())
+        word_attrs.append(current_attr)
+
+    return words, np.array(word_attrs)
+
+def clean_token(t):
+    # Decode weird UTF-8 artifacts and normalize apostrophes
+    t = t.encode("utf-8", "ignore").decode("utf-8", "ignore")
+    t = t.replace("âĢĻ", "'").replace("â€™", "'").replace("’", "'").replace("‘", "'")
+    t = html.unescape(t)  # decode HTML entities like &amp;
+    t = unicodedata.normalize("NFKC", t)
+    return t.strip()
+
+def explainer(text: str, mean_probs=None):
+    try:
+        # Language hint: prefer Tagalog if Tagalog keywords appear
+        text_lower = (text or "").lower()
+        has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
+        lang = "tl" if has_tl else "en"
+        
+        # Normalize mean_probs to a numpy array/list for downstream use
+        if mean_probs is None:
+            raise ValueError("mean_probs required for explainer")
+
+        # Accept either nested list, numpy array, or torch tensor
+        try:
+            if hasattr(mean_probs, "tolist") and not isinstance(mean_probs, list):
+                mean_probs_list = mean_probs.tolist()
+            else:
+                mean_probs_list = mean_probs
+        except Exception:
+            mean_probs_list = mean_probs
+
+        # Convert to numpy for operations inside explain_with_gradient_shap
+        mean_probs_arr = np.array(mean_probs_list)
+
+        # Choose the right model for language
+        model = eng_classifier if lang == "en" else fil_classifier
+
+        # explain_with_gradient_shap expects mean_probs as a tensor or array
+        explanation_result = model.explain_with_gradient_shap(text, mean_probs=mean_probs_arr)
+        
+        tokens = explanation_result["tokens"]
+        attrs = explanation_result["attributions"]
+
+        words, word_attrs = aggregate_subword_attributions(tokens, attrs)
+        words = [clean_token(w) for w in words]
+
+        # Ensure the returned structure is JSON serializable: convert arrays to lists
+        explanation_result["mean_probs"] = mean_probs_arr.tolist()
+
+        return {
+            "symptoms": text,
+            "tokens": [{"token": w, "importance": float(a)} for w, a in zip(words, word_attrs)]
+        }
+
+    except Exception:
+        traceback.print_exc()
         raise
 
 
@@ -482,7 +674,7 @@ def new_case():
                 422,
             )
 
-        pred, confidence, uncertainty, probs, model_used, top_diseases = classifier(
+        pred, confidence, uncertainty, probs, model_used, top_diseases, mean_probs = classifier(
             symptoms
         )
 
@@ -515,6 +707,7 @@ def new_case():
                         "model_used": model_used,
                         "disease": pred,  # Add disease for follow-up
                         "top_diseases": top_diseases,  # Add top competing diseases
+                        "mean_probs": mean_probs,
                     }
                 }
             ),
@@ -967,6 +1160,32 @@ def follow_up_question():
             ),
             500,
         )
+
+@app.route("/diagnosis/explain", methods=["POST"])
+def explain_diagnosis():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
+
+        text = data.get("symptoms", "")
+        if not text:
+            return jsonify({"error": "Symptoms cannot be empty"}), 400
+        
+        mean_probs = data.get("mean_probs", None)
+        if mean_probs is None:
+            return jsonify({"error": "mean_probs is required"}), 400
+
+        # Get model explanations (explainer returns a plain serializable dict)
+        result = explainer(text, mean_probs)
+
+        # Return the real symptoms and tokens from the explainer result
+        return jsonify({"symptoms": result.get("symptoms"), "tokens": result.get("tokens")}), 200
+
+    except Exception as e:
+        error_msg = str(e)
+        error_details = traceback.format_exc()
+        return jsonify({"error": "EXPLANATION_ERROR", "message": error_msg, "details": error_details}), 500
 
 
 @app.errorhandler(404)
