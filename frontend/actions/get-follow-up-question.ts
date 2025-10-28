@@ -46,7 +46,7 @@ export const getFollowUpQuestion = actionClient
     } = parsedInput;
 
     try {
-      const { data } = await axios.post(`${BACKEND_URL}/diagnosis/follow-up`, {
+      const payload = {
         disease,
         confidence,
         uncertainty,
@@ -59,7 +59,19 @@ export const getFollowUpQuestion = actionClient
         last_answer,
         last_question_id,
         last_question_text,
+      };
+
+      // DEBUG: Log what we're sending
+      console.log("[FRONTEND] Sending follow-up request:", {
+        asked_questions_count: asked_questions.length,
+        asked_questions,
+        last_question_id,
       });
+
+      const { data } = await axios.post(
+        `${BACKEND_URL}/diagnosis/follow-up`,
+        payload
+      );
 
       return { success: data.data };
     } catch (error) {
