@@ -473,8 +473,9 @@ Do you want to record this diagnosis?
     symptom: string,
     questionId: string
   ) => {
-    // Add question ID to asked questions
-    setAskedQuestions((prev) => [...prev, questionId]);
+    // Add question ID to asked questions - keep a local copy since state updates are async
+    const updatedAskedQuestions = [...askedQuestions, questionId];
+    setAskedQuestions(updatedAskedQuestions);
 
     // Clear current question
     setCurrentQuestion(null);
@@ -661,14 +662,22 @@ Do you want to record this diagnosis?`;
       return; // Stop here - diagnosis is final
     }
 
-    // Otherwise, re-run diagnosis with accumulated symptoms
-    runDiagnosisExecute({
-      chatId,
-      symptoms: allSymptoms,
-      skipMessage: true, // Skip message - will show after confirmatory if confident
-    });
-
-    // getFollowUp will be triggered by the runDiagnosisExecute response (onSuccess)
+    // Otherwise, get the next follow-up question based on current diagnosis state
+    // DON'T re-run diagnosis - that creates a new case!
+    if (currentDiagnosis) {
+      getFollowUpExecute({
+        disease: currentDiagnosis.disease,
+        confidence: currentDiagnosis.confidence,
+        uncertainty: currentDiagnosis.uncertainty,
+        asked_questions: updatedAskedQuestions, // Use the local updated array, not state
+        symptoms: allSymptoms,
+        top_diseases: currentDiagnosis.top_diseases || [],
+        mode: diagnosisMode,
+        last_answer: answer,
+        last_question_id: questionId,
+        last_question_text: currentQuestion?.question,
+      });
+    }
   };
   const hasRunInitialDiagnosis = useRef<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);

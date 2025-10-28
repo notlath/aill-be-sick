@@ -46,6 +46,9 @@ fil_model_path = "notlath/RoBERTa-Tagalog-base-Symptom2Disease_WITH-DROPOUT-42"
 # Reject very short/off-topic inputs and low-confidence/high-uncertainty predictions
 SYMPTOM_MIN_CONF = float(os.getenv("SYMPTOM_MIN_CONF", "0.50"))
 SYMPTOM_MAX_MI = float(os.getenv("SYMPTOM_MAX_MI", "0.10"))
+# Soft-accept band: allow follow-ups to proceed when signal exists but is below hard threshold
+SYMPTOM_SOFT_MIN_CONF = float(os.getenv("SYMPTOM_SOFT_MIN_CONF", "0.35"))
+SYMPTOM_SOFT_MAX_MI = float(os.getenv("SYMPTOM_SOFT_MAX_MI", "0.12"))
 # Require at least N words OR M characters before attempting a diagnosis
 SYMPTOM_MIN_WORDS = int(os.getenv("SYMPTOM_MIN_WORDS", "3"))
 SYMPTOM_MIN_CHARS = int(os.getenv("SYMPTOM_MIN_CHARS", "15"))
@@ -704,11 +707,45 @@ def new_case():
 
         # Gate low-confidence / high-uncertainty predictions
         if confidence < SYMPTOM_MIN_CONF or uncertainty > SYMPTOM_MAX_MI:
+            # If it's within the soft band, proceed with a low-confidence advisory
+            if (
+                confidence >= SYMPTOM_SOFT_MIN_CONF
+                and uncertainty <= SYMPTOM_SOFT_MAX_MI
+            ):
+                return (
+                    jsonify(
+                        {
+                            "data": {
+                                "pred": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "disease": pred,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "advisory": {
+                                    "low_confidence": True,
+                                    "message": "We couldn't confidently match your symptoms yet. We'll ask a few targeted questions to narrow it down.",
+                                    "thresholds": {
+                                        "hard_min_conf": SYMPTOM_MIN_CONF,
+                                        "soft_min_conf": SYMPTOM_SOFT_MIN_CONF,
+                                        "hard_max_mi": SYMPTOM_MAX_MI,
+                                        "soft_max_mi": SYMPTOM_SOFT_MAX_MI,
+                                    },
+                                },
+                            }
+                        }
+                    ),
+                    201,
+                )
+
+            # Otherwise, ask user for more detail (hard rejection)
             return (
                 jsonify(
                     {
                         "error": "INSUFFICIENT_SYMPTOM_EVIDENCE",
-                        "message": "I'm not confident this is a symptom description. Please add a bit more detail about what you're feeling.",
+                        "message": "We couldn't confidently match your symptoms to a condition yet. Please add more details like duration, severity, and other symptoms.",
                         "details": {
                             "confidence": confidence,
                             "mutual_information": uncertainty,
@@ -822,6 +859,12 @@ def follow_up_question():
         if last_answer and last_question_id:
             indicator = "✅" if str(last_answer).lower() == "yes" else "❌"
             print(f"[FOLLOW-UP] Answer: {indicator} to [{last_question_id}]")
+
+        # DEBUG: Print asked_questions array
+        print(f"[FOLLOW-UP] DEBUG asked_questions: {asked_questions}")
+        print(
+            f"[FOLLOW-UP] DEBUG 'triage_resp_1' in asked_questions: {'triage_resp_1' in asked_questions}"
+        )
 
         # Check if too many questions have been asked - this indicates symptoms don't match well
         # Case 1: Low confidence after many questions
@@ -976,7 +1019,13 @@ def follow_up_question():
             ]
         )
 
-        if mode != "legacy" and has_fever_fatigue and not has_respiratory:
+        # Only ask triage question if it hasn't been asked yet
+        if (
+            mode != "legacy"
+            and has_fever_fatigue
+            and not has_respiratory
+            and "triage_resp_1" not in asked_questions
+        ):
             # Choose triage question based on language
             if lang in ["tl", "fil"]:
                 triage_question = {
@@ -1087,20 +1136,38 @@ def follow_up_question():
                 ]
 
         # If user mentions fever/chills/tiredness but doesn't mention respiratory words, prefer to triage respiratory first
-        if mode != "legacy" and indicates_fever_or_fatigue and not prefers_pneumonia:
+        # BUT only if we haven't already asked this triage question
+        if (
+            mode != "legacy"
+            and indicates_fever_or_fatigue
+            and not prefers_pneumonia
+            and "triage_resp_1" not in asked_questions
+        ):
             # Return the triage question for respiratory symptoms
+            # Choose language-appropriate version
+            if lang in ["tl", "fil"]:
+                triage_q = {
+                    "id": "triage_resp_1",
+                    "question": "Mayroon ka bang ubo, pananakit ng dibdib, o hirap sa paghinga?",
+                    "positive_symptom": "Mayroon akong ubo, pananakit ng dibdib, o hirap sa paghinga",
+                    "negative_symptom": "Wala akong ubo, pananakit ng dibdib, o hirap sa paghinga",
+                    "category": "triage",
+                }
+            else:
+                triage_q = {
+                    "id": "triage_resp_1",
+                    "question": "Do you have cough, chest pain, or difficulty breathing?",
+                    "positive_symptom": "I have cough, chest pain, or difficulty breathing",
+                    "negative_symptom": "I don't have cough, chest pain, or difficulty breathing",
+                    "category": "triage",
+                }
+
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": False,
-                            "question": {
-                                "id": "triage_resp_1",
-                                "question": "Do you have cough, chest pain, or difficulty breathing?",
-                                "positive_symptom": "I have cough, chest pain, or difficulty breathing",
-                                "negative_symptom": "I don't have cough, chest pain, or difficulty breathing",
-                                "category": "triage",
-                            },
+                            "question": triage_q,
                         }
                     }
                 ),
