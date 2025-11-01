@@ -35,10 +35,22 @@ export const runDiagnosis = actionClient
         model_used,
         top_diseases,
         mean_probs,
+        cdss,
+        skip_followup,
+        skip_reason,
       } = diagnosis;
 
-      // Check if diagnosis is confident enough
-      const isConfident = confidence >= 0.9 && uncertainty <= 0.03;
+      // Debug: Log what we received from backend
+      console.log("[DEBUG] Backend response:", {
+        skip_followup,
+        skip_reason,
+        confidence,
+        uncertainty,
+      });
+
+      // Check if diagnosis is confident enough OR backend says to skip follow-up
+      const isConfident =
+        skip_followup || (confidence >= 0.9 && uncertainty <= 0.03);
 
       const transformedModelUsed = model_used
         .toUpperCase()
@@ -170,6 +182,9 @@ Do you want to record this diagnosis?
           top_diseases: top_diseases || [],
           mean_probs,
           symptoms,
+          cdss: cdss || null,
+          skip_followup,
+          skip_reason,
         },
         isConfident,
       };

@@ -73,7 +73,16 @@ export const getFollowUpQuestion = actionClient
         payload
       );
 
-      return { success: data.data };
+      // Return both question and diagnosis
+      return {
+        success: {
+          should_stop: data.data.should_stop,
+          question: data.data.question,
+          diagnosis: data.data.diagnosis,
+          reason: data.data.reason,
+          message: data.data.message,
+        },
+      };
     } catch (error) {
       console.error("Error getting follow-up question:", error);
 
