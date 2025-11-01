@@ -30,6 +30,7 @@ type ChatContainerProps = {
     questionId: string
   ) => void;
   dbExplanation: Explanation | null;
+  userRole?: string;
 };
 
 const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
@@ -45,6 +46,7 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
       currentQuestion,
       onQuestionAnswer,
       dbExplanation,
+      userRole,
     },
     ref
   ) => {
@@ -60,6 +62,7 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
             explanation={message.explanation || dbExplanation || null}
             location={location}
             tempDiagnosis={message.tempDiagnosis}
+            userRole={userRole}
             {...message}
           />
         ))}

@@ -3,6 +3,7 @@ import { getChatById } from "@/utils/chat";
 import { getDiagnosisByChatId } from "@/utils/diagnosis";
 import { getExplanationByDiagnosisId } from "@/utils/explanation";
 import { getMessagesByChatId } from "@/utils/message";
+import { getCurrentDbUser } from "@/utils/user";
 import { notFound } from "next/navigation";
 
 const ChatPage = async ({
@@ -12,6 +13,7 @@ const ChatPage = async ({
   searchParams: Promise<{ symptoms: string }>;
 }) => {
   const { chatId } = await params;
+  const { success: dbUser } = await getCurrentDbUser();
   const { success: chat, error: chatError } = await getChatById(chatId);
 
   if (!chat) {
@@ -65,6 +67,7 @@ const ChatPage = async ({
         chatId={chatId}
         messages={messages}
         chat={chat}
+        userRole={dbUser?.role}
       />
     </main>
   );

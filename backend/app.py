@@ -55,49 +55,131 @@ SYMPTOM_MIN_CHARS = int(os.getenv("SYMPTOM_MIN_CHARS", "15"))
 
 # Medical keyword lists for semantic filtering (basic health-related terms)
 MEDICAL_KEYWORDS_EN = {
-    # Symptoms
+    # Symptoms - General (from dataset analysis)
     "fever",
-    "cough",
     "pain",
     "ache",
+    "aches",
+    "chills",
+    "weak",
+    "weakness",
     "sick",
     "ill",
     "hurt",
     "sore",
+    "sores",
     "headache",
-    "nausea",
-    "vomit",
+    "headaches",
     "dizzy",
+    "dizziness",
     "fatigue",
+    "fatigued",
     "tired",
-    "weak",
-    "rash",
+    "exhausted",
+    "exhaustion",
+    "sweating",
+    "sweat",
+    "sweats",
     "bleeding",
     "swelling",
     "infection",
     "cold",
-    "chills",
+    "painful",
+    # GI/Digestive symptoms
+    "nausea",
+    "nauseated",
+    "vomit",
+    "vomiting",
+    "vomited",
+    "diarrhea",
+    "diarrhoea",
+    "constipation",
+    "constipated",
+    "bloat",
+    "bloating",
+    "bloated",
+    "cramp",
+    "cramps",
+    "cramping",
+    "gas",
+    "indigestion",
+    "heartburn",
+    "reflux",
+    "appetite",
+    "nauseous",
+    "bowel",
+    "stool",
+    "stools",
+    # Respiratory symptoms
+    "cough",
+    "coughing",
+    "coughed",
+    "phlegm",
+    "mucus",
+    "sputum",
+    "breathing",
+    "breathe",
+    "breath",
+    "shortness",
+    "wheeze",
+    "wheezing",
+    "congestion",
+    "congested",
+    "runny",
+    "stuffy",
+    # Skin symptoms
+    "rash",
+    "rashes",
+    "itchy",
+    "itching",
+    "itch",
+    "blister",
+    "blisters",
+    "blistering",
+    "lesion",
+    "lesions",
+    "wound",
+    "wounds",
+    "pus",
+    "discharge",
+    "spots",
+    "bumps",
     # Body parts
     "head",
     "eye",
+    "eyes",
+    "nose",
     "throat",
     "chest",
     "stomach",
     "abdomen",
+    "abdominal",
+    "belly",
     "back",
     "muscle",
+    "muscles",
     "joint",
+    "joints",
     "skin",
-    "nose",
     "ear",
+    "ears",
     "mouth",
     "body",
-    # Medical terms
+    "face",
+    "neck",
+    "arms",
+    "legs",
+    "lung",
+    "lungs",
+    "heart",
+    # Medical/health terms
     "symptom",
+    "symptoms",
     "disease",
     "diagnosis",
     "treatment",
     "medicine",
+    "medication",
     "doctor",
     "hospital",
     "clinic",
@@ -105,25 +187,34 @@ MEDICAL_KEYWORDS_EN = {
     "medical",
     "feel",
     "feeling",
-    # Common complaints
-    "breathe",
-    "breathing",
-    "swallow",
-    "appetite",
-    "sleep",
+    "feels",
+    # Common descriptors
+    "severe",
+    "mild",
+    "constant",
+    "uncomfortable",
+    "discomfort",
+    "difficult",
+    "trouble",
+    "suffering",
     "temperature",
+    "racing",
+    "rapid",
 }
 
 MEDICAL_KEYWORDS_TL = {
-    # Symptoms (Tagalog)
+    # Symptoms (Tagalog) - from dataset analysis
     "lagnat",
+    "nilalagnat",
+    "nilagnat",
     "ubo",
     "inuubo",
+    "umuubo",
     "sakit",
     "masakit",
     "sumasakit",
-    "nilalagnat",
     "pananakit",
+    "pains",
     "pagdurugo",
     "pantal",
     "singaw",
@@ -132,20 +223,62 @@ MEDICAL_KEYWORDS_TL = {
     "nahihilo",
     "suka",
     "nasusuka",
+    "pagsusuka",
+    "sumuka",
     "pagod",
+    "napagod",
     "kapaguran",
     "nanghihina",
+    "mahina",
+    "panghihina",
     "pamumula",
     "pamamaga",
+    "namamaga",
     "impeksyon",
     "ginaw",
+    "giniginaw",
     "panginginig",
+    "nanginginig",
+    # GI symptoms (Tagalog)
+    "pagtatae",
+    "nagtae",
+    "diarrhea",
+    "diarrhoea",
+    "constipation",
+    "tibi",
+    "pagtitibi",
+    "pag-tibi",
+    "pamamaga ng tiyan",
+    "pulikat",
+    "kabag",
+    "almoranas",
+    "gana",
+    "nawalan",
+    # Respiratory (Tagalog)
+    "plema",
+    "plemang",
+    "hirap",
+    "nahihirapan",
+    "huminga",
+    "paghinga",
+    "hininga",
+    "lalamunan",
+    "lalamunan",
+    # Skin symptoms (Tagalog)
+    "sugat",
+    "paltos",
+    "makati",
+    "pantal",
+    "pulang",
+    "pamumula",
+    "lumalabas",
+    "likido",
     # Body parts (Tagalog)
     "ulo",
     "mata",
-    "lalamunan",
     "dibdib",
     "tiyan",
+    "puson",
     "likod",
     "katawan",
     "balat",
@@ -154,9 +287,14 @@ MEDICAL_KEYWORDS_TL = {
     "bibig",
     "kalamnan",
     "kasukasuan",
+    "mukha",
+    "leeg",
+    "braso",
+    "binti",
+    "puso",
+    "tibok",
     # Medical/feeling terms (Tagalog)
     "sintomas",
-    "sakit",
     "gamot",
     "doktor",
     "ospital",
@@ -166,14 +304,27 @@ MEDICAL_KEYWORDS_TL = {
     "pakiramdam",
     "nararamdaman",
     "ramdam",
-    "paghinga",
-    "huminga",
+    "nakakaramdam",
     "lunok",
-    "gana",
     "tulog",
     "temperatura",
     "meron",
     "mayroon",
+    "nakakaabala",
+    "hindi komportable",
+    "sobrang",
+    "matinding",
+    "mataas",
+    "mabilis",
+    "pawis",
+    "pinagpapawisan",
+    "paminsang",
+    "patuloy",
+    "palaging",
+    "kumain",
+    "labis",
+    "aalala",
+    "nag-aalala",
 }
 
 
@@ -379,6 +530,173 @@ eng_classifier = MCDClassifierWithSHAP(
 fil_classifier = MCDClassifierWithSHAP(
     fil_model_path, n_iterations=25, inference_dropout_rate=0.05
 )
+
+
+def _detect_red_flags(text: str) -> list:
+    """Very simple keyword-based red flag detection (EN/TL).
+    This complements ML with rule-based triage cues.
+    """
+    t = (text or "").lower()
+    red_flags = []
+
+    # Respiratory difficulty
+    if any(
+        k in t
+        for k in [
+            "difficulty breathing",
+            "shortness of breath",
+            "can't breathe",
+            "cannot breathe",
+            "hirap sa paghinga",
+            "hirap huminga",
+            "kulang sa hangin",
+            "singal",
+        ]
+    ):
+        red_flags.append("Respiratory difficulty")
+
+    # Chest pain
+    if any(
+        k in t
+        for k in [
+            "chest pain",
+            "pananakit ng dibdib",
+            "sakit sa dibdib",
+            "chest tightness",
+        ]
+    ):
+        red_flags.append("Chest pain")
+
+    # Bleeding
+    if any(
+        k in t
+        for k in [
+            "bleeding",
+            "mucosal bleed",
+            "pagdurugo",
+            "dumudugo",
+            "nosebleed",
+            "nose bleed",
+        ]
+    ):
+        red_flags.append("Active bleeding")
+
+    # Severe abdominal pain or persistent vomiting (dengue warning sign proxy)
+    if any(
+        k in t
+        for k in [
+            "severe abdominal pain",
+            "matinding pananakit ng tiyan",
+            "persistent vomiting",
+            "tuloy-tuloy na pagsusuka",
+            "vomiting for",
+            "walang tigil na pagsusuka",
+        ]
+    ):
+        red_flags.append("Severe abdominal pain or persistent vomiting")
+
+    return red_flags
+
+
+def _build_cdss_payload(
+    symptoms: str,
+    disease: str,
+    confidence: float,
+    uncertainty: float,
+    top_diseases: list,
+    model_used: str,
+) -> dict:
+    """Construct a structured CDSS payload to accompany narrative output."""
+    red_flags = _detect_red_flags(symptoms)
+
+    # Triage determination
+    if red_flags:
+        triage_level = "Emergent"
+        triage_reasons = ["One or more red flags present"] + red_flags
+        care_setting = "ER"
+        actions = [
+            "Seek emergency evaluation immediately",
+            "Avoid delays; consider calling local emergency number",
+        ]
+    else:
+        if confidence >= 0.90 and uncertainty <= 0.03:
+            triage_level = "Non-urgent"
+            triage_reasons = [
+                "High model confidence (≥ 0.90)",
+                "Low uncertainty (≤ 0.03)",
+            ]
+            care_setting = "Home care or routine clinic"
+            actions = [
+                "Home care guidance and monitoring",
+                "Consider routine clinic follow-up if symptoms persist or worsen",
+            ]
+        else:
+            triage_level = "Urgent"
+            triage_reasons = [
+                "Model requires clinician review due to confidence/uncertainty"
+            ]
+            care_setting = "Clinic visit"
+            actions = [
+                "Consult a healthcare professional",
+                "Provide additional history, vitals, and exam if available",
+            ]
+
+    # Differential list from top_diseases (already sorted in caller)
+    differential = [
+        {
+            "code": None,  # placeholder for future coding (e.g., SNOMED)
+            "label": td.get("disease"),
+            "prob": float(td.get("probability", 0.0)),
+        }
+        for td in (top_diseases or [])
+    ]
+
+    # Minimal knowledge references (non-exhaustive placeholders)
+    knowledge = [
+        {
+            "topic": "Dengue warning signs",
+            "source": "WHO guidance",
+            "link": "https://www.who.int/health-topics/dengue-and-severe-dengue",
+        },
+        {
+            "topic": "Community-acquired pneumonia assessment",
+            "source": "General clinical references",
+            "link": "https://www.cdc.gov/pneumonia/index.html",
+        },
+    ]
+
+    payload = {
+        "differential": differential,
+        "triage": {
+            "level": triage_level,
+            "reasons": triage_reasons,
+        },
+        "red_flags": red_flags,
+        "recommendation": {
+            "care_setting": care_setting,
+            "actions": actions,
+            "rationale": [
+                f"Primary: {disease}",
+                f"Confidence: {confidence:.3f}",
+                f"Uncertainty: {uncertainty:.3f}",
+            ],
+        },
+        "knowledge": knowledge,
+        "meta": {
+            "model": model_used,
+            "model_version": (
+                eng_model_path if "ModernBERT" in model_used else fil_model_path
+            ),
+            "thresholds": {
+                "hard_min_conf": SYMPTOM_MIN_CONF,
+                "soft_min_conf": SYMPTOM_SOFT_MIN_CONF,
+                "hard_max_mi": SYMPTOM_MAX_MI,
+                "soft_max_mi": SYMPTOM_SOFT_MAX_MI,
+            },
+        },
+    }
+
+    return payload
 
 
 def classifier(text):
@@ -705,6 +1023,40 @@ def new_case():
             classifier(symptoms)
         )
 
+        # EARLY STOP: If initial diagnosis is very confident, skip follow-up questions entirely
+        if confidence >= 0.95 and uncertainty <= 0.01:
+            print(
+                f"[NEW CASE] STOP: Very high confidence on initial diagnosis (conf={confidence:.3f}, MI={uncertainty:.4f})"
+            )
+            cdss = _build_cdss_payload(
+                symptoms,
+                pred,
+                confidence,
+                uncertainty,
+                top_diseases,
+                model_used,
+            )
+            return (
+                jsonify(
+                    {
+                        "data": {
+                            "pred": pred,
+                            "confidence": confidence,
+                            "uncertainty": uncertainty,
+                            "probs": probs,
+                            "model_used": model_used,
+                            "disease": pred,
+                            "top_diseases": top_diseases,
+                            "mean_probs": mean_probs,
+                            "cdss": cdss,
+                            "skip_followup": True,  # Signal to frontend to skip follow-up questions
+                            "skip_reason": "HIGH_CONFIDENCE_INITIAL",
+                        }
+                    }
+                ),
+                201,
+            )
+
         # Gate low-confidence / high-uncertainty predictions
         if confidence < SYMPTOM_MIN_CONF or uncertainty > SYMPTOM_MAX_MI:
             # If it's within the soft band, proceed with a low-confidence advisory
@@ -712,6 +1064,14 @@ def new_case():
                 confidence >= SYMPTOM_SOFT_MIN_CONF
                 and uncertainty <= SYMPTOM_SOFT_MAX_MI
             ):
+                cdss = _build_cdss_payload(
+                    symptoms,
+                    pred,
+                    confidence,
+                    uncertainty,
+                    top_diseases,
+                    model_used,
+                )
                 return (
                     jsonify(
                         {
@@ -724,6 +1084,7 @@ def new_case():
                                 "disease": pred,
                                 "top_diseases": top_diseases,
                                 "mean_probs": mean_probs,
+                                "cdss": cdss,
                                 "advisory": {
                                     "low_confidence": True,
                                     "message": "We couldn't confidently match your symptoms yet. We'll ask a few targeted questions to narrow it down.",
@@ -757,6 +1118,14 @@ def new_case():
                 422,
             )
 
+        cdss = _build_cdss_payload(
+            symptoms,
+            pred,
+            confidence,
+            uncertainty,
+            top_diseases,
+            model_used,
+        )
         return (
             jsonify(
                 {
@@ -769,6 +1138,7 @@ def new_case():
                         "disease": pred,  # Add disease for follow-up
                         "top_diseases": top_diseases,  # Add top competing diseases
                         "mean_probs": mean_probs,
+                        "cdss": cdss,
                     }
                 }
             ),
@@ -834,387 +1204,552 @@ def new_case():
 @app.route("/diagnosis/follow-up", methods=["POST"])
 def follow_up_question():
     """
-    Get the next follow-up question based on current diagnosis state
-    Intelligently selects questions based on top competing diseases
+    Updated: Accepts full symptoms string, re-runs classifier, returns new diagnosis and next question.
     """
     try:
         data = request.get_json()
-
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
 
-        current_disease = data.get("disease", "")
-        confidence = data.get("confidence", 0)
-        uncertainty = data.get("uncertainty", 1)
-        force_question = data.get("force", False)
-        mode = data.get("mode", "adaptive")  # 'adaptive' or 'legacy'
-        asked_questions = data.get("asked_questions", [])
-        top_diseases = data.get("top_diseases", [])  # List of {disease, probability}
+        # Use updated symptoms string (initial + positives)
         symptoms_text = data.get("symptoms", "")
-        # Optional: last answer context from client (for logging/tracing)
-        last_answer = data.get("last_answer")  # "yes" | "no" | None
+        # Also accept prior diagnosis context to allow fallback when no new symptom text is provided
+        prior_disease = data.get("disease")
+        prior_confidence = data.get("confidence")
+        prior_uncertainty = data.get("uncertainty")
+        prior_top_diseases = data.get("top_diseases", []) or []
+        asked_questions = data.get("asked_questions", [])
+        force_question = data.get("force", False)
+        mode = data.get("mode", "adaptive")
+        last_answer = data.get("last_answer")
         last_question_id = data.get("last_question_id")
         last_question_text = data.get("last_question_text")
 
-        if last_answer and last_question_id:
-            indicator = "✅" if str(last_answer).lower() == "yes" else "❌"
-            print(f"[FOLLOW-UP] Answer: {indicator} to [{last_question_id}]")
+        # Lightweight debug to verify dynamic reclassification input length and asked count
+        try:
+            print(
+                f"[FOLLOW-UP] Reclassify on symptoms len={len(symptoms_text)} | asked={len(asked_questions)}"
+            )
+        except Exception:
+            pass
 
-        # DEBUG: Print asked_questions array
-        print(f"[FOLLOW-UP] DEBUG asked_questions: {asked_questions}")
-        print(
-            f"[FOLLOW-UP] DEBUG 'triage_resp_1' in asked_questions: {'triage_resp_1' in asked_questions}"
-        )
+        # Log last answer that led to this follow-up
+        try:
+            if last_answer is not None and last_question_id:
+                ans = str(last_answer).lower()
+                symbol = "✅" if ans == "yes" else ("❌" if ans == "no" else ans)
+                print(f"[FOLLOW-UP] Answer: {symbol} to [{last_question_id}]")
+                if last_question_text:
+                    print(f"[FOLLOW-UP] Question text: {last_question_text}")
+        except Exception:
+            pass
 
-        # Check if too many questions have been asked - this indicates symptoms don't match well
-        # Case 1: Low confidence after many questions
-        # Case 2: High initial confidence but many questions with no strong match
+        # Re-run classifier with updated symptoms whenever we have sufficient evidence.
+        # If caller didn't provide enough text, fall back to prior diagnosis context to continue Q&A.
+        try:
+            too_short = (
+                _count_words(symptoms_text) < SYMPTOM_MIN_WORDS
+                and len(symptoms_text) < SYMPTOM_MIN_CHARS
+            )
+
+            if not too_short:
+                (
+                    pred,
+                    confidence,
+                    uncertainty,
+                    probs,
+                    model_used,
+                    top_diseases,
+                    mean_probs,
+                ) = classifier(symptoms_text)
+            else:
+                # Fallback path: skip classifier if no new symptom text; use prior context
+                print(
+                    f"[FOLLOW-UP] Fallback: skipping reclassify (symptoms too short: words={_count_words(symptoms_text)}, chars={len(symptoms_text)})"
+                )
+
+                if not prior_disease or not isinstance(prior_top_diseases, list):
+                    return (
+                        jsonify(
+                            {
+                                "error": "INSUFFICIENT_SYMPTOM_EVIDENCE",
+                                "message": "No new symptom details provided and prior diagnosis context missing. Please resend the cumulative symptoms string or include prior diagnosis fields.",
+                                "details": {
+                                    "min_words": SYMPTOM_MIN_WORDS,
+                                    "min_chars": SYMPTOM_MIN_CHARS,
+                                },
+                            }
+                        ),
+                        422,
+                    )
+
+                pred = prior_disease
+                confidence = (
+                    float(prior_confidence) if prior_confidence is not None else 0.0
+                )
+                uncertainty = (
+                    float(prior_uncertainty) if prior_uncertainty is not None else 1.0
+                )
+                top_diseases = prior_top_diseases
+                # Derive simple probs list from provided top_diseases
+                try:
+                    probs = [
+                        f"{d.get('disease')}: {(float(d.get('probability', 0.0))*100):.2f}%"
+                        for d in top_diseases
+                    ]
+                except Exception:
+                    probs = []
+                model_used = "(skipped reclassify)"
+                mean_probs = []
+        except Exception as e:
+            err = str(e)
+            # Map known classifier validation errors to user-friendly HTTP codes
+            if "INSUFFICIENT_SYMPTOM_EVIDENCE:" in err:
+                reason = err.split("INSUFFICIENT_SYMPTOM_EVIDENCE:")[-1].strip()
+                return (
+                    jsonify(
+                        {
+                            "error": "INSUFFICIENT_SYMPTOM_EVIDENCE",
+                            "message": "Please add a bit more detail to your symptoms (e.g., duration, severity, other symptoms).",
+                            "details": {"reason": reason},
+                        }
+                    ),
+                    422,
+                )
+            if "UNSUPPORTED_LANGUAGE:" in err:
+                lang = err.split("UNSUPPORTED_LANGUAGE:")[-1].strip()
+                return (
+                    jsonify(
+                        {
+                            "error": "UNSUPPORTED_LANGUAGE",
+                            "message": f"Sorry, the detected language '{lang}' is not supported. Please use English or Tagalog/Filipino.",
+                            "detected_language": lang,
+                        }
+                    ),
+                    400,
+                )
+            return jsonify({"error": "Classifier error", "details": err}), 500
+
+        # Language detection for question bank
+        try:
+            if symptoms_text:
+                lang_probs = detect_langs(symptoms_text)
+                supported_langs = {"en", "tl", "fil"}
+                lang = None
+                for lang_prob in lang_probs:
+                    if lang_prob.lang in supported_langs:
+                        lang = lang_prob.lang
+                        break
+                if lang is None:
+                    text_lower = symptoms_text.lower()
+                    has_en = any(k in text_lower for k in MEDICAL_KEYWORDS_EN)
+                    has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
+                    if has_tl and not has_en:
+                        lang = "tl"
+                    else:
+                        lang = "en"
+            else:
+                lang = "en"
+        except Exception as e:
+            lang = "en"
+
+        QUESTION_BANK = QUESTION_BANK_TL if lang in ["tl", "fil"] else QUESTION_BANK_EN
+
+        # EARLY STOP: Check high confidence FIRST, before any other logic
+        # This prevents asking questions when diagnosis is already very confident
+        if not force_question and confidence >= 0.95 and uncertainty <= 0.01:
+            print(
+                f"[FOLLOW-UP] STOP: Very high confidence reached (conf={confidence:.3f}, MI={uncertainty:.4f})"
+            )
+            return (
+                jsonify(
+                    {
+                        "data": {
+                            "should_stop": True,
+                            "reason": "HIGH_CONFIDENCE_FINAL",
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "cdss": _build_cdss_payload(
+                                    symptoms_text,
+                                    pred,
+                                    confidence,
+                                    uncertainty,
+                                    top_diseases,
+                                    model_used,
+                                ),
+                            },
+                        }
+                    }
+                ),
+                200,
+            )
+
+        # Early stop logic (same as before)
         MAX_QUESTIONS_THRESHOLD = 8
         LOW_CONFIDENCE_THRESHOLD = 0.65
-        EXHAUSTED_QUESTIONS_THRESHOLD = 10  # If we've asked this many, something's off
-
+        EXHAUSTED_QUESTIONS_THRESHOLD = 10
         if (
             len(asked_questions) >= MAX_QUESTIONS_THRESHOLD
             and confidence < LOW_CONFIDENCE_THRESHOLD
         ):
             print(
-                f"[FOLLOW-UP] Stopping: Too many questions ({len(asked_questions)}) with low confidence ({confidence:.3f})"
+                f"[FOLLOW-UP] STOP: Low confidence after {len(asked_questions)} questions (conf={confidence:.3f}, MI={uncertainty:.4f})"
             )
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": True,
-                            "reason": "SYMPTOMS_NOT_MATCHING",
-                            "message": "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover (Dengue, Pneumonia, Typhoid, or Impetigo). We recommend consulting with a healthcare professional for a proper evaluation.",
+                            "reason": "LOW_CONFIDENCE_FINAL",
+                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "cdss": _build_cdss_payload(
+                                    symptoms_text,
+                                    pred,
+                                    confidence,
+                                    uncertainty,
+                                    top_diseases,
+                                    model_used,
+                                ),
+                            },
                         }
                     }
                 ),
                 200,
             )
-
-        # Also stop if we've asked too many questions regardless of confidence
-        # This happens when initial symptom gives high confidence, but follow-ups don't confirm
         if len(asked_questions) >= EXHAUSTED_QUESTIONS_THRESHOLD:
-            print(f"[FOLLOW-UP] Stopping: Exhausted questions ({len(asked_questions)})")
+            print(
+                f"[FOLLOW-UP] STOP: Exhausted questions for disease={pred} after {len(asked_questions)} asked"
+            )
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": True,
-                            "reason": "SYMPTOMS_NOT_MATCHING",
-                            "message": "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover (Dengue, Pneumonia, Typhoid, or Impetigo). We recommend consulting with a healthcare professional for a proper evaluation.",
+                            "reason": "LOW_CONFIDENCE_FINAL",
+                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "cdss": _build_cdss_payload(
+                                    symptoms_text,
+                                    pred,
+                                    confidence,
+                                    uncertainty,
+                                    top_diseases,
+                                    model_used,
+                                ),
+                            },
                         }
                     }
                 ),
                 200,
             )
 
-        # Detect language from symptoms to choose appropriate question bank
-        try:
-            if symptoms_text:
-                lang_probs = detect_langs(symptoms_text)
-
-                # Check if English or Tagalog/Filipino are in top candidates
-                supported_langs = {"en", "tl", "fil"}
-                lang = None
-
-                for lang_prob in lang_probs:
-                    if lang_prob.lang in supported_langs:
-                        lang = lang_prob.lang
-                        break
-
-                # Fallback to keyword detection if no supported language found
-                if lang is None:
-                    text_lower = symptoms_text.lower()
-                    has_en = any(k in text_lower for k in MEDICAL_KEYWORDS_EN)
-                    has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
-
-                    if has_tl and not has_en:
-                        lang = "tl"
-                    else:
-                        lang = "en"  # Default to English
-            else:
-                lang = "en"
-
-        except Exception as e:
-            print(f"[FOLLOW-UP] Language detection failed: {e}")
-            lang = "en"  # Default to English if detection fails
-
-        # Choose question bank based on language
-        QUESTION_BANK = QUESTION_BANK_TL if lang in ["tl", "fil"] else QUESTION_BANK_EN
-
-        print(
-            f"[FOLLOW-UP] {current_disease} | Lang: {lang} | Conf: {confidence:.3f} | MI: {uncertainty:.4f} | Asked: {len(asked_questions)}"
-        )
-
-        if top_diseases and len(top_diseases) >= 2:
-            print(
-                f"[FOLLOW-UP] Top 2: {top_diseases[0]['disease']} ({top_diseases[0]['probability']:.3f}), {top_diseases[1]['disease']} ({top_diseases[1]['probability']:.3f})"
-            )
-
-        # Check if we should stop asking questions
-        # If not forced, stop when confidence and uncertainty thresholds are met
-        if not force_question and confidence >= 0.9 and uncertainty <= 0.03:
+        # If not forced, stop when confidence and uncertainty thresholds are met (secondary check)
+        # This catches cases where confidence increased after first follow-up
+        if not force_question and confidence >= 0.95 and uncertainty <= 0.01:
+            print("[FOLLOW-UP] STOP: High confidence and low uncertainty reached")
             return (
                 jsonify(
-                    {"data": {"should_stop": True, "reason": "High confidence reached"}}
+                    {
+                        "data": {
+                            "should_stop": True,
+                            "reason": "HIGH_CONFIDENCE_FINAL",
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "cdss": _build_cdss_payload(
+                                    symptoms_text,
+                                    pred,
+                                    confidence,
+                                    uncertainty,
+                                    top_diseases,
+                                    model_used,
+                                ),
+                            },
+                        }
+                    }
                 ),
                 200,
             )
 
-        # Normalize symptoms with a small synonym mapping to improve triage detection
-        def normalize_symptoms(text: str) -> str:
-            text = (text or "").lower()
-            # English synonyms
-            mapping = {
-                "cold": "chill",
-                "feverish": "fever",
-                "feverishness": "fever",
-                "tired": "fatigue",
-                "tire": "fatigue",
-                "weak": "fatigue",
-                "shortness of breath": "shortness",
-                "breathing difficulty": "shortness",
-                # Tagalog synonyms
-                "ginaw": "lagnat",  # cold -> fever
-                "nilalagnat": "lagnat",  # feverish -> fever
-                "pagod": "kapaguran",  # tired -> fatigue
-                "mahina": "kapaguran",  # weak -> fatigue
-                "hirap huminga": "singal",  # difficulty breathing -> shortness
-                "kulang sa hangin": "singal",  # lack of air -> shortness
-                "ubo": "pag-ubo",  # cough (normalize)
-            }
-            for k, v in mapping.items():
-                text = text.replace(k, v)
-            return text
-
-        symptoms_text = normalize_symptoms(data.get("symptoms") or "")
-        # If initial symptoms indicate feeling cold/fever/fatigue but do not mention cough/breathing, ask a general respiratory triage question
-        # Skip triage when in legacy (simple) mode
-        # Check both English and Tagalog keywords
-        has_fever_fatigue = any(
-            k in symptoms_text
-            for k in [
-                "chill",
-                "fever",
-                "fatigue",
-                "lagnat",
-                "ginaw",
-                "kapaguran",
-                "pagod",
-            ]
-        )
-        has_respiratory = any(
-            k in symptoms_text
-            for k in [
-                "cough",
-                "breath",
-                "chest",
-                "shortness",
-                "ubo",
-                "singal",
-                "dibdib",
-                "hirap",
-            ]
-        )
-
-        # Only ask triage question if it hasn't been asked yet
-        if (
-            mode != "legacy"
-            and has_fever_fatigue
-            and not has_respiratory
-            and "triage_resp_1" not in asked_questions
-        ):
-            # Choose triage question based on language
-            if lang in ["tl", "fil"]:
-                triage_question = {
-                    "id": "triage_resp_1",
-                    "question": "Mayroon ka bang ubo, pananakit ng dibdib, o hirap sa paghinga?",
-                    "positive_symptom": "Mayroon akong ubo, pananakit ng dibdib, o hirap sa paghinga",
-                    "negative_symptom": "Wala akong ubo, pananakit ng dibdib, o hirap sa paghinga",
-                    "category": "triage",
-                }
-            else:
-                triage_question = {
-                    "id": "triage_resp_1",
-                    "question": "Do you have cough, chest pain, or difficulty breathing?",
-                    "positive_symptom": "I have cough, chest pain, or difficulty breathing",
-                    "negative_symptom": "I don't have cough, chest pain, or difficulty breathing",
-                    "category": "triage",
-                }
-
-            return (
-                jsonify({"data": {"should_stop": False, "question": triage_question}}),
-                200,
-            )
-
-        # Get questions for the current top disease
+        # Question selection logic with duplicate-evidence skipping and coverage
+        current_disease = pred
         if current_disease not in QUESTION_BANK:
+            print(
+                f"[FOLLOW-UP] STOP: No questions available for disease: {current_disease}"
+            )
             return (
                 jsonify(
                     {"error": f"No questions available for disease: {current_disease}"}
                 ),
                 400,
             )
-
         primary_questions = QUESTION_BANK[current_disease]
+        symptoms_lower = (symptoms_text or "").lower()
 
-        # Filter out already asked questions
+        # Improved evidence detection: check for key symptom keywords, not full phrases
+        def has_evidence(q):
+            """Check if the question's key symptoms are already mentioned in initial symptoms"""
+            qid = q.get("id", "")
+
+            # Map question IDs to key symptom keywords that indicate evidence
+            evidence_keywords = {
+                # Typhoid
+                "typhoid_q1": [
+                    "belly pain",
+                    "stomach pain",
+                    "abdominal pain",
+                    "abdomen pain",
+                    "stomach ache",
+                    "belly ache",
+                ],
+                "typhoid_q2": [
+                    "constipation",
+                    "diarrhea",
+                    "diarrhoea",
+                    "loose stool",
+                    "watery stool",
+                ],
+                "typhoid_q3": ["fever", "high fever", "lagnat", "mataas na lagnat"],
+                "typhoid_q4": ["chills", "shivering", "cold", "ginaw", "panginginig"],
+                "typhoid_q5": [
+                    "nausea",
+                    "vomit",
+                    "vomiting",
+                    "feel like vomiting",
+                    "urge to vomit",
+                    "nasusuka",
+                    "suka",
+                ],
+                "typhoid_q6": [
+                    "loss of appetite",
+                    "lost appetite",
+                    "no appetite",
+                    "don't want to eat",
+                    "weight loss",
+                    "nawalan ng gana",
+                ],
+                "typhoid_q7": [
+                    "fatigue",
+                    "tired",
+                    "weak",
+                    "exhausted",
+                    "pagod",
+                    "mahina",
+                ],
+                "typhoid_q8": [
+                    "dehydrated",
+                    "trouble staying hydrated",
+                    "hard to stay hydrated",
+                ],
+                "typhoid_q9": ["headache", "head ache", "sakit ng ulo"],
+                "typhoid_q10": [
+                    "trouble sleeping",
+                    "can't sleep",
+                    "difficulty sleeping",
+                    "hard to sleep",
+                ],
+                # Dengue
+                "dengue_q1": ["joint pain", "muscle pain", "body pain", "body ache"],
+                "dengue_q2": ["rash", "red spots", "skin rash", "pantal"],
+                "dengue_q3": ["pain behind eyes", "eye pain", "pain in eyes"],
+                "dengue_q4": ["bleeding", "nosebleed", "bleeding gums"],
+                "dengue_q5": ["mosquito"],
+                # Pneumonia
+                "pneumonia_q1": [
+                    "chest pain",
+                    "pain when breathing",
+                    "pain when coughing",
+                ],
+                "pneumonia_q2": ["cough", "mucus", "phlegm", "sputum"],
+                "pneumonia_q3": [
+                    "shortness of breath",
+                    "difficulty breathing",
+                    "rapid breathing",
+                    "hard to breathe",
+                ],
+                "pneumonia_q4": ["chills", "cold", "shivering"],
+                "pneumonia_q5": ["confused", "difficulty concentrating"],
+                # Impetigo
+                "impetigo_q1": ["sores", "blisters", "red sores"],
+                "impetigo_q2": ["oozing", "crusts", "honey-colored"],
+                "impetigo_q3": ["itching", "itchy"],
+                "impetigo_q4": ["spreading", "spread"],
+                "impetigo_q5": ["close contact", "contact with someone"],
+            }
+
+            keywords = evidence_keywords.get(qid, [])
+            if not keywords:
+                return False
+
+            # Check if ANY of the keywords are present in symptoms
+            return any(kw in symptoms_lower for kw in keywords)
+
+        duplicate_ids = [q["id"] for q in primary_questions if has_evidence(q)]
         available_questions = [
-            q for q in primary_questions if q["id"] not in asked_questions
+            q
+            for q in primary_questions
+            if q["id"] not in asked_questions and q["id"] not in duplicate_ids
         ]
 
+        if duplicate_ids:
+            try:
+                print(
+                    f"[FOLLOW-UP] Skipping {len(duplicate_ids)} duplicate question(s) already evidenced in symptoms: {', '.join(duplicate_ids)}"
+                )
+            except Exception:
+                pass
+
         if not available_questions:
+            print(
+                f"[FOLLOW-UP] STOP: All questions asked for disease: {current_disease}"
+            )
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": True,
-                            "reason": "No more questions available",
+                            "reason": "LOW_CONFIDENCE_FINAL",
+                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "cdss": _build_cdss_payload(
+                                    symptoms_text,
+                                    pred,
+                                    confidence,
+                                    uncertainty,
+                                    top_diseases,
+                                    model_used,
+                                ),
+                            },
                         }
                     }
                 ),
                 200,
             )
 
-        # INTELLIGENT SELECTION:
-        # If there are competing diseases (close probabilities),
-        # prioritize questions that discriminate between them
-        selected_question = None
-        # Use symptom hints to prefer certain disease questions (e.g., respiratory)
-        symptom_text = normalize_symptoms(data.get("symptoms") or "")
-        # Keywords in both English and Tagalog
-        respiratory_keywords = [
-            "cough",
-            "breath",
-            "shortness",
-            "chest",
-            "phlegm",
-            "sputum",
-            "wheeze",
-            "wheezing",
-            "ubo",
-            "pag-ubo",
-            "singal",
-            "dibdib",
-            "plema",
-            "hirap",
-            "hangin",  # Tagalog
+        # Compute primary coverage (how many primary questions are already evidenced)
+        primary_only = [
+            q
+            for q in primary_questions
+            if (q.get("category") or "").lower() == "primary"
         ]
-        fatigue_keywords = [
-            "fatigue",
-            "tired",
-            "weak",
-            "tire",
-            "kapaguran",
-            "pagod",
-            "mahina",  # Tagalog
-        ]
-        feverish_keywords = [
-            "chill",
-            "fever",
-            "shiver",
-            "shivering",
-            "lagnat",
-            "ginaw",
-            "nilalagnat",
-            "panginginig",  # Tagalog
-        ]
-        prefers_pneumonia = any(k in symptom_text for k in respiratory_keywords)
-        indicates_fever_or_fatigue = any(
-            k in symptom_text for k in fatigue_keywords + feverish_keywords
-        )
-        if mode != "legacy" and prefers_pneumonia and "Pneumonia" in QUESTION_BANK:
-            # Insert pneumonia questions at the front of available_questions if not already asked
-            pneumonia_questions = [
-                q for q in QUESTION_BANK["Pneumonia"] if q["id"] not in asked_questions
-            ]
-            if pneumonia_questions:
-                available_questions = pneumonia_questions + [
-                    q for q in available_questions if q not in pneumonia_questions
-                ]
+        coverage_primary = sum(1 for q in primary_only if has_evidence(q))
 
-        # If user mentions fever/chills/tiredness but doesn't mention respiratory words, prefer to triage respiratory first
-        # BUT only if we haven't already asked this triage question
-        if (
-            mode != "legacy"
-            and indicates_fever_or_fatigue
-            and not prefers_pneumonia
-            and "triage_resp_1" not in asked_questions
-        ):
-            # Return the triage question for respiratory symptoms
-            # Choose language-appropriate version
-            if lang in ["tl", "fil"]:
-                triage_q = {
-                    "id": "triage_resp_1",
-                    "question": "Mayroon ka bang ubo, pananakit ng dibdib, o hirap sa paghinga?",
-                    "positive_symptom": "Mayroon akong ubo, pananakit ng dibdib, o hirap sa paghinga",
-                    "negative_symptom": "Wala akong ubo, pananakit ng dibdib, o hirap sa paghinga",
-                    "category": "triage",
-                }
-            else:
-                triage_q = {
-                    "id": "triage_resp_1",
-                    "question": "Do you have cough, chest pain, or difficulty breathing?",
-                    "positive_symptom": "I have cough, chest pain, or difficulty breathing",
-                    "negative_symptom": "I don't have cough, chest pain, or difficulty breathing",
-                    "category": "triage",
-                }
-
+        # Evidence-based early stop
+        if coverage_primary >= 3 and (confidence >= 0.78 and uncertainty <= 0.04):
+            print(
+                f"[FOLLOW-UP] STOP: Sufficient evidence reached (coverage_primary={coverage_primary}, conf={confidence:.3f}, MI={uncertainty:.4f})"
+            )
             return (
                 jsonify(
                     {
                         "data": {
-                            "should_stop": False,
-                            "question": triage_q,
+                            "should_stop": True,
+                            "reason": "LOW_CONFIDENCE_FINAL",
+                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "cdss": _build_cdss_payload(
+                                    symptoms_text,
+                                    pred,
+                                    confidence,
+                                    uncertainty,
+                                    top_diseases,
+                                    model_used,
+                                ),
+                            },
                         }
                     }
                 ),
                 200,
             )
 
-        # Skip discrimination logic in legacy mode (simple sequential questions)
+        # Discrimination logic (prefer when probs close OR coverage strong)
+        selected_question = None
         if mode != "legacy" and len(top_diseases) >= 2:
-            # Get second disease and its probability
             second_disease = top_diseases[1]["disease"]
             prob_diff = abs(
                 top_diseases[0]["probability"] - top_diseases[1]["probability"]
             )
-
-            # If diseases are close (within 20%), find discriminating question
-            if prob_diff < 0.2 and second_disease in QUESTION_BANK:
-                print(
-                    f"[FOLLOW-UP] Close competition: {current_disease} vs {second_disease} (diff: {prob_diff:.3f})"
-                )
-
+            if (
+                prob_diff < 0.2 or coverage_primary >= 2
+            ) and second_disease in QUESTION_BANK:
                 secondary_questions = QUESTION_BANK[second_disease]
-
-                # Find questions unique to primary disease (not in secondary)
                 secondary_question_texts = {q["question"] for q in secondary_questions}
                 discriminating_questions = [
                     q
                     for q in available_questions
                     if q["question"] not in secondary_question_texts
                 ]
-
                 if discriminating_questions:
-                    # Pick the highest-weighted discriminating question
                     selected_question = max(
                         discriminating_questions, key=lambda q: q["weight"]
                     )
-                    print(
-                        f"[FOLLOW-UP] Selected discriminating Q: {selected_question['id']}"
-                    )
-
-        # If no discriminating question found, use standard priority
         if not selected_question:
-            # Prioritize: primary category first, then by weight
             selected_question = max(
                 available_questions,
                 key=lambda q: (q["category"] == "primary", q["weight"]),
             )
-            print(f"[FOLLOW-UP] Selected standard Q: {selected_question['id']}")
+
+        # Summary log for current decision state and the next question selected
+        try:
+            print(
+                f"[FOLLOW-UP] {pred} | Lang: {lang} | Conf: {confidence:.3f} | MI: {uncertainty:.4f} | Asked: {len(asked_questions)}"
+            )
+            if len(top_diseases) >= 2:
+                td0, td1 = top_diseases[0], top_diseases[1]
+                print(
+                    f"[FOLLOW-UP] Top 2: {td0['disease']} ({td0['probability']:.3f}), {td1['disease']} ({td1['probability']:.3f})"
+                )
+            print(
+                f"[FOLLOW-UP] Next question -> {selected_question['id']}: {selected_question['question']} (cat: {selected_question.get('category', '')})"
+            )
+        except Exception:
+            pass
 
         return (
             jsonify(
@@ -1227,6 +1762,24 @@ def follow_up_question():
                             "positive_symptom": selected_question["positive_symptom"],
                             "negative_symptom": selected_question["negative_symptom"],
                             "category": selected_question["category"],
+                        },
+                        "diagnosis": {
+                            "pred": pred,
+                            "disease": pred,
+                            "confidence": confidence,
+                            "uncertainty": uncertainty,
+                            "probs": probs,
+                            "model_used": model_used,
+                            "top_diseases": top_diseases,
+                            "mean_probs": mean_probs,
+                            "cdss": _build_cdss_payload(
+                                symptoms_text,
+                                pred,
+                                confidence,
+                                uncertainty,
+                                top_diseases,
+                                model_used,
+                            ),
                         },
                     }
                 }
@@ -1439,4 +1992,7 @@ def patient_clusters_silhouette():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 10000))
-    app.run(debug=False, host="0.0.0.0", port=port)
+    # Enable debug autoreload by default in local dev. Override via FLASK_DEBUG=0 to disable.
+    debug_env = os.getenv("FLASK_DEBUG", "1").strip().lower()
+    debug_mode = debug_env in ("1", "true", "yes", "on")
+    app.run(debug=debug_mode, use_reloader=debug_mode, host="0.0.0.0", port=port)

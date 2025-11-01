@@ -86,43 +86,83 @@
   "Typhoid": [
     {
       "id": "typhoid_q1",
-      "question": "Do you have persistent stomach pain or discomfort?",
-      "positive_symptom": "I also have persistent stomach pain or discomfort",
-      "negative_symptom": "I don't have persistent stomach pain or discomfort",
-      "weight": 0.9,
+      "question": "Are you experiencing persistent abdominal (belly/stomach) pain or discomfort?",
+      "positive_symptom": "I have persistent abdominal pain or discomfort",
+      "negative_symptom": "I don't have persistent abdominal pain or discomfort",
+      "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "typhoid_q2",
-      "question": "Are you experiencing diarrhea or constipation?",
-      "positive_symptom": "I am experiencing diarrhea or constipation",
-      "negative_symptom": "I am not experiencing diarrhea or constipation",
-      "weight": 0.85,
+      "question": "Have you had alternating constipation and diarrhea?",
+      "positive_symptom": "I have alternating constipation and diarrhea",
+      "negative_symptom": "I don't have alternating constipation and diarrhea",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "typhoid_q3",
-      "question": "Do you have a loss of appetite or feel very weak?",
-      "positive_symptom": "I also have loss of appetite or feel very weak",
-      "negative_symptom": "I don't have loss of appetite",
-      "weight": 0.8,
-      "category": "secondary"
+      "question": "Do you have a high fever, especially at night?",
+      "positive_symptom": "I have a high fever, especially at night",
+      "negative_symptom": "I don't have a high fever, especially at night",
+      "weight": 0.92,
+      "category": "primary"
     },
     {
       "id": "typhoid_q4",
-      "question": "Do you have a rose-colored rash on your trunk or abdomen?",
-      "positive_symptom": "I also have a rose-colored rash on my trunk or abdomen",
-      "negative_symptom": "I don't have a rose-colored rash",
-      "weight": 0.75,
-      "category": "secondary"
+      "question": "Are you experiencing chills along with your fever?",
+      "positive_symptom": "I am experiencing chills along with my fever",
+      "negative_symptom": "I am not experiencing chills along with my fever",
+      "weight": 0.91,
+      "category": "primary"
     },
     {
       "id": "typhoid_q5",
-      "question": "Have you recently consumed food or water that might have been contaminated?",
-      "positive_symptom": "I have recently consumed food or water that might have been contaminated",
-      "negative_symptom": "I haven't consumed any contaminated food or water that I know of",
-      "weight": 0.75,
-      "category": "environmental"
+      "question": "Have you felt nauseous or vomited recently?",
+      "positive_symptom": "I have felt nauseous or vomited recently",
+      "negative_symptom": "I haven't felt nauseous or vomited recently",
+      "weight": 0.9,
+      "category": "primary"
+    },
+    {
+      "id": "typhoid_q6",
+      "question": "Have you lost your appetite or noticed significant weight loss?",
+      "positive_symptom": "I have lost my appetite or noticed significant weight loss",
+      "negative_symptom": "I haven't lost my appetite or noticed significant weight loss",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q7",
+      "question": "Do you feel unusually fatigued or weak?",
+      "positive_symptom": "I feel unusually fatigued or weak",
+      "negative_symptom": "I don't feel unusually fatigued or weak",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q8",
+      "question": "Are you having trouble staying hydrated?",
+      "positive_symptom": "I am having trouble staying hydrated",
+      "negative_symptom": "I am not having trouble staying hydrated",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q9",
+      "question": "Have you had headaches along with your other symptoms?",
+      "positive_symptom": "I have had headaches along with my other symptoms",
+      "negative_symptom": "I haven't had headaches along with my other symptoms",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q10",
+      "question": "Are you having trouble sleeping due to your symptoms?",
+      "positive_symptom": "I am having trouble sleeping due to my symptoms",
+      "negative_symptom": "I am not having trouble sleeping due to my symptoms",
+      "weight": 0.85,
+      "category": "secondary"
     }
   ],
   "Impetigo": [
