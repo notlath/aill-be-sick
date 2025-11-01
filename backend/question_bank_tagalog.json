@@ -2,169 +2,329 @@
   "Dengue": [
     {
       "id": "dengue_q1",
-      "question": "Nakakaranas ka ba ng matinding pananakit ng joints o muscles?",
-      "positive_symptom": "Mayroon din akong matinding pananakit ng joints o muscles",
-      "negative_symptom": "Wala akong matinding pananakit ng joints o muscles",
+      "question": "Nakakaranas ka ba ng pananakit o hindi komportable sa anumang bahagi ng iyong katawan?",
+      "positive_symptom": "Nakakaranas ako ng pananakit o hindi komportable sa aking katawan",
+      "negative_symptom": "Wala akong nararamdamang matinding pananakit o hindi komportable",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "dengue_q2",
-      "question": "Mayroon ka bang pantal o pulang spot sa iyong balat?",
-      "positive_symptom": "Mayroon din akong pantal o pulang spot sa aking balat",
-      "negative_symptom": "Wala akong pantal o pulang spot sa aking balat",
-      "weight": 0.9,
+      "question": "Nakakaranas ka ba ng matinding pananakit ng joints o kalamnan?",
+      "positive_symptom": "Nakakaranas ako ng matinding pananakit ng joints o kalamnan",
+      "negative_symptom": "Wala akong matinding pananakit ng joints o kalamnan",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "dengue_q3",
-      "question": "Nakakaranas ka ba ng pananakit sa likod ng iyong mga mata?",
-      "positive_symptom": "Mayroon din akong pananakit sa likod ng aking mga mata",
-      "negative_symptom": "Wala akong pananakit sa likod ng aking mga mata",
-      "weight": 0.85,
-      "category": "secondary"
+      "question": "Mayroon ka bang lagnat o tumaas na temperatura ng katawan?",
+      "positive_symptom": "Mayroon akong lagnat o tumaas na temperatura ng katawan",
+      "negative_symptom": "Wala akong lagnat",
+      "weight": 0.92,
+      "category": "primary"
     },
     {
       "id": "dengue_q4",
-      "question": "Nakapansin ka ba ng hindi pangkaraniwang pagdurugo, tulad ng pagdugo ng ilong o gilagid?",
-      "positive_symptom": "Mayroon din akong hindi pangkaraniwang pagdurugo tulad ng pagdugo ng ilong o gilagid",
-      "negative_symptom": "Wala akong anumang hindi pangkaraniwang pagdurugo",
-      "weight": 0.8,
-      "category": "secondary"
+      "question": "Mayroon ka bang pantal o pulang spot sa iyong balat?",
+      "positive_symptom": "Mayroon akong pantal o pulang spot sa aking balat",
+      "negative_symptom": "Wala akong pantal o pulang spot sa aking balat",
+      "weight": 0.91,
+      "category": "primary"
     },
     {
       "id": "dengue_q5",
-      "question": "Nasa lugar ka ba na maraming lamok kamakailan?",
-      "positive_symptom": "Nasa lugar ako na maraming lamok kamakailan",
-      "negative_symptom": "Hindi ako nasa lugar na maraming lamok kamakailan",
-      "weight": 0.7,
-      "category": "environmental"
+      "question": "Nakapansin ka ba ng pamumula ng balat o namamagang bahagi?",
+      "positive_symptom": "Nakapansin ako ng pamumula ng balat o namamagang bahagi",
+      "negative_symptom": "Wala akong napapansin na pamumula ng balat",
+      "weight": 0.9,
+      "category": "primary"
+    },
+    {
+      "id": "dengue_q6",
+      "question": "Nakakaranas ka ba ng pananakit sa mata o sa likod ng iyong mga mata?",
+      "positive_symptom": "Nakakaranas ako ng pananakit sa mata o sa likod ng aking mga mata",
+      "negative_symptom": "Wala akong pananakit sa mata",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "dengue_q7",
+      "question": "Nakakaranas ka ba ng panginginig o pakiramdam na sobrang lamig?",
+      "positive_symptom": "Nakakaranas ako ng panginginig o pakiramdam na sobrang lamig",
+      "negative_symptom": "Hindi ako nakakaranas ng panginginig",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "dengue_q8",
+      "question": "Nakaranas ka ba ng pagduduwal o pagsusuka?",
+      "positive_symptom": "Nakaranas ako ng pagduduwal o pagsusuka",
+      "negative_symptom": "Hindi ako nakaranas ng pagduduwal o pagsusuka",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "dengue_q9",
+      "question": "Nakakaramdam ka ba ng hindi pangkaraniwang pagod o panghihina?",
+      "positive_symptom": "Nakakaramdam ako ng hindi pangkaraniwang pagod o panghihina",
+      "negative_symptom": "Hindi ako nakakaramdam ng hindi pangkaraniwang pagod",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "dengue_q10",
+      "question": "Nakaranas ka ba ng pananakit ng ulo?",
+      "positive_symptom": "Nakaranas ako ng pananakit ng ulo",
+      "negative_symptom": "Wala akong pananakit ng ulo",
+      "weight": 0.85,
+      "category": "secondary"
     }
   ],
   "Pneumonia": [
     {
       "id": "pneumonia_q1",
-      "question": "Mayroon ka bang pananakit ng dibdib kapag humihinga o umuubo?",
-      "positive_symptom": "Mayroon din akong pananakit ng dibdib kapag humihinga o umuubo",
-      "negative_symptom": "Wala akong pananakit ng dibdib kapag humihinga o umuubo",
+      "question": "Umuubo ka ba ng plema o sipon?",
+      "positive_symptom": "Umuubo ako ng plema o sipon",
+      "negative_symptom": "Hindi ako umuubo ng plema o sipon",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "pneumonia_q2",
-      "question": "Umuubo ka ba ng plema o may kulay na tubig?",
-      "positive_symptom": "Umuubo din ako ng plema o may kulay na tubig",
-      "negative_symptom": "Hindi ako umuubo ng plema o may kulay na tubig",
-      "weight": 0.9,
+      "question": "Labis ka bang pinagpapawisan o nararamdaman ang matinding pagpapawis?",
+      "positive_symptom": "Labis akong pinagpapawisan o nararamdaman ang matinding pagpapawis",
+      "negative_symptom": "Hindi ako labis na pinagpapawisan",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "pneumonia_q3",
-      "question": "Nahihirapan ka ba sa paghinga o nararamdaman mong kulang sa hininga?",
-      "positive_symptom": "Nahihirapan din ako sa paghinga o nararamdaman kong kulang sa hininga",
-      "negative_symptom": "Hindi ako nahihirapan sa paghinga",
-      "weight": 0.85,
+      "question": "Nakakaranas ka ba ng pananakit ng dibdib o hindi komportable sa dibdib?",
+      "positive_symptom": "Nakakaranas ako ng pananakit ng dibdib o hindi komportable sa dibdib",
+      "negative_symptom": "Wala akong pananakit ng dibdib",
+      "weight": 0.92,
       "category": "primary"
     },
     {
       "id": "pneumonia_q4",
-      "question": "Mas lumala ba ang iyong ubo sa gabi o kapag nakahiga?",
-      "positive_symptom": "Lumalala din ang aking ubo sa gabi o kapag nakahiga",
-      "negative_symptom": "Hindi lumalala ang aking ubo sa gabi o kapag nakahiga",
-      "weight": 0.75,
-      "category": "secondary"
+      "question": "Nakakaranas ka ba ng pananakit sa iyong katawan?",
+      "positive_symptom": "Nakakaranas ako ng pananakit sa aking katawan",
+      "negative_symptom": "Wala akong pananakit sa aking katawan",
+      "weight": 0.91,
+      "category": "primary"
     },
     {
       "id": "pneumonia_q5",
-      "question": "Nakakaranas ka ba ng labis na pagod kahit sa mga simpleng aktibidad?",
-      "positive_symptom": "Nakakaranas din ako ng labis na pagod kahit sa mga simpleng aktibidad",
-      "negative_symptom": "Hindi ako nakakaranas ng labis na pagod",
-      "weight": 0.7,
+      "question": "Nakakaramdam ka ba ng hindi pangkaraniwang pagod o panghihina?",
+      "positive_symptom": "Nakakaramdam ako ng hindi pangkaraniwang pagod o panghihina",
+      "negative_symptom": "Hindi ako nakakaramdam ng hindi pangkaraniwang pagod",
+      "weight": 0.9,
+      "category": "primary"
+    },
+    {
+      "id": "pneumonia_q6",
+      "question": "Nakakaranas ka ba ng panginginig o pakiramdam na sobrang lamig?",
+      "positive_symptom": "Nakakaranas ako ng panginginig o pakiramdam na sobrang lamig",
+      "negative_symptom": "Hindi ako nakakaranas ng panginginig",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "pneumonia_q7",
+      "question": "Mayroon ka bang ubo?",
+      "positive_symptom": "Mayroon akong ubo",
+      "negative_symptom": "Wala akong ubo",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "pneumonia_q8",
+      "question": "Mayroon ka bang lagnat o tumaas na temperatura ng katawan?",
+      "positive_symptom": "Mayroon akong lagnat o tumaas na temperatura ng katawan",
+      "negative_symptom": "Wala akong lagnat",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "pneumonia_q9",
+      "question": "Nahihirapan ka ba sa paghinga, kulang sa hininga, o mabilis ang paghinga?",
+      "positive_symptom": "Nahihirapan ako sa paghinga, kulang sa hininga, o mabilis ang paghinga",
+      "negative_symptom": "Hindi ako nahihirapan sa paghinga",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "pneumonia_q10",
+      "question": "Nakakaranas ka ba ng pananakit ng joints o kalamnan?",
+      "positive_symptom": "Nakakaranas ako ng pananakit ng joints o kalamnan",
+      "negative_symptom": "Wala akong pananakit ng joints o kalamnan",
+      "weight": 0.85,
       "category": "secondary"
     }
   ],
   "Typhoid": [
     {
       "id": "typhoid_q1",
-      "question": "Mayroon ka bang patuloy na lagnat na tumatagal ng ilang araw?",
-      "positive_symptom": "Mayroon din akong patuloy na lagnat na tumatagal ng ilang araw",
-      "negative_symptom": "Wala akong patuloy na lagnat",
+      "question": "Nakakaranas ka ba ng pananakit ng tiyan o hindi komportable sa tiyan?",
+      "positive_symptom": "Nakakaranas ako ng pananakit ng tiyan o hindi komportable sa tiyan",
+      "negative_symptom": "Wala akong pananakit ng tiyan o hindi komportable",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "typhoid_q2",
-      "question": "Nakakaranas ka ba ng pananakit ng tiyan o hindi komportable sa tiyan?",
-      "positive_symptom": "Nakakaranas din ako ng pananakit ng tiyan o hindi komportable sa tiyan",
-      "negative_symptom": "Wala akong pananakit ng tiyan",
-      "weight": 0.9,
+      "question": "Nakakaranas ka ba ng pananakit sa anumang bahagi ng iyong katawan?",
+      "positive_symptom": "Nakakaranas ako ng pananakit sa anumang bahagi ng aking katawan",
+      "negative_symptom": "Wala akong pananakit sa aking katawan",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "typhoid_q3",
-      "question": "Mayroon ka bang pagtatae o constipation?",
-      "positive_symptom": "Mayroon din akong pagtatae o constipation",
-      "negative_symptom": "Wala akong pagtatae o constipation",
-      "weight": 0.85,
+      "question": "Mayroon ka bang lagnat o tumaas na temperatura ng katawan?",
+      "positive_symptom": "Mayroon akong lagnat o tumaas na temperatura ng katawan",
+      "negative_symptom": "Wala akong lagnat",
+      "weight": 0.92,
       "category": "primary"
     },
     {
       "id": "typhoid_q4",
-      "question": "Nawalan ka ba ng gana sa pagkain nang husto?",
-      "positive_symptom": "Nawalan din ako ng gana sa pagkain nang husto",
-      "negative_symptom": "Hindi ako nawalan ng gana sa pagkain",
-      "weight": 0.8,
-      "category": "secondary"
+      "question": "Nakakaramdam ka ba ng hindi pangkaraniwang pagod o panghihina?",
+      "positive_symptom": "Nakakaramdam ako ng hindi pangkaraniwang pagod o panghihina",
+      "negative_symptom": "Hindi ako nakakaramdam ng hindi pangkaraniwang pagod",
+      "weight": 0.91,
+      "category": "primary"
     },
     {
       "id": "typhoid_q5",
-      "question": "Kumain ka ba kamakailan ng pagkain o tubig na maaaring kontaminado?",
-      "positive_symptom": "Kumain ako kamakailan ng pagkain o tubig na maaaring kontaminado",
-      "negative_symptom": "Hindi ako kumain ng pagkain o tubig na maaaring kontaminado",
-      "weight": 0.75,
-      "category": "environmental"
+      "question": "Nakaranas ka ba ng pagduduwal o pagsusuka?",
+      "positive_symptom": "Nakaranas ako ng pagduduwal o pagsusuka",
+      "negative_symptom": "Hindi ako nakaranas ng pagduduwal o pagsusuka",
+      "weight": 0.9,
+      "category": "primary"
+    },
+    {
+      "id": "typhoid_q6",
+      "question": "Mayroon ka bang pagtatae o malambot na dumi?",
+      "positive_symptom": "Mayroon akong pagtatae o malambot na dumi",
+      "negative_symptom": "Wala akong pagtatae o malambot na dumi",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q7",
+      "question": "Nahihirapan ka ba sa pagtae o nakakaranas ng constipation?",
+      "positive_symptom": "Nahihirapan ako sa pagtae o nakakaranas ng constipation",
+      "negative_symptom": "Hindi ako nahihirapan sa pagtae",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q8",
+      "question": "Nakaranas ka ba ng pananakit ng ulo?",
+      "positive_symptom": "Nakaranas ako ng pananakit ng ulo",
+      "negative_symptom": "Wala akong pananakit ng ulo",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q9",
+      "question": "Nakakaranas ka ba ng panginginig o pakiramdam na sobrang lamig?",
+      "positive_symptom": "Nakakaranas ako ng panginginig o pakiramdam na sobrang lamig",
+      "negative_symptom": "Hindi ako nakakaranas ng panginginig",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q10",
+      "question": "Nahihirapan ka ba na manatiling hydrated o pakiramdam na dehydrated?",
+      "positive_symptom": "Nahihirapan ako na manatiling hydrated o pakiramdam na dehydrated",
+      "negative_symptom": "Hindi ako nahihirapan na manatiling hydrated",
+      "weight": 0.85,
+      "category": "secondary"
     }
   ],
   "Impetigo": [
     {
       "id": "impetigo_q1",
-      "question": "Mayroon ka bang mga sugat na may dilaw o kayumangging scab?",
-      "positive_symptom": "Mayroon din akong mga sugat na may dilaw o kayumangging scab",
-      "negative_symptom": "Wala akong mga sugat na may scab",
+      "question": "Nasa mukha ba ang mga problema sa balat, lalo na sa paligid ng ilong, bibig, o labi?",
+      "positive_symptom": "Nasa mukha ang mga problema sa balat, lalo na sa paligid ng ilong, bibig, o labi",
+      "negative_symptom": "Wala sa mukha ang mga problema sa balat",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "impetigo_q2",
-      "question": "Nasa mukha ba ang mga sugat, lalo na sa paligid ng bibig o ilong?",
-      "positive_symptom": "Nasa mukha din ang mga sugat ko, lalo na sa paligid ng bibig o ilong",
-      "negative_symptom": "Wala akong sugat sa mukha",
-      "weight": 0.9,
+      "question": "Mayroon ka bang mga sugat o lesion sa iyong balat?",
+      "positive_symptom": "Mayroon akong mga sugat o lesion sa aking balat",
+      "negative_symptom": "Wala akong mga sugat o lesion sa aking balat",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "impetigo_q3",
-      "question": "Makati ba ang mga apektadong lugar?",
-      "positive_symptom": "Makati din ang mga apektadong lugar",
-      "negative_symptom": "Hindi makati ang mga apektadong lugar",
-      "weight": 0.8,
-      "category": "secondary"
+      "question": "Umaagos ba ang mga sugat ng likido, nana, o discharge?",
+      "positive_symptom": "Umaagos ang mga sugat ng likido, nana, o discharge",
+      "negative_symptom": "Hindi umaagos ng anumang likido ang mga sugat",
+      "weight": 0.92,
+      "category": "primary"
     },
     {
       "id": "impetigo_q4",
-      "question": "Lumalaki ba o kumakalat ang mga sugat?",
-      "positive_symptom": "Lumalaki o kumakalat din ang mga sugat",
-      "negative_symptom": "Hindi lumalaki o kumakalat ang mga sugat",
-      "weight": 0.85,
-      "category": "secondary"
+      "question": "Mayroon ka bang pantal o erupsiyon sa balat?",
+      "positive_symptom": "Mayroon akong pantal o erupsiyon sa balat",
+      "negative_symptom": "Wala akong pantal o erupsiyon sa balat",
+      "weight": 0.91,
+      "category": "primary"
     },
     {
       "id": "impetigo_q5",
-      "question": "Nakakasalamuha mo ba ang ibang tao na may katulad na impeksyon sa balat?",
-      "positive_symptom": "Nakakasalamuha ko ang ibang tao na may katulad na impeksyon sa balat",
-      "negative_symptom": "Hindi ako nakakasalamuha ng ibang tao na may katulad na impeksyon",
-      "weight": 0.7,
-      "category": "environmental"
+      "question": "Nakakaranas ka ba ng pananakit sa mga apektadong lugar ng balat?",
+      "positive_symptom": "Nakakaranas ako ng pananakit sa mga apektadong lugar ng balat",
+      "negative_symptom": "Wala akong pananakit sa mga apektadong lugar",
+      "weight": 0.9,
+      "category": "primary"
+    },
+    {
+      "id": "impetigo_q6",
+      "question": "Nakapansin ka ba ng pamumula ng balat o namamagang bahagi?",
+      "positive_symptom": "Nakapansin ako ng pamumula ng balat o namamagang bahagi",
+      "negative_symptom": "Wala akong napapansin na pamumula ng balat",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "impetigo_q7",
+      "question": "Nakapansin ka ba ng mga blister o pustule (paltos) sa iyong balat?",
+      "positive_symptom": "Nakapansin ako ng mga blister o pustule sa aking balat",
+      "negative_symptom": "Wala akong napapansin na blister o pustule",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "impetigo_q8",
+      "question": "Mayroon ka bang lagnat o tumaas na temperatura ng katawan?",
+      "positive_symptom": "Mayroon akong lagnat o tumaas na temperatura ng katawan",
+      "negative_symptom": "Wala akong lagnat",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "impetigo_q9",
+      "question": "Nakakaranas ka ba ng kati o pangangati sa mga apektadong lugar?",
+      "positive_symptom": "Nakakaranas ako ng kati o pangangati sa mga apektadong lugar",
+      "negative_symptom": "Wala akong kati o pangangati",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "impetigo_q10",
+      "question": "Nakakaranas ka ba ng pananakit ng joints o kalamnan?",
+      "positive_symptom": "Nakakaranas ako ng pananakit ng joints o kalamnan",
+      "negative_symptom": "Wala akong pananakit ng joints o kalamnan",
+      "weight": 0.85,
+      "category": "secondary"
     }
   ]
 }
