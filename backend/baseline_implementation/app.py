@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from classifier import classifier
+from pprint import pprint
 
 load_dotenv()
 
@@ -39,6 +40,9 @@ def new_case():
 
     try:
         result = classifier(symptoms)
+
+        print("[RESULT]")
+        pprint(result)
 
         return jsonify(result), 200
     except Exception as e:

@@ -40,7 +40,7 @@ class BaselineClassifier:
                  for i, prob in enumerate(probs)],
                 key=lambda x: x[1],
                 reverse=True,
-            )[:5]
+            )[:6]
             mean_probs = sum(probs) / len(probs)
 
         return {
@@ -127,7 +127,7 @@ def classifier(text):
 
             result = eng_classifier.predict(text)
             predicted_class = result["predicted_class"]
-            pred = result['predicted_label']
+            pred = result['pred']
             confidence = result["confidence"]
             probs = result["probs"]
             model_used = "BioClinical ModernBERT"
@@ -151,7 +151,7 @@ def classifier(text):
 
             result = fil_classifier.predict(text)
             predicted_class = result["predicted_class"]
-            pred = result['predicted_label']
+            pred = result['pred']
             confidence = result["confidence"]
             probs = result["probs"]
             model_used = "RoBERTa Tagalog"
