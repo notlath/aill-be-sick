@@ -22,7 +22,9 @@ class BaselineClassifier:
             model_path)
         self.model.eval()
 
-    def predict(self, text) -> dict[str, int | float]:
+    def predict(self, text) -> dict[
+            str,
+            int | str | float | list | tuple]:
         inputs = self.tokenizer(text, return_tensors="pt",
                                 padding=True, truncation=True)
 
@@ -32,8 +34,23 @@ class BaselineClassifier:
             predicted_class = int(probabilities.argmax(dim=-1).item())
             predicted_label = self.model.config.id2label[predicted_class]
             confidence = float(probabilities[0, predicted_class].item())
+            probs = probabilities.squeeze().tolist()
+            top_diseases = sorted(
+                [(self.model.config.id2label[i], prob)
+                 for i, prob in enumerate(probs)],
+                key=lambda x: x[1],
+                reverse=True,
+            )[:5]
+            mean_probs = sum(probs) / len(probs)
 
-        return {"predicted_class": predicted_class, "predicted_label": predicted_label, "confidence": confidence}
+        return {
+            "predicted_class": predicted_class,
+            "pred": predicted_label,
+            "confidence": confidence,
+            "probs": probs,
+            "top_diseases": top_diseases,
+            "mean_probs": mean_probs,
+        }
 
 
 eng_classifier = BaselineClassifier(ENG_MODEL_PATH)
@@ -110,23 +127,48 @@ def classifier(text):
 
             result = eng_classifier.predict(text)
             predicted_class = result["predicted_class"]
-            predicted_label = result["predicted_label"]
+            pred = result['predicted_label']
             confidence = result["confidence"]
+            probs = result["probs"]
+            model_used = "BioClinical ModernBERT"
+            top_diseases = result["top_diseases"]
+            mean_probs = result["mean_probs"]
 
             gc.collect()
 
-            return {"predicted_class": predicted_class, "predicted_label": predicted_label, "confidence": confidence}
+            return {
+                "predicted_class": predicted_class,
+                "confidence": confidence,
+                "probs": probs,
+                "pred": pred,
+                "model_used": model_used,
+                "top_diseases": top_diseases,
+                "mean_probs": mean_probs,
+            }
 
         elif lang in ["tl", "fil"]:
             print("[CLASSIFIER] Using Tagalog RoBERTa model")
 
             result = fil_classifier.predict(text)
             predicted_class = result["predicted_class"]
+            pred = result['predicted_label']
             confidence = result["confidence"]
+            probs = result["probs"]
+            model_used = "RoBERTa Tagalog"
+            top_diseases = result["top_diseases"]
+            mean_probs = result["mean_probs"]
 
             gc.collect()
 
-            return {"predicted_class": predicted_class, "confidence": confidence}
+            return {
+                "predicted_class": predicted_class,
+                'pred': pred,
+                "confidence": confidence,
+                "probs": probs,
+                "model_used": model_used,
+                "top_diseases": top_diseases,
+                "mean_probs": mean_probs,
+            }
 
         else:
             print(f"Unsupported language detected: {lang}")

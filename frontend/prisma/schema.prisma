@@ -55,7 +55,7 @@ model Message {
 model TempDiagnosis {
   id          Int      @id @default(autoincrement())
   confidence  Float
-  uncertainty Float
+  uncertainty Float?
   disease     Disease
   createdAt   DateTime @default(now())
   messageId   Int      @unique
@@ -69,7 +69,7 @@ model TempDiagnosis {
 model Diagnosis {
   id          Int          @id @default(autoincrement())
   confidence  Float
-  uncertainty Float
+  uncertainty Float?
   disease     Disease
   createdAt   DateTime     @default(now())
   chatId      String       @unique
