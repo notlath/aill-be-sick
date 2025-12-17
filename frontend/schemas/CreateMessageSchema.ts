@@ -10,7 +10,7 @@ export const CreateMessageSchema = z.object({
   tempDiagnosis: z
     .object({
       confidence: z.number().min(0).max(1),
-      uncertainty: z.number().min(0).max(1).optional(),
+      uncertainty: z.number().min(0).max(1),
       modelUsed: z.enum(["BIOCLINICAL_MODERNBERT", "ROBERTA_TAGALOG"]),
       disease: z.enum(["DENGUE", "PNEUMONIA", "TYPHOID", "IMPETIGO"]),
       symptoms: z.string().min(1, "Symptoms cannot be empty"),
