@@ -6,13 +6,6 @@ def _count_words(text: str) -> int:
 
 
 def _has_medical_keywords(text: str) -> bool:
-    """
-    Check if text contains at least one medical/health-related keyword.
-    Returns True if medical keyword found, False otherwise.
-
-    Note: Checks BOTH English and Tagalog keywords regardless of detected language
-    because langdetect can misidentify Tagalog as Indonesian/Slovenian/etc.
-    """
     text_lower = text.lower()
 
     # Check both language sets to handle langdetect misidentifications
