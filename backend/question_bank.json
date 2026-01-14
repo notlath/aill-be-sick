@@ -2,169 +2,329 @@
   "Dengue": [
     {
       "id": "dengue_q1",
-      "question": "Do you experience severe joint or muscle pain?",
-      "positive_symptom": "I also have severe joint or muscle pain",
-      "negative_symptom": "I don't have severe joint or muscle pain",
+      "question": "Are you experiencing pain or discomfort anywhere in your body?",
+      "positive_symptom": "I am experiencing pain or discomfort in my body",
+      "negative_symptom": "I am not experiencing significant pain or discomfort",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "dengue_q2",
+      "question": "Do you have a high fever or elevated body temperature?",
+      "positive_symptom": "I have a high fever or elevated body temperature",
+      "negative_symptom": "I don't have a high fever",
+      "weight": 0.93,
+      "category": "primary"
+    },
+    {
+      "id": "dengue_q3",
+      "question": "Are you experiencing severe joint pain or muscle aches?",
+      "positive_symptom": "I have severe joint pain or muscle aches",
+      "negative_symptom": "I don't have severe joint pain or muscle aches",
+      "weight": 0.92,
+      "category": "primary"
+    },
+    {
+      "id": "dengue_q4",
+      "question": "Have you noticed any skin redness or inflammation?",
+      "positive_symptom": "I have noticed skin redness or inflammation",
+      "negative_symptom": "I haven't noticed any skin redness or inflammation",
+      "weight": 0.91,
+      "category": "primary"
+    },
+    {
+      "id": "dengue_q5",
       "question": "Do you have a rash or red spots on your skin?",
-      "positive_symptom": "I also have a rash or red spots on my skin",
+      "positive_symptom": "I have a rash or red spots on my skin",
       "negative_symptom": "I don't have a rash or red spots on my skin",
       "weight": 0.9,
       "category": "primary"
     },
     {
-      "id": "dengue_q3",
-      "question": "Do you experience pain behind your eyes?",
-      "positive_symptom": "I also have pain behind my eyes",
-      "negative_symptom": "I don't have pain behind my eyes",
+      "id": "dengue_q6",
+      "question": "Do you feel unusually tired, fatigued, or weak?",
+      "positive_symptom": "I feel unusually tired, fatigued, or weak",
+      "negative_symptom": "I don't feel unusually tired or fatigued",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "dengue_q7",
+      "question": "Have you experienced nausea or vomiting?",
+      "positive_symptom": "I have experienced nausea or vomiting",
+      "negative_symptom": "I haven't experienced nausea or vomiting",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "dengue_q8",
+      "question": "Are you experiencing chills or feeling unusually cold?",
+      "positive_symptom": "I am experiencing chills or feeling unusually cold",
+      "negative_symptom": "I am not experiencing chills",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "dengue_q9",
+      "question": "Have you lost your appetite or noticed reduced food intake?",
+      "positive_symptom": "I have lost my appetite or noticed reduced food intake",
+      "negative_symptom": "I haven't lost my appetite",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "dengue_q10",
+      "question": "Do you have itching or irritation on your skin?",
+      "positive_symptom": "I have itching or irritation on my skin",
+      "negative_symptom": "I don't have itching or irritation on my skin",
       "weight": 0.85,
       "category": "secondary"
-    },
-    {
-      "id": "dengue_q4",
-      "question": "Have you noticed any unusual bleeding, such as nosebleeds or bleeding gums?",
-      "positive_symptom": "I also have unusual bleeding such as nosebleeds or bleeding gums",
-      "negative_symptom": "I don't have any unusual bleeding",
-      "weight": 0.8,
-      "category": "secondary"
-    },
-    {
-      "id": "dengue_q5",
-      "question": "Have you been in an area with many mosquitoes recently?",
-      "positive_symptom": "I have been in an area with many mosquitoes recently",
-      "negative_symptom": "I haven't been in an area with many mosquitoes recently",
-      "weight": 0.7,
-      "category": "environmental"
     }
   ],
   "Pneumonia": [
     {
       "id": "pneumonia_q1",
-      "question": "Do you have chest pain when breathing or coughing?",
-      "positive_symptom": "I also have chest pain when breathing or coughing",
-      "negative_symptom": "I don't have chest pain when breathing or coughing",
+      "question": "Are you coughing up mucus, phlegm, or thick sputum?",
+      "positive_symptom": "I am coughing up mucus, phlegm, or thick sputum",
+      "negative_symptom": "I am not coughing up mucus or phlegm",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "pneumonia_q2",
-      "question": "Are you coughing up mucus or phlegm?",
-      "positive_symptom": "I am coughing up mucus or phlegm",
-      "negative_symptom": "I am not coughing up mucus or phlegm",
-      "weight": 0.9,
+      "question": "Do you have a persistent cough?",
+      "positive_symptom": "I have a persistent cough",
+      "negative_symptom": "I don't have a persistent cough",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "pneumonia_q3",
-      "question": "Do you experience shortness of breath or rapid breathing?",
-      "positive_symptom": "I also have shortness of breath or rapid breathing",
-      "negative_symptom": "I don't have shortness of breath or rapid breathing",
-      "weight": 0.9,
+      "question": "Are you experiencing shortness of breath, difficulty breathing, or rapid breathing?",
+      "positive_symptom": "I am experiencing shortness of breath, difficulty breathing, or rapid breathing",
+      "negative_symptom": "I am not experiencing shortness of breath or difficulty breathing",
+      "weight": 0.92,
       "category": "primary"
     },
     {
       "id": "pneumonia_q4",
-      "question": "Do you have chills or feel unusually cold despite having a fever?",
-      "positive_symptom": "I also have chills or feel unusually cold despite having a fever",
-      "negative_symptom": "I don't have chills",
-      "weight": 0.75,
-      "category": "secondary"
+      "question": "Have you been sweating excessively or experiencing heavy perspiration?",
+      "positive_symptom": "I have been sweating excessively or experiencing heavy perspiration",
+      "negative_symptom": "I haven't been sweating excessively",
+      "weight": 0.91,
+      "category": "primary"
     },
     {
       "id": "pneumonia_q5",
-      "question": "Do you feel confused or have difficulty concentrating?",
-      "positive_symptom": "I feel confused or have difficulty concentrating",
+      "question": "Do you feel unusually tired, fatigued, or weak?",
+      "positive_symptom": "I feel unusually tired, fatigued, or weak",
+      "negative_symptom": "I don't feel unusually tired or fatigued",
+      "weight": 0.9,
+      "category": "primary"
+    },
+    {
+      "id": "pneumonia_q6",
+      "question": "Are you experiencing chills or feeling unusually cold?",
+      "positive_symptom": "I am experiencing chills or feeling unusually cold",
+      "negative_symptom": "I am not experiencing chills",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "pneumonia_q7",
+      "question": "Do you have a high fever or elevated body temperature?",
+      "positive_symptom": "I have a high fever or elevated body temperature",
+      "negative_symptom": "I don't have a high fever",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "pneumonia_q8",
+      "question": "Are you experiencing any chest pain or discomfort when breathing or coughing?",
+      "positive_symptom": "I am experiencing chest pain or discomfort when breathing or coughing",
+      "negative_symptom": "I am not experiencing chest pain when breathing or coughing",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "pneumonia_q9",
+      "question": "Do you feel confused, disoriented, or have difficulty concentrating?",
+      "positive_symptom": "I feel confused, disoriented, or have difficulty concentrating",
       "negative_symptom": "I don't feel confused or have difficulty concentrating",
-      "weight": 0.7,
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "pneumonia_q10",
+      "question": "Have you noticed any changes in your breathing patterns or lung function?",
+      "positive_symptom": "I have noticed changes in my breathing patterns or lung function",
+      "negative_symptom": "I haven't noticed any changes in my breathing patterns",
+      "weight": 0.85,
       "category": "secondary"
     }
   ],
   "Typhoid": [
     {
       "id": "typhoid_q1",
-      "question": "Do you have persistent stomach pain or discomfort?",
-      "positive_symptom": "I also have persistent stomach pain or discomfort",
-      "negative_symptom": "I don't have persistent stomach pain or discomfort",
-      "weight": 0.9,
+      "question": "Are you experiencing persistent abdominal (belly/stomach) pain or discomfort?",
+      "positive_symptom": "I have persistent abdominal pain or discomfort",
+      "negative_symptom": "I don't have persistent abdominal pain or discomfort",
+      "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "typhoid_q2",
-      "question": "Are you experiencing diarrhea or constipation?",
-      "positive_symptom": "I am experiencing diarrhea or constipation",
-      "negative_symptom": "I am not experiencing diarrhea or constipation",
-      "weight": 0.85,
+      "question": "Have you had alternating constipation and diarrhea?",
+      "positive_symptom": "I have alternating constipation and diarrhea",
+      "negative_symptom": "I don't have alternating constipation and diarrhea",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "typhoid_q3",
-      "question": "Do you have a loss of appetite or feel very weak?",
-      "positive_symptom": "I also have loss of appetite or feel very weak",
-      "negative_symptom": "I don't have loss of appetite",
-      "weight": 0.8,
-      "category": "secondary"
+      "question": "Do you have a high fever, especially at night?",
+      "positive_symptom": "I have a high fever, especially at night",
+      "negative_symptom": "I don't have a high fever, especially at night",
+      "weight": 0.92,
+      "category": "primary"
     },
     {
       "id": "typhoid_q4",
-      "question": "Do you have a rose-colored rash on your trunk or abdomen?",
-      "positive_symptom": "I also have a rose-colored rash on my trunk or abdomen",
-      "negative_symptom": "I don't have a rose-colored rash",
-      "weight": 0.75,
-      "category": "secondary"
+      "question": "Are you experiencing chills along with your fever?",
+      "positive_symptom": "I am experiencing chills along with my fever",
+      "negative_symptom": "I am not experiencing chills along with my fever",
+      "weight": 0.91,
+      "category": "primary"
     },
     {
       "id": "typhoid_q5",
-      "question": "Have you recently consumed food or water that might have been contaminated?",
-      "positive_symptom": "I have recently consumed food or water that might have been contaminated",
-      "negative_symptom": "I haven't consumed any contaminated food or water that I know of",
-      "weight": 0.75,
-      "category": "environmental"
+      "question": "Have you felt nauseous or vomited recently?",
+      "positive_symptom": "I have felt nauseous or vomited recently",
+      "negative_symptom": "I haven't felt nauseous or vomited recently",
+      "weight": 0.9,
+      "category": "primary"
+    },
+    {
+      "id": "typhoid_q6",
+      "question": "Have you lost your appetite or noticed significant weight loss?",
+      "positive_symptom": "I have lost my appetite or noticed significant weight loss",
+      "negative_symptom": "I haven't lost my appetite or noticed significant weight loss",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q7",
+      "question": "Do you feel unusually fatigued or weak?",
+      "positive_symptom": "I feel unusually fatigued or weak",
+      "negative_symptom": "I don't feel unusually fatigued or weak",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q8",
+      "question": "Are you having trouble staying hydrated?",
+      "positive_symptom": "I am having trouble staying hydrated",
+      "negative_symptom": "I am not having trouble staying hydrated",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q9",
+      "question": "Have you had headaches along with your other symptoms?",
+      "positive_symptom": "I have had headaches along with my other symptoms",
+      "negative_symptom": "I haven't had headaches along with my other symptoms",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "typhoid_q10",
+      "question": "Are you having trouble sleeping due to your symptoms?",
+      "positive_symptom": "I am having trouble sleeping due to my symptoms",
+      "negative_symptom": "I am not having trouble sleeping due to my symptoms",
+      "weight": 0.85,
+      "category": "secondary"
     }
   ],
   "Impetigo": [
     {
       "id": "impetigo_q1",
-      "question": "Do you have red sores or blisters on your skin, especially around the nose and mouth?",
-      "positive_symptom": "I also have red sores or blisters on my skin, especially around the nose and mouth",
-      "negative_symptom": "I don't have red sores or blisters on my skin",
+      "question": "Do you have any sores, lesions, or wounds on your skin?",
+      "positive_symptom": "I have sores, lesions, or wounds on my skin",
+      "negative_symptom": "I don't have any sores, lesions, or wounds on my skin",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "impetigo_q2",
-      "question": "Are the sores oozing fluid or forming honey-colored crusts?",
-      "positive_symptom": "The sores are oozing fluid or forming honey-colored crusts",
-      "negative_symptom": "The sores are not oozing or forming crusts",
-      "weight": 0.9,
+      "question": "Are the skin problems located on your face, especially around the nose, mouth, or lips?",
+      "positive_symptom": "The skin problems are located on my face, especially around the nose, mouth, or lips",
+      "negative_symptom": "The skin problems are not on my face",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "impetigo_q3",
-      "question": "Do you experience itching around the affected areas?",
-      "positive_symptom": "I also experience itching around the affected areas",
-      "negative_symptom": "I don't experience itching around the affected areas",
-      "weight": 0.8,
-      "category": "secondary"
+      "question": "Are you experiencing pain, tenderness, or discomfort in the affected skin areas?",
+      "positive_symptom": "I am experiencing pain, tenderness, or discomfort in the affected skin areas",
+      "negative_symptom": "I am not experiencing pain or discomfort in the affected areas",
+      "weight": 0.92,
+      "category": "primary"
     },
     {
       "id": "impetigo_q4",
-      "question": "Have the sores been spreading to other areas of your body?",
-      "positive_symptom": "The sores have been spreading to other areas of my body",
-      "negative_symptom": "The sores haven't been spreading",
-      "weight": 0.75,
-      "category": "secondary"
+      "question": "Have you noticed redness or inflammation of the skin?",
+      "positive_symptom": "I have noticed redness or inflammation of the skin",
+      "negative_symptom": "I haven't noticed any redness or inflammation",
+      "weight": 0.91,
+      "category": "primary"
     },
     {
       "id": "impetigo_q5",
-      "question": "Have you been in close contact with someone who has similar skin sores?",
-      "positive_symptom": "I have been in close contact with someone who has similar skin sores",
-      "negative_symptom": "I haven't been in close contact with anyone with similar sores",
-      "weight": 0.7,
-      "category": "environmental"
+      "question": "Do you have a rash or any skin eruptions?",
+      "positive_symptom": "I have a rash or skin eruptions",
+      "negative_symptom": "I don't have a rash or skin eruptions",
+      "weight": 0.9,
+      "category": "primary"
+    },
+    {
+      "id": "impetigo_q6",
+      "question": "Are the sores oozing fluid, discharge, or pus?",
+      "positive_symptom": "The sores are oozing fluid, discharge, or pus",
+      "negative_symptom": "The sores are not oozing any fluid",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "impetigo_q7",
+      "question": "Do you have a fever or elevated body temperature?",
+      "positive_symptom": "I have a fever or elevated body temperature",
+      "negative_symptom": "I don't have a fever",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "impetigo_q8",
+      "question": "Have the skin lesions been spreading to other areas of your body?",
+      "positive_symptom": "The skin lesions have been spreading to other areas of my body",
+      "negative_symptom": "The skin lesions haven't been spreading",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "impetigo_q9",
+      "question": "Do you experience itching or irritation in the affected areas?",
+      "positive_symptom": "I experience itching or irritation in the affected areas",
+      "negative_symptom": "I don't experience itching or irritation",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "impetigo_q10",
+      "question": "Have you noticed any blisters or pustules forming on your skin?",
+      "positive_symptom": "I have noticed blisters or pustules forming on my skin",
+      "negative_symptom": "I haven't noticed any blisters or pustules",
+      "weight": 0.85,
+      "category": "secondary"
     }
   ]
 }

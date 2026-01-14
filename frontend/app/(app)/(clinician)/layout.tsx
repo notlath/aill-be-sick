@@ -1,4 +1,5 @@
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
+import Sidebar from "@/components/patient/layout/sidebar";
 import { getCurrentDbUser } from "@/utils/user";
 import { redirect } from "next/navigation";
 import { ReactNode } from "react";
@@ -15,11 +16,17 @@ const Layout = async ({ children }: { children: ReactNode }) => {
     return <div>Error: {JSON.stringify(error)}</div>;
   }
 
-  if (dbUser.role !== "CLINICIAN") {
+  // Allow CLINICIAN and DEVELOPER roles to access clinician views
+  if (dbUser.role !== "CLINICIAN" && dbUser.role !== ("DEVELOPER" as any)) {
     return redirect("/diagnosis");
   }
 
-  return <LayoutWrapper>{children}</LayoutWrapper>;
+  return (
+    <LayoutWrapper>
+      <Sidebar />
+      {children}
+    </LayoutWrapper>
+  );
 };
 
 export default Layout;

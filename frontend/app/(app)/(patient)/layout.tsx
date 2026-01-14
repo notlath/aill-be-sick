@@ -16,7 +16,8 @@ const Layout = async ({ children }: { children: ReactNode }) => {
     return <div>Error: {JSON.stringify(error)}</div>;
   }
 
-  if (dbUser.role !== "PATIENT") {
+  // Allow PATIENT and DEVELOPER roles to access patient views
+  if (dbUser.role !== "PATIENT" && dbUser.role !== ("DEVELOPER" as any)) {
     return redirect("/dashboard");
   }
 

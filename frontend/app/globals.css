@@ -60,6 +60,59 @@
   --ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
+/* Futuristic gradient utilities */
+.bg-gradient-radial {
+  background-image: radial-gradient(var(--tw-gradient-stops));
+}
+
+/* Apple-style subtle animations */
+@keyframes pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+@keyframes slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.8s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  opacity: 0;
+}
+
 /* Root styles for smooth animations */
 * {
   -webkit-font-smoothing: antialiased;
@@ -89,6 +142,17 @@
 /* Selection styling */
 ::selection {
   background-color: oklch(59% 0.145 163.225 / 0.25);
+  color: inherit;
+}
+
+/* Chat bubble selection - more visible highlight */
+.chat-bubble-user ::selection {
+  background-color: rgba(255, 255, 255, 0.3);
+  color: inherit;
+}
+
+.chat-bubble-ai ::selection {
+  background-color: oklch(59% 0.145 163.225 / 0.35);
   color: inherit;
 }
 

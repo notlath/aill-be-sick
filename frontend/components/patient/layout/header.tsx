@@ -1,5 +1,6 @@
 import SignOutBtn from "./sign-out-btn";
 import SidebarToggle from "./sidebar-toggle";
+import ViewSwitcherBtn from "./view-switcher-btn";
 import Image from "next/image";
 import { User } from "@/app/generated/prisma";
 
@@ -16,7 +17,7 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
           <div className="flex flex-1 items-center gap-3 hover:bg-base-200/60 p-2.5 rounded-2xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] cursor-pointer group backdrop-blur-sm">
             {dbUser.avatar ? (
               <div className="cursor-pointer avatar">
-                <div className="size-9 overflow-hidden ring-2 ring-base-300/50 transition-all duration-300 group-hover:ring-primary/30">
+                <div className="size-9 rounded-full overflow-hidden ring-2 ring-base-300/50 transition-all duration-300 group-hover:ring-primary/30">
                   <Image
                     src={dbUser.avatar}
                     alt={dbUser.name || "Avatar"}
@@ -47,6 +48,11 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
               "0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08)",
           }}
         >
+          {dbUser.role === ("DEVELOPER" as any) && (
+            <li>
+              <ViewSwitcherBtn isDeveloper={true} />
+            </li>
+          )}
           <li>
             <button
               role="button"

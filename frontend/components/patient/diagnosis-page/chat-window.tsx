@@ -17,12 +17,42 @@ import { useUserLocation } from "@/hooks/use-location";
 import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
 import { explainDiagnosis } from "@/actions/explain-diagnosis";
 import { Explanation as TempExplanation } from "@/types";
+import CDSSSummary from "./cdss-summary";
+
+// Helpers to map backend strings to enum values expected by CreateMessageSchema
+const mapModelUsed = (
+  modelUsed?: string
+): "BIOCLINICAL_MODERNBERT" | "ROBERTA_TAGALOG" => {
+  if (!modelUsed) return "BIOCLINICAL_MODERNBERT";
+  const lower = modelUsed.toLowerCase();
+  if (lower.includes("roberta") || lower.includes("tagalog"))
+    return "ROBERTA_TAGALOG";
+  return "BIOCLINICAL_MODERNBERT";
+};
+
+const mapDisease = (
+  disease?: string
+): "DENGUE" | "PNEUMONIA" | "TYPHOID" | "IMPETIGO" => {
+  switch ((disease || "").toLowerCase()) {
+    case "dengue":
+      return "DENGUE";
+    case "pneumonia":
+      return "PNEUMONIA";
+    case "typhoid":
+      return "TYPHOID";
+    case "impetigo":
+      return "IMPETIGO";
+    default:
+      return "PNEUMONIA";
+  }
+};
 
 type ChatWindowProps = {
   chatId: string;
   messages: Message[];
   chat: Chat;
   dbExplanation: Explanation | null;
+  userRole?: string;
 };
 
 const ChatWindow = ({
@@ -30,8 +60,18 @@ const ChatWindow = ({
   messages,
   chat,
   dbExplanation,
+  userRole,
 }: ChatWindowProps) => {
   const { location, requestLocation } = useUserLocation();
+
+  const form = useForm<CreateChatSchemaType>({
+    resolver: zodResolver(CreateChatSchema),
+    defaultValues: {
+      chatId,
+      symptoms: "",
+    },
+  });
+
   const [currentQuestion, setCurrentQuestion] = useState<{
     id: string;
     question: string;
@@ -41,11 +81,17 @@ const ChatWindow = ({
   } | null>(null);
   const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
   const [positiveSymptoms, setPositiveSymptoms] = useState<string[]>([]);
+  const [confirmNeeded, setConfirmNeeded] = useState<boolean>(false);
+  const [diagnosisMode, setDiagnosisMode] = useState<"adaptive" | "legacy">(
+    "adaptive"
+  );
+
   const lastAnswerRef = useRef<{
     answer: "yes" | "no";
     questionId: string;
     questionText?: string;
   } | null>(null);
+  const lastDiagnosisRef = useRef<any>(null);
 
   const getCurrentSymptoms = () => {
     const initialSymptom = (
@@ -55,243 +101,114 @@ const ChatWindow = ({
 
     return [initialSymptom, ...positiveSymptoms].filter(Boolean).join(". ");
   };
+
   const [currentDiagnosis, setCurrentDiagnosis] = useState<{
     disease: string;
     confidence: number;
     uncertainty: number;
-    top_diseases?: Array<{ disease: string; probability: number }>;
+    top_diseases?: any[];
+    cdss?: any;
+    model_used?: string;
   } | null>(null);
-  const [confirmNeeded, setConfirmNeeded] = useState(false);
-  const [diagnosisMode, setDiagnosisMode] = useState<"adaptive" | "legacy">(
-    (process.env.NEXT_PUBLIC_DIAGNOSIS_MODE as "adaptive" | "legacy") ||
-      "adaptive"
-  );
-  const lastDiagnosisRef = useRef<any>(null);
-  const form = useForm<CreateChatSchemaType>({
-    defaultValues: {
-      symptoms: "",
-      chatId,
-    },
-    resolver: zodResolver(CreateChatSchema),
-  });
-  const [tempExplanation, setTempExplanation] =
-    useState<TempExplanation | null>(null);
-  const { execute: getExplanations, isExecuting: isGettingExplanations } =
-    useAction(explainDiagnosis, {
-      onSuccess: ({ data }) => {
-        if (data.success) {
-          setTempExplanation(data.explanation);
-        } else if (data.error) {
-          let errorMessage = "";
-
-          if (data.error === "EXPLANATION_ERROR") {
-            errorMessage = `Sorry, there was an error generating the explanation for your diagnosis: ${data.message}`;
-          } else {
-            errorMessage =
-              data.message ||
-              "An error occurred while processing your symptoms. Please try again.";
-          }
-
-          createMessageExecute({
-            chatId,
-            content: errorMessage,
-            type: "ERROR",
-            role: "AI",
-          });
-        }
-      },
-    });
+  const [isFinalDiagnosis, setIsFinalDiagnosis] = useState<boolean>(false);
 
   const { execute: getFollowUpExecute, isExecuting: isGettingQuestion } =
     useAction(getFollowUpQuestion, {
       onSuccess: ({ data }) => {
         if (data?.success) {
-          const { should_stop, question, reason, message } = data.success;
+          const { question, should_stop, reason, diagnosis } =
+            data.success as any;
 
-          if (should_stop) {
-            console.log("Stopping questions:", reason);
+          if (diagnosis) {
+            const {
+              disease,
+              confidence,
+              uncertainty,
+              top_diseases,
+              cdss,
+              model_used,
+            } = diagnosis;
+            setCurrentDiagnosis({
+              disease,
+              confidence,
+              uncertainty,
+              top_diseases,
+              cdss,
+              model_used,
+            });
+            // Persist current full symptoms for later explanations
+            lastDiagnosisRef.current = {
+              ...(lastDiagnosisRef.current || {}),
+              ...diagnosis,
+              symptoms: getCurrentSymptoms(),
+            };
+          }
 
-            // Check if symptoms don't match our covered diseases
-            if (reason === "SYMPTOMS_NOT_MATCHING") {
-              // Show graceful message that their symptoms don't match our covered diseases
+          if (reason === "SYMPTOMS_NOT_MATCHING") {
+            // Terminal but not a confident final prediction; do not show CDSS summary
+            setIsFinalDiagnosis(false);
+            createMessageExecute({
+              chatId,
+              content:
+                "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover (Dengue, Pneumonia, Typhoid, or Impetigo). We recommend consulting with a healthcare professional for a proper evaluation.",
+              type: "ERROR",
+              role: "AI",
+            });
+            setCurrentQuestion(null);
+            return;
+          }
+
+          if (should_stop && !question) {
+            // Finalized prediction reached
+            setIsFinalDiagnosis(true);
+            // Create a DIAGNOSIS message to surface record + insights buttons and persist temp diagnosis
+            if (diagnosis) {
+              const { disease, confidence, uncertainty, model_used } =
+                diagnosis;
+              const impressive = (confidence ?? 0) >= 0.9;
+
+              // If confidence is high, show the final assessment.
+              // Otherwise, avoid showing the disease/confidence to the patient to prevent alarm.
+              const summary = impressive
+                ? `Final assessment: ${disease} (confidence ${(
+                    confidence * 100
+                  ).toFixed(1)}%)`
+                : `You may not be experiencing a disease that this system can process or your inputs are invalid.`;
+
+              // Log when confidence is good but below impressive threshold
+              if (!impressive && (confidence ?? 0) >= 0.9) {
+                console.warn(
+                  `[LOG_DISCREPANCY] Valid diagnosis below impressive threshold | disease=${disease} | conf=${(
+                    confidence * 100
+                  ).toFixed(2)}% | MI=${(uncertainty * 100).toFixed(
+                    2
+                  )}% | showing_error_msg=YES`
+                );
+              }
+
               createMessageExecute({
                 chatId,
-                content:
-                  message ||
-                  "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover (Dengue, Pneumonia, Typhoid, or Impetigo). We recommend consulting with a healthcare professional for a proper evaluation.",
-                type: "ERROR",
+                content: summary,
+                type: "DIAGNOSIS",
                 role: "AI",
-              });
-              setCurrentQuestion(null);
-              return;
-            }
-
-            // If no more disease-specific questions are available, finalize a best-effort diagnosis
-            if (reason === "No more questions available") {
-              const last = lastDiagnosisRef.current;
-              if (last) {
-                const {
-                  disease,
+                tempDiagnosis: {
                   confidence,
                   uncertainty,
-                  top_diseases,
-                  model_used,
-                  probs,
-                } = last as any;
-
-                const transformedModelUsed = (model_used || "UNKNOWN")
-                  .toUpperCase()
-                  .replace(/\s+/g, "_") as
-                  | "BIOCLINICAL_MODERNBERT"
-                  | "ROBERTA_TAGALOG";
-
-                const transformedDisease = disease.toUpperCase() as
-                  | "DENGUE"
-                  | "PNEUMONIA"
-                  | "TYPHOID"
-                  | "IMPETIGO";
-
-                // Build the probability list
-                let probsList = "";
-                if (probs && Array.isArray(probs)) {
-                  probsList = probs.map((prob: any) => `- ${prob}`).join("\n");
-                } else if (top_diseases && Array.isArray(top_diseases)) {
-                  probsList = top_diseases
-                    .map(
-                      (d: any) =>
-                        `- ${d.disease}: ${(d.probability * 100).toFixed(2)}%`
-                    )
-                    .join("\n");
-                }
-
-                // Get all symptoms
-                const initialSymptom = (
-                  messages.find(
-                    (m) => m.type === "SYMPTOMS" && m.role === "USER"
-                  )?.content || form.getValues("symptoms")
-                ).toString();
-                const allSymptoms = [initialSymptom, ...positiveSymptoms]
-                  .filter(Boolean)
-                  .join(". ");
-
-                let diagnosisMessage = "";
-
-                if (uncertainty <= 0.03 && confidence >= 0.9) {
-                  // Safe
-                  diagnosisMessage = `
-After asking all available questions, you might be experiencing: **${disease}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
-                    confidence * 100
-                  ).toFixed(4)}%**.  \n
-Here are other most likely conditions based on your symptoms:
-${probsList}  \n
-
-The **uncertainty score** associated with this diagnosis is **${(
-                    uncertainty * 100
-                  ).toFixed(4)}%**.
-
-A high confidence score (${(confidence * 100).toFixed(
-                    4
-                  )}%) combined with a low uncertainty score (${(
-                    uncertainty * 100
-                  ).toFixed(
-                    4
-                  )}%) suggests that **the model is confident about this diagnosis and that there's very little disagreement in predictions after repeated tests.**  \n
-
-Do you want to record this diagnosis?
-                `;
-                } else if (uncertainty > 0.03 && confidence < 0.9) {
-                  // Escalate to clinician
-                  diagnosisMessage = `
-After asking all available questions, you might be experiencing: **${disease}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
-                    confidence * 100
-                  ).toFixed(4)}%**.  \n
-Here are other most likely conditions based on your symptoms:
-${probsList}  \n
-
-The **uncertainty score** associated with this diagnosis is **${(
-                    uncertainty * 100
-                  ).toFixed(4)}%**.
-          
-A low confidence score (${(confidence * 100).toFixed(
-                    4
-                  )}%) combined with a high uncertainty score (${(
-                    uncertainty * 100
-                  ).toFixed(
-                    4
-                  )}%) suggests that the model does not know the diagnosis and also does not know what the best diagnosis could be. **These results should not be trusted without further validation or a human expert's opinion.**  \n
-
-Do you want to record this diagnosis?
-                `;
-                } else if (uncertainty > 0.03 && confidence >= 0.9) {
-                  // Potential distribution shift
-                  diagnosisMessage = `
-After asking all available questions, you might be experiencing: **${disease}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
-                    confidence * 100
-                  ).toFixed(4)}%**.  \n
-Here are other most likely conditions based on your symptoms:
-${probsList}  \n
-
-The **uncertainty score** associated with this diagnosis is **${(
-                    uncertainty * 100
-                  ).toFixed(4)}%**.
-
-A high confidence score (${(confidence * 100).toFixed(
-                    4
-                  )}%) combined with a high uncertainty score (${(
-                    uncertainty * 100
-                  ).toFixed(
-                    4
-                  )}%) indicates **overconfidence** of the model in this diagnosis. The model is confident about the diagnosis, but is also not sure what the best diagnosis could be. This could be a sign of distribution shift, where the model is encountering data that is different from what it was trained on. **These results should not be trusted without further validation or a human expert's opinion.**  \n
-
-Do you want to record this diagnosis?
-                `;
-                } else if (uncertainty <= 0.03 && confidence < 0.9) {
-                  // Ambiguous case, the model doesn't know and knows that it doesn't know
-                  diagnosisMessage = `
-After asking all available questions, you might be experiencing: **${disease}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
-                    confidence * 100
-                  ).toFixed(4)}%**.  \n
-Here are other most likely conditions based on your symptoms:
-${probsList}  \n
-
-The **uncertainty score** associated with this diagnosis is **${(
-                    uncertainty * 100
-                  ).toFixed(4)}%**.
-
-A low confidence score (${(confidence * 100).toFixed(
-                    4
-                  )}%) combined with a low uncertainty score (${(
-                    uncertainty * 100
-                  ).toFixed(
-                    4
-                  )}%) suggests that **the model is unsure about the diagnosis,** and is aware that **it needs more information to make a confident prediction for this specific case.** It is recommended to seek further medical advice or provide additional context for an accurate diagnosis.  \n
-
-Do you want to record this diagnosis?
-                `;
-                }
-
-                // Create the AI diagnosis message with tempDiagnosis
-                createMessageExecute({
-                  chatId,
-                  content: diagnosisMessage,
-                  type: "DIAGNOSIS",
-                  role: "AI",
-                  tempDiagnosis: {
-                    confidence,
-                    uncertainty,
-                    modelUsed: transformedModelUsed,
-                    disease: transformedDisease,
-                    symptoms: allSymptoms,
-                  },
-                });
-              }
+                  modelUsed: mapModelUsed(model_used),
+                  disease: mapDisease(disease),
+                  symptoms: getCurrentSymptoms(),
+                },
+              });
             }
             setCurrentQuestion(null);
-          } else if (question) {
-            // Compose professional clinical AI message and persist
+            return;
+          }
+
+          if (question) {
+            // Still collecting evidence; keep CDSS summary hidden
+            setIsFinalDiagnosis(false);
             const aiContent = question.question;
 
-            // Persist the AI question as a chat message
             createMessageExecute({
               chatId,
               content: aiContent,
@@ -306,6 +223,8 @@ Do you want to record this diagnosis?
               negative_symptom: question.negative_symptom,
               category: question.category,
             });
+          } else {
+            setCurrentQuestion(null);
           }
         } else if (data?.error) {
           console.error("Error getting follow-up question:", data.error);
@@ -314,12 +233,18 @@ Do you want to record this diagnosis?
       },
     });
 
+  const { execute: getExplanations, isExecuting: isGettingExplanations } =
+    useAction(explainDiagnosis, {});
+
   const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } = useAction(
     runDiagnosis,
     {
       onSuccess: ({ data }) => {
+        console.log(
+          "[DEBUG BROWSER] onSuccess callback triggered, data:",
+          data
+        );
         if (data?.error) {
-          // Create error message as a chat bubble instead of modal
           let errorMessage = "";
 
           if (data.error === "UNSUPPORTED_LANGUAGE") {
@@ -334,7 +259,6 @@ Do you want to record this diagnosis?
               "An error occurred while processing your symptoms. Please try again.";
           }
 
-          // Add error as AI chat message
           createMessageExecute({
             chatId,
             content: errorMessage,
@@ -342,21 +266,83 @@ Do you want to record this diagnosis?
             role: "AI",
           });
         } else if (data?.success && data?.diagnosis) {
-          // Store diagnosis info
-          const { disease, confidence, uncertainty, top_diseases } =
-            data.diagnosis;
+          console.log("[DEBUG] ENTERED SUCCESS HANDLER - data:", data);
+          const {
+            disease,
+            confidence,
+            uncertainty,
+            top_diseases,
+            cdss,
+            model_used,
+          } = data.diagnosis as any;
 
           setCurrentDiagnosis({
             disease,
             confidence,
             uncertainty,
             top_diseases,
+            cdss,
+            model_used,
           });
-          lastDiagnosisRef.current = { ...data.diagnosis };
+          lastDiagnosisRef.current = {
+            ...data.diagnosis,
+            symptoms: form.getValues("symptoms"),
+          };
 
-          // Check if we should ask follow-up questions (if not confident)
-          if (!data.isConfident) {
-            // Get first follow-up question
+          // Check if backend explicitly said to skip follow-up (very high confidence)
+          // Force recompile: 2025-11-01 19:30:00
+          const shouldSkipFollowup =
+            (data.diagnosis as any)?.skip_followup === true;
+
+          // Debug logging
+          console.log(
+            "[DEBUG] Chat Window - isConfident:",
+            data.isConfident,
+            "shouldSkipFollowup:",
+            shouldSkipFollowup
+          );
+          console.log(
+            "[DEBUG] Chat Window - diagnosis object:",
+            data.diagnosis
+          );
+          console.log(
+            "[DEBUG] Chat Window - skip_followup value:",
+            (data.diagnosis as any)?.skip_followup
+          );
+          console.log(
+            "[DEBUG] Chat Window - skip_followup type:",
+            typeof (data.diagnosis as any)?.skip_followup
+          );
+
+          if (shouldSkipFollowup) {
+            // Backend says diagnosis is very confident (≥95%), mark as final immediately
+            setIsFinalDiagnosis(true);
+
+            // Create final diagnosis message
+            const impressive = (confidence ?? 0) >= 0.95;
+            const summary = impressive
+              ? `Final assessment: ${disease} (confidence ${(
+                  confidence * 100
+                ).toFixed(1)}%)`
+              : `Assessment complete: ${disease}`;
+
+            createMessageExecute({
+              chatId,
+              content: summary,
+              type: "DIAGNOSIS",
+              role: "AI",
+              tempDiagnosis: {
+                confidence,
+                uncertainty,
+                modelUsed: mapModelUsed(model_used),
+                disease: mapDisease(disease),
+                symptoms: getCurrentSymptoms(),
+              },
+            });
+            setCurrentQuestion(null);
+          } else if (!data.isConfident) {
+            // Initial run is not final until follow-ups decide otherwise
+            setIsFinalDiagnosis(false);
             getFollowUpExecute({
               disease,
               confidence,
@@ -365,14 +351,10 @@ Do you want to record this diagnosis?
               symptoms: getCurrentSymptoms(),
               top_diseases: top_diseases || [],
               mode: diagnosisMode,
-              // include last answer context if available
-              last_answer: lastAnswerRef.current?.answer,
-              last_question_id: lastAnswerRef.current?.questionId,
-              last_question_text: lastAnswerRef.current?.questionText,
             });
           } else {
-            // Diagnosis is confident
-            // Request a confirmatory question once before finalizing
+            // Confident but not high enough to skip entirely - ask confirmation question
+            setIsFinalDiagnosis(false);
             if (!confirmNeeded) {
               setConfirmNeeded(true);
               getFollowUpExecute({
@@ -384,21 +366,18 @@ Do you want to record this diagnosis?
                 top_diseases: top_diseases || [],
                 force: true,
                 mode: diagnosisMode,
-                last_answer: lastAnswerRef.current?.answer,
-                last_question_id: lastAnswerRef.current?.questionId,
-                last_question_text: lastAnswerRef.current?.questionText,
               });
             } else {
-              // Confirmatory question was already asked - now finalize
-              // The diagnosis message is already shown from runDiagnosis
               setCurrentQuestion(null);
-              // Don't ask more questions - diagnosis is final
+              // This path may represent a finalized case after forced confirmation
+              // We'll still wait for follow-up response to mark final
             }
           }
         }
       },
     }
   );
+
   const {
     execute: createMessageExecute,
     optimisticState: optimisticMessages,
@@ -406,49 +385,36 @@ Do you want to record this diagnosis?
   } = useOptimisticAction(createMessage, {
     currentState: messages,
     updateFn: (currentMessages, newMessage: any) => {
-      const updatedMessages = [...currentMessages, newMessage];
-
-      return updatedMessages;
+      return [...currentMessages, newMessage];
     },
     onSuccess: ({ data }) => {
       if (data.success) {
-        const created = data.success;
-        console.log("Message created successfully:", created);
+        const created = data.success as any;
 
-        // Only run diagnosis automatically for user-submitted SYMPTOMS messages (from the form)
         if (created.role === "USER" && created.type === "SYMPTOMS") {
+          setCurrentQuestion(null);
+          setAskedQuestions([]);
+          setPositiveSymptoms([]);
+          setConfirmNeeded(false);
+          setIsFinalDiagnosis(false);
+
           runDiagnosisExecute({
             chatId,
             symptoms: created.content,
-            skipMessage: true, // Skip message - will show after confirmatory if confident
+            skipMessage: true,
           });
         }
 
-        // NEW: when a DIAGNOSIS message (with a tempDiagnosis attached) is created,
-        // call the explainDiagnosis action so backend SHAP explainer runs and we can
-        // persist/expose token importances. Requires mean_probs from lastDiagnosisRef.
         if (created.type === "DIAGNOSIS") {
           const symptomsText = lastDiagnosisRef.current?.symptoms;
           const meanProbs = lastDiagnosisRef.current?.mean_probs;
 
-          console.log(
-            "Preparing to request explanation for diagnosis message:",
-            {
-              symptoms: symptomsText,
-              mean_probs: meanProbs,
-              messageId: created.id,
-            }
-          );
-
           if (meanProbs && Array.isArray(meanProbs)) {
-            // call the server action wrapper that posts to backend /diagnosis/explain
             getExplanations({
               symptoms: symptomsText,
               meanProbs,
               messageId: created.id,
             });
-          } else {
-            console.warn("No meanProbs available to request explanation");
           }
         }
       } else if (data.error) {
@@ -457,277 +423,83 @@ Do you want to record this diagnosis?
     },
     onError: ({ error }) => {
       console.error("Failed to create message:", error);
-      // Log detailed validation errors if available
-      if (error && typeof error === "object" && "validationErrors" in error) {
-        console.error(
-          "Validation errors details:",
-          JSON.stringify(error.validationErrors, null, 2)
-        );
-      }
     },
   });
 
-  // Handle question answers
   const handleQuestionAnswer = async (
     answer: "yes" | "no",
     symptom: string,
     questionId: string
   ) => {
-    // Add question ID to asked questions
-    setAskedQuestions((prev) => [...prev, questionId]);
-
-    // Clear current question
+    const updatedAsked = [...askedQuestions, questionId];
+    setAskedQuestions(updatedAsked);
     setCurrentQuestion(null);
 
-    // Record last answer context to be sent with next follow-up request
     lastAnswerRef.current = {
       answer,
       questionId,
       questionText: currentQuestion?.question,
     };
 
-    // Use the symptom text directly - it's already a complete sentence from the question bank
-    // For Tagalog: "Mayroon din akong..." or "Wala akong..."
-    // For English: "I also have..." or "I don't have..."
-    const userResponse = symptom;
-
-    // Create user message with natural language
     await createMessageExecute({
       chatId,
-      content: userResponse,
+      content: symptom,
       type: "ANSWER",
       role: "USER",
     });
 
-    // Maintain a list of positively confirmed symptoms only
-    // The symptom text is already a complete sentence, so we add it as-is
     let newPositives = [...positiveSymptoms];
-    if (answer === "yes") {
-      newPositives = [...newPositives, symptom];
-      setPositiveSymptoms(newPositives);
-    }
 
-    // Use the initial symptom (first SYMPTOMS message) and any positives
     const initialSymptom = (
       messages.find((m) => m.type === "SYMPTOMS" && m.role === "USER")
         ?.content || form.getValues("symptoms")
     ).toString();
 
+    const initialSymptomText = (
+      messages.find((m) => m.type === "SYMPTOMS" && m.role === "USER")
+        ?.content || form.getValues("symptoms")
+    )
+      .toString()
+      .toLowerCase();
+    const alreadyPresent =
+      initialSymptomText.includes(symptom.toLowerCase()) ||
+      newPositives.some((s) => s.toLowerCase() === symptom.toLowerCase());
+    if (!alreadyPresent) {
+      newPositives = [...newPositives, symptom];
+      setPositiveSymptoms(newPositives);
+    }
     const allSymptoms = [initialSymptom, ...newPositives]
       .filter(Boolean)
       .join(". ");
 
-    // If this was a confirmatory question and we already have a diagnosis, DON'T re-run
-    // Instead, create the final diagnosis message now
-    if (confirmNeeded) {
-      setConfirmNeeded(false);
-      setCurrentQuestion(null);
-
-      // Create final diagnosis message using stored diagnosis
-      const last = lastDiagnosisRef.current;
-      if (last) {
-        const {
-          disease,
-          confidence,
-          uncertainty,
-          probs,
-          top_diseases,
-          model_used,
-        } = last as any;
-
-        const transformedModelUsed = model_used
-          .toUpperCase()
-          .replace(/\s+/g, "_") as "BIOCLINICAL_MODERNBERT" | "ROBERTA_TAGALOG";
-
-        const transformedDisease = disease.toUpperCase() as
-          | "DENGUE"
-          | "PNEUMONIA"
-          | "TYPHOID"
-          | "IMPETIGO";
-
-        // Build the probability list - use probs if available, otherwise format top_diseases
-        let probsList = "";
-        if (probs && Array.isArray(probs)) {
-          probsList = probs.map((prob: any) => `- ${prob}`).join("\n");
-        } else if (top_diseases && Array.isArray(top_diseases)) {
-          probsList = top_diseases
-            .map(
-              (d: any) => `- ${d.disease}: ${(d.probability * 100).toFixed(2)}%`
-            )
-            .join("\n");
-        }
-
-        // Get all symptoms first
-        const initialSymptom = (
-          messages.find((m) => m.type === "SYMPTOMS" && m.role === "USER")
-            ?.content || form.getValues("symptoms")
-        ).toString();
-        const allSymptoms = [initialSymptom, ...positiveSymptoms]
-          .filter(Boolean)
-          .join(". ");
-
-        // Build diagnosis message based on confidence and uncertainty
-        let diagnosisMessage = "";
-        if (uncertainty <= 0.03 && confidence >= 0.9) {
-          // High confidence, low uncertainty - reliable diagnosis
-          diagnosisMessage = `Based on your symptom description, you might be experiencing: **${disease}**.
-
-Here are other most likely conditions based on your symptoms:
-${probsList}
-
-The **uncertainty score** associated with this diagnosis is **${(
-            uncertainty * 100
-          ).toFixed(4)}%**.
-
-A high confidence score (${(confidence * 100).toFixed(
-            4
-          )}%) combined with a low uncertainty score (${(
-            uncertainty * 100
-          ).toFixed(
-            4
-          )}%) suggests that **the model is confident about this diagnosis and that there's very little disagreement in predictions after repeated tests.**
-
-Do you want to record this diagnosis?`;
-        } else if (confidence < 0.9 && uncertainty <= 0.03) {
-          // Lower confidence but low uncertainty - model is unsure
-          diagnosisMessage = `Based on your symptom description, you might be experiencing: **${disease}**.
-
-Here are other most likely conditions based on your symptoms:
-${probsList}
-
-The **uncertainty score** associated with this diagnosis is **${(
-            uncertainty * 100
-          ).toFixed(4)}%**.
-
-A moderate confidence score (${(confidence * 100).toFixed(
-            4
-          )}%) combined with a low uncertainty score suggests that **the model is somewhat unsure about the diagnosis.** It is recommended to seek further medical advice for an accurate diagnosis.
-
-Do you want to record this diagnosis?`;
-        } else {
-          // Other cases (high uncertainty or other combinations)
-          diagnosisMessage = `Based on your symptom description, you might be experiencing: **${disease}**.
-
-Here are other most likely conditions based on your symptoms:
-${probsList}
-
-The **uncertainty score** associated with this diagnosis is **${(
-            uncertainty * 100
-          ).toFixed(4)}%**.
-
-Given the confidence score (${(confidence * 100).toFixed(
-            4
-          )}%) and uncertainty, it is recommended to seek professional medical advice for an accurate diagnosis.
-
-Do you want to record this diagnosis?`;
-        }
-
-        console.log("Creating diagnosis message:", {
-          disease,
-          confidence,
-          uncertainty,
-          diagnosisMessage: diagnosisMessage.substring(0, 100),
-        });
-        console.log("Diagnosis payload:", {
-          chatId,
-          contentLength: diagnosisMessage.length,
-          type: "DIAGNOSIS",
-          role: "AI",
-          tempDiagnosis: {
-            confidence,
-            uncertainty,
-            modelUsed: transformedModelUsed,
-            disease: transformedDisease,
-            symptoms: allSymptoms,
-          },
-        });
-
-        // Create the diagnosis message
-        createMessageExecute({
-          chatId,
-          content: diagnosisMessage,
-          type: "DIAGNOSIS",
-          role: "AI",
-          tempDiagnosis: {
-            confidence,
-            uncertainty,
-            modelUsed: transformedModelUsed,
-            disease: transformedDisease,
-            symptoms: allSymptoms,
-          },
-        });
-      }
-
-      return; // Stop here - diagnosis is final
-    }
-
-    // Otherwise, re-run diagnosis with accumulated symptoms
-    runDiagnosisExecute({
-      chatId,
+    getFollowUpExecute({
+      disease: currentDiagnosis?.disease || "",
+      confidence: currentDiagnosis?.confidence || 0,
+      uncertainty: currentDiagnosis?.uncertainty || 1,
+      asked_questions: updatedAsked,
       symptoms: allSymptoms,
-      skipMessage: true, // Skip message - will show after confirmatory if confident
+      top_diseases: currentDiagnosis?.top_diseases || [],
+      mode: diagnosisMode,
+      last_answer: answer,
+      last_question_id: questionId,
+      last_question_text: currentQuestion?.question,
     });
-
-    // getFollowUp will be triggered by the runDiagnosisExecute response (onSuccess)
   };
+
   const hasRunInitialDiagnosis = useRef<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const hasScrolledToBottom = useRef<boolean>(false);
 
-  // Request user location when component mounts
   useEffect(() => {
     requestLocation();
   }, [requestLocation]);
-
-  // Smooth scroll to bottom on initial load
-  useEffect(() => {
-    if (chatEndRef.current && !hasScrolledToBottom.current) {
-      const scrollToBottom = () => {
-        const element = chatEndRef.current;
-        if (!element) return;
-
-        // Get the target position (bottom of the page)
-        const targetPosition =
-          element.getBoundingClientRect().top + window.scrollY;
-
-        // Calculate starting position (25% above the bottom)
-        const viewportHeight = window.innerHeight;
-        const startPosition = targetPosition - viewportHeight * 1.25;
-
-        // Scroll to starting position instantly, then smoothly to bottom
-        window.scrollTo({
-          top: Math.max(0, startPosition),
-          behavior: "instant",
-        });
-
-        // Use setTimeout to ensure the instant scroll completes first
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: "smooth", block: "end" });
-        }, 50);
-
-        hasScrolledToBottom.current = true;
-      };
-
-      // Small delay to ensure content is rendered
-      setTimeout(scrollToBottom, 100);
-    }
-  }, []);
-
-  // Scroll to bottom when new messages are added
-  useEffect(() => {
-    if (hasScrolledToBottom.current && chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
-  }, [optimisticMessages.length]);
 
   useEffect(() => {
     if (messages.length === 1 && !hasRunInitialDiagnosis.current) {
       runDiagnosisExecute({
         chatId,
         symptoms: messages[0].content,
-        skipMessage: true, // Don't create message yet - wait for confirmatory
+        skipMessage: true,
       });
-
       hasRunInitialDiagnosis.current = true;
     }
   }, [messages.length, chatId, runDiagnosisExecute]);
@@ -736,18 +508,26 @@ Do you want to record this diagnosis?`;
     <FormProvider {...form}>
       <ChatContainer
         ref={chatEndRef}
-        messages={optimisticMessages}
+        messages={optimisticMessages as any}
         isGettingQuestion={isGettingQuestion}
         isDiagnosing={isDiagnosing}
         isGettingExplanations={isGettingExplanations}
         isCreatingMessage={isCreatingMessage}
         hasDiagnosis={chat.hasDiagnosis}
         location={location}
-        currentQuestion={currentQuestion}
+        currentQuestion={currentQuestion as any}
         onQuestionAnswer={handleQuestionAnswer}
-        dbExplanation={dbExplanation}
+        dbExplanation={dbExplanation as unknown as TempExplanation}
+        userRole={userRole}
       />
-      {!chat.hasDiagnosis && !currentQuestion && (
+      {isFinalDiagnosis &&
+        currentDiagnosis?.cdss &&
+        (currentDiagnosis?.confidence ?? 0) >= 0.95 && (
+          <div className="mt-3">
+            <CDSSSummary cdss={currentDiagnosis.cdss} />
+          </div>
+        )}
+      {!chat.hasDiagnosis && (
         <div className="-bottom-0.5 sticky bg-base-100 p-4 pt-0">
           <DiagnosisForm
             createMessageExecute={createMessageExecute}

@@ -21,6 +21,11 @@ const HomePage = async () => {
     return redirect("/diagnosis");
   }
 
+  // For DEVELOPER role, redirect to patient view by default
+  if (dbUser.role === ("DEVELOPER" as any)) {
+    return redirect("/diagnosis");
+  }
+
   return (
     <main className="flex flex-col justify-center items-center h-full">
       <h1>Hello world</h1>

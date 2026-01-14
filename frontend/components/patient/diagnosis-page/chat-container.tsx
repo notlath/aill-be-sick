@@ -30,6 +30,7 @@ type ChatContainerProps = {
     questionId: string
   ) => void;
   dbExplanation: Explanation | null;
+  userRole?: string;
 };
 
 const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
@@ -45,6 +46,7 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
       currentQuestion,
       onQuestionAnswer,
       dbExplanation,
+      userRole,
     },
     ref
   ) => {
@@ -60,6 +62,7 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
             explanation={message.explanation || dbExplanation || null}
             location={location}
             tempDiagnosis={message.tempDiagnosis}
+            userRole={userRole}
             {...message}
           />
         ))}
@@ -76,52 +79,55 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
         )}
         {(isDiagnosing || isCreatingMessage) && (
           <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
-            <div>
+            <div className="flex items-center gap-1.5">
               <Markdown
                 remarkPlugins={[remarkBreaks]}
                 components={{
-                  p: ({ children }) => <p className="my-2">{children}</p>,
+                  p: ({ children }) => <p className="my-0">{children}</p>,
                   strong: ({ children }) => (
                     <strong className="font-bold">{children}</strong>
                   ),
                 }}
               >
-                Diagnosing...
+                Diagnosing
               </Markdown>
+              <span className="loading loading-dots loading-xs"></span>
             </div>
           </article>
         )}
         {isGettingQuestion && !currentQuestion && (
           <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
-            <div>
+            <div className="flex items-center gap-1.5">
               <Markdown
                 remarkPlugins={[remarkBreaks]}
                 components={{
-                  p: ({ children }) => <p className="my-2">{children}</p>,
+                  p: ({ children }) => <p className="my-0">{children}</p>,
                   strong: ({ children }) => (
                     <strong className="font-bold">{children}</strong>
                   ),
                 }}
               >
-                Asking you follow-up questions...
+                Asking you follow-up questions
               </Markdown>
+              <span className="loading loading-dots loading-xs"></span>
             </div>
           </article>
         )}
         {isGettingExplanations && (
           <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
-            <div>
+            <div className="flex items-center gap-1.5">
               <Markdown
                 remarkPlugins={[remarkBreaks]}
                 components={{
-                  p: ({ children }) => <p className="my-2">{children}</p>,
+                  p: ({ children }) => <p className="my-0">{children}</p>,
                   strong: ({ children }) => (
                     <strong className="font-bold">{children}</strong>
                   ),
                 }}
               >
-                Generating insights for your diagnosis...
+                Generating insights for your diagnosis
               </Markdown>
+              <span className="loading loading-dots loading-xs"></span>
             </div>
           </article>
         )}
