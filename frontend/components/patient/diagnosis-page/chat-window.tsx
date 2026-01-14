@@ -165,7 +165,7 @@ const ChatWindow = ({
             if (diagnosis) {
               const { disease, confidence, uncertainty, model_used } =
                 diagnosis;
-              const impressive = (confidence ?? 0) >= 0.95;
+              const impressive = (confidence ?? 0) >= 0.9;
 
               // If confidence is high, show the final assessment.
               // Otherwise, avoid showing the disease/confidence to the patient to prevent alarm.
@@ -174,6 +174,17 @@ const ChatWindow = ({
                     confidence * 100
                   ).toFixed(1)}%)`
                 : `You may not be experiencing a disease that this system can process or your inputs are invalid.`;
+
+              // Log when confidence is good but below impressive threshold
+              if (!impressive && (confidence ?? 0) >= 0.9) {
+                console.warn(
+                  `[LOG_DISCREPANCY] Valid diagnosis below impressive threshold | disease=${disease} | conf=${(
+                    confidence * 100
+                  ).toFixed(2)}% | MI=${(uncertainty * 100).toFixed(
+                    2
+                  )}% | showing_error_msg=YES`
+                );
+              }
 
               createMessageExecute({
                 chatId,

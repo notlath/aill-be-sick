@@ -1028,6 +1028,9 @@ def new_case():
             print(
                 f"[NEW CASE] STOP: Very high confidence on initial diagnosis (conf={confidence:.3f}, MI={uncertainty:.4f})"
             )
+            print(
+                f"[LOG_INSTANCE] HIGH_CONFIDENCE_INITIAL | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | will_skip_followup=True"
+            )
             cdss = _build_cdss_payload(
                 symptoms,
                 pred,
@@ -1401,6 +1404,9 @@ def follow_up_question():
         ):
             print(
                 f"[FOLLOW-UP] STOP: Low confidence after {len(asked_questions)} questions (conf={confidence:.3f}, MI={uncertainty:.4f})"
+            )
+            print(
+                f"[LOG_INSTANCE] LOW_CONFIDENCE_FINAL | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | asked_questions={len(asked_questions)} | top_disease_prob={top_diseases[0]['probability']:.4f if top_diseases else 0} | frontend_will_show_error={'YES' if confidence < 0.95 else 'NO'}"
             )
             return (
                 jsonify(
@@ -2003,6 +2009,9 @@ def follow_up_question():
         if coverage_primary >= 3 and (confidence >= 0.78 and uncertainty <= 0.04):
             print(
                 f"[FOLLOW-UP] STOP: Sufficient evidence reached (coverage_primary={coverage_primary}, conf={confidence:.3f}, MI={uncertainty:.4f})"
+            )
+            print(
+                f"[LOG_INSTANCE] SUFFICIENT_EVIDENCE | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | coverage_primary={coverage_primary} | asked_questions={len(asked_questions)} | frontend_will_show_error={'YES' if confidence < 0.95 else 'NO'}"
             )
             return (
                 jsonify(
