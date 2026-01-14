@@ -125,10 +125,9 @@ export default function ComparisonPage() {
 
     try {
       const [modernbert, roberta] = await Promise.all([
-        runOne({ symptoms: en, model: "BIOCLINICAL_MODERNBERT" }),
+        runOne({ symptoms: en }),
         runOne({
           symptoms: tl.length > 0 ? tl : en,
-          model: "ROBERTA_TAGALOG",
         }),
       ]);
 
