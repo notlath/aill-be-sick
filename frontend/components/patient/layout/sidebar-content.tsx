@@ -3,6 +3,7 @@
 import { useSidebar } from "@/components/shared/layout/sidebar-provider";
 import Header from "./header";
 import NavLinks from "./nav-links";
+import HelpButton from "./help-button";
 import { User } from "@/app/generated/prisma";
 
 type SidebarContentProps = {
@@ -16,6 +17,9 @@ const SidebarContent = ({ dbUser }: SidebarContentProps) => {
     <>
       <Header dbUser={dbUser} onToggleSidebar={toggleSidebar} />
       <NavLinks dbUser={dbUser} />
+      <div className="mt-auto pt-4 pb-4 border-t border-base-content/10">
+        <HelpButton />
+      </div>
     </>
   );
 };

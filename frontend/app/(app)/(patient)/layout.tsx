@@ -1,5 +1,6 @@
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import Sidebar from "@/components/patient/layout/sidebar";
+import OnboardingModal from "@/components/patient/onboarding/onboarding-modal";
 import { getCurrentDbUser } from "@/utils/user";
 import { redirect } from "next/navigation";
 import { ReactNode } from "react";
@@ -24,6 +25,7 @@ const Layout = async ({ children }: { children: ReactNode }) => {
   return (
     <LayoutWrapper>
       <Sidebar />
+      <OnboardingModal />
       {children}
     </LayoutWrapper>
   );

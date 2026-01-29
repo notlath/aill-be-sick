@@ -13,7 +13,7 @@ type NavLinksProps = {
 const NavLinks = ({ dbUser }: NavLinksProps) => {
   const pathname = usePathname();
   const [currentView, setCurrentView] = useState<"PATIENT" | "CLINICIAN">(
-    "PATIENT"
+    "PATIENT",
   );
 
   useEffect(() => {
@@ -52,7 +52,7 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
   }, [dbUser.role, currentView]);
 
   return (
-    <nav className="flex flex-col gap-1.5 mt-10">
+    <nav className="flex flex-col gap-1.5 mt-10 mb-4">
       {navItems.map((navItem) => (
         <NavLink
           key={navItem.href}
