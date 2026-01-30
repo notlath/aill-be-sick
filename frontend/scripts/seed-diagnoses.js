@@ -6,7 +6,7 @@
   Run: npm run seed:diagnoses
 */
 
-const { PrismaClient } = require("../app/generated/prisma");
+const { PrismaClient } = require("../lib/generated/prisma");
 
 const prisma = new PrismaClient();
 
