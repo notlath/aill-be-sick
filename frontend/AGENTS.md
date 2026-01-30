@@ -1,10 +1,12 @@
-# Styling Guidelines for AI Assistants
+# AGENTS.md for AI'll Be Sick Frontend
 
-## DaisyUI Only Policy
+## Styling Guidelines for AI Assistants
+
+### DaisyUI Only Policy
 
 **CRITICAL: This project uses DaisyUI exclusively for all UI components and styling.**
 
-### Rules
+#### Rules
 
 1. **ALWAYS use DaisyUI components and classes**
    - Use DaisyUI's built-in components: `btn`, `card`, `modal`, `alert`, `badge`, etc.
@@ -78,7 +80,5 @@ When creating new navigation items for the sidebar:
 - Check [DaisyUI documentation](https://daisyui.com/components/)
 - Use DaisyUI's pre-built components and utilities
 - Keep it simple with DaisyUI classes
-
----
 
 **Remember: Consistency is key. DaisyUI provides everything we need.**
