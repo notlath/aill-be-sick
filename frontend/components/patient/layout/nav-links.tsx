@@ -3,7 +3,7 @@
 import { clinicianNavItems, patientNavItems } from "@/constants/nav-items";
 import NavLink from "./nav-link";
 import { usePathname } from "next/navigation";
-import { User } from "@/app/generated/prisma";
+import { User } from "@/lib/generated/prisma";
 import { useMemo, useEffect, useState } from "react";
 
 type NavLinksProps = {

@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
-import { Chat, Explanation, Message } from "@/app/generated/prisma";
+import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import { useAction, useOptimisticAction } from "next-safe-action/hooks";
 import { runDiagnosis } from "@/actions/run-diagnosis";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  CreateChatSchema,
-  CreateChatSchemaType,
+    CreateChatSchema,
+    CreateChatSchemaType,
 } from "@/schemas/CreateChatSchema";
 import { FormProvider, useForm } from "react-hook-form";
 import { createMessage } from "@/actions/create-message";

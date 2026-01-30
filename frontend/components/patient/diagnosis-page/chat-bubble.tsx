@@ -1,4 +1,4 @@
-import { Message, TempDiagnosis } from "@/app/generated/prisma";
+import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { cn } from "@/utils/lib";
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
