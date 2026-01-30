@@ -14,7 +14,7 @@ export const getCurrentDbUser = async () => {
   const authUser = await getAuthUser();
 
   if (!authUser) {
-    return { error: "No authenticated user found" };
+    return { error: "No authenticated user found", code: "NOT_AUTHENTICATED" };
   }
 
   try {
@@ -23,14 +23,14 @@ export const getCurrentDbUser = async () => {
     });
 
     if (!dbUser) {
-      return { error: "No user found in the database" };
+      return { error: "No user found in the database", code: "USER_NOT_FOUND" };
     }
 
     return { success: dbUser };
   } catch (error) {
     console.error(`Error fetching user from database: ${error}`);
 
-    return { error: `Error fetching user from database: ${error}` };
+    return { error: `Error fetching user from database: ${error}`, code: "DB_ERROR" };
   }
 };
 
