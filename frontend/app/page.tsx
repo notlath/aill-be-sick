@@ -2,15 +2,23 @@ import { getCurrentDbUser } from "@/utils/user";
 import { redirect } from "next/navigation";
 
 const HomePage = async () => {
-  const { success: dbUser, error } = await getCurrentDbUser();
+  const { success: dbUser, error, code } = await getCurrentDbUser();
+
+  if (error) {
+    if (code === "NOT_AUTHENTICATED") {
+      return redirect("/login");
+    }
+
+    if (code === "USER_NOT_FOUND") {
+      return redirect("/auth/sync-error");
+    }
+
+    // TODO: Error handling for other DB errors
+    return <div>Error: {JSON.stringify(error)}</div>;
+  }
 
   if (!dbUser) {
     return redirect("/login");
-  }
-
-  if (error) {
-    // TODO: Error handling
-    return <div>Error: {JSON.stringify(error)}</div>;
   }
 
   if (dbUser.role === "CLINICIAN") {
