@@ -4,7 +4,7 @@ import { useSidebar } from "@/components/shared/layout/sidebar-provider";
 import Header from "./header";
 import NavLinks from "./nav-links";
 import HelpButton from "./help-button";
-import { User } from "@/app/generated/prisma";
+import { User } from "@/lib/generated/prisma";
 
 type SidebarContentProps = {
   dbUser: User;

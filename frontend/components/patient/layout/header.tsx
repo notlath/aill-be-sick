@@ -2,7 +2,7 @@ import SignOutBtn from "./sign-out-btn";
 import SidebarToggle from "./sidebar-toggle";
 import ViewSwitcherBtn from "./view-switcher-btn";
 import Image from "next/image";
-import { User } from "@/app/generated/prisma";
+import { User } from "@/lib/generated/prisma";
 
 type HeaderProps = {
   dbUser: User;

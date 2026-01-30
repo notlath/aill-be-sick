@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../app/generated/prisma"
+  output   = "../lib/generated/prisma"
 }
 
 datasource db {
@@ -34,7 +34,7 @@ model Chat {
   updatedAt     DateTime        @updatedAt
   userId        Int
   hasDiagnosis  Boolean         @default(false)
-  user          User            @relation(fields: [userId], references: [id])
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   diagnosis     Diagnosis?
   messages      Message[]
   tempDiagnoses TempDiagnosis[]
@@ -47,7 +47,7 @@ model Message {
   createdAt     DateTime       @default(now())
   chatId        String
   type          MessageType    @default(SYMPTOMS)
-  chat          Chat           @relation(fields: [chatId], references: [chatId])
+  chat          Chat           @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   tempDiagnosis TempDiagnosis?
   explanation   Explanation?
 }
@@ -62,8 +62,8 @@ model TempDiagnosis {
   modelUsed   Model
   chatId      String
   symptoms    String
-  chat        Chat     @relation(fields: [chatId], references: [chatId])
-  message     Message  @relation(fields: [messageId], references: [id])
+  chat        Chat     @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
 model Diagnosis {
@@ -80,8 +80,8 @@ model Diagnosis {
   latitude    Float?
   longitude   Float?
   region      String?
-  chat        Chat         @relation(fields: [chatId], references: [chatId])
-  user        User         @relation(fields: [userId], references: [id])
+  chat        Chat         @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   explanation Explanation?
 }
 
@@ -92,8 +92,8 @@ model Explanation {
   messageId   Int?       @unique
   tokens      String[]
   importances Float[]
-  diagnosis   Diagnosis? @relation(fields: [diagnosisId], references: [id])
-  message     Message?   @relation(fields: [messageId], references: [id])
+  diagnosis   Diagnosis? @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
+  message     Message?   @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
 enum Role {

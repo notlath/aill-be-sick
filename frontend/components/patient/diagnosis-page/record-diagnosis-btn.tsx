@@ -1,5 +1,5 @@
 import { createDiagnosis } from "@/actions/create-diagnosis";
-import { TempDiagnosis } from "@/app/generated/prisma";
+import { TempDiagnosis } from "@/lib/generated/prisma";
 import { useAction } from "next-safe-action/hooks";
 import { LocationData } from "@/utils/location";
 

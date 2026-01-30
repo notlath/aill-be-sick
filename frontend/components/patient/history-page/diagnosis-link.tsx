@@ -1,7 +1,7 @@
-import { Chat, Message } from "@/app/generated/prisma";
+import { Chat, Message } from "@/lib/generated/prisma";
 import {
-  getDiagnosisByChatId,
-  getLatestTempDiagnosisByChatId,
+    getDiagnosisByChatId,
+    getLatestTempDiagnosisByChatId,
 } from "@/utils/diagnosis";
 import Link from "next/link";
 

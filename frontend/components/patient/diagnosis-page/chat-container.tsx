@@ -1,6 +1,6 @@
 import Markdown from "react-markdown";
 import ChatBubble from "./chat-bubble";
-import { Message, TempDiagnosis } from "@/app/generated/prisma";
+import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import remarkBreaks from "remark-breaks";
 import { forwardRef } from "react";
 import { LocationData } from "@/utils/location";
