@@ -223,9 +223,12 @@ The frontend communicates with the Django backend for disease detection:
 
 ### Data Fetching
 
-- **ALWAYS** fetch data directly within Server Components or Server Actions using Prisma.
+- **ALWAYS** fetch data directly within Server Components using Prisma, UNLESS the data is needed in a Client Component and the developer allows it.
 - **NEVER** use `useEffect` or client-side fetching mechanisms for initial data loads that can be done on the server.
 - **ALWAYS** use `revalidatePath` or `revalidateTag` from `next/cache` for revalidating cached data after mutations.
+- **NEVER** use Server Actions for data fetching; they are strictly for mutations.
+- **ALWAYS** put data fetching logic in the Server Component that requires the data, or in a parent component/page that passes it down as props to client components.
+- **ALWAYS** put data fetching logic files in the `@/utils/` directory.
 - **Example (Server Component):**
 
   ```typescript
