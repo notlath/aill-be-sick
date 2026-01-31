@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, memo } from "react";
 import * as d3 from "d3";
 import { useGeoData, ViewState, ViewLevel, MapFeature } from "@/hooks/use-geo-data";
+import { ChevronLeft } from "lucide-react";
 
 // Helper to determine next level in the flow
 const getNextLevel = (current: ViewLevel): ViewLevel | null => {
@@ -230,9 +231,9 @@ const PhilippinesMap = memo(() => {
             {history.length > 0 && (
                 <button 
                     onClick={handleBack}
-                    className="btn btn-sm btn-outline"
+                    className="btn btn-sm btn-soft"
                 >
-                    &larr; Back
+                    <ChevronLeft className="size-3.5" /> Back
                 </button>
             )}
             <span className="font-semibold text-lg">
@@ -263,7 +264,7 @@ const PhilippinesMap = memo(() => {
             <svg ref={svgRef} className="w-full h-full block"></svg>
             
             {!loading && (
-                <div className="absolute bottom-4 left-4 bg-white/90 p-2 rounded shadow text-xs pointer-events-none z-10">
+                <div className="absolute bottom-4 left-4 bg-white/85 backdrop-blur-sm p-2 rounded shadow text-xs pointer-events-none z-10">
                     <p><strong>Controls:</strong></p>
                     <p>Scroll: Pan (Vertical)</p>
                     <p>Shift + Scroll: Pan (Horizontal)</p>
