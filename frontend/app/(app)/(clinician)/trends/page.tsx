@@ -10,10 +10,8 @@ export default function TrendsPage() {
         </p>
       </div>
 
-      <div className="card bg-base-100 shadow-lg">
-        <div className="card-body p-0">
-          <PhilippinesMap />
-        </div>
+      <div className="card-body p-0">
+        <PhilippinesMap />
       </div>
     </div>
   );
