@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, Activity, MapPin, Sparkles } from "lucide-react";
-import type { ClusterStatistics } from "@/types/clustering";
+import type { ClusterStatistics } from "@/types";
 
 interface ClusterOverviewCardsProps {
   statistics: ClusterStatistics[];

@@ -38,13 +38,14 @@ const cache = new Map<string, any>();
 
 // Concurrency Limiter
 const pLimit = (concurrency: number) => {
-  const queue: (() => Promise<void>)[] = [];
+  const queue: Array<() => void> = [];
   let activeCount = 0;
 
   const next = () => {
     activeCount--;
     if (queue.length > 0) {
-      queue.shift()!();
+      const fn = queue.shift();
+      if (fn) fn();
     }
   };
 

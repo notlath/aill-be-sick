@@ -1,14 +1,14 @@
 "use client";
 import React from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import { BarChart3, PieChart, Users, Activity } from "lucide-react";
-import type { ClusterStatistics, Patient } from "@/types/clustering";
+import type { ClusterStatistics, Patient } from "@/types";
 
 interface DemographicsChartsProps {
   statistics: ClusterStatistics[];
