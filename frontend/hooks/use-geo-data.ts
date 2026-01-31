@@ -145,7 +145,6 @@ export const useGeoData = (viewState: ViewState) => {
         if (viewState.level === "country") {
           // --- Country View ---
           const countryData = await fetchWithRetry([
-            "/topojson/country/country.topo.0.1.json",
             "/topojson/country/country.topo.0.01.json",
           ]);
 
@@ -164,9 +163,7 @@ export const useGeoData = (viewState: ViewState) => {
           const provincePromises = regionIds.map((id: number) =>
             limit(async () => {
               const data = await fetchWithRetry([
-                `/topojson/region/provdists-region-${id}.topo.0.1.json`,
                 `/topojson/region/provdists-region-${id}.topo.0.01.json`,
-                `/topojson/region/provdists-region-${id}.0.1.json`,
               ]);
               return loadFeaturesFromObject(data, `provdists-region-${id}`);
             })
@@ -183,9 +180,9 @@ export const useGeoData = (viewState: ViewState) => {
           // --- Province View ---
           const provinceData = await fetchWithRetry([
             `/topojson/provdists/municities-provdist-${viewState.id}.topo.0.1.json`,
-            `/topojson/provdists/municities-provdist-${viewState.id}.topo.0.01.json`,
-            `/topojson/provdists/municities-provdist-${viewState.id}.topo.0.001.json`,
           ]);
+
+          
 
           if (!provinceData) throw new Error(`Failed to load province data for ID ${viewState.id}`);
 
@@ -212,8 +209,6 @@ export const useGeoData = (viewState: ViewState) => {
             limit(async () => {
               const data = await fetchWithRetry([
                 `/topojson/municities/bgysubmuns-municity-${id}.topo.0.1.json`,
-                `/topojson/municities/bgysubmuns-municity-${id}.0.1.json`,
-                `/topojson/municities/bgysubmuns-municity-${id}.topo.0.01.json`,
               ]);
               return loadFeaturesFromObject(data, `bgysubmuns-municity-${id}`);
             })
