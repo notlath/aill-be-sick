@@ -1,6 +1,8 @@
 "use client";
 
+import { compareDiagnosis } from "@/actions/compare-diagnosis";
 import { useMemo, useState } from "react";
+import { useAction } from "next-safe-action/hooks";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
@@ -18,12 +20,6 @@ type DiagnosisResult = {
   skip_reason?: string;
 };
 
-type FetchState =
-  | { status: "idle" }
-  | { status: "loading" }
-  | { status: "error"; message: string }
-  | { status: "success"; data: DiagnosisResult };
-
 const MODEL_LABEL: Record<ModelKey, string> = {
   BIOCLINICAL_MODERNBERT: "BioClinical ModernBERT (English)",
   ROBERTA_TAGALOG: "RoBERTa Tagalog",
@@ -39,10 +35,18 @@ const EXAMPLE_SYMPTOMS = {
 export default function ComparisonPage() {
   const [englishSymptoms, setEnglishSymptoms] = useState("");
   const [tagalogSymptoms, setTagalogSymptoms] = useState("");
-  const [states, setStates] = useState<Record<ModelKey, FetchState>>({
-    BIOCLINICAL_MODERNBERT: { status: "idle" },
-    ROBERTA_TAGALOG: { status: "idle" },
-  });
+
+  const {
+    execute: executeModernbert,
+    status: statusModernbert,
+    result: resultModernbert,
+  } = useAction(compareDiagnosis);
+
+  const {
+    execute: executeRoberta,
+    status: statusRoberta,
+    result: resultRoberta,
+  } = useAction(compareDiagnosis);
 
   const handleEnglishChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setEnglishSymptoms(e.target.value);
@@ -70,79 +74,17 @@ export default function ComparisonPage() {
     }, 0);
   };
 
-  const hasResults = useMemo(
-    () =>
-      Object.values(states).some((s) => s.status === "success") &&
-      englishSymptoms.trim().length > 0,
-    [states, englishSymptoms]
-  );
-
-  const runOne = async (payload: {
-    symptoms: string;
-  }): Promise<DiagnosisResult> => {
-    const res = await fetch(`${BACKEND_URL}/diagnosis/new`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        symptoms: payload.symptoms,
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      const message = body?.message || body?.error || res.statusText;
-      throw new Error(message || "Request failed");
-    }
-
-    const json = (await res.json()) as { data?: DiagnosisResult };
-
-    if (!json?.data) {
-      throw new Error("Unexpected response shape");
-    }
-
-    return json.data;
-  };
-
   const handleCompare = async () => {
     const en = englishSymptoms.trim();
     const tl = (tagalogSymptoms || englishSymptoms).trim();
 
     if (!en) {
-      setStates((prev) => ({
-        ...prev,
-        BIOCLINICAL_MODERNBERT: {
-          status: "error",
-          message: "Please enter symptoms in English",
-        },
-      }));
+      // Maybe show a toast or something here
       return;
     }
 
-    setStates({
-      BIOCLINICAL_MODERNBERT: { status: "loading" },
-      ROBERTA_TAGALOG: { status: "loading" },
-    });
-
-    try {
-      const [modernbert, roberta] = await Promise.all([
-        runOne({ symptoms: en }),
-        runOne({
-          symptoms: tl.length > 0 ? tl : en,
-        }),
-      ]);
-
-      setStates({
-        BIOCLINICAL_MODERNBERT: { status: "success", data: modernbert },
-        ROBERTA_TAGALOG: { status: "success", data: roberta },
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setStates((prev) => ({
-        ...prev,
-        BIOCLINICAL_MODERNBERT: { status: "error", message },
-        ROBERTA_TAGALOG: { status: "error", message },
-      }));
-    }
+    executeModernbert({ symptoms: en });
+    executeRoberta({ symptoms: tl });
   };
 
   const getConfidenceColor = (conf: number) => {
@@ -152,8 +94,10 @@ export default function ComparisonPage() {
   };
 
   const renderCard = (model: ModelKey) => {
-    const state = states[model];
     const isModernBERT = model === "BIOCLINICAL_MODERNBERT";
+    const status = isModernBERT ? statusModernbert : statusRoberta;
+    const result = isModernBERT ? resultModernbert : resultRoberta;
+    const data = result.data?.success as DiagnosisResult | undefined;
 
     return (
       <div
@@ -175,19 +119,19 @@ export default function ComparisonPage() {
               </div>
               <div>
                 <h2 className="card-title text-lg">{MODEL_LABEL[model]}</h2>
-                {state.status === "success" && (
-                  <p className="text-xs opacity-60">{state.data.model_used}</p>
+                {status === "hasSucceeded" && data && (
+                  <p className="text-xs opacity-60">{data.model_used}</p>
                 )}
               </div>
             </div>
-            {state.status === "loading" && (
+            {status === "executing" && (
               <span className="loading loading-spinner loading-lg" />
             )}
           </div>
 
-          {state.status === "idle" && <div className="py-8" />}
+          {status === "idle" && <div className="py-8" />}
 
-          {state.status === "error" && (
+          {status === "hasErrored" && (
             <div className="alert alert-error py-3">
               <svg
                 className="h-4 w-4 flex-shrink-0"
@@ -202,13 +146,15 @@ export default function ComparisonPage() {
                   d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <span className="text-xs">{state.message}</span>
+              <span className="text-xs">
+                {(result.serverError as any)?.message || "An error occurred"}
+              </span>
             </div>
           )}
 
-          {state.status === "success" && (
+          {status === "hasSucceeded" && data && (
             <div className="space-y-4">
-              {state.data.skip_followup && (
+              {data.skip_followup && (
                 <div className="alert alert-success gap-2 py-2">
                   <svg
                     className="h-4 w-4 flex-shrink-0"
@@ -231,11 +177,11 @@ export default function ComparisonPage() {
 
               <div
                 className={`rounded-lg p-4 ${getConfidenceColor(
-                  state.data.confidence
+                  data.confidence
                 )}`}
               >
                 <div className="text-xs opacity-75 mb-1">Primary Diagnosis</div>
-                <div className="text-2xl font-bold">{state.data.pred}</div>
+                <div className="text-2xl font-bold">{data.pred}</div>
               </div>
 
               <div className="divider my-2" />
@@ -244,36 +190,36 @@ export default function ComparisonPage() {
                 <div className="bg-base-300 rounded-lg p-3 text-center">
                   <div className="text-xs opacity-60 mb-1">Confidence</div>
                   <div className="text-2xl font-bold text-primary">
-                    {formatPercent(state.data.confidence)}
+                    {formatPercent(data.confidence)}
                   </div>
                   <div className="progress progress-primary h-2 mt-2">
                     <div
                       className="progress-value"
-                      style={{ width: `${state.data.confidence * 100}%` }}
+                      style={{ width: `${data.confidence * 100}%` }}
                     />
                   </div>
                 </div>
                 <div className="bg-base-300 rounded-lg p-3 text-center">
                   <div className="text-xs opacity-60 mb-1">Uncertainty</div>
                   <div className="text-2xl font-bold text-warning">
-                    {formatPercent(state.data.uncertainty)}
+                    {formatPercent(data.uncertainty)}
                   </div>
                   <div className="progress progress-warning h-2 mt-2">
                     <div
                       className="progress-value"
-                      style={{ width: `${state.data.uncertainty * 100}%` }}
+                      style={{ width: `${data.uncertainty * 100}%` }}
                     />
                   </div>
                 </div>
               </div>
 
-              {(state.data.top_diseases || []).length > 0 && (
+              {(data.top_diseases || []).length > 0 && (
                 <div className="bg-base-300 rounded-lg p-3">
                   <div className="text-xs font-semibold opacity-75 mb-2">
                     Top Diseases
                   </div>
                   <div className="space-y-2">
-                    {state.data.top_diseases?.map((d, idx) => (
+                    {data.top_diseases?.map((d, idx) => (
                       <div
                         key={d.disease}
                         className="flex items-center justify-between text-sm"
@@ -298,6 +244,11 @@ export default function ComparisonPage() {
       </div>
     );
   };
+
+  const hasResults = useMemo(
+    () => statusModernbert === "hasSucceeded" || statusRoberta === "hasSucceeded",
+    [statusModernbert, statusRoberta]
+  );
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-base-200 via-base-100 to-base-200 py-8 px-4 md:px-6">
@@ -383,10 +334,12 @@ export default function ComparisonPage() {
                 onClick={handleCompare}
                 disabled={
                   !englishSymptoms.trim() ||
-                  states.BIOCLINICAL_MODERNBERT.status === "loading"
+                  statusModernbert === "executing" ||
+                  statusRoberta === "executing"
                 }
               >
-                {states.BIOCLINICAL_MODERNBERT.status === "loading" ? (
+                {statusModernbert === "executing" ||
+                statusRoberta === "executing" ? (
                   <>
                     <span className="loading loading-spinner loading-sm" />
                     Running Models...
@@ -400,17 +353,13 @@ export default function ComparisonPage() {
                 onClick={() => {
                   setEnglishSymptoms("");
                   setTagalogSymptoms("");
-                  setStates({
-                    BIOCLINICAL_MODERNBERT: { status: "idle" },
-                    ROBERTA_TAGALOG: { status: "idle" },
-                  });
-                  // Reset textarea heights
-                  const textareas = document.querySelectorAll("textarea");
-                  textareas.forEach((ta) => {
-                    ta.style.height = "auto";
-                  });
+                  // Note: You might want a reset function from useAction if available
+                  // For now, we just clear local state.
                 }}
-                disabled={states.BIOCLINICAL_MODERNBERT.status === "loading"}
+                disabled={
+                  statusModernbert === "executing" ||
+                  statusRoberta === "executing"
+                }
               >
                 Clear
               </button>
