@@ -1,6 +1,6 @@
 'use server'
 
-import type { PatientClusterData } from "@/types/clustering";
+import type { PatientClusterData } from "@/types";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";

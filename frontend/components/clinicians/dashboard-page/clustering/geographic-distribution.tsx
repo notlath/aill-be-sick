@@ -1,15 +1,15 @@
 "use client";
 import React from "react";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Navigation, Globe2 } from "lucide-react";
-import type { ClusterStatistics, Patient } from "@/types/clustering";
+import type { ClusterStatistics, Patient } from "@/types";
 
 interface GeographicDistributionProps {
   statistics: ClusterStatistics[];

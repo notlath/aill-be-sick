@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Activity, BarChart3 } from "lucide-react";
-import type { ClusterStatistics } from "@/types/clustering";
+import type { ClusterStatistics } from "@/types";
 
 interface DiseasesChartsProps {
   statistics: ClusterStatistics[];

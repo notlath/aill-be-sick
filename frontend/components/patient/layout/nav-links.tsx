@@ -32,7 +32,7 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
           pathname.startsWith("/healthcare-reports") ||
           pathname.startsWith("/users") ||
           pathname.startsWith("/alerts") ||
-          pathname.startsWith("/trends")
+          pathname.startsWith("/map")
         ) {
           setCurrentView("CLINICIAN");
         } else {

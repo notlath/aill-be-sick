@@ -27,13 +27,11 @@ import {
 import {
   Search,
   Filter,
-  User,
-  Mail,
-  MapPin,
+  User, MapPin,
   Calendar,
-  Activity,
+  Activity
 } from "lucide-react";
-import type { Patient, ClusterStatistics } from "@/types/clustering";
+import type { Patient, ClusterStatistics } from "@/types";
 
 interface ClusterDetailsTableProps {
   patients: Patient[];

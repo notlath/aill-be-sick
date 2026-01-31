@@ -20,7 +20,7 @@ import ClusterDetailsTable from "./cluster-details-table";
 import DemographicsCharts from "./demographics-charts";
 import DiseasesCharts from "./diseases-charts";
 import GeographicDistribution from "./geographic-distribution";
-import type { PatientClusterData } from "@/types/clustering";
+import type { PatientClusterData } from "@/types";
 import { Input } from "@/components/ui/input";
 
 interface PatientClustersClientProps {

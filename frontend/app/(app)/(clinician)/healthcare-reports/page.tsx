@@ -1,6 +1,6 @@
 import { getAllDiagnoses } from "@/utils/diagnosis";
-import { DataTable } from "@/components/clinicians/healthcare-reports/data-table";
-import { columns } from "@/components/clinicians/healthcare-reports/columns";
+import { DataTable } from "@/components/clinicians/healthcare-reports-page/data-table";
+import { columns } from "@/components/clinicians/healthcare-reports-page/columns";
 
 const HealthcareReports = async () => {
   const { success: diagnoses, error } = await getAllDiagnoses({ take: 10 });

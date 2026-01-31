@@ -189,12 +189,48 @@ The frontend communicates with the Django backend for disease detection:
 - Prisma is used with the Next.js workaround plugin for monorepo compatibility
 - Error handling follows a pattern with success/error return objects
 
+### Component Structure
+
+- **Server Components**: Default for pages and layouts; fetch data directly from the database
+- **Client Components**: Used for interactive elements; indicated with `"use client"` directive
+- **Naming Conventions**: Use clear and consistent naming for components, files, and folders to indicate their purpose and usage, with `PascalCase` for components and `kebab-case` for files, using arrow functions for component definitions.
+- **Example**:
+
+  ```tsx
+  // Server Component (default)
+  const ServerComponent = async () => {
+    const data = await fetchDataFromDatabase();
+    return <ClientComponent data={data} />;
+  }
+
+  export default ServerComponent;
+  ```
+
+  ```tsx
+  // Client Component
+  "use client";
+
+  import { useState } from "react";
+
+  const ClientComponent = ({ data }: { data: DataType }) => {
+    const [state, setState] = useState(initialState);
+    // Interactive logic here
+    return <div>{/* Render UI */}</div>;
+  }
+
+  export default ClientComponent;
+  ```
+
 ### Data Fetching
 
-- **ALWAYS** fetch data directly within Server Components or Server Actions using Prisma.
+- **ALWAYS** fetch data directly within Server Components using Prisma, UNLESS the data is needed in a Client Component and the developer allows it.
 - **NEVER** use `useEffect` or client-side fetching mechanisms for initial data loads that can be done on the server.
 - **ALWAYS** use `revalidatePath` or `revalidateTag` from `next/cache` for revalidating cached data after mutations.
+- **NEVER** use Server Actions for data fetching; they are strictly for mutations.
+- **ALWAYS** put data fetching logic in the Server Component that requires the data, or in a parent component/page that passes it down as props to client components.
+- **ALWAYS** put data fetching logic files in the `@/utils/` directory.
 - **Example (Server Component):**
+
   ```typescript
   // app/dashboard/page.tsx
   import prisma from '@/lib/prisma';
@@ -221,7 +257,7 @@ The project uses `next-safe-action` to create type-safe server actions. This lib
 
 **Example: Creating a new Patient**
 
-1.  **Define the Schema (in `schemas/CreatePatientSchema.ts`)**
+1. **Define the Schema (in `schemas/CreatePatientSchema.ts`)**
 
     ```typescript
     import * as z from "zod";
@@ -232,7 +268,7 @@ The project uses `next-safe-action` to create type-safe server actions. This lib
     });
     ```
 
-2.  **Define the Server Action (in `actions/create-patient.ts`)**
+2. **Define the Server Action (in `actions/create-patient.ts`)**
 
     ```typescript
     "use server";
@@ -266,7 +302,7 @@ The project uses `next-safe-action` to create type-safe server actions. This lib
       });
     ```
 
-3.  **Using the Action in a Client Component**
+3. **Using the Action in a Client Component**
 
     ```tsx
     // In a form component
@@ -304,7 +340,6 @@ The project uses `next-safe-action` to create type-safe server actions. This lib
       );
     }
     ```
-
 
 ## Testing & Quality Assurance
 
