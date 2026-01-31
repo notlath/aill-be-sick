@@ -1,8 +1,8 @@
-# Aill-Be-Sick Frontend
+# AI'll Be Sick - Frontend
 
 ## Project Overview
 
-Aill-Be-Sick is an AI-assisted symptom checker and clinician dashboard application built with Next.js. The project enables users to input symptoms and receive AI-powered disease predictions for dengue, pneumonia, typhoid, and impetigo. It integrates with a Django backend for disease detection algorithms, handles user authentication via Supabase, and manages patient cases with detailed confidence and uncertainty metrics.
+AI'll Be Sick is an AI-assisted symptom checker and clinician dashboard application built with Next.js. The project enables users to input symptoms and receive AI-powered disease predictions for dengue, pneumonia, typhoid, and impetigo. It integrates with a Django backend for disease detection algorithms, handles user authentication via Supabase, and manages patient cases with detailed confidence and uncertainty metrics.
 
 ### Key Features
 
@@ -188,6 +188,123 @@ The frontend communicates with the Django backend for disease detection:
 - Tailwind CSS with DaisyUI for consistent styling
 - Prisma is used with the Next.js workaround plugin for monorepo compatibility
 - Error handling follows a pattern with success/error return objects
+
+### Data Fetching
+
+- **ALWAYS** fetch data directly within Server Components or Server Actions using Prisma.
+- **NEVER** use `useEffect` or client-side fetching mechanisms for initial data loads that can be done on the server.
+- **ALWAYS** use `revalidatePath` or `revalidateTag` from `next/cache` for revalidating cached data after mutations.
+- **Example (Server Component):**
+  ```typescript
+  // app/dashboard/page.tsx
+  import prisma from '@/lib/prisma';
+
+  async function DashboardPage() {
+    const patients = await prisma.patient.findMany();
+    return (
+      {/* ... render patients ... */}
+    );
+  }
+  ```
+
+### Data Mutation with Server Actions
+
+The project uses `next-safe-action` to create type-safe server actions. This library enforces a strict pattern for defining actions, handling input validation with Zod, and returning structured responses.
+
+- **ALWAYS** perform data mutations using the `next-safe-action` pattern. This is the established convention in the project.
+- **NEVER** expose direct API endpoints for mutations; use a Server Action instead.
+- **ALWAYS** define a Zod schema for the action's input in the `/schemas` directory.
+- **ALWAYS** create the server action in the `/actions` directory.
+- **ALWAYS** use the `actionClient` from `/actions/client.ts` to build the action.
+- **ALWAYS** chain the `.inputSchema()` method with your Zod schema and the `.action()` method containing the logic.
+- **ALWAYS** revalidate the necessary data path using `revalidatePath` from `next/cache` after a successful mutation.
+
+**Example: Creating a new Patient**
+
+1.  **Define the Schema (in `schemas/CreatePatientSchema.ts`)**
+
+    ```typescript
+    import * as z from "zod";
+
+    export const CreatePatientSchema = z.object({
+      name: z.string().min(1, "Patient name is required"),
+      email: z.string().email("Invalid email address"),
+    });
+    ```
+
+2.  **Define the Server Action (in `actions/create-patient.ts`)**
+
+    ```typescript
+    "use server";
+
+    import { actionClient } from "./client";
+    import { CreatePatientSchema } from "@/schemas/CreatePatientSchema";
+    import prisma from "@/prisma/prisma";
+    import { revalidatePath } from "next/cache";
+
+    export const createPatient = actionClient
+      .inputSchema(CreatePatientSchema)
+      .action(async ({ parsedInput }) => {
+        const { name, email } = parsedInput;
+
+        try {
+          const newPatient = await prisma.patient.create({
+            data: {
+              name,
+              email,
+            },
+          });
+
+          // Revalidate the dashboard to show the new patient
+          revalidatePath("/dashboard");
+
+          return { success: newPatient };
+        } catch (error) {
+          console.error(`Error creating new patient: ${error}`);
+          return { error: "Failed to create new patient." };
+        }
+      });
+    ```
+
+3.  **Using the Action in a Client Component**
+
+    ```tsx
+    // In a form component
+    import { useAction } from "next-safe-action/hooks";
+    import { createPatient } from "@/actions/create-patient";
+
+    function PatientForm() {
+      const { execute, status } = useAction(createPatient, {
+        onSuccess: (data) => {
+          console.log("Patient created successfully:", data);
+        },
+        onError: (error) => {
+          console.error("Failed to create patient:", error);
+        },
+      });
+
+      const onSubmit = (formData: FormData) => {
+        // next-safe-action can directly take the schema type
+        // For simplicity with forms, you might construct the object
+        const name = formData.get("name") as string;
+        const email = formData.get("email") as string;
+        execute({ name, email });
+      };
+
+      return (
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit(new FormData(e.currentTarget));
+        }}>
+          {/* ... form fields for name and email ... */}
+          <button type="submit" disabled={status === 'executing'}>
+            {status === 'executing' ? "Creating..." : "Create Patient"}
+          </button>
+        </form>
+      );
+    }
+    ```
+
 
 ## Testing & Quality Assurance
 
