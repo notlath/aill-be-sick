@@ -325,29 +325,12 @@ While no explicit test files were visible during the analysis, the codebase incl
 
 ## Styling Guidelines
 
-The project follows strict DaisyUI styling policies:
+The project uses **Tailwind CSS** and **shadcn/ui** components for styling. UI components are located in `@/components/ui`. While based on Tailwind, the project aims for a consistent look and feel by reusing and composing these `shadcn/ui` components rather than applying arbitrary Tailwind classes.
 
-### DaisyUI Only Policy
-
-- **ALWAYS use DaisyUI components and classes** (buttons, cards, modals, alerts, badges, etc.)
-- **NEVER use custom Tailwind classes for styling** (no custom gradients, shadows, transitions)
-- **Use Lucide React for icons** - import from `lucide-react`
-- **NEVER create custom gradients or effects** - use DaisyUI's built-in options
-
-### Common DaisyUI Classes
-
-- **Buttons**: `btn`, `btn-primary`, `btn-secondary`, `btn-success`, `btn-ghost`, `btn-outline`
-- **Cards**: `card`, `card-body`, `card-title`, `card-actions`
-- **Modals**: `modal`, `modal-box`, `modal-backdrop`, `modal-open`
-- **Alerts**: `alert`, `alert-info`, `alert-success`, `alert-warning`, `alert-error`
-- **Badges**: `badge`, `badge-primary`, `badge-secondary`, `badge-outline`
-- **Layout**: `bg-base-100`, `bg-base-200`, `bg-base-300`, `text-base-content`
-
-### Example - Correct usage
-
-```tsx
-<button className="btn btn-success btn-lg">Click me</button>
-```
+- **ALWAYS** prefer composing existing `shadcn/ui` components from `@/components/ui`.
+- **USE** Tailwind CSS utility classes for layout, spacing, and custom styling when composing components.
+- **USE** `lucide-react` for icons, importing from `lucide-react`.
+- **MAINTAIN** consistency with the established visual language (colors, spacing, rounding, etc.).
 
 ### Navigation Links
 
@@ -364,8 +347,20 @@ When creating new sidebar navigation items:
 - Maintain the same animation curve: `ease-[cubic-bezier(0.32,0.72,0,1)]`
 - Keep icon size consistent: `size-4.5` with `strokeWidth={2.5}`
 
-### When in doubt
+### Card Components
 
-- Check [DaisyUI documentation](https://daisyui.com/components/)
-- Use DaisyUI's pre-built components and utilities
-- Keep it simple with DaisyUI classes
+When creating new card-based UI elements, follow the established design patterns seen in components like `@/components/clinicians/dashboard-page/clustering/diseases-charts.tsx`.
+
+- **ALWAYS** use the `<Card>`, `<CardHeader>`, `<CardTitle>`, `<CardDescription>`, and `<CardContent>` components from `@/components/ui/card`.
+- For prominent header sections, use a `flex` layout with a decorative icon container next to the title.
+- The icon container should have a soft gradient background (e.g., `from-primary/10 to-primary/5`), padding (e.g., `p-3`), and rounded corners (e.g., `rounded-[12px]`).
+- Icons from `lucide-react` should have a consistent size (e.g., `size-6`), color (e.g., `text-primary`), and stroke width (e.g., `stroke-[2]`).
+- Add a subtle hover effect to the card using `className="group hover:border-primary/30"`.
+
+### Tabbed Interfaces
+
+For tabbed navigation, use the components from `@/components/ui/tabs` as demonstrated in `@/components/clinicians/dashboard-page/patient-clusters.tsx`.
+
+- **ALWAYS** use the `<Tabs>`, `<TabsList>`, `<TabsTrigger>`, and `<TabsContent>` components.
+- To create a full-width set of tabs, apply a `grid` layout to the `<TabsList>` element (e.g., `className="grid w-full grid-cols-4 h-auto"`).
+- Ensure each `<TabsTrigger>` has a corresponding `<TabsContent>` panel linked by the `value` prop.
