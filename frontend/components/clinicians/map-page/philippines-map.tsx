@@ -48,6 +48,10 @@ const PhilippinesMap = memo(
 
     const [history, setHistory] = useState<ViewState[]>([]);
 
+    // --- Date Range State ---
+    const [startDate, setStartDate] = useState("2025-01-01");
+    const [endDate, setEndDate] = useState("2026-02-01");
+
     // --- Search State ---
     const [searchIndex, setSearchIndex] = useState<SearchItem[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -516,6 +520,28 @@ const PhilippinesMap = memo(
 
     return (
       <section className="space-y-4">
+        {/* Date Range Filters */}
+        <div className="flex items-center gap-4 bg-base-200 p-4 rounded-lg">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">From:</label>
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">To:</label>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
+        </div>
+
         <div className="relative z-30">
           <Search className="absolute z-10 top-1/2 -translate-y-1/2 left-4 text-muted size-3.5" />
           <Input
@@ -627,7 +653,7 @@ const PhilippinesMap = memo(
 
                 {/* Color Legend */}
                 <div className="absolute bottom-4 right-4 bg-white/85 backdrop-blur-sm p-3 rounded shadow pointer-events-none z-10">
-                  <p className="font-bold text-xs mb-2">Disease Cases</p>
+                  <p className="font-bold text-xs mb-1">Disease Cases</p>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2 justify-between">
                       <div className="flex items-center gap-2">
