@@ -48,10 +48,6 @@ const PhilippinesMap = memo(
 
     const [history, setHistory] = useState<ViewState[]>([]);
 
-    // --- Date Range State ---
-    const [startDate, setStartDate] = useState("2025-01-01");
-    const [endDate, setEndDate] = useState("2026-02-01");
-
     // --- Search State ---
     const [searchIndex, setSearchIndex] = useState<SearchItem[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
