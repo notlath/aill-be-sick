@@ -8,13 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Users,
-  MapPin,
-  TrendingUp,
-  Activity,
-  AlertCircle,
-} from "lucide-react";
+import { Users, MapPin, TrendingUp, Activity, AlertCircle } from "lucide-react";
 import ClusterOverviewCards from "./cluster-overview-cards";
 import ClusterDetailsTable from "./cluster-details-table";
 import DemographicsCharts from "./demographics-charts";
@@ -32,13 +26,46 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   initialData,
   initialK,
 }) => {
-  const [clusterData, setClusterData] =
-    useState<PatientClusterData | null>(initialData);
+  const [clusterData, setClusterData] = useState<PatientClusterData | null>(
+    initialData,
+  );
   const [loading, setLoading] = useState(false); // Not loading on initial render
   const [error, setError] = useState<string | null>(null);
   const [k, setK] = useState<number>(initialK);
   const [kInput, setKInput] = useState<string>(String(initialK));
+  const [recommendedK, setRecommendedK] = useState<number | null>(null);
+  const [loadingRecommendation, setLoadingRecommendation] =
+    useState<boolean>(true);
   const isInitialRender = useRef(true);
+
+  // Fetch silhouette analysis to determine recommended k and auto-apply it
+  useEffect(() => {
+    const fetchRecommendedK = async () => {
+      try {
+        setLoadingRecommendation(true);
+        const res = await fetch(
+          "http://localhost:10000/api/patient-clusters/silhouette?range=2-15",
+        );
+        if (!res.ok) {
+          throw new Error("Failed to fetch silhouette analysis");
+        }
+        const data = await res.json();
+        if (data.best && data.best.k) {
+          setRecommendedK(data.best.k);
+          // Auto-apply the recommended k
+          setK(data.best.k);
+          setKInput(String(data.best.k));
+        }
+      } catch (err) {
+        console.error("Error fetching recommended k:", err);
+        // Fail silently - we'll just not show a recommendation
+      } finally {
+        setLoadingRecommendation(false);
+      }
+    };
+
+    fetchRecommendedK();
+  }, []);
 
   useEffect(() => {
     // This effect should only run when `k` is changed by the user, not on initial render.
@@ -149,7 +176,13 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                 </button>
               </div>
               <span className="text-xs text-muted/70 font-medium">
-                Recommended: 8 clusters
+                {loadingRecommendation ? (
+                  <>Calculating recommendation...</>
+                ) : recommendedK ? (
+                  <>Recommended: {recommendedK} clusters</>
+                ) : (
+                  <>Recommended: 2-15 clusters</>
+                )}
               </span>
             </form>
 
@@ -201,37 +234,6 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
         {!loading && !error && clusterData && (
           <div className="space-y-6">
             <ClusterOverviewCards statistics={clusterData.cluster_statistics} />
-            <Tabs defaultValue="diseases" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 h-auto">
-                <TabsTrigger value="diseases">Diseases</TabsTrigger>
-                <TabsTrigger value="demographics">Demographics</TabsTrigger>
-                <TabsTrigger value="geographic">Geographic</TabsTrigger>
-                <TabsTrigger value="patients">Patients</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="diseases" className="mt-6 space-y-4">
-                <DiseasesCharts statistics={clusterData.cluster_statistics} />
-              </TabsContent>
-              <TabsContent value="demographics" className="mt-6 space-y-4">
-                <DemographicsCharts
-                  statistics={clusterData.cluster_statistics}
-                  patients={clusterData.patients}
-                />
-              </TabsContent>
-              <TabsContent value="geographic" className="mt-6 space-y-4">
-                <GeographicDistribution
-                  statistics={clusterData.cluster_statistics}
-                  patients={clusterData.patients}
-                />
-              </TabsContent>
-              <TabsContent value="patients" className="mt-6 space-y-4">
-                <ClusterDetailsTable
-                  patients={clusterData.patients}
-                  nClusters={clusterData.n_clusters}
-                  statistics={clusterData.cluster_statistics}
-                />
-              </TabsContent>
-            </Tabs>
           </div>
         )}
       </div>

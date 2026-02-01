@@ -1,9 +1,5 @@
 import PatientClusters from "@/components/clinicians/dashboard-page/patient-clusters";
-import RecentReports from "@/components/clinicians/dashboard-page/recent-reports";
-import TotalOutbreaks from "@/components/clinicians/dashboard-page/total-outbreaks";
-import TotalPatients from "@/components/clinicians/dashboard-page/total-patients";
-import TotalReports from "@/components/clinicians/dashboard-page/total-reports";
-import Trends from "@/components/clinicians/dashboard-page/trends";
+import ClusterInsights from "@/components/clinicians/dashboard-page/cluster-insights";
 
 const ClinicianHomePage = () => {
   return (
@@ -26,15 +22,16 @@ const ClinicianHomePage = () => {
       {/* Main Content */}
       <div className="px-8 pb-16 md:px-16 lg:px-24">
         <div className="max-w-[1600px] mx-auto space-y-8">
+          {/* Cluster Insights Section */}
+          <div className="animate-slide-up" style={{ animationDelay: "50ms" }}>
+            <ClusterInsights />
+          </div>
+
           {/* Stats Grid - Apple-style cards */}
           <div
             className="grid grid-cols-1 md:grid-cols-3 gap-5 animate-slide-up"
             style={{ animationDelay: "100ms" }}
-          >
-            <TotalPatients />
-            <TotalReports />
-            <TotalOutbreaks />
-          </div>
+          ></div>
 
           {/* Patient Clusters - Full Width Premium Card */}
           <div className="animate-slide-up" style={{ animationDelay: "200ms" }}>
@@ -45,10 +42,7 @@ const ClinicianHomePage = () => {
           <div
             className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-slide-up"
             style={{ animationDelay: "300ms" }}
-          >
-            <Trends />
-            <RecentReports />
-          </div>
+          ></div>
         </div>
       </div>
     </main>
