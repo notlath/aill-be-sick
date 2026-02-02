@@ -124,159 +124,143 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <Card className="group ">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-3.5 rounded-[14px]">
-                <Users className="size-7 text-primary stroke-[2]" />
-              </div>
-              <div>
-                <CardTitle className="text-3xl tracking-tight">
-                  Patient Clusters
-                </CardTitle>
-                {/* <CardDescription className="text-base mt-1.5">
-                  Review patient clusters
-                </CardDescription> */}
-              </div>
-            </div>
-            <div className="text-right space-y-1">
-              <div className="text-5xl font-semibold tracking-tight tabular-nums bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
-                {clusterData?.total_patients.toLocaleString() ?? "N/A"}
-              </div>
-              <div className="text-sm font-medium text-muted">Patients</div>
-            </div>
-          </div>
-
-          {/* <div className="h-px bg-gradient-to-r from-transparent via-base-300/50 to-transparent my-6" /> */}
-        </CardHeader>
-      </Card>
-
       {/* Variable Selection Row */}
-      <div className="card bg-base-100 border border-base-300">
-        <div className="card-body space-y-1">
-          <p className="text-xs text-base-content/70 ">
-            Choose which variables to include in clustering
-          </p>
-          <div className="flex flex-wrap gap-3">
-            <label
-              className={`btn btn-sm cursor-pointer ${selectedVariables.disease ? "btn-primary" : "btn-outline"}`}
-            >
-              <input
-                type="checkbox"
-                className="hidden"
-                checked={selectedVariables.disease}
-                onChange={() =>
-                  setSelectedVariables((prev) => ({
-                    ...prev,
-                    disease: !prev.disease,
-                  }))
-                }
-              />
-              <span>Diagnosed disease</span>
-            </label>
-            <label
-              className={`btn btn-sm cursor-pointer ${selectedVariables.age ? "btn-primary" : "btn-outline"}`}
-            >
-              <input
-                type="checkbox"
-                className="hidden"
-                checked={selectedVariables.age}
-                onChange={() =>
-                  setSelectedVariables((prev) => ({ ...prev, age: !prev.age }))
-                }
-              />
-              <span>Age</span>
-            </label>
-            <label
-              className={`btn btn-sm cursor-pointer ${selectedVariables.gender ? "btn-primary" : "btn-outline"}`}
-            >
-              <input
-                type="checkbox"
-                className="hidden"
-                checked={selectedVariables.gender}
-                onChange={() =>
-                  setSelectedVariables((prev) => ({
-                    ...prev,
-                    gender: !prev.gender,
-                  }))
-                }
-              />
-              <span>Gender</span>
-            </label>
+      <div className="card card-body bg-base-100 border border-base-300">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <p className="text-xs text-base-content/70 ">
+              Choose which variables to include in grouping
+            </p>
 
-            <label
-              className={`btn btn-sm cursor-pointer ${selectedVariables.region ? "btn-primary" : "btn-outline"}`}
-            >
-              <input
-                type="checkbox"
-                className="hidden"
-                checked={selectedVariables.region}
-                onChange={() =>
-                  setSelectedVariables((prev) => ({
-                    ...prev,
-                    region: !prev.region,
-                  }))
-                }
-              />
-              <span>Region</span>
-            </label>
-            <label
-              className={`btn btn-sm cursor-pointer ${selectedVariables.city ? "btn-primary" : "btn-outline"}`}
-            >
-              <input
-                type="checkbox"
-                className="hidden"
-                checked={selectedVariables.city}
-                onChange={() =>
-                  setSelectedVariables((prev) => ({
-                    ...prev,
-                    city: !prev.city,
-                  }))
-                }
-              />
-              <span>City</span>
-            </label>
-          </div>
-
-          {/* Clusters */}
-          <form onSubmit={onSubmitK} className="space-y-3">
-            <div className="flex items-center gap-3 ">
-              <label htmlFor="cluster-k" className="text-sm  ">
-                Clusters
+            {/* Buttons */}
+            <div className="flex flex-wrap gap-3">
+              <label
+                className={`btn btn-sm cursor-pointer ${selectedVariables.disease ? "btn-primary btn-soft" : "font-normal"}`}
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={selectedVariables.disease}
+                  onChange={() =>
+                    setSelectedVariables((prev) => ({
+                      ...prev,
+                      disease: !prev.disease,
+                    }))
+                  }
+                />
+                <span>Diagnosed disease</span>
               </label>
-              <Input
-                id="cluster-k"
-                type="number"
-                className="w-18 h-8 "
-                min={2}
-                max={25}
-                value={kInput}
-                onChange={(e) => setKInput(e.target.value)}
-                disabled={loading}
-              />
+              <label
+                className={`btn btn-sm cursor-pointer ${selectedVariables.age ? "btn-primary btn-soft" : "font-normal"}`}
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={selectedVariables.age}
+                  onChange={() =>
+                    setSelectedVariables((prev) => ({
+                      ...prev,
+                      age: !prev.age,
+                    }))
+                  }
+                />
+                <span>Age</span>
+              </label>
+              <label
+                className={`btn btn-sm cursor-pointer ${selectedVariables.gender ? "btn-primary btn-soft" : "font-normal"}`}
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={selectedVariables.gender}
+                  onChange={() =>
+                    setSelectedVariables((prev) => ({
+                      ...prev,
+                      gender: !prev.gender,
+                    }))
+                  }
+                />
+                <span>Gender</span>
+              </label>
 
-              <span className="text-xs text-muted font-normal">
-                {loadingRecommendation ? (
-                  <>Calculating recommendation...</>
-                ) : recommendedK ? (
-                  <>Recommended: {recommendedK} clusters</>
-                ) : (
-                  <>Recommended: 2-25 clusters</>
-                )}
-              </span>
+              <label
+                className={`btn btn-sm cursor-pointer ${selectedVariables.region ? "btn-primary btn-soft" : "font-normal"}`}
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={selectedVariables.region}
+                  onChange={() =>
+                    setSelectedVariables((prev) => ({
+                      ...prev,
+                      region: !prev.region,
+                    }))
+                  }
+                />
+                <span>Region</span>
+              </label>
+              <label
+                className={`btn btn-sm cursor-pointer ${selectedVariables.city ? "btn-primary btn-soft" : "font-normal"}`}
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={selectedVariables.city}
+                  onChange={() =>
+                    setSelectedVariables((prev) => ({
+                      ...prev,
+                      city: !prev.city,
+                    }))
+                  }
+                />
+                <span>City</span>
+              </label>
             </div>
 
-            <button
-              type="submit"
-              className="w-fit btn btn-primary btn-sm"
-              title="Apply cluster settings"
-              disabled={loading}
-            >
-              {loading ? "Applying..." : "Apply"}
-            </button>
-          </form>
+            {/* Groups */}
+            <form onSubmit={onSubmitK} className="space-y-3">
+              <div className="flex items-center gap-3 ">
+                <label htmlFor="cluster-k" className="text-xs font-medium">
+                  Groups
+                </label>
+                <Input
+                  id="cluster-k"
+                  type="number"
+                  className="w-18 h-8 text-xs font-medium"
+                  min={2}
+                  max={25}
+                  value={kInput}
+                  onChange={(e) => setKInput(e.target.value)}
+                  disabled={loading}
+                />
+
+                <span className="text-xs text-muted font-normal">
+                  {loadingRecommendation ? (
+                    <>Calculating recommendation...</>
+                  ) : recommendedK ? (
+                    <>Recommended: {recommendedK} groups</>
+                  ) : (
+                    <>Recommended: 2-25 groups</>
+                  )}
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                className="w-fit btn btn-primary btn-sm"
+                title="Apply group settings"
+                disabled={loading}
+              >
+                {loading ? "Applying..." : "Apply"}
+              </button>
+            </form>
+          </div>
+          <div className="text-right space-y-1">
+            <div className="text-5xl font-semibold tracking-tight tabular-nums bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
+              {clusterData?.total_patients.toLocaleString() ?? "N/A"}
+            </div>
+            <div className="text-sm font-medium text-muted">Patients</div>
+          </div>
         </div>
       </div>
 
