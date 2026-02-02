@@ -14,6 +14,33 @@ from captum.attr import GradientShap
 import html
 import unicodedata
 import torch.nn.functional as F
+import torch.nn as nn
+from contextvars import ContextVar
+
+# Thread-safe context for Monte Carlo Dropout
+mcd_enabled_ctx = ContextVar("mcd_enabled_ctx", default=False)
+mcd_rate_ctx = ContextVar("mcd_rate_ctx", default=0.05)
+
+class ThreadSafeDropout(nn.Module):
+    """
+    Custom Dropout layer that enables dropout dynamically based on a ContextVar,
+    allowing thread-safe MC Dropout without changing the global model mode.
+    """
+    def __init__(self, p=0.5, inplace=False):
+        super().__init__()
+        self.p = p
+        self.inplace = inplace
+
+    def forward(self, input):
+        if mcd_enabled_ctx.get():
+            # Force dropout during MCD inference, using the thread-local rate
+            return F.dropout(input, p=mcd_rate_ctx.get(), training=True, inplace=self.inplace)
+        
+        # Standard behavior: respects model.eval() (self.training=False)
+        return F.dropout(input, p=self.p, training=self.training, inplace=self.inplace)
+
+    def extra_repr(self) -> str:
+        return f"p={self.p}, inplace={self.inplace}, thread_safe=True"
 
 app = Flask(__name__)
 
@@ -201,22 +228,23 @@ class MCDClassifierWithSHAP:
         )
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        
+        # Replace standard Dropout layers with ThreadSafeDropout
+        self._replace_dropout_layers(self.model)
+        
         self.model.eval()
 
-    def enable_dropout_with_rate(self, dropout_rate=None):
-        """
-        Enable dropout layers with a specified rate (or use default).
-        For MC Dropout, use LOWER rate than training (e.g., 0.05 instead of 0.1)
-        """
-        if dropout_rate is None:
-            dropout_rate = self.inference_dropout_rate
+    def _replace_dropout_layers(self, module):
+        """Recursively replace nn.Dropout with ThreadSafeDropout"""
+        for name, child in module.named_children():
+            if isinstance(child, nn.Dropout):
+                new_dropout = ThreadSafeDropout(p=child.p, inplace=child.inplace)
+                setattr(module, name, new_dropout)
+            else:
+                self._replace_dropout_layers(child)
 
-        for module in self.model.modules():
-            if module.__class__.__name__.startswith("Dropout"):
-                module.p = dropout_rate
-                module.train()
-            elif "Norm" in module.__class__.__name__:
-                module.eval()
+    # enable_dropout_with_rate removed as it is not thread-safe and no longer needed.
+
 
     def predict_with_uncertainty(self, text):
         inputs = self.tokenizer(
@@ -228,41 +256,52 @@ class MCDClassifierWithSHAP:
         inputs["input_ids"] = inputs["input_ids"].to(torch.long)
         inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
 
-        self.enable_dropout_with_rate(dropout_rate=self.inference_dropout_rate)
+        inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
+
+        # START THREAD-SAFE CONTEXT
+        token_enabled = mcd_enabled_ctx.set(True)
+        token_rate = mcd_rate_ctx.set(self.inference_dropout_rate)
+
 
         all_predictions = []
 
-        with torch.no_grad():
-            for _ in range(self.n_iterations):
-                outputs = self.model(**inputs)
-                probabilities = torch.softmax(outputs.logits, dim=-1)
-                all_predictions.append(probabilities.cpu().numpy())
+        try:
+            with torch.no_grad():
+                for _ in range(self.n_iterations):
+                    outputs = self.model(**inputs)
+                    probabilities = torch.softmax(outputs.logits, dim=-1)
+                    all_predictions.append(probabilities.cpu().numpy())
 
-                if _ % 10 == 0:
-                    gc.collect()
+                    if _ % 10 == 0:
+                        gc.collect()
 
-        all_predictions = np.stack(all_predictions)
-        mean_probs = all_predictions.mean(axis=0)
-        std_probs = all_predictions.std(axis=0)
-        predicted_class = mean_probs.argmax(axis=-1)
-        confidence = mean_probs.max(axis=-1)
-        predictive_entropy = entropy(mean_probs, axis=-1)
-        mutual_information = self.compute_mutual_information(all_predictions)
+            all_predictions = np.stack(all_predictions)
+            mean_probs = all_predictions.mean(axis=0)
+            std_probs = all_predictions.std(axis=0)
+            predicted_class = mean_probs.argmax(axis=-1)
+            confidence = mean_probs.max(axis=-1)
+            predictive_entropy = entropy(mean_probs, axis=-1)
+            mutual_information = self.compute_mutual_information(all_predictions)
 
-        del all_predictions
-        gc.collect()
+            del all_predictions
+            gc.collect()
 
-        return {
-            "predicted_class": predicted_class,
-            "predicted_label": [
-                self.model.config.id2label[idx] for idx in predicted_class
-            ],
-            "mean_probabilities": mean_probs,
-            "std_probabilities": std_probs,
-            "confidence": confidence,
-            "predictive_entropy": predictive_entropy,
-            "mutual_information": mutual_information,
-        }
+            return {
+                "predicted_class": predicted_class,
+                "predicted_label": [
+                    self.model.config.id2label[idx] for idx in predicted_class
+                ],
+                "mean_probabilities": mean_probs,
+                "std_probabilities": std_probs,
+                "confidence": confidence,
+                "predictive_entropy": predictive_entropy,
+                "mutual_information": mutual_information,
+            }
+
+        finally:
+            # RESET CONTEXT always
+            mcd_enabled_ctx.reset(token_enabled)
+            mcd_rate_ctx.reset(token_rate)
 
     def compute_mutual_information(self, predictions):
         """
