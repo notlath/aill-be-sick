@@ -1,8 +1,7 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 import json
 from transformers import pipeline
-from langdetect import detect_langs
 import numpy as np
 import torch
 import numpy as np
@@ -16,6 +15,9 @@ import unicodedata
 import torch.nn.functional as F
 import torch.nn as nn
 from contextvars import ContextVar
+import secrets
+import uuid
+import time
 
 # Thread-safe context for Monte Carlo Dropout
 mcd_enabled_ctx = ContextVar("mcd_enabled_ctx", default=False)
@@ -43,6 +45,13 @@ class ThreadSafeDropout(nn.Module):
         return f"p={self.p}, inplace={self.inplace}, thread_safe=True"
 
 app = Flask(__name__)
+
+# Configure session security
+app.secret_key = secrets.token_hex(32)  # Generate secure random key
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# Set to True in production with HTTPS:
+# app.config['SESSION_COOKIE_SECURE'] = True
 
 # Load question banks (English and Tagalog)
 with open("question_bank.json", "r", encoding="utf-8") as f:
@@ -416,6 +425,31 @@ fil_classifier = MCDClassifierWithSHAP(
 
 
 
+def detect_language_heuristic(text):
+    """
+    Robust language detection using tokenizer comparison.
+    
+    Strategy: The tokenizer that produces fewer tokens indicates better 
+    vocabulary fit (fewer unknowns/subwords). This is deterministic and 
+    reliable for medical symptom text, unlike langdetect.
+    
+    Returns: "en" or "tl"
+    """
+    # Count tokens for both models (exclude special tokens for fair comparison)
+    en_token_count = len(eng_classifier.tokenizer.encode(text, add_special_tokens=False))
+    tl_token_count = len(fil_classifier.tokenizer.encode(text, add_special_tokens=False))
+    
+    # Fewer tokens = better vocabulary match
+    if tl_token_count < en_token_count:
+        return "tl"
+    elif en_token_count < tl_token_count:
+        return "en"
+    else:
+        # Tie-breaker: use keyword matching
+        text_lower = text.lower()
+        has_tl_keywords = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
+        return "tl" if has_tl_keywords else "en"
+
 
 def classifier(text):
     try:
@@ -424,70 +458,10 @@ def classifier(text):
         if _count_words(text) < SYMPTOM_MIN_WORDS and len(text) < SYMPTOM_MIN_CHARS:
             raise ValueError("INSUFFICIENT_SYMPTOM_EVIDENCE:Text too short")
 
-        """
-        Language Detection Strategy:
-        ---------------------------
-        This block uses langdetect's `detect_langs` to obtain language probabilities for the input text.
-        However, langdetect can misidentify short or medical symptom narratives (especially Tagalog) as unrelated languages (e.g., Indonesian, Slovenian).
-        To address this, we implement a fallback strategy:
-          1. Attempt to detect if English ('en'), Tagalog ('tl'), or Filipino ('fil') are among the top candidates.
-          2. If not, use medical keyword matching to infer the language:
-             - If only English keywords are present, set language to 'en'.
-             - If only Tagalog keywords are present, set language to 'tl'.
-             - If both or ambiguous, default to 'en'.
-             - If neither, use the top detected language even if unsupported.
-        This ensures robust handling of edge cases and improves reliability for medical symptom inputs.
-        """
 
-        # Wrap language detection in try-except to handle edge cases
-        try:
-            # Get language probabilities instead of just top language
-            lang_probs = detect_langs(text)
-
-            # Check if English or Tagalog/Filipino are in top candidates
-            supported_langs = {"en", "tl", "fil"}
-            detected_lang = None
-
-            for lang_prob in lang_probs:
-                if lang_prob.lang in supported_langs:
-                    detected_lang = lang_prob.lang
-                    print(
-                        f"[LANG] Detected: {lang_prob.lang} (confidence: {lang_prob.prob:.2f})"
-                    )
-                    break
-
-            # If no supported language found, check for medical keywords to determine language
-            if detected_lang is None:
-                text_lower = text.lower()
-                has_en_keyword = any(
-                    keyword in text_lower for keyword in MEDICAL_KEYWORDS_EN
-                )
-                has_tl_keyword = any(
-                    keyword in text_lower for keyword in MEDICAL_KEYWORDS_TL
-                )
-
-                top_lang = lang_probs[0].lang if lang_probs else "unknown"
-
-                if has_en_keyword and not has_tl_keyword:
-                    detected_lang = "en"
-                    print(f"[LANG] Fallback: {top_lang} → en (English keywords found)")
-                elif has_tl_keyword and not has_en_keyword:
-                    detected_lang = "tl"
-                    print(f"[LANG] Fallback: {top_lang} → tl (Tagalog keywords found)")
-                elif has_en_keyword or has_tl_keyword:
-                    # Both or ambiguous, default to English
-                    detected_lang = "en"
-                    print(f"[LANG] Fallback: {top_lang} → en (ambiguous keywords)")
-                else:
-                    # Use the top detected language even if unsupported
-                    detected_lang = top_lang
-
-            lang = detected_lang
-
-        except Exception as lang_err:
-            print(f"[LANG] Detection failed: {lang_err}, defaulting to en")
-            # Default to English if detection fails on edge cases
-            lang = "en"
+        # Use tokenizer-based language detection (deterministic and robust)
+        lang = detect_language_heuristic(text)
+        print(f"[LANG] Detected: {lang}")
 
         # Check for medical keywords to ensure the text is health-related
         if not _has_medical_keywords(text, lang):
@@ -733,6 +707,19 @@ def new_case():
                 422,
             )
 
+
+        # Store diagnosis in server-side session for security
+        session['diagnosis'] = {
+            'disease': pred,
+            'confidence': confidence,
+            'uncertainty': uncertainty,
+            'top_diseases': top_diseases,
+            'mean_probs': mean_probs,  # Already serializable
+            'symptoms': symptoms,
+            'timestamp': time.time()
+        }
+        session['session_id'] = uuid.uuid4().hex
+        
         return (
             jsonify(
                 {
@@ -745,6 +732,7 @@ def new_case():
                         "disease": pred,  # Add disease for follow-up
                         "top_diseases": top_diseases,  # Add top competing diseases
                         "mean_probs": mean_probs,
+                        "session_id": session.get('session_id'),  # For debugging
                     }
                 }
             ),
@@ -819,13 +807,34 @@ def follow_up_question():
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
 
-        current_disease = data.get("disease", "")
-        confidence = data.get("confidence", 0)
-        uncertainty = data.get("uncertainty", 1)
+        # SECURITY: Validate diagnosis from server-side session, not client
+        diagnosis = session.get('diagnosis')
+        if not diagnosis:
+            return jsonify({
+                "error": "NO_ACTIVE_DIAGNOSIS",
+                "message": "No active diagnosis found. Please submit symptoms first."
+            }), 400
+        
+        # Session timeout: reject if diagnosis is older than 1 hour
+        SESSION_TIMEOUT = 3600  # 1 hour in seconds
+        time_elapsed = time.time() - diagnosis.get('timestamp', 0)
+        if time_elapsed > SESSION_TIMEOUT:
+            session.clear()  # Clear expired session
+            return jsonify({
+                "error": "SESSION_EXPIRED",
+                "message": "Your diagnosis session has expired. Please submit symptoms again."
+            }), 400
+        
+        # Use server-side diagnosis data (trusted)
+        current_disease = diagnosis['disease']
+        confidence = diagnosis['confidence']
+        uncertainty = diagnosis['uncertainty']
+        top_diseases = diagnosis['top_diseases']
+        
+        # Client can still provide UI state (asked_questions, last_answer, etc.)
         force_question = data.get("force", False)
         mode = data.get("mode", "adaptive")  # 'adaptive' or 'legacy'
         asked_questions = data.get("asked_questions", [])
-        top_diseases = data.get("top_diseases", [])  # List of {disease, probability}
         symptoms_text = data.get("symptoms", "")
         # Optional: last answer context from client (for logging/tracing)
         last_answer = data.get("last_answer")  # "yes" | "no" | None
@@ -881,35 +890,10 @@ def follow_up_question():
             )
 
         # Detect language from symptoms to choose appropriate question bank
-        try:
-            if symptoms_text:
-                lang_probs = detect_langs(symptoms_text)
-
-                # Check if English or Tagalog/Filipino are in top candidates
-                supported_langs = {"en", "tl", "fil"}
-                lang = None
-
-                for lang_prob in lang_probs:
-                    if lang_prob.lang in supported_langs:
-                        lang = lang_prob.lang
-                        break
-
-                # Fallback to keyword detection if no supported language found
-                if lang is None:
-                    text_lower = symptoms_text.lower()
-                    has_en = any(k in text_lower for k in MEDICAL_KEYWORDS_EN)
-                    has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
-
-                    if has_tl and not has_en:
-                        lang = "tl"
-                    else:
-                        lang = "en"  # Default to English
-            else:
-                lang = "en"
-
-        except Exception as e:
-            print(f"[FOLLOW-UP] Language detection failed: {e}")
-            lang = "en"  # Default to English if detection fails
+        if symptoms_text:
+            lang = detect_language_heuristic(symptoms_text)
+        else:
+            lang = "en"  # Default to English if no symptoms provided
 
         # Choose question bank based on language
         QUESTION_BANK = QUESTION_BANK_TL if lang in ["tl", "fil"] else QUESTION_BANK_EN
