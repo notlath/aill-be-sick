@@ -1,32 +1,60 @@
 "use server";
 
-import { RunDiagnosisSchema } from "@/schemas/RunDiagnosisSchema";
-import { getCurrentDbUser } from "@/utils/user";
-import axios, { AxiosError } from "axios";
-import { actionClient } from "./client";
-import { createMessage } from "./create-message";
+import {RunDiagnosisSchema} from "@/schemas/RunDiagnosisSchema";
+import {getCurrentDbUser} from "@/utils/user";
+import axios, {AxiosError} from "axios";
+import {actionClient} from "./client";
+import {createMessage} from "./create-message";
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
 
 export const runDiagnosis = actionClient
   .inputSchema(RunDiagnosisSchema)
-  .action(async ({ parsedInput }) => {
-    const { symptoms, chatId, skipMessage } = parsedInput;
-    const { success: dbUser, error } = await getCurrentDbUser();
+  .action(async ({parsedInput}) => {
+    const {symptoms, chatId, skipMessage} = parsedInput;
+    const {success: dbUser, error} = await getCurrentDbUser();
 
     if (!dbUser) {
       console.error(`Error fetching user: ${error}`);
 
-      return { error: `Error fetching user: ${error}` };
+      return {error: `Error fetching user: ${error}`};
     }
 
     try {
-      const {
-        data: { data: diagnosis },
-      } = await axios.post(`${BACKEND_URL}/diagnosis/new`, {
-        symptoms,
-      });
+      const response = await axios.post(
+        `${BACKEND_URL}/diagnosis/new`,
+        {
+          symptoms,
+        },
+        {
+          withCredentials: true, // Enable session cookies
+        },
+      );
+
+      const diagnosis = response.data.data;
+
+      // BRIDGE: Capture session cookie from Flask and set it in Next.js response
+      const setCookieHeader = response.headers["set-cookie"];
+      if (setCookieHeader) {
+        const {cookies} = await import("next/headers");
+        const cookieStore = await cookies();
+
+        // Parse the session cookie (usually named 'session')
+        setCookieHeader.forEach((cookieStr) => {
+          if (cookieStr.startsWith("session=")) {
+            const sessionValue = cookieStr.split(";")[0].split("=")[1];
+            // Set cookie in browser
+            cookieStore.set("session", sessionValue, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "lax",
+              path: "/",
+              maxAge: 60 * 60, // 1 hour match backend
+            });
+          }
+        });
+      }
       const {
         pred,
         confidence,
@@ -74,11 +102,11 @@ The **uncertainty score** associated with this diagnosis is **${(
           ).toFixed(4)}%**.
 
 A high confidence score (${(confidence * 100).toFixed(
-            4
+            4,
           )}%) combined with a low uncertainty score (${(
             uncertainty * 100
           ).toFixed(
-            4
+            4,
           )}%) suggests that **the model is confident about this diagnosis and that there's very little disagreement in predictions after repeated tests.**  \n
 
 Do you want to record this diagnosis?
@@ -97,11 +125,11 @@ The **uncertainty score** associated with this diagnosis is **${(
           ).toFixed(4)}%**.
           
 A low confidence score (${(confidence * 100).toFixed(
-            4
+            4,
           )}%) combined with a high uncertainty score (${(
             uncertainty * 100
           ).toFixed(
-            4
+            4,
           )}%) suggests that the model does not know the diagnosis and also does not know what the best diagnosis could be. **These results should not be trusted without further validation or a human expert's opinion.**  \n
 
 Do you want to record this diagnosis?
@@ -120,11 +148,11 @@ The **uncertainty score** associated with this diagnosis is **${(
           ).toFixed(4)}%**.
 
 A high confidence score (${(confidence * 100).toFixed(
-            4
+            4,
           )}%) combined with a high uncertainty score (${(
             uncertainty * 100
           ).toFixed(
-            4
+            4,
           )}%) indicates **overconfidence** of the model in this diagnosis. The model is confident about the diagnosis, but is also not sure what the best diagnosis could be. This could be a sign of distribution shift, where the model is encountering data that is different from what it was trained on. **These results should not be trusted without further validation or a human expert's opinion.**  \n
 
 Do you want to record this diagnosis?
@@ -143,11 +171,11 @@ The **uncertainty score** associated with this diagnosis is **${(
           ).toFixed(4)}%**.
 
 A low confidence score (${(confidence * 100).toFixed(
-            4
+            4,
           )}%) combined with a low uncertainty score (${(
             uncertainty * 100
           ).toFixed(
-            4
+            4,
           )}%) suggests that **the model is unsure about the diagnosis,** and is aware that **it needs more information to make a confident prediction for this specific case.** It is recommended to seek further medical advice or provide additional context for an accurate diagnosis.  \n
 
 Do you want to record this diagnosis?
@@ -211,6 +239,6 @@ Do you want to record this diagnosis?
         }
       }
 
-      return { error: `Error running diagnosis: ${error}` };
+      return {error: `Error running diagnosis: ${error}`};
     }
   });

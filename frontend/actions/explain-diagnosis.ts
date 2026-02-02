@@ -1,26 +1,43 @@
 "use server";
 
-import { ExplainDiagnosisSchema } from "@/schemas/ExplainDiagnosisSchema";
-import { actionClient } from "./client";
-import axios, { AxiosError } from "axios";
 import prisma from "@/prisma/prisma";
-import { revalidatePath } from "next/cache";
+import {ExplainDiagnosisSchema} from "@/schemas/ExplainDiagnosisSchema";
+import axios, {AxiosError} from "axios";
+import {revalidatePath} from "next/cache";
+import {actionClient} from "./client";
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
 
 export const explainDiagnosis = actionClient
   .inputSchema(ExplainDiagnosisSchema)
-  .action(async ({ parsedInput }) => {
-    const { meanProbs, messageId, symptoms } = parsedInput;
+  .action(async ({parsedInput}) => {
+    const {meanProbs, messageId, symptoms} = parsedInput;
 
     try {
+      // BRIDGE: Get session cookie from browser and forward to Flask
+      const {cookies} = await import("next/headers");
+      const cookieStore = await cookies();
+      const sessionCookie = cookieStore.get("session");
+      const cookieHeader = sessionCookie
+        ? `session=${sessionCookie.value}`
+        : "";
+
       const {
-        data: { symptoms: text, tokens },
-      } = await axios.post(`${BACKEND_URL}/diagnosis/explain`, {
-        mean_probs: meanProbs,
-        symptoms,
-      });
+        data: {symptoms: text, tokens},
+      } = await axios.post(
+        `${BACKEND_URL}/diagnosis/explain`,
+        {
+          mean_probs: meanProbs,
+          symptoms,
+        },
+        {
+          withCredentials: true, // Enable session cookies
+          headers: {
+            Cookie: cookieHeader, // Manually attach cookie
+          },
+        },
+      );
 
       let tokensArray: string[] = [];
       let importancesArray: number[] = [];
@@ -60,10 +77,10 @@ export const explainDiagnosis = actionClient
           if (Array.isArray(parsed)) {
             const normalized = normalize(parsed);
             tokensArray = normalized.map((t: any) =>
-              t && t.token ? String(t.token) : String(t)
+              t && t.token ? String(t.token) : String(t),
             );
             importancesArray = normalized.map((t: any) =>
-              t && t.importance ? Number(t.importance) : 0
+              t && t.importance ? Number(t.importance) : 0,
             );
           } else {
             tokensArray = [tokens];
@@ -111,6 +128,6 @@ export const explainDiagnosis = actionClient
         }
       }
 
-      return { error: `Error running explanation: ${error}` };
+      return {error: `Error running explanation: ${error}`};
     }
   });
