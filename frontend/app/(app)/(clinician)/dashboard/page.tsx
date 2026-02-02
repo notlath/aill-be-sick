@@ -11,10 +11,6 @@ const ClinicianHomePage = () => {
             <h1 className="font-semibold text-6xl tracking-tight bg-gradient-to-br from-base-content via-base-content to-base-content/70 bg-clip-text text-transparent">
               Overview
             </h1>
-            <p className="text-lg text-muted max-w-2xl">
-              Real-time insights into patient health, disease patterns, and
-              population trends.
-            </p>
           </div>
         </div>
       </div>
@@ -22,27 +18,10 @@ const ClinicianHomePage = () => {
       {/* Main Content */}
       <div className="px-8 pb-16 md:px-16 lg:px-24">
         <div className="max-w-[1600px] mx-auto space-y-8">
-          {/* Cluster Insights Section */}
-          <div className="animate-slide-up" style={{ animationDelay: "50ms" }}>
-            <ClusterInsights />
-          </div>
-
-          {/* Stats Grid - Apple-style cards */}
-          <div
-            className="grid grid-cols-1 md:grid-cols-3 gap-5 animate-slide-up"
-            style={{ animationDelay: "100ms" }}
-          ></div>
-
           {/* Patient Clusters - Full Width Premium Card */}
           <div className="animate-slide-up" style={{ animationDelay: "200ms" }}>
             <PatientClusters />
           </div>
-
-          {/* Analytics Grid */}
-          <div
-            className="grid grid-cols-1 lg:grid-cols-2 gap-5 animate-slide-up"
-            style={{ animationDelay: "300ms" }}
-          ></div>
         </div>
       </div>
     </main>
