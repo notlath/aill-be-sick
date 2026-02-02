@@ -36,6 +36,13 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   const [recommendedK, setRecommendedK] = useState<number | null>(null);
   const [loadingRecommendation, setLoadingRecommendation] =
     useState<boolean>(true);
+  const [selectedVariables, setSelectedVariables] = useState({
+    age: true,
+    gender: true,
+    disease: true,
+    region: true,
+    city: true,
+  });
   const isInitialRender = useRef(true);
 
   // Fetch silhouette analysis to determine recommended k and auto-apply it
@@ -44,7 +51,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
       try {
         setLoadingRecommendation(true);
         const res = await fetch(
-          "http://localhost:10000/api/patient-clusters/silhouette?range=2-15",
+          "http://localhost:10000/api/patient-clusters/silhouette?range=2-25",
         );
         if (!res.ok) {
           throw new Error("Failed to fetch silhouette analysis");
@@ -98,7 +105,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   const clampK = (val: number) => {
     if (Number.isNaN(val)) return k; // ignore invalid
     if (val < 2) return 2;
-    if (val > 20) return 20;
+    if (val > 25) return 25;
     return val;
   };
 
@@ -116,9 +123,9 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   };
 
   return (
-    <div className="col-span-2 space-y-6">
+    <div className="space-y-6">
       {/* Header Section */}
-      <Card className="group hover:border-primary/30">
+      <Card className="group ">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -127,80 +134,151 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
               </div>
               <div>
                 <CardTitle className="text-3xl tracking-tight">
-                  Patient Population Analysis
+                  Patient Clusters
                 </CardTitle>
-                <CardDescription className="text-base mt-1.5">
-                  Machine learning-based clustering for population health
-                  insights
-                </CardDescription>
+                {/* <CardDescription className="text-base mt-1.5">
+                  Review patient clusters
+                </CardDescription> */}
               </div>
             </div>
             <div className="text-right space-y-1">
               <div className="text-5xl font-semibold tracking-tight tabular-nums bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
                 {clusterData?.total_patients.toLocaleString() ?? "N/A"}
               </div>
-              <div className="text-sm font-medium text-muted">
-                Total Patients
-              </div>
+              <div className="text-sm font-medium text-muted">Patients</div>
             </div>
           </div>
 
-          <div className="h-px bg-gradient-to-r from-transparent via-base-300/50 to-transparent my-6" />
+          {/* <div className="h-px bg-gradient-to-r from-transparent via-base-300/50 to-transparent my-6" /> */}
+        </CardHeader>
+      </Card>
 
-          <div className="flex items-center justify-between">
-            <form onSubmit={onSubmitK} className="flex items-center gap-4">
-              <div className="flex items-center gap-3 bg-base-200/30 rounded-[12px] px-4 py-2.5 border border-base-300/30">
-                <label
-                  htmlFor="cluster-k"
-                  className="text-sm font-medium text-base-content/80"
-                >
-                  Clusters
-                </label>
-                <Input
-                  id="cluster-k"
-                  type="number"
-                  className="w-16 h-8 text-center font-semibold"
-                  min={2}
-                  max={20}
-                  value={kInput}
-                  onChange={(e) => setKInput(e.target.value)}
-                  disabled={loading}
-                />
-                <button
-                  type="submit"
-                  className="px-3 py-1.5 rounded-[8px] bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/20 transition-all duration-300 disabled:opacity-50"
-                  title="Apply cluster settings"
-                  disabled={loading}
-                >
-                  {loading ? "Applying..." : "Apply"}
-                </button>
-              </div>
-              <span className="text-xs text-muted/70 font-medium">
+      {/* Variable Selection Row */}
+      <div className="card bg-base-100 border border-base-300">
+        <div className="card-body space-y-1">
+          <p className="text-xs text-base-content/70 ">
+            Choose which variables to include in clustering
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <label
+              className={`btn btn-sm cursor-pointer ${selectedVariables.disease ? "btn-primary" : "btn-outline"}`}
+            >
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={selectedVariables.disease}
+                onChange={() =>
+                  setSelectedVariables((prev) => ({
+                    ...prev,
+                    disease: !prev.disease,
+                  }))
+                }
+              />
+              <span>Diagnosed disease</span>
+            </label>
+            <label
+              className={`btn btn-sm cursor-pointer ${selectedVariables.age ? "btn-primary" : "btn-outline"}`}
+            >
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={selectedVariables.age}
+                onChange={() =>
+                  setSelectedVariables((prev) => ({ ...prev, age: !prev.age }))
+                }
+              />
+              <span>Age</span>
+            </label>
+            <label
+              className={`btn btn-sm cursor-pointer ${selectedVariables.gender ? "btn-primary" : "btn-outline"}`}
+            >
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={selectedVariables.gender}
+                onChange={() =>
+                  setSelectedVariables((prev) => ({
+                    ...prev,
+                    gender: !prev.gender,
+                  }))
+                }
+              />
+              <span>Gender</span>
+            </label>
+
+            <label
+              className={`btn btn-sm cursor-pointer ${selectedVariables.region ? "btn-primary" : "btn-outline"}`}
+            >
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={selectedVariables.region}
+                onChange={() =>
+                  setSelectedVariables((prev) => ({
+                    ...prev,
+                    region: !prev.region,
+                  }))
+                }
+              />
+              <span>Region</span>
+            </label>
+            <label
+              className={`btn btn-sm cursor-pointer ${selectedVariables.city ? "btn-primary" : "btn-outline"}`}
+            >
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={selectedVariables.city}
+                onChange={() =>
+                  setSelectedVariables((prev) => ({
+                    ...prev,
+                    city: !prev.city,
+                  }))
+                }
+              />
+              <span>City</span>
+            </label>
+          </div>
+
+          {/* Clusters */}
+          <form onSubmit={onSubmitK} className="space-y-3">
+            <div className="flex items-center gap-3 ">
+              <label htmlFor="cluster-k" className="text-sm  ">
+                Clusters
+              </label>
+              <Input
+                id="cluster-k"
+                type="number"
+                className="w-18 h-8 "
+                min={2}
+                max={25}
+                value={kInput}
+                onChange={(e) => setKInput(e.target.value)}
+                disabled={loading}
+              />
+
+              <span className="text-xs text-muted font-normal">
                 {loadingRecommendation ? (
                   <>Calculating recommendation...</>
                 ) : recommendedK ? (
                   <>Recommended: {recommendedK} clusters</>
                 ) : (
-                  <>Recommended: 2-15 clusters</>
+                  <>Recommended: 2-25 clusters</>
                 )}
               </span>
-            </form>
-
-            <div className="flex items-center gap-2.5">
-              <Badge variant="outline" className="gap-2 px-3 py-2">
-                <MapPin className="size-3.5 opacity-70" />
-                <span className="font-medium">Geographic + Demographics</span>
-              </Badge>
-              <Badge variant="default" className="gap-2 px-3 py-2">
-                <TrendingUp className="size-3.5" />
-                <span className="font-semibold">
-                  {clusterData?.n_clusters ?? k} Clusters
-                </span>
-              </Badge>
             </div>
-          </div>
-        </CardHeader>
-      </Card>
+
+            <button
+              type="submit"
+              className="w-fit btn btn-primary btn-sm"
+              title="Apply cluster settings"
+              disabled={loading}
+            >
+              {loading ? "Applying..." : "Apply"}
+            </button>
+          </form>
+        </div>
+      </div>
 
       {/* Content Area */}
       <div className="relative min-h-[500px]">

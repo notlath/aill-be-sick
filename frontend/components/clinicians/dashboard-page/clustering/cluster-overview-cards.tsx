@@ -133,23 +133,60 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
             />
 
             <CardHeader className="relative pb-4">
-              {/* Header: Disease Name + Icon */}
+              {/* Header: Disease Name */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-muted/60 uppercase tracking-wider mb-1.5">
-                    Cluster {stat.cluster_id + 1}
+                  <div className="text-sm font-semibold mb-1.5">
+                    Group {stat.cluster_id + 1}
                   </div>
-                  <h3 className="text-xl font-semibold text-base-content tracking-tight truncate">
-                    {dominantDisease?.disease || "Mixed Cluster"}
-                  </h3>
-                </div>
-                <div
-                  className={`flex-shrink-0 ${theme.iconBg} ${theme.shadow} p-3 rounded-[12px] shadow-lg group-hover:scale-110 transition-transform duration-500`}
-                >
-                  <Activity className="size-5 text-white stroke-[2]" />
+                  {/* Clinical Notes - Minimal Card */}
+                  <div className="">
+                    <div
+                      className={`${theme.accentBg} rounded-[12px] p-3.5 border ${theme.border}`}
+                    >
+                      <div className="text-xs leading-relaxed text-base-content/70">
+                        {(() => {
+                          // Age descriptor
+                          let ageDescriptor = "patients";
+                          if (stat.avg_age >= 60) {
+                            ageDescriptor = "predominantly older adults";
+                          } else if (stat.avg_age >= 40) {
+                            ageDescriptor = "predominantly middle-aged adults";
+                          } else if (stat.avg_age >= 18) {
+                            ageDescriptor = "predominantly younger adults";
+                          } else {
+                            ageDescriptor = "predominantly younger patients";
+                          }
+
+                          // Region
+                          let regionText = "";
+                          if (stat.top_regions && stat.top_regions.length > 0) {
+                            const topRegion = stat.top_regions[0];
+                            const regionPercent = Math.round(
+                              (topRegion.count / stat.count) * 100,
+                            );
+                            if (regionPercent >= 50) {
+                              regionText = ` from ${topRegion.region}`;
+                            }
+                          }
+
+                          // Disease
+                          let diseaseText = "";
+                          if (dominantDisease) {
+                            diseaseText = `, with ${dominantDisease.disease} as the most common diagnosis`;
+                          }
+
+                          return `This group consists of ${stat.count} patients${regionText}, ${ageDescriptor}${diseaseText}.`;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              <h3 className="text-xl font-semibold text-base-content tracking-tight truncate">
+                {dominantDisease?.disease || "Mixed Cluster"}
+              </h3>
               {/* Patient Count - Large and Prominent */}
               <div className="mt-4 flex items-baseline gap-2">
                 <span
@@ -162,19 +199,6 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
             </CardHeader>
 
             <CardContent className="relative space-y-5">
-              {/* Dominant Disease Badge */}
-              {dominantDisease && (
-                <div className="flex items-center gap-2 pb-4 border-b border-base-300/50">
-                  <Sparkles className={`size-3.5 ${theme.accentText}`} />
-                  <span className="text-xs font-medium text-muted">
-                    Primary diagnosis
-                  </span>
-                  <Badge className={`ml-auto border ${theme.badgeBg}`}>
-                    {dominantDisease.percent}%
-                  </Badge>
-                </div>
-              )}
-
               {/* Demographics - Clean Two Column */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
@@ -249,52 +273,6 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                   </div>
                 </div>
               )}
-
-              {/* Clinical Notes - Minimal Card */}
-              <div className="pt-4 border-t border-base-300/50">
-                <div
-                  className={`${theme.accentBg} rounded-[12px] p-3.5 border ${theme.border}`}
-                >
-                  <div className="text-[11px] leading-relaxed text-base-content/70">
-                    {(() => {
-                      const notes = [];
-
-                      // Primary diagnosis summary
-                      if (dominantDisease) {
-                        notes.push(
-                          `Primary diagnosis: ${dominantDisease.disease} (${dominantDisease.percent}% of patients).`
-                        );
-                      }
-
-                      // Patient count assessment
-                      if (stat.count >= 30) {
-                        notes.push(
-                          `High patient volume (${stat.count} cases).`
-                        );
-                      } else if (stat.count >= 15) {
-                        notes.push(
-                          `Moderate patient group (${stat.count} cases).`
-                        );
-                      }
-
-                      // Geographic concentration
-                      if (stat.top_regions && stat.top_regions.length > 0) {
-                        const topRegion = stat.top_regions[0];
-                        const regionPercent = Math.round(
-                          (topRegion.count / stat.count) * 100
-                        );
-                        if (regionPercent >= 50) {
-                          notes.push(
-                            `Geographic cluster: ${regionPercent}% in ${topRegion.region}.`
-                          );
-                        }
-                      }
-
-                      return notes.join(" ");
-                    })()}
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         );
