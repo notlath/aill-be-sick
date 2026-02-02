@@ -502,18 +502,15 @@ def classifier(text):
             sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
             probs = []
             top_diseases = []
-            # Only consider allowed diseases
-            allowed = {"Dengue", "Pneumonia", "Typhoid", "Impetigo"}
-
-            # iterate over all labels but only keep allowed ones, preserving probabilities
+            
+            # Use all labels from model config
             all_probs = result["mean_probabilities"][0]
             for idx, label in eng_classifier.model.config.id2label.items():
-                if label in allowed:
-                    prob = float(all_probs[idx])
-                    probs.append(f"{label}: {prob*100:.2f}%")
-                    top_diseases.append({"disease": label, "probability": prob})
+                prob = float(all_probs[idx])
+                probs.append(f"{label}: {prob*100:.2f}%")
+                top_diseases.append({"disease": label, "probability": prob})
 
-            # sort allowed diseases by probability desc
+            # sort by probability desc
             top_diseases.sort(key=lambda x: x["probability"], reverse=True)
             probs = [
                 f"{d['disease']}: {(d['probability']*100):.2f}%" for d in top_diseases
@@ -521,10 +518,6 @@ def classifier(text):
             mean_probs = result["mean_probabilities"].tolist()
 
             print(f"[RESULT] {pred} (conf: {confidence:.3f}, MI: {uncertainty:.4f})")
-
-            # ensure pred is an allowed disease; if not, take top allowed
-            if pred not in allowed and len(top_diseases) > 0:
-                pred = top_diseases[0]["disease"]
 
             gc.collect()
             return (
@@ -549,12 +542,11 @@ def classifier(text):
             mean_probs = result["mean_probabilities"].tolist()
 
             all_probs = result["mean_probabilities"][0]
-            allowed = {"Dengue", "Pneumonia", "Typhoid", "Impetigo"}
+            
             for idx, label in fil_classifier.model.config.id2label.items():
-                if label in allowed:
-                    prob = float(all_probs[idx])
-                    probs.append(f"{label}: {prob*100:.2f}%")
-                    top_diseases.append({"disease": label, "probability": prob})
+                prob = float(all_probs[idx])
+                probs.append(f"{label}: {prob*100:.2f}%")
+                top_diseases.append({"disease": label, "probability": prob})
 
             top_diseases.sort(key=lambda x: x["probability"], reverse=True)
             probs = [
@@ -562,9 +554,6 @@ def classifier(text):
             ]
 
             print(f"[RESULT] {pred} (conf: {confidence:.3f}, MI: {uncertainty:.4f})")
-
-            if pred not in allowed and len(top_diseases) > 0:
-                pred = top_diseases[0]["disease"]
 
             gc.collect()
             return pred, confidence, uncertainty, probs, "RoBERTa Tagalog", top_diseases, mean_probs
