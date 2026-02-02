@@ -267,15 +267,22 @@ class MCDClassifierWithSHAP:
 
         try:
             with torch.no_grad():
-                for _ in range(self.n_iterations):
-                    outputs = self.model(**inputs)
-                    probabilities = torch.softmax(outputs.logits, dim=-1)
-                    all_predictions.append(probabilities.cpu().numpy())
+                # OPTIMIZATION: Batch inference
+                # Repeat inputs n_iterations times to process in one pass (or fewer batches)
+                # inputs tensors are [1, seq_len], we want [n_iterations, seq_len]
+                batch_inputs = {
+                    k: v.repeat(self.n_iterations, 1) 
+                    for k, v in inputs.items() 
+                    if isinstance(v, torch.Tensor)
+                }
 
-                    if _ % 10 == 0:
-                        gc.collect()
+                outputs = self.model(**batch_inputs)
+                probabilities = torch.softmax(outputs.logits, dim=-1) # [n_iters, num_classes]
 
-            all_predictions = np.stack(all_predictions)
+                # Reshape to [n_iters, 1, num_classes] to match original structure (batch, 1 sample, classes)
+                all_predictions = probabilities.unsqueeze(1).cpu().numpy()
+
+            # Calculate statistics
             mean_probs = all_predictions.mean(axis=0)
             std_probs = all_predictions.std(axis=0)
             predicted_class = mean_probs.argmax(axis=-1)
@@ -284,6 +291,8 @@ class MCDClassifierWithSHAP:
             mutual_information = self.compute_mutual_information(all_predictions)
 
             del all_predictions
+            del batch_inputs
+            del outputs
             gc.collect()
 
             return {
