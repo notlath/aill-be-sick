@@ -95,9 +95,38 @@ const CLUSTER_THEMES = [
 const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
   statistics,
 }) => {
+  // Helper function to check if cluster has dominant disease (40% higher than second)
+  const hasDominantDisease = (stat: ClusterStatistics): boolean => {
+    if (!stat.disease_distribution) return false;
+
+    const entries = Object.entries(stat.disease_distribution);
+    if (entries.length <= 1) return true; // Single disease is always dominant
+
+    const sorted = entries.sort((a, b) => b[1].count - a[1].count);
+    const topDisease = sorted[0];
+    const secondDisease = sorted[1];
+    const percentageIncrease =
+      (topDisease[1].count - secondDisease[1].count) / secondDisease[1].count;
+
+    return percentageIncrease >= 0.4;
+  };
+
+  // Sort clusters: dominant disease first, then by patient count (descending)
+  const sortedStatistics = [...statistics].sort((a, b) => {
+    const aDominant = hasDominantDisease(a);
+    const bDominant = hasDominantDisease(b);
+
+    // Prioritize clusters with dominant disease
+    if (aDominant && !bDominant) return -1;
+    if (!aDominant && bDominant) return 1;
+
+    // Then sort by patient count
+    return b.count - a.count;
+  });
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-      {statistics.map((stat, index) => {
+      {sortedStatistics.map((stat, index) => {
         const theme = CLUSTER_THEMES[index % CLUSTER_THEMES.length];
         const totalGender =
           stat.gender_distribution.MALE +
@@ -113,12 +142,34 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
             : 0;
 
         // Determine dominant disease from distribution if available
+        // Only show if top disease is at least 40% higher than second disease
         let dominantDisease: { disease: string; percent: number } | null = null;
         if (stat.disease_distribution) {
           const entries = Object.entries(stat.disease_distribution);
           if (entries.length > 0) {
-            const top = entries.sort((a, b) => b[1].percent - a[1].percent)[0];
-            dominantDisease = { disease: top[0], percent: top[1].percent };
+            const sorted = entries.sort((a, b) => b[1].count - a[1].count);
+            const topDisease = sorted[0];
+
+            if (sorted.length === 1) {
+              // Only one disease, show it
+              dominantDisease = {
+                disease: topDisease[0],
+                percent: topDisease[1].percent,
+              };
+            } else {
+              // Check if top disease is at least 40% higher than second
+              const secondDisease = sorted[1];
+              const percentageIncrease =
+                (topDisease[1].count - secondDisease[1].count) /
+                secondDisease[1].count;
+
+              if (percentageIncrease >= 0.4) {
+                dominantDisease = {
+                  disease: topDisease[0],
+                  percent: topDisease[1].percent,
+                };
+              }
+            }
           }
         }
 
@@ -137,7 +188,7 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold mb-1.5">
-                    Group {stat.cluster_id + 1}
+                    Group {index + 1}
                   </div>
                   {/* Clinical Notes - Minimal Card */}
                   <div className="">
@@ -150,33 +201,76 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                           let ageDescriptor = "patients";
                           if (stat.avg_age >= 60) {
                             ageDescriptor = "predominantly older adults";
-                          } else if (stat.avg_age >= 40) {
+                          } else if (stat.avg_age >= 36) {
                             ageDescriptor = "predominantly middle-aged adults";
                           } else if (stat.avg_age >= 18) {
-                            ageDescriptor = "predominantly younger adults";
+                            ageDescriptor = "predominantly young adults";
+                          } else if (stat.avg_age >= 13) {
+                            ageDescriptor = "predominantly adolescents";
                           } else {
-                            ageDescriptor = "predominantly younger patients";
+                            ageDescriptor = "predominantly children";
                           }
 
-                          // Region
-                          let regionText = "";
-                          if (stat.top_regions && stat.top_regions.length > 0) {
+                          // Region or City
+                          let regionLocation = "";
+                          if (stat.top_cities && stat.top_cities.length === 1) {
+                            // If there's only one top city, show the city
+                            regionLocation = stat.top_cities[0].city;
+                          } else if (
+                            stat.top_regions &&
+                            stat.top_regions.length === 1 &&
+                            stat.top_cities &&
+                            stat.top_cities.length > 1
+                          ) {
+                            // If there are multiple cities but only one region, show the region
+                            regionLocation = stat.top_regions[0].region;
+                          } else if (
+                            stat.top_regions &&
+                            stat.top_regions.length > 0
+                          ) {
+                            // Otherwise, show region if it has >= 50%
                             const topRegion = stat.top_regions[0];
                             const regionPercent = Math.round(
                               (topRegion.count / stat.count) * 100,
                             );
                             if (regionPercent >= 50) {
-                              regionText = ` from ${topRegion.region}`;
+                              regionLocation = topRegion.region;
                             }
                           }
 
-                          // Disease
-                          let diseaseText = "";
-                          if (dominantDisease) {
-                            diseaseText = `, with ${dominantDisease.disease} as the most common diagnosis`;
+                          // Gender descriptor
+                          let genderDescriptor = "";
+                          if (malePercent >= 60) {
+                            genderDescriptor = "mostly male";
+                          } else if (femalePercent >= 60) {
+                            genderDescriptor = "mostly female";
                           }
 
-                          return `This group consists of ${stat.count} patients${regionText}, ${ageDescriptor}${diseaseText}.`;
+                          return (
+                            <>
+                              This group consists of {stat.count} patients
+                              {regionLocation && (
+                                <>
+                                  {" "}
+                                  from <strong>{regionLocation}</strong>
+                                </>
+                              )}
+                              , {ageDescriptor}
+                              {genderDescriptor && (
+                                <>
+                                  , <strong>{genderDescriptor}</strong>
+                                </>
+                              )}
+                              {dominantDisease && (
+                                <>
+                                  , with{" "}
+                                  <strong>{dominantDisease.disease}</strong> as
+                                  the most common diagnosis
+                                </>
+                              )}
+                              .
+                            </>
+                          );
                         })()}
                       </div>
                     </div>
@@ -209,6 +303,12 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
                   <div className="space-y-0.5">
+                    <div className="text-xs text-muted">Age Range</div>
+                    <div className="font-semibold text-base-content">
+                      {stat.min_age}-{stat.max_age} yrs
+                    </div>
+                  </div>
+                  <div className="space-y-0.5">
                     <div className="text-xs text-muted">Avg. Age</div>
                     <div className="font-semibold text-base-content">
                       {stat.avg_age} yrs
@@ -220,7 +320,7 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                       {malePercent}%
                     </div>
                   </div>
-                  <div className="col-span-2 space-y-0.5">
+                  <div className="space-y-0.5">
                     <div className="text-xs text-muted">Female</div>
                     <div className="font-semibold text-base-content">
                       {femalePercent}%
@@ -233,7 +333,7 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <MapPin className={`size-3.5 ${theme.accentText}`} />
-                  <span className="text-xs font-semibold text-base-content/80 uppercase tracking-wide">
+                  <span className="text-xs font-semibold text-base-content/80 tracking-wide">
                     Top Regions
                   </span>
                 </div>
@@ -249,6 +349,29 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                   ))}
                 </div>
               </div>
+
+              {/* Top Cities - Pill Badges */}
+              {stat.top_cities && stat.top_cities.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <MapPin className={`size-3.5 ${theme.accentText}`} />
+                    <span className="text-xs font-semibold text-base-content/80 tracking-wide">
+                      Top Cities
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {stat.top_cities.slice(0, 2).map((city, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className="text-xs font-medium"
+                      >
+                        {city.city} ({city.count})
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Top Diseases */}
               {stat.top_diseases && stat.top_diseases.length > 0 && (

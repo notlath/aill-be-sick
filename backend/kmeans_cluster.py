@@ -169,6 +169,8 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
                     "cluster_id": cluster_id,
                     "count": 0,
                     "avg_age": 0,
+                    "min_age": 0,
+                    "max_age": 0,
                     "gender_distribution": {"MALE": 0, "FEMALE": 0, "OTHER": 0},
                     "top_regions": [],
                     "top_cities": [],
@@ -182,6 +184,8 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
         # Calculate statistics
         ages = [p["age"] for p in cluster_patients]
         avg_age = sum(ages) / len(ages)
+        min_age = min(ages)
+        max_age = max(ages)
 
         # Gender distribution
         gender_dist = {"MALE": 0, "FEMALE": 0, "OTHER": 0}
@@ -232,6 +236,8 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
                 "cluster_id": cluster_id,
                 "count": len(cluster_patients),
                 "avg_age": round(avg_age, 1),
+                "min_age": min_age,
+                "max_age": max_age,
                 "gender_distribution": gender_dist,
                 "top_regions": [{"region": r, "count": c} for r, c in top_regions],
                 "top_cities": [{"city": c, "count": cnt} for c, cnt in top_cities],
