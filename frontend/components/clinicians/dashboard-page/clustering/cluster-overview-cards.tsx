@@ -187,9 +187,7 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
               {/* Header: Disease Name */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold mb-1.5">
-                    Group {index + 1}
-                  </div>
+                  <div className=" font-semibold mb-2">Group {index + 1}</div>
                   {/* Clinical Notes - Minimal Card */}
                   <div className="">
                     <div
@@ -213,59 +211,70 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
 
                           // Region or City
                           let regionLocation = "";
+                          let regionPrefix = "from"; // "from" or "mostly from"
+
                           if (stat.top_cities && stat.top_cities.length === 1) {
-                            // If there's only one top city, show the city
+                            // Only one city, display "from {city}"
                             regionLocation = stat.top_cities[0].city;
+                            regionPrefix = "from";
                           } else if (
                             stat.top_regions &&
-                            stat.top_regions.length === 1 &&
-                            stat.top_cities &&
-                            stat.top_cities.length > 1
+                            stat.top_regions.length === 1
                           ) {
-                            // If there are multiple cities but only one region, show the region
+                            // Only one region, display "from {region}"
                             regionLocation = stat.top_regions[0].region;
+                            regionPrefix = "from";
                           } else if (
                             stat.top_regions &&
-                            stat.top_regions.length > 0
+                            stat.top_regions.length >= 2
                           ) {
-                            // Otherwise, show region if it has >= 50%
+                            // Two or more regions
                             const topRegion = stat.top_regions[0];
-                            const regionPercent = Math.round(
-                              (topRegion.count / stat.count) * 100,
-                            );
-                            if (regionPercent >= 50) {
+                            const secondRegion = stat.top_regions[1];
+                            const percentageIncrease =
+                              (topRegion.count - secondRegion.count) /
+                              secondRegion.count;
+
+                            if (percentageIncrease >= 0.4) {
+                              // Top region is 40% higher, display "mostly from {region}"
                               regionLocation = topRegion.region;
+                              regionPrefix = "mostly from";
                             }
+                            // Otherwise, don't mention region at all
                           }
 
                           // Gender descriptor
                           let genderDescriptor = "";
+                          let genderWord = "";
                           if (malePercent >= 60) {
-                            genderDescriptor = "mostly male";
+                            genderDescriptor = "mostly";
+                            genderWord = "male";
                           } else if (femalePercent >= 60) {
-                            genderDescriptor = "mostly female";
+                            genderDescriptor = "mostly";
+                            genderWord = "female";
                           }
 
                           return (
                             <>
-                              This group consists of {stat.count} patients
+                              {stat.count} patients
                               {regionLocation && (
                                 <>
                                   {" "}
-                                  from <strong>{regionLocation}</strong>
+                                  {regionPrefix}{" "}
+                                  <strong>{regionLocation}</strong>
                                 </>
                               )}
                               , {ageDescriptor}
-                              {genderDescriptor && (
+                              {genderWord && (
                                 <>
-                                  , <strong>{genderDescriptor}</strong>
+                                  , {genderDescriptor}{" "}
+                                  <strong>{genderWord}</strong>
                                 </>
                               )}
                               {dominantDisease && (
                                 <>
-                                  , with{" "}
-                                  <strong>{dominantDisease.disease}</strong> as
-                                  the most common diagnosis
+                                  , has mostly{" "}
+                                  <strong>{dominantDisease.disease}</strong>
                                 </>
                               )}
                               .
@@ -278,11 +287,8 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                 </div>
               </div>
 
-              <h3 className="text-xl font-semibold text-base-content tracking-tight truncate">
-                {dominantDisease?.disease || "Mixed Cluster"}
-              </h3>
               {/* Patient Count - Large and Prominent */}
-              <div className="mt-4 flex items-baseline gap-2">
+              <div className=" flex items-baseline gap-2">
                 <span
                   className={`text-4xl font-semibold tracking-tight ${theme.accentText} tabular-nums`}
                 >
@@ -297,56 +303,32 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Users className={`size-3.5 ${theme.accentText}`} />
-                  <span className="text-xs font-semibold text-base-content/80 uppercase tracking-wide">
+                  <span className="text-xs font-semibold text-base-content/80 ">
                     Demographics
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
-                  <div className="space-y-0.5">
-                    <div className="text-xs text-muted">Age Range</div>
-                    <div className="font-semibold text-base-content">
-                      {stat.min_age}-{stat.max_age} yrs
-                    </div>
-                  </div>
+
+                <div className="space-y-1  text-sm">
                   <div className="space-y-0.5">
                     <div className="text-xs text-muted">Avg. Age</div>
-                    <div className="font-semibold text-base-content">
+                    <div className="font-semibold text-base-content text-sm">
                       {stat.avg_age} yrs
                     </div>
                   </div>
-                  <div className="space-y-0.5">
-                    <div className="text-xs text-muted">Male</div>
-                    <div className="font-semibold text-base-content">
-                      {malePercent}%
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
+                    <div className="space-y-0.5">
+                      <div className="text-xs text-muted">Male</div>
+                      <div className="font-semibold text-base-content">
+                        {malePercent}%
+                      </div>
+                    </div>
+                    <div className="space-y-0.5">
+                      <div className="text-xs text-muted">Female</div>
+                      <div className="font-semibold text-base-content">
+                        {femalePercent}%
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-0.5">
-                    <div className="text-xs text-muted">Female</div>
-                    <div className="font-semibold text-base-content">
-                      {femalePercent}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Top Regions - Pill Badges */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <MapPin className={`size-3.5 ${theme.accentText}`} />
-                  <span className="text-xs font-semibold text-base-content/80 tracking-wide">
-                    Top Regions
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {stat.top_regions.slice(0, 2).map((region, idx) => (
-                    <Badge
-                      key={idx}
-                      variant="outline"
-                      className="text-xs font-medium"
-                    >
-                      {region.region} ({region.count})
-                    </Badge>
-                  ))}
                 </div>
               </div>
 
@@ -373,14 +355,35 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                 </div>
               )}
 
+              {/* Top Regions - Pill Badges */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <MapPin className={`size-3.5 ${theme.accentText}`} />
+                  <span className="text-xs font-semibold text-base-content/80 tracking-wide">
+                    Top Regions
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {stat.top_regions.slice(0, 2).map((region, idx) => (
+                    <Badge
+                      key={idx}
+                      variant="outline"
+                      className="text-xs font-medium"
+                    >
+                      {region.region} ({region.count})
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
               {/* Top Diseases */}
               {stat.top_diseases && stat.top_diseases.length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-base-content/80 uppercase tracking-wide mb-3">
-                    Top Diagnosed
+                  <div className="text-xs font-semibold text-base-content/80  mb-3">
+                    Top Diagnosed Diseases
                   </div>
                   <div className="space-y-1.5">
-                    {stat.top_diseases.slice(0, 3).map((d, idx) => (
+                    {stat.top_diseases.slice(0, 5).map((d, idx) => (
                       <div
                         key={idx}
                         className="flex items-center justify-between text-xs"

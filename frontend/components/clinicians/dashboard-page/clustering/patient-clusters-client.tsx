@@ -27,9 +27,9 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   initialK,
 }) => {
   const [clusterData, setClusterData] = useState<PatientClusterData | null>(
-    initialData,
+    null,
   );
-  const [loading, setLoading] = useState(false); // Not loading on initial render
+  const [loading, setLoading] = useState(true); // Loading until recommendation is fetched
   const [error, setError] = useState<string | null>(null);
   const [k, setK] = useState<number>(initialK);
   const [kInput, setKInput] = useState<string>(String(initialK));
@@ -45,7 +45,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   });
   const isInitialRender = useRef(true);
 
-  // Fetch silhouette analysis to determine recommended k and auto-apply it
+  // Fetch silhouette analysis to determine recommended k
   useEffect(() => {
     const fetchRecommendedK = async () => {
       try {
@@ -59,8 +59,6 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
         const data = await res.json();
         if (data.best && data.best.k) {
           setRecommendedK(data.best.k);
-          // Auto-apply the recommended k
-          setK(data.best.k);
           setKInput(String(data.best.k));
         }
       } catch (err) {
@@ -74,10 +72,18 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     fetchRecommendedK();
   }, []);
 
+  // Auto-apply recommended k when it becomes available
   useEffect(() => {
-    // This effect should only run when `k` is changed by the user, not on initial render.
-    if (isInitialRender.current) {
+    if (isInitialRender.current && recommendedK) {
       isInitialRender.current = false;
+      setK(recommendedK);
+    }
+  }, [recommendedK]);
+
+  // Load kmeans cluster data when k changes
+  useEffect(() => {
+    // Skip on initial render until recommendedK is available and applied
+    if (isInitialRender.current) {
       return;
     }
 
@@ -128,14 +134,12 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
       <div className="card card-body bg-base-100 border border-base-300">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <p className="text-xs text-base-content/70 ">
-              Choose which variables to include in grouping
-            </p>
+            <h2 className="text-lg font-semibold">Select variables</h2>
 
             {/* Buttons */}
             <div className="flex flex-wrap gap-3">
               <label
-                className={`btn btn-sm cursor-pointer ${selectedVariables.disease ? "btn-primary btn-soft" : "font-normal"}`}
+                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.disease ? "btn-primary btn-soft" : ""}`}
               >
                 <input
                   type="checkbox"
@@ -151,7 +155,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                 <span>Diagnosed disease</span>
               </label>
               <label
-                className={`btn btn-sm cursor-pointer ${selectedVariables.age ? "btn-primary btn-soft" : "font-normal"}`}
+                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary btn-soft" : ""}`}
               >
                 <input
                   type="checkbox"
@@ -167,7 +171,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                 <span>Age</span>
               </label>
               <label
-                className={`btn btn-sm cursor-pointer ${selectedVariables.gender ? "btn-primary btn-soft" : "font-normal"}`}
+                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary btn-soft" : ""}`}
               >
                 <input
                   type="checkbox"
@@ -184,7 +188,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
               </label>
 
               <label
-                className={`btn btn-sm cursor-pointer ${selectedVariables.region ? "btn-primary btn-soft" : "font-normal"}`}
+                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.region ? "btn-primary btn-soft" : ""}`}
               >
                 <input
                   type="checkbox"
@@ -200,7 +204,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                 <span>Region</span>
               </label>
               <label
-                className={`btn btn-sm cursor-pointer ${selectedVariables.city ? "btn-primary btn-soft" : "font-normal"}`}
+                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.city ? "btn-primary btn-soft" : ""}`}
               >
                 <input
                   type="checkbox"
@@ -220,13 +224,13 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
             {/* Groups */}
             <form onSubmit={onSubmitK} className="space-y-3">
               <div className="flex items-center gap-3 ">
-                <label htmlFor="cluster-k" className="text-xs font-medium">
-                  Groups
+                <label htmlFor="cluster-k" className="text-xs ">
+                  Groups:
                 </label>
                 <Input
                   id="cluster-k"
                   type="number"
-                  className="w-18 h-8 text-xs font-medium"
+                  className="input w-17 h-7 text-xs font-medium"
                   min={2}
                   max={25}
                   value={kInput}
