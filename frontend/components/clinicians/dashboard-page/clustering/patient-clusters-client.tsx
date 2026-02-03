@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Card,
   CardDescription,
@@ -40,9 +41,11 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     age: true,
     gender: true,
     disease: true,
-    region: true,
     city: true,
+    region: false,
   });
+  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const [pendingK, setPendingK] = useState<number | null>(null);
   const isInitialRender = useRef(true);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -153,14 +156,38 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   const onSubmitK = (e: React.FormEvent) => {
     e.preventDefault();
     const nextK = clampK(parseInt(kInput, 10));
-    setKInput(String(nextK));
+
+    if (loadingRecommendation) {
+      setPendingK(nextK);
+      setShowConfirmModal(true);
+      return;
+    }
+
+    applyClusteringWithK(nextK);
+  };
+
+  const applyClusteringWithK = (clusterCount: number) => {
+    setKInput(String(clusterCount));
     // Fetch cluster data with the new k value
-    fetchClusterData(nextK);
+    fetchClusterData(clusterCount);
     try {
-      sessionStorage.setItem("patientClusters.k", String(nextK));
+      sessionStorage.setItem("patientClusters.k", String(clusterCount));
     } catch (_) {
       // Ignore session storage errors
     }
+  };
+
+  const handleConfirmModal = () => {
+    if (pendingK !== null) {
+      applyClusteringWithK(pendingK);
+    }
+    setShowConfirmModal(false);
+    setPendingK(null);
+  };
+
+  const handleCancelModal = () => {
+    setShowConfirmModal(false);
+    setPendingK(null);
   };
 
   const handleDiseaseChange = () => {
@@ -170,10 +197,49 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     }));
   };
 
+  const modalRoot = typeof document !== "undefined" ? document.body : null;
+  const confirmModal = (
+    <div className={`modal ${showConfirmModal ? "modal-open" : ""}`}>
+      <div className="modal-box">
+        <h3 className="text-lg font-semibold">Confirm Group Settings</h3>
+        <p className="text-base-content/80 py-4 text-sm">
+          You&apos;re about to create{" "}
+          <span className="font-semibold">{pendingK}</span> groups, but the
+          recommended number is still{" "}
+          <span className="font-semibold">being calculated</span>. Do you want
+          to continue?
+        </p>
+        <div className="modal-action">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={handleConfirmModal}
+          >
+            Proceed
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={handleCancelModal}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+      <form
+        method="dialog"
+        className="modal-backdrop"
+        onClick={handleCancelModal}
+      >
+        <button>close</button>
+      </form>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Variable Selection Row */}
-      <div className="card card-body bg-base-100 border border-base-300">
+      <div className="card card-body bg-base-100 border-base-300 border">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <h2 className="text-base font-semibold">Select variables</h2>
@@ -234,6 +300,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                     setSelectedVariables((prev) => ({
                       ...prev,
                       city: !prev.city,
+                      region: false,
                     }))
                   }
                 />
@@ -250,6 +317,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                     setSelectedVariables((prev) => ({
                       ...prev,
                       region: !prev.region,
+                      city: false,
                     }))
                   }
                 />
@@ -259,14 +327,14 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
 
             {/* Groups */}
             <form onSubmit={onSubmitK} className="space-y-3">
-              <div className="flex items-center gap-3 ">
-                <label htmlFor="cluster-k" className="text-xs ">
+              <div className="flex items-center gap-3">
+                <label htmlFor="cluster-k" className="text-xs">
                   Groups:
                 </label>
                 <Input
                   id="cluster-k"
                   type="number"
-                  className="input w-17 h-7 text-xs font-medium"
+                  className="input h-7 w-17 text-xs font-medium"
                   min={2}
                   max={25}
                   value={kInput}
@@ -274,7 +342,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                   disabled={loading}
                 />
 
-                <span className="text-xs text-muted font-normal">
+                <span className="text-muted text-xs font-normal">
                   {loadingRecommendation ? (
                     <>Calculating recommendation...</>
                   ) : recommendedK ? (
@@ -287,7 +355,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
 
               <button
                 type="submit"
-                className="w-fit btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm w-fit"
                 title="Apply group settings"
                 disabled={loading}
               >
@@ -295,11 +363,11 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
               </button>
             </form>
           </div>
-          <div className="text-right space-y-1">
-            <div className="text-5xl font-semibold tracking-tight tabular-nums bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-transparent">
+          <div className="space-y-1 text-right">
+            <div className="from-primary to-primary/70 bg-gradient-to-br bg-clip-text text-5xl font-semibold tracking-tight text-transparent tabular-nums">
               {clusterData?.total_patients.toLocaleString() ?? "N/A"}
             </div>
-            <div className="text-sm font-medium text-muted">Patients</div>
+            <div className="text-muted text-sm font-medium">Patients</div>
           </div>
         </div>
       </div>
@@ -307,23 +375,27 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
       {/* Content Area */}
       <div className="relative min-h-[500px]">
         {loading && (
-          <div className="absolute inset-0 bg-white/70 dark:bg-black/50 backdrop-blur-sm flex items-center justify-center z-20 rounded-xl">
+          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm dark:bg-black/50">
             <div className="flex flex-col items-center gap-3">
-              <Activity className="size-8 animate-spin text-primary" />
-              <p className="text-sm font-medium text-muted-foreground">
+              <Activity className="text-primary size-8 animate-spin" />
+              <p className="text-muted-foreground text-sm font-medium">
                 Recalculating clusters...
               </p>
+              <div className="skeleton h-32 w-full"></div>
+              <div className="skeleton h-4 w-28"></div>
+              <div className="skeleton h-4 w-full"></div>
+              <div className="skeleton h-4 w-full"></div>
             </div>
           </div>
         )}
 
         {!loading && (error || !clusterData) && (
           <Card className="col-span-2 border-red-200/50 bg-red-50/50">
-            <CardHeader className="text-center py-20">
-              <div className="mx-auto bg-red-100 p-3 rounded-[12px] w-fit">
+            <CardHeader className="py-20 text-center">
+              <div className="mx-auto w-fit rounded-[12px] bg-red-100 p-3">
                 <AlertCircle className="size-8 text-red-700" />
               </div>
-              <CardTitle className="text-red-700 mt-4">
+              <CardTitle className="mt-4 text-red-700">
                 Error Loading Cluster Data
               </CardTitle>
               <CardDescription className="text-red-600">
@@ -339,6 +411,8 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
           </div>
         )}
       </div>
+
+      {modalRoot ? createPortal(confirmModal, modalRoot) : null}
     </div>
   );
 };

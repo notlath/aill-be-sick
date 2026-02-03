@@ -129,7 +129,7 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
   });
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {sortedStatistics.map((stat, index) => {
         const theme = CLUSTER_THEMES[index % CLUSTER_THEMES.length];
         const totalGender =
@@ -180,24 +180,24 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
         return (
           <Card
             key={stat.cluster_id}
-            className={`group relative overflow-hidden transition-all duration-500 ${theme.border} ${theme.hoverBorder} hover:shadow-lg border-2`}
+            className={`group relative overflow-hidden transition-all duration-500 ${theme.border} ${theme.hoverBorder} border-2 hover:shadow-lg`}
           >
             {/* Gradient Background Overlay */}
             <div
-              className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-500`}
+              className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-60 transition-opacity duration-500 group-hover:opacity-100`}
             />
 
             <CardHeader className="relative pb-4">
               {/* Header: Disease Name */}
               <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className=" font-semibold mb-2">Group {index + 1}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 font-semibold">Group {index + 1}</div>
                   {/* Clinical Notes - Minimal Card */}
                   <div className="">
                     <div
-                      className={`${theme.accentBg} rounded-[12px] p-3.5 border ${theme.border}`}
+                      className={`${theme.accentBg} rounded-[12px] border p-3.5 ${theme.border}`}
                     >
-                      <div className="text-xs leading-relaxed text-base-content/70">
+                      <div className="text-base-content/70 text-xs leading-relaxed">
                         {(() => {
                           // Age descriptor
                           let ageDescriptor = "patients";
@@ -292,13 +292,13 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
               </div>
 
               {/* Patient Count - Large and Prominent */}
-              <div className=" flex items-baseline gap-2">
+              <div className="flex items-baseline gap-2">
                 <span
                   className={`text-4xl font-semibold tracking-tight ${theme.accentText} tabular-nums`}
                 >
                   {stat.count}
                 </span>
-                <span className="text-sm font-medium text-muted">patients</span>
+                <span className="text-muted text-sm font-medium">patients</span>
               </div>
             </CardHeader>
 
@@ -309,11 +309,11 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                   {stat.top_diseases.length <= 5 ? (
                     // No collapse needed - show all diseases
                     <div>
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="mb-3 flex items-center gap-2">
                         <HeartPulse
                           className={`size-3.5 ${theme.accentText}`}
                         />
-                        <div className="text-xs font-semibold text-base-content/80 ">
+                        <div className="text-base-content/80 text-xs font-semibold">
                           Top Diagnosed Diseases ({stat.top_diseases.length})
                         </div>
                       </div>
@@ -326,7 +326,7 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                             <span className="text-base-content/80">
                               {d.disease}
                             </span>
-                            <span className="font-semibold text-base-content">
+                            <span className="text-base-content font-semibold">
                               ({d.count})
                             </span>
                           </div>
@@ -350,19 +350,26 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                         }
                       />
                       <div className="collapse-title p-0">
-                        <div className="flex items-center justify-between mb-3 text-base-content/80">
+                        <div className="text-base-content/80 mb-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <HeartPulse
                               className={`size-3.5 ${theme.accentText}`}
                             />
-                            <span className="text-xs font-semibold ">
+                            <span className="text-xs font-semibold">
                               Top Diagnosed Diseases ({stat.top_diseases.length}
                               )
                             </span>
                           </div>
-                          {expandedClusters[`${stat.cluster_id}-diseases`]
-                            ? "-"
-                            : "+"}
+                          <span
+                            className={`swap swap-rotate ${
+                              expandedClusters[`${stat.cluster_id}-diseases`]
+                                ? "swap-active"
+                                : ""
+                            }`}
+                          >
+                            <div className="swap-on">-</div>
+                            <div className="swap-off">+</div>
+                          </span>
                         </div>
                         <div className="space-y-1.5">
                           {stat.top_diseases.slice(0, 5).map((d, idx) => (
@@ -373,14 +380,14 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                               <span className="text-base-content/80">
                                 {d.disease}
                               </span>
-                              <span className="font-semibold text-base-content">
+                              <span className="text-base-content font-semibold">
                                 ({d.count})
                               </span>
                             </div>
                           ))}
                         </div>
                       </div>
-                      <div className="collapse-content p-0 mt-1.5">
+                      <div className="collapse-content mt-1.5 p-0">
                         <div className="space-y-1.5">
                           {stat.top_diseases.slice(5).map((d, idx) => (
                             <div
@@ -390,7 +397,7 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                               <span className="text-base-content/80">
                                 {d.disease}
                               </span>
-                              <span className="font-semibold text-base-content">
+                              <span className="text-base-content font-semibold">
                                 ({d.count})
                               </span>
                             </div>
@@ -404,31 +411,34 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
 
               {/* Demographics - Clean Two Column */}
               <div>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="mb-3 flex items-center gap-2">
                   <Users className={`size-3.5 ${theme.accentText}`} />
-                  <span className="text-xs font-semibold text-base-content/80 ">
+                  <span className="text-base-content/80 text-xs font-semibold">
                     Demographics
                   </span>
                 </div>
 
-                <div className="space-y-1  text-sm">
+                <div className="space-y-1 text-sm">
                   <div className="grid grid-cols-3 gap-x-4 gap-y-2.5 text-sm">
                     <div className="space-y-0.5">
-                      <div className="text-xs text-muted">Avg. Age</div>
-                      <div className="font-semibold text-base-content text-sm">
+                      <div className="text-muted text-xs">Avg. Age</div>
+                      <div className="text-base-content text-sm font-semibold">
                         {stat.avg_age} yrs
+                      </div>
+                      <div className="text-muted text-xs font-normal">
+                        ({stat.min_age}-{stat.max_age})
                       </div>
                     </div>
 
                     <div className="space-y-0.5">
-                      <div className="text-xs text-muted">Male</div>
-                      <div className="font-semibold text-base-content">
+                      <div className="text-muted text-xs">Male</div>
+                      <div className="text-base-content font-semibold">
                         {malePercent}%
                       </div>
                     </div>
                     <div className="space-y-0.5">
-                      <div className="text-xs text-muted">Female</div>
-                      <div className="font-semibold text-base-content">
+                      <div className="text-muted text-xs">Female</div>
+                      <div className="text-base-content font-semibold">
                         {femalePercent}%
                       </div>
                     </div>
@@ -442,9 +452,9 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                   {stat.top_cities.length <= 5 ? (
                     // No collapse needed - show all cities
                     <div>
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="mb-3 flex items-center gap-2">
                         <MapPin className={`size-3.5 ${theme.accentText}`} />
-                        <span className="text-xs font-semibold text-base-content/80 tracking-wide">
+                        <span className="text-base-content/80 text-xs font-semibold tracking-wide">
                           Top Cities ({stat.top_cities.length})
                         </span>
                       </div>
@@ -474,16 +484,25 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                         }
                       />
                       <div className="collapse-title p-0">
-                        <div className="flex items-center justify-between mb-3 text-base-content/80">
+                        <div className="text-base-content/80 mb-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <MapPin
                               className={`size-3.5 ${theme.accentText}`}
                             />
-                            <span className="text-xs font-semibold ">
+                            <span className="text-xs font-semibold">
                               Top Cities ({stat.top_cities.length})
                             </span>
                           </div>
-                          {expandedClusters[stat.cluster_id] ? "-" : "+"}
+                          <span
+                            className={`swap swap-rotate ${
+                              expandedClusters[stat.cluster_id]
+                                ? "swap-active"
+                                : ""
+                            }`}
+                          >
+                            <div className="swap-on">-</div>
+                            <div className="swap-off">+</div>
+                          </span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {stat.top_cities.slice(0, 5).map((city, idx) => (
@@ -497,7 +516,7 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                           ))}
                         </div>
                       </div>
-                      <div className="collapse-content p-0 mt-1.5">
+                      <div className="collapse-content mt-1.5 p-0">
                         <div className="flex flex-wrap gap-1.5">
                           {stat.top_cities.slice(5).map((city, idx) => (
                             <Badge
@@ -521,9 +540,9 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                   {stat.top_regions.length <= 5 ? (
                     // No collapse needed - show all regions
                     <div>
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="mb-3 flex items-center gap-2">
                         <MapPin className={`size-3.5 ${theme.accentText}`} />
-                        <span className="text-xs font-semibold text-base-content/80 tracking-wide">
+                        <span className="text-base-content/80 text-xs font-semibold tracking-wide">
                           Top Regions ({stat.top_regions.length})
                         </span>
                       </div>
@@ -556,18 +575,25 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                         }
                       />
                       <div className="collapse-title p-0">
-                        <div className="flex items-center justify-between mb-3 text-base-content/80">
+                        <div className="text-base-content/80 mb-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <MapPin
                               className={`size-3.5 ${theme.accentText}`}
                             />
-                            <span className="text-xs font-semibold ">
+                            <span className="text-xs font-semibold">
                               Top Regions ({stat.top_regions.length})
                             </span>
                           </div>
-                          {expandedClusters[`${stat.cluster_id}-regions`]
-                            ? "-"
-                            : "+"}
+                          <span
+                            className={`swap swap-rotate ${
+                              expandedClusters[`${stat.cluster_id}-regions`]
+                                ? "swap-active"
+                                : ""
+                            }`}
+                          >
+                            <div className="swap-on">-</div>
+                            <div className="swap-off">+</div>
+                          </span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
                           {stat.top_regions.slice(0, 5).map((region, idx) => (
@@ -581,7 +607,7 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                           ))}
                         </div>
                       </div>
-                      <div className="collapse-content p-0 mt-1.5">
+                      <div className="collapse-content mt-1.5 p-0">
                         <div className="flex flex-wrap gap-1.5">
                           {stat.top_regions.slice(5).map((region, idx) => (
                             <Badge
