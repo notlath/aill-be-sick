@@ -7,14 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, MapPin, TrendingUp, Activity, AlertCircle } from "lucide-react";
+import { Activity, AlertCircle } from "lucide-react";
 import ClusterOverviewCards from "./cluster-overview-cards";
-import ClusterDetailsTable from "./cluster-details-table";
-import DemographicsCharts from "./demographics-charts";
-import DiseasesCharts from "./diseases-charts";
-import GeographicDistribution from "./geographic-distribution";
 import type { PatientClusterData } from "@/types";
 import { Input } from "@/components/ui/input";
 
