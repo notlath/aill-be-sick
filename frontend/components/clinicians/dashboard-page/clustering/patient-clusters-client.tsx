@@ -39,7 +39,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   const [selectedVariables, setSelectedVariables] = useState({
     age: true,
     gender: true,
-    disease: false,
+    disease: true,
     region: true,
     city: true,
   });

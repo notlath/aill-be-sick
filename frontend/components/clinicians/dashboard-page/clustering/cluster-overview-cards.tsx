@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Activity, MapPin, Sparkles } from "lucide-react";
+import { Users, MapPin, HeartPulse } from "lucide-react";
 import type { ClusterStatistics } from "@/types";
 
 interface ClusterOverviewCardsProps {
@@ -95,6 +95,10 @@ const CLUSTER_THEMES = [
 const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
   statistics,
 }) => {
+  const [expandedClusters, setExpandedClusters] = React.useState<
+    Record<string, boolean>
+  >({});
+
   // Helper function to check if cluster has dominant disease (40% higher than second)
   const hasDominantDisease = (stat: ClusterStatistics): boolean => {
     if (!stat.disease_distribution) return false;
@@ -299,6 +303,105 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
             </CardHeader>
 
             <CardContent className="relative space-y-5">
+              {/* Top Diseases */}
+              {stat.top_diseases && stat.top_diseases.length > 0 && (
+                <div>
+                  {stat.top_diseases.length <= 5 ? (
+                    // No collapse needed - show all diseases
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <HeartPulse
+                          className={`size-3.5 ${theme.accentText}`}
+                        />
+                        <div className="text-xs font-semibold text-base-content/80 ">
+                          Top Diagnosed Diseases ({stat.top_diseases.length})
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        {stat.top_diseases.map((d, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between text-xs"
+                          >
+                            <span className="text-base-content/80">
+                              {d.disease}
+                            </span>
+                            <span className="font-semibold text-base-content">
+                              ({d.count})
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    // Show collapse with first 5 and rest
+                    <div className="collapse rounded-none">
+                      <input
+                        type="checkbox"
+                        checked={
+                          expandedClusters[`${stat.cluster_id}-diseases`] ||
+                          false
+                        }
+                        onChange={(e) =>
+                          setExpandedClusters({
+                            ...expandedClusters,
+                            [`${stat.cluster_id}-diseases`]: e.target.checked,
+                          })
+                        }
+                      />
+                      <div className="collapse-title p-0">
+                        <div className="flex items-center justify-between mb-3 text-base-content/80">
+                          <div className="flex items-center gap-2">
+                            <HeartPulse
+                              className={`size-3.5 ${theme.accentText}`}
+                            />
+                            <span className="text-xs font-semibold ">
+                              Top Diagnosed Diseases ({stat.top_diseases.length}
+                              )
+                            </span>
+                          </div>
+                          {expandedClusters[`${stat.cluster_id}-diseases`]
+                            ? "-"
+                            : "+"}
+                        </div>
+                        <div className="space-y-1.5">
+                          {stat.top_diseases.slice(0, 5).map((d, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between text-xs"
+                            >
+                              <span className="text-base-content/80">
+                                {d.disease}
+                              </span>
+                              <span className="font-semibold text-base-content">
+                                ({d.count})
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="collapse-content p-0 mt-1.5">
+                        <div className="space-y-1.5">
+                          {stat.top_diseases.slice(5).map((d, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between text-xs"
+                            >
+                              <span className="text-base-content/80">
+                                {d.disease}
+                              </span>
+                              <span className="font-semibold text-base-content">
+                                ({d.count})
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Demographics - Clean Two Column */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
@@ -309,13 +412,14 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                 </div>
 
                 <div className="space-y-1  text-sm">
-                  <div className="space-y-0.5">
-                    <div className="text-xs text-muted">Avg. Age</div>
-                    <div className="font-semibold text-base-content text-sm">
-                      {stat.avg_age} yrs
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-2.5 text-sm">
+                    <div className="space-y-0.5">
+                      <div className="text-xs text-muted">Avg. Age</div>
+                      <div className="font-semibold text-base-content text-sm">
+                        {stat.avg_age} yrs
+                      </div>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
+
                     <div className="space-y-0.5">
                       <div className="text-xs text-muted">Male</div>
                       <div className="font-semibold text-base-content">
@@ -335,68 +439,163 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
               {/* Top Cities - Pill Badges */}
               {stat.top_cities && stat.top_cities.length > 0 && (
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <MapPin className={`size-3.5 ${theme.accentText}`} />
-                    <span className="text-xs font-semibold text-base-content/80 tracking-wide">
-                      Top Cities
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {stat.top_cities.slice(0, 2).map((city, idx) => (
-                      <Badge
-                        key={idx}
-                        variant="outline"
-                        className="text-xs font-medium"
-                      >
-                        {city.city} ({city.count})
-                      </Badge>
-                    ))}
-                  </div>
+                  {stat.top_cities.length <= 5 ? (
+                    // No collapse needed - show all cities
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <MapPin className={`size-3.5 ${theme.accentText}`} />
+                        <span className="text-xs font-semibold text-base-content/80 tracking-wide">
+                          Top Cities ({stat.top_cities.length})
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {stat.top_cities.map((city, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className="text-xs font-medium"
+                          >
+                            {city.city} ({city.count})
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    // Show collapse with first 5 and rest
+                    <div className="collapse rounded-none">
+                      <input
+                        type="checkbox"
+                        checked={expandedClusters[stat.cluster_id] || false}
+                        onChange={(e) =>
+                          setExpandedClusters({
+                            ...expandedClusters,
+                            [stat.cluster_id]: e.target.checked,
+                          })
+                        }
+                      />
+                      <div className="collapse-title p-0">
+                        <div className="flex items-center justify-between mb-3 text-base-content/80">
+                          <div className="flex items-center gap-2">
+                            <MapPin
+                              className={`size-3.5 ${theme.accentText}`}
+                            />
+                            <span className="text-xs font-semibold ">
+                              Top Cities ({stat.top_cities.length})
+                            </span>
+                          </div>
+                          {expandedClusters[stat.cluster_id] ? "-" : "+"}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {stat.top_cities.slice(0, 5).map((city, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs font-medium"
+                            >
+                              {city.city} ({city.count})
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="collapse-content p-0 mt-1.5">
+                        <div className="flex flex-wrap gap-1.5">
+                          {stat.top_cities.slice(5).map((city, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs font-medium"
+                            >
+                              {city.city} ({city.count})
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Top Regions - Pill Badges */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <MapPin className={`size-3.5 ${theme.accentText}`} />
-                  <span className="text-xs font-semibold text-base-content/80 tracking-wide">
-                    Top Regions
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {stat.top_regions.slice(0, 2).map((region, idx) => (
-                    <Badge
-                      key={idx}
-                      variant="outline"
-                      className="text-xs font-medium"
-                    >
-                      {region.region} ({region.count})
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Top Diseases */}
-              {stat.top_diseases && stat.top_diseases.length > 0 && (
+              {stat.top_regions && stat.top_regions.length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-base-content/80  mb-3">
-                    Top Diagnosed Diseases
-                  </div>
-                  <div className="space-y-1.5">
-                    {stat.top_diseases.slice(0, 5).map((d, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-xs"
-                      >
-                        <span className="text-base-content/80">
-                          {d.disease}
-                        </span>
-                        <span className="font-semibold text-base-content">
-                          ({d.count})
+                  {stat.top_regions.length <= 5 ? (
+                    // No collapse needed - show all regions
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <MapPin className={`size-3.5 ${theme.accentText}`} />
+                        <span className="text-xs font-semibold text-base-content/80 tracking-wide">
+                          Top Regions ({stat.top_regions.length})
                         </span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {stat.top_regions.map((region, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className="text-xs font-medium"
+                          >
+                            {region.region} ({region.count})
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    // Show collapse with first 5 and rest
+                    <div className="collapse rounded-none">
+                      <input
+                        type="checkbox"
+                        checked={
+                          expandedClusters[`${stat.cluster_id}-regions`] ||
+                          false
+                        }
+                        onChange={(e) =>
+                          setExpandedClusters({
+                            ...expandedClusters,
+                            [`${stat.cluster_id}-regions`]: e.target.checked,
+                          })
+                        }
+                      />
+                      <div className="collapse-title p-0">
+                        <div className="flex items-center justify-between mb-3 text-base-content/80">
+                          <div className="flex items-center gap-2">
+                            <MapPin
+                              className={`size-3.5 ${theme.accentText}`}
+                            />
+                            <span className="text-xs font-semibold ">
+                              Top Regions ({stat.top_regions.length})
+                            </span>
+                          </div>
+                          {expandedClusters[`${stat.cluster_id}-regions`]
+                            ? "-"
+                            : "+"}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {stat.top_regions.slice(0, 5).map((region, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs font-medium"
+                            >
+                              {region.region} ({region.count})
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="collapse-content p-0 mt-1.5">
+                        <div className="flex flex-wrap gap-1.5">
+                          {stat.top_regions.slice(5).map((region, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs font-medium"
+                            >
+                              {region.region} ({region.count})
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

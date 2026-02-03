@@ -212,8 +212,8 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
         cities = [p["city"] for p in cluster_patients if p["city"]]
         diseases = [p.get("disease") for p in cluster_patients if p.get("disease")]
 
-        top_regions = Counter(regions).most_common(3)
-        top_cities = Counter(cities).most_common(3)
+        top_regions = Counter(regions).most_common()
+        top_cities = Counter(cities).most_common()
         disease_counts = Counter(diseases)
 
         # Compute percentages per disease
@@ -224,27 +224,8 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
         }
         top_diseases = [
             {"disease": (k or "UNKNOWN"), "count": v}
-            for k, v in disease_counts.most_common(3)
+            for k, v in disease_counts.most_common()
         ]
-
-        # Disease-city correlations: for each disease, find which city has the most cases
-        disease_city_correlations = []
-        for disease, disease_count in disease_counts.most_common(5):
-            disease_patients = [
-                p for p in cluster_patients if p.get("disease") == disease and p["city"]
-            ]
-            if disease_patients:
-                city_counts = Counter([p["city"] for p in disease_patients])
-                top_city, top_city_count = city_counts.most_common(1)[0]
-                disease_city_correlations.append(
-                    {
-                        "disease": disease or "UNKNOWN",
-                        "city": top_city,
-                        "count": top_city_count,
-                        "disease_total": disease_count,
-                        "percentage": round(100 * top_city_count / disease_count, 1),
-                    }
-                )
 
         cluster_stats.append(
             {
@@ -258,7 +239,6 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
                 "top_cities": [{"city": c, "count": cnt} for c, cnt in top_cities],
                 "disease_distribution": disease_distribution,
                 "top_diseases": top_diseases,
-                "disease_city_correlations": disease_city_correlations,
             }
         )
 
