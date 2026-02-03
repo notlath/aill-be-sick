@@ -44,9 +44,15 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     city: true,
   });
   const isInitialRender = useRef(true);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch silhouette analysis to determine recommended k
   useEffect(() => {
+    // Clear previous timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
     const fetchRecommendedK = async () => {
       try {
         setLoadingRecommendation(true);
@@ -78,7 +84,14 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
       }
     };
 
-    fetchRecommendedK();
+    // Debounce by 300ms to prevent rapid refetches
+    debounceTimerRef.current = setTimeout(fetchRecommendedK, 300);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [selectedVariables]);
 
   // Auto-apply recommended k when it becomes available
@@ -163,7 +176,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
       <div className="card card-body bg-base-100 border border-base-300">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold">Select variables</h2>
+            <h2 className="text-base font-semibold">Select variables</h2>
 
             {/* Buttons */}
             <div className="flex flex-wrap gap-3">
@@ -210,23 +223,6 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                 />
                 <span>Gender</span>
               </label>
-
-              <label
-                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.region ? "btn-primary btn-soft" : ""}`}
-              >
-                <input
-                  type="checkbox"
-                  className="hidden"
-                  checked={selectedVariables.region}
-                  onChange={() =>
-                    setSelectedVariables((prev) => ({
-                      ...prev,
-                      region: !prev.region,
-                    }))
-                  }
-                />
-                <span>Region</span>
-              </label>
               <label
                 className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.city ? "btn-primary btn-soft" : ""}`}
               >
@@ -242,6 +238,22 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                   }
                 />
                 <span>City</span>
+              </label>
+              <label
+                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.region ? "btn-primary btn-soft" : ""}`}
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={selectedVariables.region}
+                  onChange={() =>
+                    setSelectedVariables((prev) => ({
+                      ...prev,
+                      region: !prev.region,
+                    }))
+                  }
+                />
+                <span>Region</span>
               </label>
             </div>
 
