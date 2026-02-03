@@ -3,8 +3,9 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertCircle } from "lucide-react";
+import { Suspense } from "react";
 
-export default function AuthCodeErrorPage() {
+function AuthCodeErrorContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -83,5 +84,28 @@ export default function AuthCodeErrorPage() {
         </p>
       </section>
     </main>
+  );
+}
+
+export default function AuthCodeErrorPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex justify-center items-center h-screen">
+          <section className="space-y-6 text-center max-w-md">
+            <div className="flex justify-center">
+              <div className="bg-base-200 p-4 rounded-full">
+                <AlertCircle className="size-8 text-base-content/50 animate-pulse" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h1 className="font-bold text-2xl">Loading...</h1>
+            </div>
+          </section>
+        </main>
+      }
+    >
+      <AuthCodeErrorContent />
+    </Suspense>
   );
 }

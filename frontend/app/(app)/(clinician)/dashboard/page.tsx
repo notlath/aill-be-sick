@@ -1,5 +1,4 @@
 import PatientClusters from "@/components/clinicians/dashboard-page/patient-clusters";
-import ClusterInsights from "@/components/clinicians/dashboard-page/cluster-insights";
 
 const ClinicianHomePage = () => {
   return (
