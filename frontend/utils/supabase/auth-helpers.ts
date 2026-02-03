@@ -11,9 +11,24 @@
 export function generateRandomString(length: number = 43): string {
   const charset =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+  const charsetLength = charset.length;
+
+  if (
+    typeof crypto === "undefined" ||
+    typeof crypto.getRandomValues !== "function"
+  ) {
+    throw new Error(
+      "Secure random number generator (crypto.getRandomValues) is not available.",
+    );
+  }
+
+  const randomValues = new Uint8Array(length);
+  crypto.getRandomValues(randomValues);
+
   let result = "";
   for (let i = 0; i < length; i++) {
-    result += charset.charAt(Math.floor(Math.random() * charset.length));
+    const randomIndex = randomValues[i] % charsetLength;
+    result += charset.charAt(randomIndex);
   }
   return result;
 }

@@ -94,8 +94,9 @@ def fetch_patient_data(
         # Encode gender: MALE=1, FEMALE=0, OTHER=0.5
         gender_encoded = 1 if gender == "MALE" else (0 if gender == "FEMALE" else 0.5)
 
-        # Normalize age to 0-1 range (assuming age 18-100)
-        age_normalized = (age - 18) / (100 - 18)
+        # Normalize age to 0-1 range (assuming age 18-100) and clamp to [0, 1]
+        age_normalized_raw = (age - 18) / (100 - 18)
+        age_normalized = max(0.0, min(1.0, age_normalized_raw))
 
         # For region/city, use hash or simple numeric encoding
         city_encoded = hash(city or "") % 1000

@@ -28,9 +28,9 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   initialK,
 }) => {
   const [clusterData, setClusterData] = useState<PatientClusterData | null>(
-    null,
+    initialData,
   );
-  const [loading, setLoading] = useState(true); // Loading until recommendation is fetched
+  const [loading, setLoading] = useState(!initialData); // Loading only if no initial data is provided
   const [error, setError] = useState<string | null>(null);
   const [k, setK] = useState<number>(initialK);
   const [kInput, setKInput] = useState<string>(String(initialK));
@@ -48,6 +48,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   const [pendingK, setPendingK] = useState<number | null>(null);
   const isInitialRender = useRef(true);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Fetch silhouette analysis to determine recommended k
   useEffect(() => {
@@ -105,6 +106,10 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     }
   }, [recommendedK]);
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // Load kmeans cluster data when k changes
   useEffect(() => {
     // Skip on initial render until recommendedK is available and applied
@@ -113,7 +118,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     }
 
     fetchClusterData(k);
-  }, [k]);
+  }, [k, selectedVariables]);
 
   const clampK = (val: number) => {
     if (Number.isNaN(val)) return k; // ignore invalid
@@ -167,11 +172,11 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   };
 
   const applyClusteringWithK = (clusterCount: number) => {
-    setKInput(String(clusterCount));
-    // Fetch cluster data with the new k value
-    fetchClusterData(clusterCount);
+    const nextK = clampK(clusterCount);
+    setK(nextK);
+    setKInput(String(nextK));
     try {
-      sessionStorage.setItem("patientClusters.k", String(clusterCount));
+      sessionStorage.setItem("patientClusters.k", String(nextK));
     } catch (_) {
       // Ignore session storage errors
     }
@@ -190,14 +195,17 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     setPendingK(null);
   };
 
-  const handleDiseaseChange = () => {
+  const handleVariableChange = (variable: keyof typeof selectedVariables) => {
     setSelectedVariables((prev) => ({
       ...prev,
-      disease: !prev.disease,
+      [variable]: !prev[variable],
     }));
   };
 
-  const modalRoot = typeof document !== "undefined" ? document.body : null;
+  const handleDiseaseChange = () => {
+    handleVariableChange("disease");
+  };
+  const modalRoot = isMounted ? document.body : null;
   const confirmModal = (
     <div className={`modal ${showConfirmModal ? "modal-open" : ""}`}>
       <div className="modal-box">
@@ -253,7 +261,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                   type="checkbox"
                   className="hidden"
                   checked={selectedVariables.disease}
-                  onChange={handleDiseaseChange} // Use the handler here
+                  onChange={handleDiseaseChange}
                 />
                 <span>Diagnosed disease</span>
               </label>
@@ -372,45 +380,51 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="relative min-h-[500px]">
-        {loading && (
-          <div className="absolute inset-0 z-20 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-sm dark:bg-black/50">
-            <div className="flex flex-col items-center gap-3">
-              <Activity className="text-primary size-8 animate-spin" />
-              <p className="text-muted-foreground text-sm font-medium">
-                Recalculating clusters...
-              </p>
-              <div className="skeleton h-32 w-full"></div>
-              <div className="skeleton h-4 w-28"></div>
-              <div className="skeleton h-4 w-full"></div>
-              <div className="skeleton h-4 w-full"></div>
+      {loading && (
+        <div className="flex w-full flex-col gap-4">
+          <div className="flex items-center justify-center gap-3">
+            <Activity className="text-primary size-8 animate-spin" />
+            <p className="text-muted-foreground text-sm font-medium">
+              Recalculating clusters...
+            </p>
+          </div>
+          {/* Skeletons mirroring cluster overview cards layout */}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {[0, 1, 2, 3].map((index) => (
+              <Card key={index} className="border-muted bg-muted/40 h-130">
+                <CardHeader className="space-y-3">
+                  <div className="skeleton h-6 w-20" />
+                  <div className="skeleton h-20 w-full" />
+                  <div className="skeleton h-3 w-30" />
+                  <div className="skeleton h-3 w-25" />
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!loading && (error || !clusterData) && (
+        <Card className="col-span-2 border-red-200/50 bg-red-50/50">
+          <CardHeader className="py-20 text-center">
+            <div className="mx-auto w-fit rounded-[12px] bg-red-100 p-3">
+              <AlertCircle className="size-8 text-red-700" />
             </div>
-          </div>
-        )}
+            <CardTitle className="mt-4 text-red-700">
+              Error Loading Cluster Data
+            </CardTitle>
+            <CardDescription className="text-red-600">
+              {error || "Could not retrieve patient cluster information."}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
 
-        {!loading && (error || !clusterData) && (
-          <Card className="col-span-2 border-red-200/50 bg-red-50/50">
-            <CardHeader className="py-20 text-center">
-              <div className="mx-auto w-fit rounded-[12px] bg-red-100 p-3">
-                <AlertCircle className="size-8 text-red-700" />
-              </div>
-              <CardTitle className="mt-4 text-red-700">
-                Error Loading Cluster Data
-              </CardTitle>
-              <CardDescription className="text-red-600">
-                {error || "Could not retrieve patient cluster information."}
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        )}
-
-        {!loading && !error && clusterData && (
-          <div className="space-y-6">
-            <ClusterOverviewCards statistics={clusterData.cluster_statistics} />
-          </div>
-        )}
-      </div>
+      {!loading && !error && clusterData && (
+        <div className="space-y-6">
+          <ClusterOverviewCards statistics={clusterData.cluster_statistics} />
+        </div>
+      )}
 
       {modalRoot ? createPortal(confirmModal, modalRoot) : null}
     </div>

@@ -33,7 +33,6 @@ const HomePage = () => {
         options: {
           redirectTo: `${appUrl}/auth/callback`,
           // PKCE is enabled by default in @supabase/supabase-js v2+
-          skipBrowserRedirect: false,
         },
       });
 
@@ -48,10 +47,10 @@ const HomePage = () => {
   };
 
   return (
-    <main className="flex justify-center items-center h-screen">
+    <main className="flex h-screen items-center justify-center">
       <section className="space-y-4 text-center">
         <div className="space-y-2">
-          <h1 className="font-bold text-5xl">AI'll Be Sick</h1>
+          <h1 className="text-5xl font-bold">AI'll Be Sick</h1>
           <p className="text-muted">Please continue with your Google account</p>
         </div>
         <button onClick={handleSignIn} className="btn btn-primary">
