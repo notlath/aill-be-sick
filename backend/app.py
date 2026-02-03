@@ -2207,8 +2207,25 @@ def patient_clusters():
         # Default to 4 clusters to align with 4 primary diseases
         n_clusters = int(request.args.get("n_clusters", 4))
 
+        def parse_bool(value, default=True):
+            if value is None:
+                return default
+            return str(value).lower() in {"1", "true", "yes", "on"}
+
+        include_age = parse_bool(request.args.get("age"), True)
+        include_gender = parse_bool(request.args.get("gender"), True)
+        include_city = parse_bool(request.args.get("city"), True)
+        include_region = parse_bool(request.args.get("region"), True)
+        include_disease = parse_bool(request.args.get("disease"), True)
+
         # Fetch data from PostgreSQL using DATABASE_URL
-        data, patient_info = fetch_patient_data()
+        data, patient_info = fetch_patient_data(
+            include_age=include_age,
+            include_gender=include_gender,
+            include_city=include_city,
+            include_region=include_region,
+            include_disease=include_disease,
+        )
 
         if data.size == 0:
             return jsonify({"error": "No patient data available"}), 404
@@ -2249,7 +2266,6 @@ def patient_clusters():
         return jsonify({"error": str(e), "details": error_details}), 500
 
 
-
 @app.route("/api/surveillance/outbreaks", methods=["GET"])
 def surveillance_outbreaks():
     """
@@ -2262,13 +2278,18 @@ def surveillance_outbreaks():
     try:
         # Get contamination parameter (expected proportion of outliers)
         contamination = float(request.args.get("contamination", 0.05))
-        
+
         # Validate contamination range
         if not (0.0 < contamination < 0.5):
-            return jsonify({
-                "error": "Invalid contamination value",
-                "details": "Contamination must be between 0.0 and 0.5"
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "error": "Invalid contamination value",
+                        "details": "Contamination must be between 0.0 and 0.5",
+                    }
+                ),
+                400,
+            )
 
         # Check if summary mode is requested
         summary_mode = request.args.get("summary", "false").lower() == "true"
@@ -2280,24 +2301,34 @@ def surveillance_outbreaks():
             # Return full details
             result = detect_outbreaks(contamination=contamination)
 
-        print(f"[SURVEILLANCE] Analyzed {result['total_analyzed']} diagnoses, found {result['anomaly_count']} anomalies (contamination={contamination})")
-        
+        print(
+            f"[SURVEILLANCE] Analyzed {result['total_analyzed']} diagnoses, found {result['anomaly_count']} anomalies (contamination={contamination})"
+        )
+
         if result["outbreak_alert"]:
-            print(f"[SURVEILLANCE] ⚠️ OUTBREAK ALERT: Anomaly count ({result['anomaly_count']}) exceeds threshold")
+            print(
+                f"[SURVEILLANCE] ⚠️ OUTBREAK ALERT: Anomaly count ({result['anomaly_count']}) exceeds threshold"
+            )
 
         return jsonify(result)
 
     except ValueError as e:
         error_msg = str(e)
         if "DATABASE_URL" in error_msg:
-            return jsonify({
-                "error": "Database configuration error",
-                "details": "DATABASE_URL environment variable is not set"
-            }), 500
+            return (
+                jsonify(
+                    {
+                        "error": "Database configuration error",
+                        "details": "DATABASE_URL environment variable is not set",
+                    }
+                ),
+                500,
+            )
         return jsonify({"error": "Invalid parameter", "details": error_msg}), 400
-    
+
     except Exception as e:
         import traceback
+
         error_details = traceback.format_exc()
         print(f"ERROR in surveillance_outbreaks: {str(e)}")
         print(error_details)
@@ -2309,6 +2340,7 @@ def patient_clusters_silhouette():
     """Evaluate KMeans clustering quality across a range of k using silhouette score.
     Query params:
       - range: e.g. "3-10" or "4" (defaults to 3-10)
+      - age, gender, disease, region, city: boolean flags for variable selection
     Returns JSON with best k and per-k metrics (silhouette, inertia, cluster sizes).
     """
     try:
@@ -2323,8 +2355,26 @@ def patient_clusters_silhouette():
         except Exception:
             k_min, k_max = 3, 10
 
-        # Fetch encoded data
-        data, _ = fetch_patient_data()
+        # Parse variable selection parameters
+        def parse_bool(value, default=True):
+            if value is None:
+                return default
+            return str(value).lower() in {"1", "true", "yes", "on"}
+
+        include_age = parse_bool(request.args.get("age"), True)
+        include_gender = parse_bool(request.args.get("gender"), True)
+        include_city = parse_bool(request.args.get("city"), True)
+        include_region = parse_bool(request.args.get("region"), True)
+        include_disease = parse_bool(request.args.get("disease"), True)
+
+        # Fetch encoded data with variable selection
+        data, _ = fetch_patient_data(
+            include_age=include_age,
+            include_gender=include_gender,
+            include_city=include_city,
+            include_region=include_region,
+            include_disease=include_disease,
+        )
         n_samples = len(data)
         if n_samples < 3:
             return (

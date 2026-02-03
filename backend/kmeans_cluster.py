@@ -7,7 +7,16 @@ import psycopg2
 from urllib.parse import urlparse
 
 
-def fetch_patient_data(db_url=None):
+def fetch_patient_data(
+    db_url=None,
+    include_age=True,
+    include_gender=True,
+    include_city=True,
+    include_region=True,
+    include_disease=True,
+    include_latitude=False,
+    include_longitude=False,
+):
     """
     Fetch patient data from PostgreSQL database.
     Uses DATABASE_URL environment variable if db_url not provided.
@@ -97,18 +106,24 @@ def fetch_patient_data(db_url=None):
         disease_list = ["Dengue", "Pneumonia", "Typhoid", "Impetigo"]
         disease_one_hot = [1 if disease == d else 0 for d in disease_list]
 
-        # Features for clustering: [latitude, longitude, age_normalized, gender_encoded, city_encoded, region_encoded, *disease_one_hot]
-        encoded_data.append(
-            [
-                latitude,
-                longitude,
-                age_normalized,
-                gender_encoded,
-                city_encoded,
-                region_encoded,
-                *disease_one_hot,
-            ]
-        )
+        features = []
+
+        if include_latitude:
+            features.append(latitude)
+        if include_longitude:
+            features.append(longitude)
+        if include_age:
+            features.append(age_normalized)
+        if include_gender:
+            features.append(gender_encoded)
+        if include_city:
+            features.append(city_encoded)
+        if include_region:
+            features.append(region_encoded)
+        if include_disease:
+            features.extend(disease_one_hot)
+
+        encoded_data.append(features)
 
         # Store patient info for later use
         patient_info.append(

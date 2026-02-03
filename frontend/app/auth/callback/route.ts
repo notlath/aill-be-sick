@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { cookies } from "next/headers";
 import prisma from "@/prisma/prisma";
 import { createClient } from "@/utils/supabase/server";
 
@@ -8,41 +9,91 @@ import { createClient } from "@/utils/supabase/server";
  * - Fetches the authenticated Supabase user
  * - Upserts the user into the application database via Prisma (sync by authId)
  * - Redirects back to the app (preserves `next` param if provided)
+ *
+ * CRITICAL: This route must receive all cookies from the OAuth flow, including
+ * the PKCE code_verifier cookie that Supabase sets during signInWithOAuth.
+ * The cookies are automatically handled by Next.js and passed to the Supabase
+ * server client via the createClient() function.
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const error = searchParams.get("error");
+  const errorDescription = searchParams.get("error_description");
   let next = searchParams.get("next") ?? "/";
   if (!next.startsWith("/")) next = "/";
 
-  if (code) {
+  // Log incoming cookies for debugging
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+  console.log(
+    "[OAuth Callback] Incoming cookies:",
+    allCookies.map((c) => c.name),
+  );
+
+  // Handle OAuth errors from provider
+  if (error) {
+    console.error(
+      "[OAuth Callback] Provider error:",
+      error,
+      errorDescription || "",
+    );
+    return NextResponse.redirect(
+      `${origin}/auth/auth-code-error?error=${encodeURIComponent(error)}&description=${encodeURIComponent(errorDescription || "")}`,
+    );
+  }
+
+  if (!code) {
+    console.error("[OAuth Callback] No authorization code received");
+    return NextResponse.redirect(
+      `${origin}/auth/auth-code-error?error=no_code`,
+    );
+  }
+
+  try {
     const supabase = await createClient();
 
-    // Exchange the OAuth code for a session (this will set cookies)
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(
-      code
-    );
+    console.log("[OAuth Callback] Attempting to exchange code for session...");
+
+    // Exchange the OAuth code for a session
+    // The Supabase Server Client will automatically retrieve the code_verifier
+    // from the cookies that were set during the initial signInWithOAuth call
+    const { error: exchangeError, data } =
+      await supabase.auth.exchangeCodeForSession(code);
 
     if (exchangeError) {
-      console.error("Error exchanging code for session:", exchangeError);
-      return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+      console.error(
+        "[OAuth Callback] Code exchange failed:",
+        exchangeError.message,
+        exchangeError,
+      );
+
+      // More detailed error response
+      return NextResponse.redirect(
+        `${origin}/auth/auth-code-error?error=exchange_failed&message=${encodeURIComponent(exchangeError.message)}`,
+      );
     }
 
+    console.log("[OAuth Callback] Code exchange successful");
+
     try {
-      // Get the user for the newly created session (server-side, cookies-aware)
+      // Get the user for the newly created session
       const {
         data: { user },
         error: getUserError,
       } = await supabase.auth.getUser();
 
       if (getUserError) {
-        console.error("Error fetching user after exchange:", getUserError);
+        console.error(
+          "[OAuth Callback] Failed to fetch user after exchange:",
+          getUserError,
+        );
+        // Continue anyway - the session is set, just user data might be stale
       }
 
       if (user && user.id) {
-        // Upsert into the application's `User` table using Prisma.
-        // This assumes your Prisma `User` model has a unique `authId` field.
-        // The upsert is idempotent and will create or update the row as needed.
+        console.log("[OAuth Callback] User authenticated:", user.id);
+
         const upsertData = {
           authId: user.id,
           email: user.email ?? undefined,
@@ -52,8 +103,6 @@ export async function GET(request: Request) {
             undefined,
           avatar: user.user_metadata?.avatar_url ?? undefined,
         };
-
-        console.log({ metadata: user.user_metadata });
 
         try {
           await prisma.user.upsert({
@@ -65,23 +114,33 @@ export async function GET(request: Request) {
               avatar: upsertData.avatar ?? null,
             },
             update: {
-              // Only update fields that are present to avoid overwriting with undefined
               ...(upsertData.email ? { email: upsertData.email } : {}),
               ...(upsertData.name ? { name: upsertData.name } : {}),
             },
           });
+
+          console.log("[OAuth Callback] User upserted to database");
         } catch (prismaError) {
-          // Log but don't block redirect — the auth session is more important.
-          console.error("Error upserting user with Prisma:", prismaError);
+          console.error(
+            "[OAuth Callback] Error upserting user with Prisma:",
+            prismaError,
+          );
+          // Don't block redirect - auth session is more important
         }
       }
     } catch (err) {
-      console.error("Unexpected error during post-auth processing:", err);
+      console.error(
+        "[OAuth Callback] Unexpected error during user setup:",
+        err,
+      );
+      // Continue - user setup is not critical
     }
 
-    // Redirect back to the app (preserving forwarded host when behind a proxy)
+    // Redirect back to the app
+    console.log("[OAuth Callback] Redirecting to:", `${origin}${next}`);
     const forwardedHost = request.headers.get("x-forwarded-host");
     const isLocalEnv = process.env.NODE_ENV === "development";
+
     if (isLocalEnv) {
       return NextResponse.redirect(`${origin}${next}`);
     } else if (forwardedHost) {
@@ -89,8 +148,10 @@ export async function GET(request: Request) {
     } else {
       return NextResponse.redirect(`${origin}${next}`);
     }
+  } catch (err) {
+    console.error("[OAuth Callback] Unexpected error in callback route:", err);
+    return NextResponse.redirect(
+      `${origin}/auth/auth-code-error?error=internal`,
+    );
   }
-
-  // If no code present or something else went wrong, send to an error page
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
 }

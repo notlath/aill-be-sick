@@ -2,24 +2,46 @@
 
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
+import { useEffect } from "react";
 
 const HomePage = () => {
   const supabase = createClient();
 
+  // Handle OAuth callback verification
+  useEffect(() => {
+    // Check if we have auth code in URL (means we're in a callback situation)
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("code");
+
+    if (code) {
+      console.log(
+        "[OAuth] Code detected in URL, Supabase should handle callback",
+      );
+    }
+  }, []);
+
   const handleSignIn = async () => {
     try {
-      await supabase.auth.signInWithOAuth({
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL ??
+        process.env.NEXT_PUBLIC_VERCEL_URL ??
+        "http://localhost:3000";
+
+      // Ensure PKCE is enabled by using the proper Supabase client method
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${
-            process.env.NEXT_PUBLIC_APP_URL ??
-            process.env.NEXT_PUBLIC_VERCEL_URL ??
-            "http://localhost:3000"
-          }/auth/callback`,
+          redirectTo: `${appUrl}/auth/callback`,
+          // PKCE is enabled by default in @supabase/supabase-js v2+
+          skipBrowserRedirect: false,
         },
       });
 
-      console.log("Successfully logged in!");
+      if (error) {
+        console.error(`Error during Google sign-in: ${error.message}`);
+      } else {
+        console.log("OAuth flow initiated successfully");
+      }
     } catch (error) {
       console.error(`Error during Google sign-in: ${error}`);
     }

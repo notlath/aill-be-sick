@@ -39,7 +39,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   const [selectedVariables, setSelectedVariables] = useState({
     age: true,
     gender: true,
-    disease: true,
+    disease: false,
     region: true,
     city: true,
   });
@@ -50,8 +50,17 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     const fetchRecommendedK = async () => {
       try {
         setLoadingRecommendation(true);
+        // Build query parameters based on selected variables
+        const params = new URLSearchParams({
+          range: "2-25",
+          age: String(selectedVariables.age),
+          gender: String(selectedVariables.gender),
+          disease: String(selectedVariables.disease),
+          region: String(selectedVariables.region),
+          city: String(selectedVariables.city),
+        });
         const res = await fetch(
-          "http://localhost:10000/api/patient-clusters/silhouette?range=2-25",
+          `http://localhost:10000/api/patient-clusters/silhouette?${params.toString()}`,
         );
         if (!res.ok) {
           throw new Error("Failed to fetch silhouette analysis");
@@ -70,7 +79,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     };
 
     fetchRecommendedK();
-  }, []);
+  }, [selectedVariables]);
 
   // Auto-apply recommended k when it becomes available
   useEffect(() => {
@@ -87,9 +96,29 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
       return;
     }
 
+    fetchClusterData(k);
+  }, [k]);
+
+  const clampK = (val: number) => {
+    if (Number.isNaN(val)) return k; // ignore invalid
+    if (val < 2) return 2;
+    if (val > 25) return 25;
+    return val;
+  };
+
+  const fetchClusterData = (clusterCount: number) => {
     setLoading(true);
     setError(null);
-    fetch(`http://localhost:10000/api/patient-clusters?n_clusters=${k}`)
+    // Build query parameters based on selected variables
+    const params = new URLSearchParams({
+      n_clusters: String(clusterCount),
+      age: String(selectedVariables.age),
+      gender: String(selectedVariables.gender),
+      disease: String(selectedVariables.disease),
+      region: String(selectedVariables.region),
+      city: String(selectedVariables.city),
+    });
+    fetch(`http://localhost:10000/api/patient-clusters?${params.toString()}`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Failed to fetch updated cluster data");
@@ -106,26 +135,26 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
       .finally(() => {
         setLoading(false);
       });
-  }, [k]);
-
-  const clampK = (val: number) => {
-    if (Number.isNaN(val)) return k; // ignore invalid
-    if (val < 2) return 2;
-    if (val > 25) return 25;
-    return val;
   };
 
   const onSubmitK = (e: React.FormEvent) => {
     e.preventDefault();
     const nextK = clampK(parseInt(kInput, 10));
     setKInput(String(nextK));
-    // Setting `k` will trigger the useEffect to fetch new data
-    setK(nextK);
+    // Fetch cluster data with the new k value
+    fetchClusterData(nextK);
     try {
       sessionStorage.setItem("patientClusters.k", String(nextK));
     } catch (_) {
       // Ignore session storage errors
     }
+  };
+
+  const handleDiseaseChange = () => {
+    setSelectedVariables((prev) => ({
+      ...prev,
+      disease: !prev.disease,
+    }));
   };
 
   return (
@@ -145,12 +174,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                   type="checkbox"
                   className="hidden"
                   checked={selectedVariables.disease}
-                  onChange={() =>
-                    setSelectedVariables((prev) => ({
-                      ...prev,
-                      disease: !prev.disease,
-                    }))
-                  }
+                  onChange={handleDiseaseChange} // Use the handler here
                 />
                 <span>Diagnosed disease</span>
               </label>
