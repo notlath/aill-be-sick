@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 import json
+import sys
 from transformers import pipeline
 # langdetect removed in favor of robust heuristic
 import numpy as np
@@ -21,6 +22,7 @@ import secrets
 import uuid
 import time
 from contextlib import contextmanager
+import config
 
 # Context variables for thread-local MCD control
 mcd_enabled_ctx = contextvars.ContextVar("mcd_enabled", default=False)
@@ -72,8 +74,8 @@ CORS(
     supports_credentials=True,  # CRITICAL: Enable cookie/session support
 )
 
-eng_model_path = "notlath/BioClinical-ModernBERT-base-Symptom2Disease_WITH-DROPOUT-42"
-fil_model_path = "notlath/RoBERTa-Tagalog-base-Symptom2Disease_WITH-DROPOUT-42"
+eng_model_path = config.ENG_MODEL_PATH
+fil_model_path = config.FIL_MODEL_PATH
 
 def detect_language_heuristic(text, debug=False):
     """
@@ -144,8 +146,8 @@ def detect_language_heuristic(text, debug=False):
         else:
             # Tie-breaker keywords
             text_lower = text.lower()
-            has_en = any(k in text_lower for k in MEDICAL_KEYWORDS_EN)
-            has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
+            has_en = any(k in text_lower for k in config.MEDICAL_KEYWORDS_EN)
+            has_tl = any(k in text_lower for k in config.MEDICAL_KEYWORDS_TL)
             if has_tl and not has_en:
                 return "tl"
             return "en"
@@ -154,293 +156,10 @@ def detect_language_heuristic(text, debug=False):
         print(f"[LANG] Heuristic error: {e}")
         # Keyword fallback
         text_lower = text.lower()
-        has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
+        has_tl = any(k in text_lower for k in config.MEDICAL_KEYWORDS_TL)
         return "tl" if has_tl else "en"
 
-# --- Configurable gating thresholds for validating symptom narratives ---
-# Reject very short/off-topic inputs and low-confidence/high-uncertainty predictions
-SYMPTOM_MIN_CONF = float(os.getenv("SYMPTOM_MIN_CONF", "0.50"))
-SYMPTOM_MAX_MI = float(os.getenv("SYMPTOM_MAX_MI", "0.10"))
-# Soft-accept band: allow follow-ups to proceed when signal exists but is below hard threshold
-SYMPTOM_SOFT_MIN_CONF = float(os.getenv("SYMPTOM_SOFT_MIN_CONF", "0.35"))
-SYMPTOM_SOFT_MAX_MI = float(os.getenv("SYMPTOM_SOFT_MAX_MI", "0.12"))
-# Require at least N words OR M characters before attempting a diagnosis
-SYMPTOM_MIN_WORDS = int(os.getenv("SYMPTOM_MIN_WORDS", "3"))
-SYMPTOM_MIN_CHARS = int(os.getenv("SYMPTOM_MIN_CHARS", "15"))
-
-# Medical keyword lists for semantic filtering (basic health-related terms)
-MEDICAL_KEYWORDS_EN = {
-    # Symptoms - General (from dataset analysis)
-    "fever",
-    "pain",
-    "ache",
-    "aches",
-    "chills",
-    "weak",
-    "weakness",
-    "sick",
-    "ill",
-    "hurt",
-    "sore",
-    "sores",
-    "headache",
-    "headaches",
-    "dizzy",
-    "dizziness",
-    "fatigue",
-    "fatigued",
-    "tired",
-    "exhausted",
-    "exhaustion",
-    "sweating",
-    "sweat",
-    "sweats",
-    "bleeding",
-    "swelling",
-    "infection",
-    "cold",
-    "painful",
-    # GI/Digestive symptoms
-    "nausea",
-    "nauseated",
-    "vomit",
-    "vomiting",
-    "vomited",
-    "diarrhea",
-    "diarrhoea",
-    "constipation",
-    "constipated",
-    "bloat",
-    "bloating",
-    "bloated",
-    "cramp",
-    "cramps",
-    "cramping",
-    "gas",
-    "indigestion",
-    "heartburn",
-    "reflux",
-    "appetite",
-    "nauseous",
-    "bowel",
-    "stool",
-    "stools",
-    # Respiratory symptoms
-    "cough",
-    "coughing",
-    "coughed",
-    "phlegm",
-    "mucus",
-    "sputum",
-    "breathing",
-    "breathe",
-    "breath",
-    "shortness",
-    "wheeze",
-    "wheezing",
-    "congestion",
-    "congested",
-    "runny",
-    "stuffy",
-    # Skin symptoms
-    "rash",
-    "rashes",
-    "itchy",
-    "itching",
-    "itch",
-    "blister",
-    "blisters",
-    "blistering",
-    "lesion",
-    "lesions",
-    "wound",
-    "wounds",
-    "pus",
-    "discharge",
-    "spots",
-    "bumps",
-    # Body parts
-    "head",
-    "eye",
-    "eyes",
-    "nose",
-    "throat",
-    "chest",
-    "stomach",
-    "abdomen",
-    "abdominal",
-    "belly",
-    "back",
-    "muscle",
-    "muscles",
-    "joint",
-    "joints",
-    "skin",
-    "ear",
-    "ears",
-    "mouth",
-    "body",
-    "face",
-    "neck",
-    "arms",
-    "legs",
-    "lung",
-    "lungs",
-    "heart",
-    # Medical/health terms
-    "symptom",
-    "symptoms",
-    "disease",
-    "diagnosis",
-    "treatment",
-    "medicine",
-    "medication",
-    "doctor",
-    "hospital",
-    "clinic",
-    "health",
-    "medical",
-    "feel",
-    "feeling",
-    "feels",
-    # Common descriptors
-    "severe",
-    "mild",
-    "constant",
-    "uncomfortable",
-    "discomfort",
-    "difficult",
-    "trouble",
-    "suffering",
-    "temperature",
-    "racing",
-    "rapid",
-}
-
-MEDICAL_KEYWORDS_TL = {
-    # Symptoms (Tagalog) - from dataset analysis
-    "lagnat",
-    "nilalagnat",
-    "nilagnat",
-    "ubo",
-    "inuubo",
-    "umuubo",
-    "sakit",
-    "masakit",
-    "sumasakit",
-    "pananakit",
-    "pains",
-    "pagdurugo",
-    "pantal",
-    "singaw",
-    "sipon",
-    "hilo",
-    "nahihilo",
-    "suka",
-    "nasusuka",
-    "pagsusuka",
-    "sumuka",
-    "pagod",
-    "napagod",
-    "kapaguran",
-    "nanghihina",
-    "mahina",
-    "panghihina",
-    "pamumula",
-    "pamamaga",
-    "namamaga",
-    "impeksyon",
-    "ginaw",
-    "giniginaw",
-    "panginginig",
-    "nanginginig",
-    # GI symptoms (Tagalog)
-    "pagtatae",
-    "nagtae",
-    "diarrhea",
-    "diarrhoea",
-    "constipation",
-    "tibi",
-    "pagtitibi",
-    "pag-tibi",
-    "pamamaga ng tiyan",
-    "pulikat",
-    "kabag",
-    "almoranas",
-    "gana",
-    "nawalan",
-    # Respiratory (Tagalog)
-    "plema",
-    "plemang",
-    "hirap",
-    "nahihirapan",
-    "huminga",
-    "paghinga",
-    "hininga",
-    "lalamunan",
-    "lalamunan",
-    # Skin symptoms (Tagalog)
-    "sugat",
-    "paltos",
-    "makati",
-    "pantal",
-    "pulang",
-    "pamumula",
-    "lumalabas",
-    "likido",
-    # Body parts (Tagalog)
-    "ulo",
-    "mata",
-    "dibdib",
-    "tiyan",
-    "puson",
-    "likod",
-    "katawan",
-    "balat",
-    "ilong",
-    "tainga",
-    "bibig",
-    "kalamnan",
-    "kasukasuan",
-    "mukha",
-    "leeg",
-    "braso",
-    "binti",
-    "puso",
-    "tibok",
-    # Medical/feeling terms (Tagalog)
-    "sintomas",
-    "gamot",
-    "doktor",
-    "ospital",
-    "klinika",
-    "kalusugan",
-    "medikal",
-    "pakiramdam",
-    "nararamdaman",
-    "ramdam",
-    "nakakaramdam",
-    "lunok",
-    "tulog",
-    "temperatura",
-    "meron",
-    "mayroon",
-    "nakakaabala",
-    "hindi komportable",
-    "sobrang",
-    "matinding",
-    "mataas",
-    "mabilis",
-    "pawis",
-    "pinagpapawisan",
-    "paminsang",
-    "patuloy",
-    "palaging",
-    "kumain",
-    "labis",
-    "aalala",
-    "nag-aalala",
-}
+# All threshold constants and medical keywords are now in config.py
 
 
 def _count_words(text: str) -> int:
@@ -458,8 +177,8 @@ def _has_medical_keywords(text: str, lang: str = "en") -> bool:
     text_lower = text.lower()
 
     # Check both language sets to handle langdetect misidentifications
-    has_en_keyword = any(keyword in text_lower for keyword in MEDICAL_KEYWORDS_EN)
-    has_tl_keyword = any(keyword in text_lower for keyword in MEDICAL_KEYWORDS_TL)
+    has_en_keyword = any(keyword in text_lower for keyword in config.MEDICAL_KEYWORDS_EN)
+    has_tl_keyword = any(keyword in text_lower for keyword in config.MEDICAL_KEYWORDS_TL)
 
     return has_en_keyword or has_tl_keyword
 
@@ -775,11 +494,11 @@ def _build_cdss_payload(
             "Avoid delays; consider calling local emergency number",
         ]
     else:
-        if confidence >= 0.90 and uncertainty <= 0.03:
+        if confidence >= config.TRIAGE_HIGH_CONFIDENCE and uncertainty <= config.TRIAGE_LOW_UNCERTAINTY:
             triage_level = "Non-urgent"
             triage_reasons = [
-                "High model confidence (≥ 0.90)",
-                "Low uncertainty (≤ 0.03)",
+                f"High model confidence (≥ {config.TRIAGE_HIGH_CONFIDENCE})",
+                f"Low uncertainty (≤ {config.TRIAGE_LOW_UNCERTAINTY})",
             ]
             care_setting = "Home care or routine clinic"
             actions = [
@@ -844,10 +563,10 @@ def _build_cdss_payload(
                 eng_model_path if "ModernBERT" in model_used else fil_model_path
             ),
             "thresholds": {
-                "hard_min_conf": SYMPTOM_MIN_CONF,
-                "soft_min_conf": SYMPTOM_SOFT_MIN_CONF,
-                "hard_max_mi": SYMPTOM_MAX_MI,
-                "soft_max_mi": SYMPTOM_SOFT_MAX_MI,
+                "hard_min_conf": config.SYMPTOM_MIN_CONF,
+                "soft_min_conf": config.SYMPTOM_SOFT_MIN_CONF,
+                "hard_max_mi": config.SYMPTOM_MAX_MI,
+                "soft_max_mi": config.SYMPTOM_SOFT_MAX_MI,
             },
         },
     }
@@ -859,7 +578,7 @@ def classifier(text):
     try:
         # Pre-validate: reject very short/random text before language detection
         # This prevents langdetect from misclassifying gibberish as random languages
-        if _count_words(text) < SYMPTOM_MIN_WORDS and len(text) < SYMPTOM_MIN_CHARS:
+        if _count_words(text) < config.SYMPTOM_MIN_WORDS and len(text) < config.SYMPTOM_MIN_CHARS:
             raise ValueError("INSUFFICIENT_SYMPTOM_EVIDENCE:Text too short")
 
         # Use tokenizer-based language detection (deterministic and robust)
@@ -1019,7 +738,7 @@ def explainer(text: str, mean_probs=None):
     try:
         # Language hint: prefer Tagalog if Tagalog keywords appear
         text_lower = (text or "").lower()
-        has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
+        has_tl = any(k in text_lower for k in config.MEDICAL_KEYWORDS_TL)
         lang = "tl" if has_tl else "en"
 
         # Normalize mean_probs to a numpy array/list for downstream use
@@ -1094,8 +813,8 @@ def new_case():
 
         # Quick pre-filter for obviously non-symptom inputs
         if (
-            _count_words(symptoms) < SYMPTOM_MIN_WORDS
-            and len(symptoms) < SYMPTOM_MIN_CHARS
+            _count_words(symptoms) < config.SYMPTOM_MIN_WORDS
+            and len(symptoms) < config.SYMPTOM_MIN_CHARS
         ):
             return (
                 jsonify(
@@ -1103,8 +822,8 @@ def new_case():
                         "error": "INSUFFICIENT_SYMPTOM_EVIDENCE",
                         "message": "Please describe your symptoms in a short sentence (e.g., 'I have had fever and cough for two days').",
                         "details": {
-                            "min_words": SYMPTOM_MIN_WORDS,
-                            "min_chars": SYMPTOM_MIN_CHARS,
+                            "min_words": config.SYMPTOM_MIN_WORDS,
+                            "min_chars": config.SYMPTOM_MIN_CHARS,
                         },
                     }
                 ),
@@ -1116,7 +835,7 @@ def new_case():
         )
 
         # EARLY STOP: If initial diagnosis is very confident, skip follow-up questions entirely
-        if confidence >= 0.95 and uncertainty <= 0.01:
+        if confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
             print(
                 f"[NEW CASE] STOP: Very high confidence on initial diagnosis (conf={confidence:.3f}, MI={uncertainty:.4f})"
             )
@@ -1153,11 +872,11 @@ def new_case():
             )
 
         # Gate low-confidence / high-uncertainty predictions
-        if confidence < SYMPTOM_MIN_CONF or uncertainty > SYMPTOM_MAX_MI:
+        if confidence < config.SYMPTOM_MIN_CONF or uncertainty > config.SYMPTOM_MAX_MI:
             # If it's within the soft band, proceed with a low-confidence advisory
             if (
-                confidence >= SYMPTOM_SOFT_MIN_CONF
-                and uncertainty <= SYMPTOM_SOFT_MAX_MI
+                confidence >= config.SYMPTOM_SOFT_MIN_CONF
+                and uncertainty <= config.SYMPTOM_SOFT_MAX_MI
             ):
                 cdss = _build_cdss_payload(
                     symptoms,
@@ -1184,10 +903,10 @@ def new_case():
                                     "low_confidence": True,
                                     "message": "We couldn't confidently match your symptoms yet. We'll ask a few targeted questions to narrow it down.",
                                     "thresholds": {
-                                        "hard_min_conf": SYMPTOM_MIN_CONF,
-                                        "soft_min_conf": SYMPTOM_SOFT_MIN_CONF,
-                                        "hard_max_mi": SYMPTOM_MAX_MI,
-                                        "soft_max_mi": SYMPTOM_SOFT_MAX_MI,
+                                        "hard_min_conf": config.SYMPTOM_MIN_CONF,
+                                        "soft_min_conf": config.SYMPTOM_SOFT_MIN_CONF,
+                                        "hard_max_mi": config.SYMPTOM_MAX_MI,
+                                        "soft_max_mi": config.SYMPTOM_SOFT_MAX_MI,
                                     },
                                 },
                             }
@@ -1205,8 +924,8 @@ def new_case():
                         "details": {
                             "confidence": confidence,
                             "mutual_information": uncertainty,
-                            "min_conf": SYMPTOM_MIN_CONF,
-                            "max_mi": SYMPTOM_MAX_MI,
+                            "min_conf": config.SYMPTOM_MIN_CONF,
+                            "max_mi": config.SYMPTOM_MAX_MI,
                         },
                     }
                 ),
@@ -1388,8 +1107,8 @@ def follow_up_question():
         # If caller didn't provide enough text, fall back to prior diagnosis context to continue Q&A.
         try:
             too_short = (
-                _count_words(symptoms_text) < SYMPTOM_MIN_WORDS
-                and len(symptoms_text) < SYMPTOM_MIN_CHARS
+                _count_words(symptoms_text) < config.SYMPTOM_MIN_WORDS
+                and len(symptoms_text) < config.SYMPTOM_MIN_CHARS
             )
 
             if not too_short:
@@ -1415,8 +1134,8 @@ def follow_up_question():
                                 "error": "INSUFFICIENT_SYMPTOM_EVIDENCE",
                                 "message": "No new symptom details provided and prior diagnosis context missing. Please resend the cumulative symptoms string or include prior diagnosis fields.",
                                 "details": {
-                                    "min_words": SYMPTOM_MIN_WORDS,
-                                    "min_chars": SYMPTOM_MIN_CHARS,
+                                    "min_words": config.SYMPTOM_MIN_WORDS,
+                                    "min_chars": config.SYMPTOM_MIN_CHARS,
                                 },
                             }
                         ),
@@ -1468,7 +1187,12 @@ def follow_up_question():
                     ),
                     400,
                 )
-            return jsonify({"error": "Classifier error", "details": err}), 500
+            print(f"ERROR in follow_up_question: {err}", file=sys.stderr)
+            return jsonify({
+                "error": "Classifier error", 
+                "message": f"An internal error occurred: {err}",
+                "details": err
+            }), 500
 
         # Language detection for question bank
         # Language detection for question bank using robust heuristic
@@ -1481,7 +1205,7 @@ def follow_up_question():
 
         # EARLY STOP: Check high confidence FIRST, before any other logic
         # This prevents asking questions when diagnosis is already very confident
-        if not force_question and confidence >= 0.95 and uncertainty <= 0.01:
+        if not force_question and confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
             print(
                 f"[FOLLOW-UP] STOP: Very high confidence reached (conf={confidence:.3f}, MI={uncertainty:.4f})"
             )
@@ -1516,12 +1240,9 @@ def follow_up_question():
             )
 
         # Early stop logic (same as before)
-        MAX_QUESTIONS_THRESHOLD = 8
-        LOW_CONFIDENCE_THRESHOLD = 0.65
-        EXHAUSTED_QUESTIONS_THRESHOLD = 10
         if (
-            len(asked_questions) >= MAX_QUESTIONS_THRESHOLD
-            and confidence < LOW_CONFIDENCE_THRESHOLD
+            len(asked_questions) >= config.MAX_QUESTIONS_THRESHOLD
+            and confidence < config.LOW_CONFIDENCE_THRESHOLD
         ):
             print(
                 f"[FOLLOW-UP] STOP: Low confidence after {len(asked_questions)} questions (conf={confidence:.3f}, MI={uncertainty:.4f})"
@@ -1559,7 +1280,7 @@ def follow_up_question():
                 ),
                 200,
             )
-        if len(asked_questions) >= EXHAUSTED_QUESTIONS_THRESHOLD:
+        if len(asked_questions) >= config.EXHAUSTED_QUESTIONS_THRESHOLD:
             print(
                 f"[FOLLOW-UP] STOP: Exhausted questions for disease={pred} after {len(asked_questions)} asked"
             )
@@ -1596,7 +1317,7 @@ def follow_up_question():
 
         # If not forced, stop when confidence and uncertainty thresholds are met (secondary check)
         # This catches cases where confidence increased after first follow-up
-        if not force_question and confidence >= 0.95 and uncertainty <= 0.01:
+        if not force_question and confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
             print("[FOLLOW-UP] STOP: High confidence and low uncertainty reached")
             return (
                 jsonify(
@@ -1636,9 +1357,33 @@ def follow_up_question():
             )
             return (
                 jsonify(
-                    {"error": f"No questions available for disease: {current_disease}"}
+                    {
+                        "data": {
+                            "should_stop": True,
+                            "reason": "NO_QUESTIONS_AVAILABLE",
+                            "message": f"No follow-up questions available for {current_disease}. Diagnosis complete.",
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "cdss": _build_cdss_payload(
+                                    symptoms_text,
+                                    pred,
+                                    confidence,
+                                    uncertainty,
+                                    top_diseases,
+                                    model_used,
+                                ),
+                            },
+                        }
+                    }
                 ),
-                400,
+                200,
             )
         primary_questions = QUESTION_BANK[current_disease]
         symptoms_lower = (symptoms_text or "").lower()
@@ -1969,95 +1714,231 @@ def follow_up_question():
                     "kalamnan",
                     "buto",
                 ],
-                # Impetigo (English + Tagalog)
-                "impetigo_q1": [
-                    "face",
-                    "nose",
-                    "mouth",
-                    "lip",
-                    "lips",
-                    "chin",
-                    "mukha",
-                    "ilong",
-                    "bibig",
-                    "labi",
-                ],
-                "impetigo_q2": [
-                    "sore",
-                    "sores",
-                    "lesion",
-                    "lesions",
-                    "wound",
-                    "wounds",
-                    "sugat",
-                ],
-                "impetigo_q3": [
-                    "oozing",
-                    "discharge",
-                    "fluid",
+
+                # Diarrhea (English + Tagalog)
+                "diarrhea_q1": [
+                    "watery",
+                    "loose",
                     "liquid",
-                    "pus",
-                    "weeping",
-                    "nana",
-                    "likido",
+                    "stool",
+                    "poop",
+                    "bowel",
+                    "dumi",
+                    "tae",
+                    "matubig",
+                    "malabnaw",
                 ],
-                "impetigo_q4": [
-                    "rash",
-                    "eruption",
-                    "skin eruption",
-                    "pantal",
+                "diarrhea_q2": [
+                    "blood",
+                    "bloody",
+                    "stools",
+                    "dugo",
+                    "madugo",
+                    "may dugo",
                 ],
-                "impetigo_q5": [
-                    "pain",
-                    "painful",
-                    "tender",
-                    "discomfort",
-                    "hurt",
-                    "masakit",
-                    "pananakit",
-                    "sakit",
+                "diarrhea_q3": [
+                    "stomach pain",
+                    "abdominal pain",
+                    "cramps",
+                    "stomach ache",
+                    "belly pain",
+                    "tiyan",
+                    "sakit ng tiyan",
+                    "pulikat",
+                    "kabag",
                 ],
-                "impetigo_q6": [
-                    "red",
-                    "redness",
-                    "inflamed",
-                    "inflammation",
-                    "swelling",
-                    "pula",
-                    "namumula",
-                    "pamumula",
-                    "pamamaga",
+                "diarrhea_q4": [
+                    "thirsty",
+                    "dry mouth",
+                    "dehydrated",
+                    "dehydration",
+                    "uhaw",
+                    "tuyo ang bibig",
+                    "tuyot",
                 ],
-                "impetigo_q7": [
-                    "blister",
-                    "blisters",
-                    "pustule",
-                    "pustules",
-                    "paltos",
-                ],
-                "impetigo_q8": [
+                "diarrhea_q5": [
                     "fever",
+                    "high fever",
                     "temperature",
                     "lagnat",
+                    "sinat",
+                    "mainit",
+                ],
+                "diarrhea_q6": [
+                    "nausea",
+                    "vomit",
+                    "vomiting",
+                    "suka",
+                    "nagsusuka",
+                    "nasusuka",
+                    "duwal",
+                ],
+                "diarrhea_q7": [
+                    "mucus",
+                    "slime",
+                    "slimy",
+                    "uhog",
+                    "madulas",
+                ],
+                "diarrhea_q8": [
+                    "urgent",
+                    "urgency",
+                    "bathroom",
+                    "cr",
+                    "toilet",
+                    "banyo",
+                ],
+                "diarrhea_q9": [
+                    "weak",
+                    "weakness",
+                    "tired",
+                    "fatigue",
+                    "hina",
+                    "nanghihina",
+                    "pagod",
+                ],
+                "diarrhea_q10": [
+                    "appetite",
+                    "eat",
+                    "food",
+                    "gana",
+                    "kain",
+                ],
+                # Measles (English + Tagalog)
+                "measles_q1": [
+                    "rash",
+                    "spots",
+                    "face",
+                    "pantal",
+                    "pula",
+                    "mukha",
+                ],
+                "measles_q2": [
+                    "fever",
+                    "high fever",
+                    "lagnat",
                     "mataas na lagnat",
-                    "nilalagnat",
                 ],
-                "impetigo_q9": [
-                    "itching",
-                    "itchy",
-                    "irritation",
-                    "itch",
-                    "kati",
-                    "makati",
-                    "pangangati",
+                "measles_q3": [
+                    "cough",
+                    "coughing",
+                    "dry cough",
+                    "ubo",
+                    "umuubo",
                 ],
-                "impetigo_q10": [
-                    "joint pain",
+                "measles_q4": [
+                    "runny nose",
+                    "coryza",
+                    "sipon",
+                    "tumutulo ang sipon",
+                ],
+                "measles_q5": [
+                    "red eyes",
+                    "watery eyes",
+                    "conjunctivitis",
+                    "pula ang mata",
+                    "mata",
+                ],
+                "measles_q6": [
+                    "white spots",
+                    "mouth",
+                    "spots in mouth",
+                    "koplik",
+                    "puti",
+                    "bibig",
+                ],
+                "measles_q7": [
+                    "light",
+                    "sensitive",
+                    "eyes",
+                    "ilaw",
+                    "silaw",
+                    "liwanag",
+                ],
+                "measles_q8": [
                     "muscle pain",
-                    "joints",
-                    "muscles",
+                    "body pain",
+                    "ache",
+                    "sakit ng katawan",
                     "kalamnan",
-                    "buto",
+                ],
+                "measles_q9": [
+                    "sore throat",
+                    "throat",
+                    "lalamunan",
+                    "masakit ang lalamunan",
+                ],
+                "measles_q10": [
+                    "tired",
+                    "fatigue",
+                    "pagod",
+                    "hina",
+                ],
+                # Influenza (English + Tagalog)
+                "influenza_q1": [
+                    "sudden",
+                    "abrupt",
+                    "suddenly",
+                    "fever",
+                    "bigla",
+                    "lagnat",
+                ],
+                "influenza_q2": [
+                    "muscle ache",
+                    "body ache",
+                    "severe pain",
+                    "sakit ng katawan",
+                    "kalamnan",
+                    "ngalay",
+                ],
+                "influenza_q3": [
+                    "chills",
+                    "sweat",
+                    "shivering",
+                    "ginaw",
+                    "nanginginig",
+                    "pawis",
+                ],
+                "influenza_q4": [
+                    "dry cough",
+                    "cough",
+                    "ubo",
+                ],
+                "influenza_q5": [
+                    "fatigue",
+                    "exhausted",
+                    "tired",
+                    "pagod",
+                    "hapo",
+                    "hina",
+                ],
+                "influenza_q6": [
+                    "headache",
+                    "head pain",
+                    "sakit ng ulo",
+                ],
+                "influenza_q7": [
+                    "sore throat",
+                    "lalamunan",
+                ],
+                "influenza_q8": [
+                    "runny nose",
+                    "stuffy nose",
+                    "blocked nose",
+                    "sipon",
+                    "barado",
+                ],
+                "influenza_q9": [
+                    "eye pain",
+                    "behind eyes",
+                    "sakit ng mata",
+                ],
+                "influenza_q10": [
+                    "vomit",
+                    "diarrhea",
+                    "suka",
+                    "tae",
+                    "dudumi",
                 ],
             }
 
@@ -2306,6 +2187,24 @@ def explain_diagnosis():
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({"error": "Endpoint not found"}), 404
+
+
+@app.errorhandler(400)
+def bad_request(error):
+    return jsonify({
+        "error": "BAD_REQUEST",
+        "message": f"Bad Request: {error.description if hasattr(error, 'description') else str(error)}",
+        "details": str(error)
+    }), 400
+
+
+@app.errorhandler(415)
+def unsupported_media_type(error):
+    return jsonify({
+        "error": "UNSUPPORTED_MEDIA_TYPE",
+        "message": "Unsupported Media Type: Content-Type must be 'application/json'",
+        "details": str(error)
+    }), 415
 
 
 @app.errorhandler(405)
