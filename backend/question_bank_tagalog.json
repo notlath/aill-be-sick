@@ -124,8 +124,8 @@
     },
     {
       "id": "pneumonia_q6",
-      "question": "Nakakaranas ka ba ng panginginig o pakiramdam na sobrang lamig?",
-      "positive_symptom": "Nakakaranas ako ng panginginig o pakiramdam na sobrang lamig",
+      "question": "Nakakaranas ka ba ng panginginig o nanginginig sa ginaw?",
+      "positive_symptom": "Nakakaranas ako ng nanginginig sa ginaw o pakiramdam na sobrang lamig",
       "negative_symptom": "Hindi ako nakakaranas ng panginginig",
       "weight": 0.89,
       "category": "secondary"
@@ -245,84 +245,248 @@
       "category": "secondary"
     }
   ],
-  "Impetigo": [
+  "Diarrhea": [
     {
-      "id": "impetigo_q1",
-      "question": "Nasa mukha ba ang mga problema sa balat, lalo na sa paligid ng ilong, bibig, o labi?",
-      "positive_symptom": "Nasa mukha ang mga problema sa balat, lalo na sa paligid ng ilong, bibig, o labi",
-      "negative_symptom": "Wala sa mukha ang mga problema sa balat",
+      "id": "diarrhea_q1",
+      "question": "Madalas ka bang dumumi nang matubig o malabnaw?",
+      "positive_symptom": "Madalas akong dumumi ng matubig o malabnaw",
+      "negative_symptom": "Normal naman ang dalas at itsura ng dumi ko",
       "weight": 0.95,
       "category": "primary"
     },
     {
-      "id": "impetigo_q2",
-      "question": "Mayroon ka bang mga sugat o lesion sa iyong balat?",
-      "positive_symptom": "Mayroon akong mga sugat o lesion sa aking balat",
-      "negative_symptom": "Wala akong mga sugat o lesion sa aking balat",
+      "id": "diarrhea_q2",
+      "question": "Napansin mo ba na may dugo sa iyong dumi?",
+      "positive_symptom": "Napansin ko na may dugo sa aking dumi",
+      "negative_symptom": "Wala akong napansing dugo sa aking dumi",
       "weight": 0.93,
       "category": "primary"
     },
     {
-      "id": "impetigo_q3",
-      "question": "Umaagos ba ang mga sugat ng likido, nana, o discharge?",
-      "positive_symptom": "Umaagos ang mga sugat ng likido, nana, o discharge",
-      "negative_symptom": "Hindi umaagos ng anumang likido ang mga sugat",
+      "id": "diarrhea_q3",
+      "question": "Nakakaranas ka ba ng sakit ng tiyan o pulikat ng tiyan?",
+      "positive_symptom": "Nakakaranas ako ng sakit ng tiyan o pulikat",
+      "negative_symptom": "Wala akong matinding sakit ng tiyan",
       "weight": 0.92,
       "category": "primary"
     },
     {
-      "id": "impetigo_q4",
-      "question": "Mayroon ka bang pantal o erupsiyon sa balat?",
-      "positive_symptom": "Mayroon akong pantal o erupsiyon sa balat",
-      "negative_symptom": "Wala akong pantal o erupsiyon sa balat",
+      "id": "diarrhea_q4",
+      "question": "Nakakaramdam ka ba ng uhaw, tuyong bibig, o pakiramdam na dehydrated?",
+      "positive_symptom": "Nakakaramdam ako ng uhaw, tuyong bibig, o dehydrated",
+      "negative_symptom": "Hindi ako nakakaramdam ng matinding uhaw",
       "weight": 0.91,
       "category": "primary"
     },
     {
-      "id": "impetigo_q5",
-      "question": "Nakakaranas ka ba ng pananakit sa mga apektadong lugar ng balat?",
-      "positive_symptom": "Nakakaranas ako ng pananakit sa mga apektadong lugar ng balat",
-      "negative_symptom": "Wala akong pananakit sa mga apektadong lugar",
-      "weight": 0.9,
+      "id": "diarrhea_q5",
+      "question": "Mayroon ka bang lagnat?",
+      "positive_symptom": "Mayroon akong lagnat",
+      "negative_symptom": "Wala akong lagnat",
+      "weight": 0.90,
       "category": "primary"
     },
     {
-      "id": "impetigo_q6",
-      "question": "Nakapansin ka ba ng pamumula ng balat o namamagang bahagi?",
-      "positive_symptom": "Nakapansin ako ng pamumula ng balat o namamagang bahagi",
-      "negative_symptom": "Wala akong napapansin na pamumula ng balat",
+      "id": "diarrhea_q6",
+      "question": "Nakakaranas ka ba ng pagduduwal o pagsusuka?",
+      "positive_symptom": "Nakakaranas ako ng pagduduwal o pagsusuka",
+      "negative_symptom": "Hindi ako nakakaranas ng pagduduwal o pagsusuka",
       "weight": 0.89,
       "category": "secondary"
     },
     {
-      "id": "impetigo_q7",
-      "question": "Nakapansin ka ba ng mga blister o pustule (paltos) sa iyong balat?",
-      "positive_symptom": "Nakapansin ako ng mga blister o pustule sa aking balat",
-      "negative_symptom": "Wala akong napapansin na blister o pustule",
+      "id": "diarrhea_q7",
+      "question": "Napansin mo ba na may uhog o slime sa iyong dumi?",
+      "positive_symptom": "Napansin ko na may uhog o slime sa aking dumi",
+      "negative_symptom": "Wala akong napansing uhog sa aking dumi",
       "weight": 0.88,
       "category": "secondary"
     },
     {
-      "id": "impetigo_q8",
-      "question": "Mayroon ka bang lagnat o tumaas na temperatura ng katawan?",
-      "positive_symptom": "Mayroon akong lagnat o tumaas na temperatura ng katawan",
-      "negative_symptom": "Wala akong lagnat",
+      "id": "diarrhea_q8",
+      "question": "Nakakaramdam ka ba ng matinding pangangailangan dumumi, pero konti lang ang lumalabas?",
+      "positive_symptom": "Nakakaramdam ako ng matinding pangangailangan dumumi nang madalas",
+      "negative_symptom": "Wala akong nararamdamang ganun",
       "weight": 0.87,
       "category": "secondary"
     },
     {
-      "id": "impetigo_q9",
-      "question": "Nakakaranas ka ba ng kati o pangangati sa mga apektadong lugar?",
-      "positive_symptom": "Nakakaranas ako ng kati o pangangati sa mga apektadong lugar",
-      "negative_symptom": "Wala akong kati o pangangati",
+      "id": "diarrhea_q9",
+      "question": "Nakakaramdam ka ba ng matinding panghihina o pagod?",
+      "positive_symptom": "Nakakaramdam ako ng matinding panghihina o pagod",
+      "negative_symptom": "Hindi ako nakakaramdam ng matinding hihina",
       "weight": 0.86,
       "category": "secondary"
     },
     {
-      "id": "impetigo_q10",
-      "question": "Nakakaranas ka ba ng pananakit ng joints o kalamnan?",
-      "positive_symptom": "Nakakaranas ako ng pananakit ng joints o kalamnan",
-      "negative_symptom": "Wala akong pananakit ng joints o kalamnan",
+      "id": "diarrhea_q10",
+      "question": "Nawalan ka ba ng gana kumain?",
+      "positive_symptom": "Nawalan ako ng gana kumain",
+      "negative_symptom": "Hindi ako nawalan ng gana kumain",
+      "weight": 0.85,
+      "category": "secondary"
+    }
+  ],
+  "Measles": [
+    {
+      "id": "measles_q1",
+      "question": "Mayroon ka bang pantal, at nagsimula ba ito sa iyong mukha?",
+      "positive_symptom": "Mayroon akong pantal na nagsimula sa aking mukha",
+      "negative_symptom": "Wala akong pantal",
+      "weight": 0.95,
+      "category": "primary"
+    },
+    {
+      "id": "measles_q2",
+      "question": "Mayroon ka bang mataas na lagnat?",
+      "positive_symptom": "Mayroon akong mataas na lagnat",
+      "negative_symptom": "Wala akong mataas na lagnat",
+      "weight": 0.93,
+      "category": "primary"
+    },
+    {
+      "id": "measles_q3",
+      "question": "Mayroon ka bang tuyong ubo?",
+      "positive_symptom": "Mayroon akong tuyong ubo",
+      "negative_symptom": "Wala akong ubo",
+      "weight": 0.92,
+      "category": "primary"
+    },
+    {
+      "id": "measles_q4",
+      "question": "Mayroon ka bang sipon?",
+      "positive_symptom": "Mayroon akong sipon",
+      "negative_symptom": "Wala akong sipon",
+      "weight": 0.91,
+      "category": "primary"
+    },
+    {
+      "id": "measles_q5",
+      "question": "Namumula ba o nagluluha ang iyong mga mata?",
+      "positive_symptom": "Namumula o nagluluha ang aking mga mata",
+      "negative_symptom": "Normal naman ang aking mga mata",
+      "weight": 0.90,
+      "category": "primary"
+    },
+    {
+      "id": "measles_q6",
+      "question": "Napansin mo ba ang maliliit na puting spot sa loob ng iyong bibig?",
+      "positive_symptom": "Napansin ko ang maliliit na puting spot sa loob ng aking bibig",
+      "negative_symptom": "Wala akong napansing puting spot sa bibig ko",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "measles_q7",
+      "question": "Sensitibo ba sa liwanag ang iyong mga mata?",
+      "positive_symptom": "Sensitibo sa liwanag ang aking mga mata",
+      "negative_symptom": "Hindi sensitibo sa liwanag ang aking mga mata",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "measles_q8",
+      "question": "Nakakaranas ka ba ng pananakit ng kalamnan o katawan?",
+      "positive_symptom": "Nakakaranas ako ng pananakit ng kalamnan o katawan",
+      "negative_symptom": "Wala akong pananakit ng kalamnan",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "measles_q9",
+      "question": "Masakit ba ang iyong lalamunan?",
+      "positive_symptom": "Masakit ang aking lalamunan",
+      "negative_symptom": "Hindi masakit ang aking lalamunan",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "measles_q10",
+      "question": "Nakakaramdam ka ba ng matinding pagod?",
+      "positive_symptom": "Nakakaramdam ako ng matinding pagod",
+      "negative_symptom": "Hindi ako nakakaramdam ng matinding pagod",
+      "weight": 0.85,
+      "category": "secondary"
+    }
+  ],
+  "Influenza": [
+    {
+      "id": "influenza_q1",
+      "question": "Bigla ba ang pagsimula ng iyong lagnat o mga sintomas?",
+      "positive_symptom": "Bigla ang pagsimula ng aking mga sintomas na may lagnat",
+      "negative_symptom": "Unti-unti ang pagsimula ng aking mga sintomas",
+      "weight": 0.95,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q2",
+      "question": "Nakakaranas ka ba ng matinding pananakit ng kalamnan o katawan?",
+      "positive_symptom": "Nakakaranas ako ng matinding pananakit ng kalamnan o katawan",
+      "negative_symptom": "Wala akong matinding pananakit ng katawan",
+      "weight": 0.93,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q3",
+      "question": "Nakakaranas ka ba ng panginginig o pagpapawis?",
+      "positive_symptom": "Nakakaranas ako ng panginginig o pagpapawis",
+      "negative_symptom": "Hindi ako nakakaranas ng panginginig",
+      "weight": 0.92,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q4",
+      "question": "Mayroon ka bang tuyo at paulit-ulit na ubo?",
+      "positive_symptom": "Mayroon akong tuyo at paulit-ulit na ubo",
+      "negative_symptom": "Wala akong paulit-ulit na ubo",
+      "weight": 0.91,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q5",
+      "question": "Nakakaramdam ka ba ng labis na pagod o panghihina?",
+      "positive_symptom": "Nakakaramdam ako ng labis na pagod o panghihina",
+      "negative_symptom": "Hindi ako nakakaramdam ng labis na pagod",
+      "weight": 0.90,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q6",
+      "question": "Masakit ba ang iyong ulo?",
+      "positive_symptom": "Masakit ang aking ulo",
+      "negative_symptom": "Hindi masakit ang aking ulo",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "influenza_q7",
+      "question": "Masakit ba ang iyong lalamunan?",
+      "positive_symptom": "Masakit ang aking lalamunan",
+      "negative_symptom": "Hindi masakit ang aking lalamunan",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "influenza_q8",
+      "question": "Mayroon ka bang sipon o baradong ilong?",
+      "positive_symptom": "Mayroon akong sipon o baradong ilong",
+      "negative_symptom": "Wala akong sipon o baradong ilong",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "influenza_q9",
+      "question": "Mayroon ka bang sakit sa likod ng mata o sensitibo sa liwanag?",
+      "positive_symptom": "Mayroon akong sakit sa likod ng mata o sensitibo sa liwanag",
+      "negative_symptom": "Wala akong sakit sa mata",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "influenza_q10",
+      "question": "Nakaranas ka ba ng pagsusuka o pagtatae?",
+      "positive_symptom": "Nakaranas ako ng pagsusuka o pagtatae",
+      "negative_symptom": "Hindi ako nakaranas ng pagsusuka o pagtatae",
       "weight": 0.85,
       "category": "secondary"
     }

@@ -3,8 +3,8 @@
 import os
 import numpy as np
 from sklearn.cluster import KMeans
-import psycopg2
-from urllib.parse import urlparse
+from sqlalchemy import text
+from database import get_db_engine
 
 
 def fetch_patient_data(
@@ -24,50 +24,28 @@ def fetch_patient_data(
         - encoded_data: numpy array for clustering
         - patient_info: list of dicts with patient details
     """
-    if db_url is None:
-        db_url = os.getenv("DATABASE_URL")
-
-    if not db_url:
-        raise ValueError("DATABASE_URL environment variable is not set")
-
-    # Parse the database URL
-    result = urlparse(db_url)
-    username = result.username
-    password = result.password
-    database = result.path[1:]
-    hostname = result.hostname
-    port = result.port or 5432
-
-    # Connect to PostgreSQL
-    conn = psycopg2.connect(
-        database=database, user=username, password=password, host=hostname, port=port
-    )
-    cursor = conn.cursor()
-
-    # Select user data from User table including age and gender
-    # Also fetch the user's most recent diagnosis (if any) so we can include disease
-    # as an additional feature for clustering.
-    # We use a subquery to get the latest Diagnosis.createdAt per user.
-    cursor.execute(
-        """
-        SELECT u.id, u.name, u.email, u.latitude, u.longitude, u.city, u.region, u.gender, u.age,
-                     (
-                         SELECT d.disease
-                         FROM "Diagnosis" d
-                         WHERE d."userId" = u.id
-                         ORDER BY d."createdAt" DESC
-                         LIMIT 1
-                     ) AS disease
-        FROM "User" u
-        WHERE u.role = 'PATIENT'
-            AND u.latitude IS NOT NULL
-            AND u.longitude IS NOT NULL
-            AND u.age IS NOT NULL
-            AND u.gender IS NOT NULL
-        """
-    )
-    data = cursor.fetchall()
-    conn.close()
+    # Get SQLAlchemy engine
+    engine = get_db_engine(db_url)
+    
+    # Execute query using SQLAlchemy connection
+    with engine.connect() as conn:
+        result = conn.execute(text("""
+            SELECT u.id, u.name, u.email, u.latitude, u.longitude, u.city, u.region, u.gender, u.age,
+                         (
+                             SELECT d.disease
+                             FROM "Diagnosis" d
+                             WHERE d."userId" = u.id
+                             ORDER BY d."createdAt" DESC
+                             LIMIT 1
+                         ) AS disease
+            FROM "User" u
+            WHERE u.role = 'PATIENT'
+                AND u.latitude IS NOT NULL
+                AND u.longitude IS NOT NULL
+                AND u.age IS NOT NULL
+                AND u.gender IS NOT NULL
+        """))
+        data = result.fetchall()
 
     if not data:
         return np.array([]), []

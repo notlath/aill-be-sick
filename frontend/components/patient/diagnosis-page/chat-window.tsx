@@ -1,23 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import ChatContainer from "./chat-container";
-import DiagnosisForm from "./diagnosis-form";
-import { Chat, Explanation, Message } from "@/lib/generated/prisma";
-import { useAction, useOptimisticAction } from "next-safe-action/hooks";
+import { createMessage } from "@/actions/create-message";
+import { explainDiagnosis } from "@/actions/explain-diagnosis";
+import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
 import { runDiagnosis } from "@/actions/run-diagnosis";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useUserLocation } from "@/hooks/use-location";
+import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import {
     CreateChatSchema,
     CreateChatSchemaType,
 } from "@/schemas/CreateChatSchema";
-import { FormProvider, useForm } from "react-hook-form";
-import { createMessage } from "@/actions/create-message";
-import { useUserLocation } from "@/hooks/use-location";
-import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
-import { explainDiagnosis } from "@/actions/explain-diagnosis";
 import { Explanation as TempExplanation } from "@/types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useAction, useOptimisticAction } from "next-safe-action/hooks";
+import { useEffect, useRef, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import CDSSSummary from "./cdss-summary";
+import ChatContainer from "./chat-container";
+import DiagnosisForm from "./diagnosis-form";
 
 // Helpers to map backend strings to enum values expected by CreateMessageSchema
 const mapModelUsed = (
@@ -32,7 +32,7 @@ const mapModelUsed = (
 
 const mapDisease = (
   disease?: string
-): "DENGUE" | "PNEUMONIA" | "TYPHOID" | "IMPETIGO" => {
+): "DENGUE" | "PNEUMONIA" | "TYPHOID" | "DIARRHEA" | "MEASLES" | "INFLUENZA" => {
   switch ((disease || "").toLowerCase()) {
     case "dengue":
       return "DENGUE";
@@ -40,8 +40,12 @@ const mapDisease = (
       return "PNEUMONIA";
     case "typhoid":
       return "TYPHOID";
-    case "impetigo":
-      return "IMPETIGO";
+    case "diarrhea":
+      return "DIARRHEA";
+    case "measles":
+      return "MEASLES";
+    case "influenza":
+      return "INFLUENZA";
     default:
       return "PNEUMONIA";
   }
@@ -144,13 +148,15 @@ const ChatWindow = ({
             };
           }
 
-          if (reason === "SYMPTOMS_NOT_MATCHING") {
+          if (reason === "SYMPTOMS_NOT_MATCHING" || reason === "OUT_OF_SCOPE") {
             // Terminal but not a confident final prediction; do not show CDSS summary
             setIsFinalDiagnosis(false);
+            const outOfScopeMessage = reason === "OUT_OF_SCOPE" 
+              ? "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for a proper evaluation."
+              : "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover. We recommend consulting with a healthcare professional for a proper evaluation.";
             createMessageExecute({
               chatId,
-              content:
-                "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover (Dengue, Pneumonia, Typhoid, or Impetigo). We recommend consulting with a healthcare professional for a proper evaluation.",
+              content: outOfScopeMessage,
               type: "ERROR",
               role: "AI",
             });
@@ -315,6 +321,25 @@ const ChatWindow = ({
           );
 
           if (shouldSkipFollowup) {
+            const skipReason = (data.diagnosis as any)?.skip_reason;
+            
+            if (skipReason === "OUT_OF_SCOPE") {
+               // Verification failure - show error message instead of diagnosis
+               setIsFinalDiagnosis(false);
+               const verificationFailure = (data.diagnosis as any)?.verification_failure;
+               const errorMessage = verificationFailure?.message || 
+                 "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional.";
+               
+               createMessageExecute({
+                chatId,
+                content: errorMessage,
+                type: "ERROR",
+                role: "AI",
+               });
+               setCurrentQuestion(null);
+               return;
+            }
+
             // Backend says diagnosis is very confident (≥95%), mark as final immediately
             setIsFinalDiagnosis(true);
 
@@ -532,6 +557,7 @@ const ChatWindow = ({
           <DiagnosisForm
             createMessageExecute={createMessageExecute}
             isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
+            disabled={!!currentQuestion}
           />
           <div className="flex justify-between items-center mt-2">
             <label className="label">

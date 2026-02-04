@@ -1,11 +1,11 @@
 "use server";
 
-import { actionClient } from "./client";
-import axios, { AxiosError } from "axios";
+import axios, {AxiosError} from "axios";
 import * as z from "zod";
+import {actionClient} from "./client";
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
 
 const FollowUpSchema = z.object({
   disease: z.string(),
@@ -18,7 +18,7 @@ const FollowUpSchema = z.object({
       z.object({
         disease: z.string(),
         probability: z.number(),
-      })
+      }),
     )
     .optional(),
   force: z.boolean().optional(),
@@ -31,7 +31,7 @@ const FollowUpSchema = z.object({
 
 export const getFollowUpQuestion = actionClient
   .inputSchema(FollowUpSchema)
-  .action(async ({ parsedInput }) => {
+  .action(async ({parsedInput}) => {
     const {
       disease,
       confidence,
@@ -68,9 +68,23 @@ export const getFollowUpQuestion = actionClient
         last_question_id,
       });
 
-      const { data } = await axios.post(
+      // BRIDGE: Get session cookie from browser and forward to Flask
+      const {cookies} = await import("next/headers");
+      const cookieStore = await cookies();
+      const sessionCookie = cookieStore.get("session");
+      const cookieHeader = sessionCookie
+        ? `session=${sessionCookie.value}`
+        : "";
+
+      const {data} = await axios.post(
         `${BACKEND_URL}/diagnosis/follow-up`,
-        payload
+        payload,
+        {
+          withCredentials: true, // CRITICAL: Send session cookies
+          headers: {
+            Cookie: cookieHeader, // Manually attach cookie for Server Action
+          },
+        },
       );
 
       // Return both question and diagnosis
@@ -93,6 +107,6 @@ export const getFollowUpQuestion = actionClient
         };
       }
 
-      return { error: `Error getting follow-up question: ${error}` };
+      return {error: `Error getting follow-up question: ${error}`};
     }
   });

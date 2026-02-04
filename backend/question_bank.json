@@ -124,8 +124,8 @@
     },
     {
       "id": "pneumonia_q6",
-      "question": "Are you experiencing chills or feeling unusually cold?",
-      "positive_symptom": "I am experiencing chills or feeling unusually cold",
+      "question": "Are you experiencing shaking chills or feeling unusually cold?",
+      "positive_symptom": "I am experiencing shaking chills or feeling unusually cold",
       "negative_symptom": "I am not experiencing chills",
       "weight": 0.89,
       "category": "secondary"
@@ -245,84 +245,248 @@
       "category": "secondary"
     }
   ],
-  "Impetigo": [
+  "Diarrhea": [
     {
-      "id": "impetigo_q1",
-      "question": "Do you have any sores, lesions, or wounds on your skin?",
-      "positive_symptom": "I have sores, lesions, or wounds on my skin",
-      "negative_symptom": "I don't have any sores, lesions, or wounds on my skin",
+      "id": "diarrhea_q1",
+      "question": "Do you pass watery or loose stools frequently?",
+      "positive_symptom": "I pass watery or loose stools frequently",
+      "negative_symptom": "My stool frequency and consistency are normal",
       "weight": 0.95,
       "category": "primary"
     },
     {
-      "id": "impetigo_q2",
-      "question": "Are the skin problems located on your face, especially around the nose, mouth, or lips?",
-      "positive_symptom": "The skin problems are located on my face, especially around the nose, mouth, or lips",
-      "negative_symptom": "The skin problems are not on my face",
+      "id": "diarrhea_q2",
+      "question": "Have you noticed any blood in your stool?",
+      "positive_symptom": "I have noticed blood in my stool",
+      "negative_symptom": "I haven't noticed any blood in my stool",
       "weight": 0.93,
       "category": "primary"
     },
     {
-      "id": "impetigo_q3",
-      "question": "Are you experiencing pain, tenderness, or discomfort in the affected skin areas?",
-      "positive_symptom": "I am experiencing pain, tenderness, or discomfort in the affected skin areas",
-      "negative_symptom": "I am not experiencing pain or discomfort in the affected areas",
+      "id": "diarrhea_q3",
+      "question": "Are you experiencing stomach pain or abdominal cramps?",
+      "positive_symptom": "I am experiencing stomach pain or abdominal cramps",
+      "negative_symptom": "I don't have severe stomach pain",
       "weight": 0.92,
       "category": "primary"
     },
     {
-      "id": "impetigo_q4",
-      "question": "Have you noticed redness or inflammation of the skin?",
-      "positive_symptom": "I have noticed redness or inflammation of the skin",
-      "negative_symptom": "I haven't noticed any redness or inflammation",
+      "id": "diarrhea_q4",
+      "question": "Do you feel thirsty, have a dry mouth, or feel dehydrated?",
+      "positive_symptom": "I feel thirsty, have a dry mouth, or feel dehydrated",
+      "negative_symptom": "I don't feel unusually thirsty or dehydrated",
       "weight": 0.91,
       "category": "primary"
     },
     {
-      "id": "impetigo_q5",
-      "question": "Do you have a rash or any skin eruptions?",
-      "positive_symptom": "I have a rash or skin eruptions",
-      "negative_symptom": "I don't have a rash or skin eruptions",
-      "weight": 0.9,
+      "id": "diarrhea_q5",
+      "question": "Do you have a fever?",
+      "positive_symptom": "I have a fever",
+      "negative_symptom": "I don't have a fever",
+      "weight": 0.90,
       "category": "primary"
     },
     {
-      "id": "impetigo_q6",
-      "question": "Are the sores oozing fluid, discharge, or pus?",
-      "positive_symptom": "The sores are oozing fluid, discharge, or pus",
-      "negative_symptom": "The sores are not oozing any fluid",
+      "id": "diarrhea_q6",
+      "question": "Are you experiencing nausea or vomiting?",
+      "positive_symptom": "I am experiencing nausea or vomiting",
+      "negative_symptom": "I am not experiencing nausea or vomiting",
       "weight": 0.89,
       "category": "secondary"
     },
     {
-      "id": "impetigo_q7",
-      "question": "Do you have a fever or elevated body temperature?",
-      "positive_symptom": "I have a fever or elevated body temperature",
-      "negative_symptom": "I don't have a fever",
+      "id": "diarrhea_q7",
+      "question": "Have you noticed mucus or slime in your stool?",
+      "positive_symptom": "I have noticed mucus or slime in my stool",
+      "negative_symptom": "I haven't noticed mucus in my stool",
       "weight": 0.88,
       "category": "secondary"
     },
     {
-      "id": "impetigo_q8",
-      "question": "Have the skin lesions been spreading to other areas of your body?",
-      "positive_symptom": "The skin lesions have been spreading to other areas of my body",
-      "negative_symptom": "The skin lesions haven't been spreading",
+      "id": "diarrhea_q8",
+      "question": "Do you feel an urgent need to use the bathroom, even if little comes out?",
+      "positive_symptom": "I feel an urgent need to use the bathroom often",
+      "negative_symptom": "I don't feel unusual urgency",
       "weight": 0.87,
       "category": "secondary"
     },
     {
-      "id": "impetigo_q9",
-      "question": "Do you experience itching or irritation in the affected areas?",
-      "positive_symptom": "I experience itching or irritation in the affected areas",
-      "negative_symptom": "I don't experience itching or irritation",
+      "id": "diarrhea_q9",
+      "question": "Do you feel unusually weak or tired?",
+      "positive_symptom": "I feel unusually weak or tired",
+      "negative_symptom": "I don't feel unusually weak",
       "weight": 0.86,
       "category": "secondary"
     },
     {
-      "id": "impetigo_q10",
-      "question": "Have you noticed any blisters or pustules forming on your skin?",
-      "positive_symptom": "I have noticed blisters or pustules forming on my skin",
-      "negative_symptom": "I haven't noticed any blisters or pustules",
+      "id": "diarrhea_q10",
+      "question": "Have you lost your appetite?",
+      "positive_symptom": "I have lost my appetite",
+      "negative_symptom": "I haven't lost my appetite",
+      "weight": 0.85,
+      "category": "secondary"
+    }
+  ],
+  "Measles": [
+    {
+      "id": "measles_q1",
+      "question": "Do you have a rash, and did it start on your face?",
+      "positive_symptom": "I have a rash that started on my face",
+      "negative_symptom": "I don't have a rash",
+      "weight": 0.95,
+      "category": "primary"
+    },
+    {
+      "id": "measles_q2",
+      "question": "Do you have a high fever?",
+      "positive_symptom": "I have a high fever",
+      "negative_symptom": "I don't have a high fever",
+      "weight": 0.93,
+      "category": "primary"
+    },
+    {
+      "id": "measles_q3",
+      "question": "Do you have a dry cough?",
+      "positive_symptom": "I have a dry cough",
+      "negative_symptom": "I don't have a cough",
+      "weight": 0.92,
+      "category": "primary"
+    },
+    {
+      "id": "measles_q4",
+      "question": "Do you have a runny nose?",
+      "positive_symptom": "I have a runny nose",
+      "negative_symptom": "I don't have a runny nose",
+      "weight": 0.91,
+      "category": "primary"
+    },
+    {
+      "id": "measles_q5",
+      "question": "Are your eyes red, watery, or inflamed?",
+      "positive_symptom": "My eyes are red, watery, or inflamed",
+      "negative_symptom": "My eyes are normal",
+      "weight": 0.90,
+      "category": "primary"
+    },
+    {
+      "id": "measles_q6",
+      "question": "Have you noticed tiny white spots relative to the inside of your mouth?",
+      "positive_symptom": "I have noticed tiny white spots inside my mouth",
+      "negative_symptom": "I haven't noticed white spots in my mouth",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "measles_q7",
+      "question": "Are your eyes sensitive to light?",
+      "positive_symptom": "My eyes are sensitive to light",
+      "negative_symptom": "My eyes are not sensitive to light",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "measles_q8",
+      "question": "Do you have muscle pain or body aches?",
+      "positive_symptom": "I have muscle pain or body aches",
+      "negative_symptom": "I don't have muscle pain",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "measles_q9",
+      "question": "Do you have a sore throat?",
+      "positive_symptom": "I have a sore throat",
+      "negative_symptom": "I don't have a sore throat",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "measles_q10",
+      "question": "Do you feel generally tired or fatigued?",
+      "positive_symptom": "I feel generally tired or fatigued",
+      "negative_symptom": "I don't feel unusually tired",
+      "weight": 0.85,
+      "category": "secondary"
+    }
+  ],
+  "Influenza": [
+    {
+      "id": "influenza_q1",
+      "question": "Did your fever or symptoms start very suddenly?",
+      "positive_symptom": "My symptoms started very suddenly with a fever",
+      "negative_symptom": "My symptoms started gradually",
+      "weight": 0.95,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q2",
+      "question": "Do you have severe muscle or body aches?",
+      "positive_symptom": "I have severe muscle or body aches",
+      "negative_symptom": "I don't have severe body aches",
+      "weight": 0.93,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q3",
+      "question": "Do you have chills or sweats?",
+      "positive_symptom": "I have chills or sweats",
+      "negative_symptom": "I don't have chills",
+      "weight": 0.92,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q4",
+      "question": "Do you have a dry, persistent cough?",
+      "positive_symptom": "I have a dry, persistent cough",
+      "negative_symptom": "I don't have a persistent cough",
+      "weight": 0.91,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q5",
+      "question": "Do you feel extremely tired or exhausted?",
+      "positive_symptom": "I feel extremely tired or exhausted",
+      "negative_symptom": "I don't feel extremely tired",
+      "weight": 0.90,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q6",
+      "question": "Do you have a headache?",
+      "positive_symptom": "I have a headache",
+      "negative_symptom": "I don't have a headache",
+      "weight": 0.89,
+      "category": "secondary"
+    },
+    {
+      "id": "influenza_q7",
+      "question": "Do you have a sore throat?",
+      "positive_symptom": "I have a sore throat",
+      "negative_symptom": "I don't have a sore throat",
+      "weight": 0.88,
+      "category": "secondary"
+    },
+    {
+      "id": "influenza_q8",
+      "question": "Do you have a runny or stuffy nose?",
+      "positive_symptom": "I have a runny or stuffy nose",
+      "negative_symptom": "I don't have a runny or stuffy nose",
+      "weight": 0.87,
+      "category": "secondary"
+    },
+    {
+      "id": "influenza_q9",
+      "question": "Do you have pain behind your eyes or sensitivity to light?",
+      "positive_symptom": "I have pain behind my eyes or sensitivity to light",
+      "negative_symptom": "I don't have eye pain",
+      "weight": 0.86,
+      "category": "secondary"
+    },
+    {
+      "id": "influenza_q10",
+      "question": "Have you experienced vomiting or diarrhea?",
+      "positive_symptom": "I have experienced vomiting or diarrhea",
+      "negative_symptom": "I haven't experienced vomiting or diarrhea",
       "weight": 0.85,
       "category": "secondary"
     }

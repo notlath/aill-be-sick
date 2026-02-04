@@ -1,8 +1,7 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 import json
 from transformers import pipeline
-from langdetect import detect_langs
 import numpy as np
 import torch
 import numpy as np
@@ -14,8 +13,45 @@ from captum.attr import GradientShap
 import html
 import unicodedata
 import torch.nn.functional as F
+import torch.nn as nn
+from contextvars import ContextVar
+import secrets
+import uuid
+import time
+
+# Thread-safe context for Monte Carlo Dropout
+mcd_enabled_ctx = ContextVar("mcd_enabled_ctx", default=False)
+mcd_rate_ctx = ContextVar("mcd_rate_ctx", default=0.05)
+
+class ThreadSafeDropout(nn.Module):
+    """
+    Custom Dropout layer that enables dropout dynamically based on a ContextVar,
+    allowing thread-safe MC Dropout without changing the global model mode.
+    """
+    def __init__(self, p=0.5, inplace=False):
+        super().__init__()
+        self.p = p
+        self.inplace = inplace
+
+    def forward(self, input):
+        if mcd_enabled_ctx.get():
+            # Force dropout during MCD inference, using the thread-local rate
+            return F.dropout(input, p=mcd_rate_ctx.get(), training=True, inplace=self.inplace)
+        
+        # Standard behavior: respects model.eval() (self.training=False)
+        return F.dropout(input, p=self.p, training=self.training, inplace=self.inplace)
+
+    def extra_repr(self) -> str:
+        return f"p={self.p}, inplace={self.inplace}, thread_safe=True"
 
 app = Flask(__name__)
+
+# Configure session security
+app.secret_key = secrets.token_hex(32)  # Generate secure random key
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# Set to True in production with HTTPS:
+# app.config['SESSION_COOKIE_SECURE'] = True
 
 # Load question banks (English and Tagalog)
 with open("question_bank.json", "r", encoding="utf-8") as f:
@@ -201,22 +237,23 @@ class MCDClassifierWithSHAP:
         )
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        
+        # Replace standard Dropout layers with ThreadSafeDropout
+        self._replace_dropout_layers(self.model)
+        
         self.model.eval()
 
-    def enable_dropout_with_rate(self, dropout_rate=None):
-        """
-        Enable dropout layers with a specified rate (or use default).
-        For MC Dropout, use LOWER rate than training (e.g., 0.05 instead of 0.1)
-        """
-        if dropout_rate is None:
-            dropout_rate = self.inference_dropout_rate
+    def _replace_dropout_layers(self, module):
+        """Recursively replace nn.Dropout with ThreadSafeDropout"""
+        for name, child in module.named_children():
+            if isinstance(child, nn.Dropout):
+                new_dropout = ThreadSafeDropout(p=child.p, inplace=child.inplace)
+                setattr(module, name, new_dropout)
+            else:
+                self._replace_dropout_layers(child)
 
-        for module in self.model.modules():
-            if module.__class__.__name__.startswith("Dropout"):
-                module.p = dropout_rate
-                module.train()
-            elif "Norm" in module.__class__.__name__:
-                module.eval()
+    # enable_dropout_with_rate removed as it is not thread-safe and no longer needed.
+
 
     def predict_with_uncertainty(self, text):
         inputs = self.tokenizer(
@@ -228,41 +265,61 @@ class MCDClassifierWithSHAP:
         inputs["input_ids"] = inputs["input_ids"].to(torch.long)
         inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
 
-        self.enable_dropout_with_rate(dropout_rate=self.inference_dropout_rate)
+        inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
+
+        # START THREAD-SAFE CONTEXT
+        token_enabled = mcd_enabled_ctx.set(True)
+        token_rate = mcd_rate_ctx.set(self.inference_dropout_rate)
+
 
         all_predictions = []
 
-        with torch.no_grad():
-            for _ in range(self.n_iterations):
-                outputs = self.model(**inputs)
-                probabilities = torch.softmax(outputs.logits, dim=-1)
-                all_predictions.append(probabilities.cpu().numpy())
+        try:
+            with torch.no_grad():
+                # OPTIMIZATION: Batch inference
+                # Repeat inputs n_iterations times to process in one pass (or fewer batches)
+                # inputs tensors are [1, seq_len], we want [n_iterations, seq_len]
+                batch_inputs = {
+                    k: v.repeat(self.n_iterations, 1) 
+                    for k, v in inputs.items() 
+                    if isinstance(v, torch.Tensor)
+                }
 
-                if _ % 10 == 0:
-                    gc.collect()
+                outputs = self.model(**batch_inputs)
+                probabilities = torch.softmax(outputs.logits, dim=-1) # [n_iters, num_classes]
 
-        all_predictions = np.stack(all_predictions)
-        mean_probs = all_predictions.mean(axis=0)
-        std_probs = all_predictions.std(axis=0)
-        predicted_class = mean_probs.argmax(axis=-1)
-        confidence = mean_probs.max(axis=-1)
-        predictive_entropy = entropy(mean_probs, axis=-1)
-        mutual_information = self.compute_mutual_information(all_predictions)
+                # Reshape to [n_iters, 1, num_classes] to match original structure (batch, 1 sample, classes)
+                all_predictions = probabilities.unsqueeze(1).cpu().numpy()
 
-        del all_predictions
-        gc.collect()
+            # Calculate statistics
+            mean_probs = all_predictions.mean(axis=0)
+            std_probs = all_predictions.std(axis=0)
+            predicted_class = mean_probs.argmax(axis=-1)
+            confidence = mean_probs.max(axis=-1)
+            predictive_entropy = entropy(mean_probs, axis=-1)
+            mutual_information = self.compute_mutual_information(all_predictions)
 
-        return {
-            "predicted_class": predicted_class,
-            "predicted_label": [
-                self.model.config.id2label[idx] for idx in predicted_class
-            ],
-            "mean_probabilities": mean_probs,
-            "std_probabilities": std_probs,
-            "confidence": confidence,
-            "predictive_entropy": predictive_entropy,
-            "mutual_information": mutual_information,
-        }
+            del all_predictions
+            del batch_inputs
+            del outputs
+            gc.collect()
+
+            return {
+                "predicted_class": predicted_class,
+                "predicted_label": [
+                    self.model.config.id2label[idx] for idx in predicted_class
+                ],
+                "mean_probabilities": mean_probs,
+                "std_probabilities": std_probs,
+                "confidence": confidence,
+                "predictive_entropy": predictive_entropy,
+                "mutual_information": mutual_information,
+            }
+
+        finally:
+            # RESET CONTEXT always
+            mcd_enabled_ctx.reset(token_enabled)
+            mcd_rate_ctx.reset(token_rate)
 
     def compute_mutual_information(self, predictions):
         """
@@ -368,6 +425,31 @@ fil_classifier = MCDClassifierWithSHAP(
 
 
 
+def detect_language_heuristic(text):
+    """
+    Robust language detection using tokenizer comparison.
+    
+    Strategy: The tokenizer that produces fewer tokens indicates better 
+    vocabulary fit (fewer unknowns/subwords). This is deterministic and 
+    reliable for medical symptom text, unlike langdetect.
+    
+    Returns: "en" or "tl"
+    """
+    # Count tokens for both models (exclude special tokens for fair comparison)
+    en_token_count = len(eng_classifier.tokenizer.encode(text, add_special_tokens=False))
+    tl_token_count = len(fil_classifier.tokenizer.encode(text, add_special_tokens=False))
+    
+    # Fewer tokens = better vocabulary match
+    if tl_token_count < en_token_count:
+        return "tl"
+    elif en_token_count < tl_token_count:
+        return "en"
+    else:
+        # Tie-breaker: use keyword matching
+        text_lower = text.lower()
+        has_tl_keywords = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
+        return "tl" if has_tl_keywords else "en"
+
 
 def classifier(text):
     try:
@@ -376,70 +458,10 @@ def classifier(text):
         if _count_words(text) < SYMPTOM_MIN_WORDS and len(text) < SYMPTOM_MIN_CHARS:
             raise ValueError("INSUFFICIENT_SYMPTOM_EVIDENCE:Text too short")
 
-        """
-        Language Detection Strategy:
-        ---------------------------
-        This block uses langdetect's `detect_langs` to obtain language probabilities for the input text.
-        However, langdetect can misidentify short or medical symptom narratives (especially Tagalog) as unrelated languages (e.g., Indonesian, Slovenian).
-        To address this, we implement a fallback strategy:
-          1. Attempt to detect if English ('en'), Tagalog ('tl'), or Filipino ('fil') are among the top candidates.
-          2. If not, use medical keyword matching to infer the language:
-             - If only English keywords are present, set language to 'en'.
-             - If only Tagalog keywords are present, set language to 'tl'.
-             - If both or ambiguous, default to 'en'.
-             - If neither, use the top detected language even if unsupported.
-        This ensures robust handling of edge cases and improves reliability for medical symptom inputs.
-        """
 
-        # Wrap language detection in try-except to handle edge cases
-        try:
-            # Get language probabilities instead of just top language
-            lang_probs = detect_langs(text)
-
-            # Check if English or Tagalog/Filipino are in top candidates
-            supported_langs = {"en", "tl", "fil"}
-            detected_lang = None
-
-            for lang_prob in lang_probs:
-                if lang_prob.lang in supported_langs:
-                    detected_lang = lang_prob.lang
-                    print(
-                        f"[LANG] Detected: {lang_prob.lang} (confidence: {lang_prob.prob:.2f})"
-                    )
-                    break
-
-            # If no supported language found, check for medical keywords to determine language
-            if detected_lang is None:
-                text_lower = text.lower()
-                has_en_keyword = any(
-                    keyword in text_lower for keyword in MEDICAL_KEYWORDS_EN
-                )
-                has_tl_keyword = any(
-                    keyword in text_lower for keyword in MEDICAL_KEYWORDS_TL
-                )
-
-                top_lang = lang_probs[0].lang if lang_probs else "unknown"
-
-                if has_en_keyword and not has_tl_keyword:
-                    detected_lang = "en"
-                    print(f"[LANG] Fallback: {top_lang} → en (English keywords found)")
-                elif has_tl_keyword and not has_en_keyword:
-                    detected_lang = "tl"
-                    print(f"[LANG] Fallback: {top_lang} → tl (Tagalog keywords found)")
-                elif has_en_keyword or has_tl_keyword:
-                    # Both or ambiguous, default to English
-                    detected_lang = "en"
-                    print(f"[LANG] Fallback: {top_lang} → en (ambiguous keywords)")
-                else:
-                    # Use the top detected language even if unsupported
-                    detected_lang = top_lang
-
-            lang = detected_lang
-
-        except Exception as lang_err:
-            print(f"[LANG] Detection failed: {lang_err}, defaulting to en")
-            # Default to English if detection fails on edge cases
-            lang = "en"
+        # Use tokenizer-based language detection (deterministic and robust)
+        lang = detect_language_heuristic(text)
+        print(f"[LANG] Detected: {lang}")
 
         # Check for medical keywords to ensure the text is health-related
         if not _has_medical_keywords(text, lang):
@@ -454,18 +476,15 @@ def classifier(text):
             sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
             probs = []
             top_diseases = []
-            # Only consider allowed diseases
-            allowed = {"Dengue", "Pneumonia", "Typhoid", "Impetigo"}
-
-            # iterate over all labels but only keep allowed ones, preserving probabilities
+            
+            # Use all labels from model config
             all_probs = result["mean_probabilities"][0]
             for idx, label in eng_classifier.model.config.id2label.items():
-                if label in allowed:
-                    prob = float(all_probs[idx])
-                    probs.append(f"{label}: {prob*100:.2f}%")
-                    top_diseases.append({"disease": label, "probability": prob})
+                prob = float(all_probs[idx])
+                probs.append(f"{label}: {prob*100:.2f}%")
+                top_diseases.append({"disease": label, "probability": prob})
 
-            # sort allowed diseases by probability desc
+            # sort by probability desc
             top_diseases.sort(key=lambda x: x["probability"], reverse=True)
             probs = [
                 f"{d['disease']}: {(d['probability']*100):.2f}%" for d in top_diseases
@@ -473,10 +492,6 @@ def classifier(text):
             mean_probs = result["mean_probabilities"].tolist()
 
             print(f"[RESULT] {pred} (conf: {confidence:.3f}, MI: {uncertainty:.4f})")
-
-            # ensure pred is an allowed disease; if not, take top allowed
-            if pred not in allowed and len(top_diseases) > 0:
-                pred = top_diseases[0]["disease"]
 
             gc.collect()
             return (
@@ -501,12 +516,11 @@ def classifier(text):
             mean_probs = result["mean_probabilities"].tolist()
 
             all_probs = result["mean_probabilities"][0]
-            allowed = {"Dengue", "Pneumonia", "Typhoid", "Impetigo"}
+            
             for idx, label in fil_classifier.model.config.id2label.items():
-                if label in allowed:
-                    prob = float(all_probs[idx])
-                    probs.append(f"{label}: {prob*100:.2f}%")
-                    top_diseases.append({"disease": label, "probability": prob})
+                prob = float(all_probs[idx])
+                probs.append(f"{label}: {prob*100:.2f}%")
+                top_diseases.append({"disease": label, "probability": prob})
 
             top_diseases.sort(key=lambda x: x["probability"], reverse=True)
             probs = [
@@ -514,9 +528,6 @@ def classifier(text):
             ]
 
             print(f"[RESULT] {pred} (conf: {confidence:.3f}, MI: {uncertainty:.4f})")
-
-            if pred not in allowed and len(top_diseases) > 0:
-                pred = top_diseases[0]["disease"]
 
             gc.collect()
             return pred, confidence, uncertainty, probs, "RoBERTa Tagalog", top_diseases, mean_probs
@@ -696,6 +707,19 @@ def new_case():
                 422,
             )
 
+
+        # Store diagnosis in server-side session for security
+        session['diagnosis'] = {
+            'disease': pred,
+            'confidence': confidence,
+            'uncertainty': uncertainty,
+            'top_diseases': top_diseases,
+            'mean_probs': mean_probs,  # Already serializable
+            'symptoms': symptoms,
+            'timestamp': time.time()
+        }
+        session['session_id'] = uuid.uuid4().hex
+        
         return (
             jsonify(
                 {
@@ -708,6 +732,7 @@ def new_case():
                         "disease": pred,  # Add disease for follow-up
                         "top_diseases": top_diseases,  # Add top competing diseases
                         "mean_probs": mean_probs,
+                        "session_id": session.get('session_id'),  # For debugging
                     }
                 }
             ),
@@ -782,13 +807,34 @@ def follow_up_question():
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
 
-        current_disease = data.get("disease", "")
-        confidence = data.get("confidence", 0)
-        uncertainty = data.get("uncertainty", 1)
+        # SECURITY: Validate diagnosis from server-side session, not client
+        diagnosis = session.get('diagnosis')
+        if not diagnosis:
+            return jsonify({
+                "error": "NO_ACTIVE_DIAGNOSIS",
+                "message": "No active diagnosis found. Please submit symptoms first."
+            }), 400
+        
+        # Session timeout: reject if diagnosis is older than 1 hour
+        SESSION_TIMEOUT = 3600  # 1 hour in seconds
+        time_elapsed = time.time() - diagnosis.get('timestamp', 0)
+        if time_elapsed > SESSION_TIMEOUT:
+            session.clear()  # Clear expired session
+            return jsonify({
+                "error": "SESSION_EXPIRED",
+                "message": "Your diagnosis session has expired. Please submit symptoms again."
+            }), 400
+        
+        # Use server-side diagnosis data (trusted)
+        current_disease = diagnosis['disease']
+        confidence = diagnosis['confidence']
+        uncertainty = diagnosis['uncertainty']
+        top_diseases = diagnosis['top_diseases']
+        
+        # Client can still provide UI state (asked_questions, last_answer, etc.)
         force_question = data.get("force", False)
         mode = data.get("mode", "adaptive")  # 'adaptive' or 'legacy'
         asked_questions = data.get("asked_questions", [])
-        top_diseases = data.get("top_diseases", [])  # List of {disease, probability}
         symptoms_text = data.get("symptoms", "")
         # Optional: last answer context from client (for logging/tracing)
         last_answer = data.get("last_answer")  # "yes" | "no" | None
@@ -844,35 +890,10 @@ def follow_up_question():
             )
 
         # Detect language from symptoms to choose appropriate question bank
-        try:
-            if symptoms_text:
-                lang_probs = detect_langs(symptoms_text)
-
-                # Check if English or Tagalog/Filipino are in top candidates
-                supported_langs = {"en", "tl", "fil"}
-                lang = None
-
-                for lang_prob in lang_probs:
-                    if lang_prob.lang in supported_langs:
-                        lang = lang_prob.lang
-                        break
-
-                # Fallback to keyword detection if no supported language found
-                if lang is None:
-                    text_lower = symptoms_text.lower()
-                    has_en = any(k in text_lower for k in MEDICAL_KEYWORDS_EN)
-                    has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
-
-                    if has_tl and not has_en:
-                        lang = "tl"
-                    else:
-                        lang = "en"  # Default to English
-            else:
-                lang = "en"
-
-        except Exception as e:
-            print(f"[FOLLOW-UP] Language detection failed: {e}")
-            lang = "en"  # Default to English if detection fails
+        if symptoms_text:
+            lang = detect_language_heuristic(symptoms_text)
+        else:
+            lang = "en"  # Default to English if no symptoms provided
 
         # Choose question bank based on language
         QUESTION_BANK = QUESTION_BANK_TL if lang in ["tl", "fil"] else QUESTION_BANK_EN

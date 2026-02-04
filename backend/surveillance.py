@@ -3,44 +3,28 @@
 import os
 import numpy as np
 from sklearn.ensemble import IsolationForest
-import psycopg2
-from urllib.parse import urlparse
+from sqlalchemy import text
 from datetime import datetime
+from database import get_db_engine
 
 
-def fetch_diagnosis_data(db_url=None):
+def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None):
     """
     Fetch diagnosis data with temporal and spatial information.
     Uses DATABASE_URL environment variable if db_url not provided.
     
+    Args:
+        db_url: Database connection string (optional)
+        start_date: Filter records after this date (inclusive, optional)
+        end_date: Filter records before this date (inclusive, optional)
+    
     Returns: tuple of (encoded_data, diagnosis_info)
-        - encoded_data: numpy array for anomaly detection [lat, lon, timestamp_numeric, disease_encoded]
-        - diagnosis_info: list of dicts with diagnosis details
     """
-    if db_url is None:
-        db_url = os.getenv("DATABASE_URL")
-
-    if not db_url:
-        raise ValueError("DATABASE_URL environment variable is not set")
-
-    # Parse the database URL
-    result = urlparse(db_url)
-    username = result.username
-    password = result.password
-    database = result.path[1:]
-    hostname = result.hostname
-    port = result.port or 5432
-
-    # Connect to PostgreSQL
-    conn = psycopg2.connect(
-        database=database, user=username, password=password, host=hostname, port=port
-    )
-    cursor = conn.cursor()
-
-    # Fetch diagnosis data with location and timestamp
-    # Join with User table to get user location if diagnosis location is missing
-    cursor.execute(
-        """
+    # Get SQLAlchemy engine
+    engine = get_db_engine(db_url)
+    
+    # Build query with parameters for safety
+    query_str = """
         SELECT 
             d.id,
             d.disease,
@@ -57,11 +41,24 @@ def fetch_diagnosis_data(db_url=None):
         JOIN "User" u ON d."userId" = u.id
         WHERE COALESCE(d.latitude, u.latitude) IS NOT NULL
           AND COALESCE(d.longitude, u.longitude) IS NOT NULL
-        ORDER BY d."createdAt" DESC
-        """
-    )
-    data = cursor.fetchall()
-    conn.close()
+    """
+    
+    params = {}
+    
+    if start_date:
+        query_str += ' AND d."createdAt" >= :start_date '
+        params["start_date"] = start_date
+        
+    if end_date:
+        query_str += ' AND d."createdAt" <= :end_date '
+        params["end_date"] = end_date
+        
+    query_str += ' ORDER BY d."createdAt" DESC'
+    
+    # Execute query using SQLAlchemy connection with SAFE parameter binding
+    with engine.connect() as conn:
+        result = conn.execute(text(query_str), params)
+        data = result.fetchall()
 
     if not data:
         return np.array([]), []

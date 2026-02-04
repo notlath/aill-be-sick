@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session
 from flask_cors import CORS
 import json
+import sys
 from transformers import pipeline
-from langdetect import detect_langs
+# langdetect removed in favor of robust heuristic
 import numpy as np
 import torch
 import numpy as np
@@ -16,11 +17,44 @@ import unicodedata
 import torch.nn.functional as F
 from dotenv import load_dotenv
 import traceback
+import contextvars
+import secrets
+import uuid
+import time
+from contextlib import contextmanager
+import config
+
+# Context variables for thread-local MCD control
+mcd_enabled_ctx = contextvars.ContextVar("mcd_enabled", default=False)
+mcd_rate_ctx = contextvars.ContextVar("mcd_rate", default=0.1)
+
+
+class ThreadSafeDropout(torch.nn.Module):
+    """
+    Thread-safe Dropout layer that respects context variables.
+    Does NOT rely on .train() mode, allowing the model to stay in clean eval mode globally.
+    """
+
+    def __init__(self, p=0.5):
+        super().__init__()
+        self.p_default = p
+
+    def forward(self, x):
+        # Check if MCD is enabled for THIS specific request/thread
+        if mcd_enabled_ctx.get():
+            # Apply dropout using the rate set in context
+            return F.dropout(x, p=mcd_rate_ctx.get(), training=True)
+        # Otherwise behave like a no-op (eval mode)
+        return x
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(32)  # Secure persistent sessions
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = False  # Set to True in production with HTTPS
 
 # Load question banks (English and Tagalog)
 with open("question_bank.json", "r", encoding="utf-8") as f:
@@ -29,7 +63,171 @@ with open("question_bank.json", "r", encoding="utf-8") as f:
 with open("question_bank_tagalog.json", "r", encoding="utf-8") as f:
     QUESTION_BANK_TL = json.load(f)
 
-# Configure CORS for production
+
+# =============================================================================
+# NEURO-SYMBOLIC VERIFICATION LAYER
+# =============================================================================
+
+class OntologyBuilder:
+    """
+    Builds a dynamic symptom ontology from the question bank.
+    Each disease gets a set of valid clinical concepts extracted from its questions.
+    """
+    
+    def __init__(self, question_bank_en: dict, question_bank_tl: dict):
+        self.profiles = {}
+        self._build_profiles(question_bank_en, "en")
+        self._build_profiles(question_bank_tl, "tl")
+        print(f"[ONTOLOGY] Built profiles for {len(self.profiles)} diseases")
+    
+    def _build_profiles(self, question_bank: dict, lang: str):
+        """Extract keywords from each disease's questions to build its symptom profile."""
+        for disease, questions in question_bank.items():
+            if disease not in self.profiles:
+                self.profiles[disease] = set()
+            
+            for q in questions:
+                # Extract keywords from question text and symptom descriptions
+                text_sources = [
+                    q.get("question", ""),
+                    q.get("positive_symptom", ""),
+                    q.get("negative_symptom", ""),
+                ]
+                for text in text_sources:
+                    # Simple word extraction (lowercase)
+                    words = text.lower().split()
+                    self.profiles[disease].update(words)
+    
+    def get_profile(self, disease: str) -> set:
+        """Get the valid symptom keywords for a disease."""
+        return self.profiles.get(disease, set())
+
+
+class VerificationLayer:
+    """
+    Neuro-Symbolic Verification Layer.
+    Compares extracted clinical concepts from user input against the predicted disease's ontology.
+    Flags OUT_OF_SCOPE if high-value concepts are unexplained.
+    """
+    
+    def __init__(self, ontology: OntologyBuilder):
+        self.ontology = ontology
+    
+
+def extract_clinical_concepts(text: str) -> set:
+    """
+    Extract clinical concepts from text using the CLINICAL_CONCEPTS dictionary.
+    Returns a set of concept IDs (e.g., {'RISK_FLOOD_EXPOSURE', 'SX_JAUNDICE'}).
+    Uses regex word boundaries to avoid partial matches (e.g., 'ihi' in 'nanghihina').
+    """
+    if not text:
+        return set()
+        
+    text_lower = text.lower()
+    found_concepts = set()
+    
+    # Check for each clinical concept term with word boundaries
+    import re
+    for term, concept_id in config.CLINICAL_CONCEPTS.items():
+        # Escape term for regex safety
+        escaped_term = re.escape(term)
+        # Pattern: \bterm\b (whole word match)
+        pattern = fr"\b{escaped_term}\b"
+        
+        if re.search(pattern, text_lower):
+            found_concepts.add(concept_id)
+    
+    return found_concepts
+
+
+class OntologyBuilder:
+    """
+    Builds a dynamic symptom ontology from the question bank.
+    Each disease gets a set of VALID CLINICAL CONCEPT IDs extracted from its questions.
+    """
+    
+    def __init__(self, question_bank_en: dict, question_bank_tl: dict):
+        self.profiles = {}
+        self._build_profiles(question_bank_en)
+        self._build_profiles(question_bank_tl)
+        print(f"[ONTOLOGY] Built profiles for {len(self.profiles)} diseases")
+    
+    def _build_profiles(self, question_bank: dict):
+        """Extract concepts from each disease's questions to build its symptom profile."""
+        for disease, questions in question_bank.items():
+            if disease not in self.profiles:
+                self.profiles[disease] = set()
+            
+            for q in questions:
+                # Extract concepts from question text and symptom descriptions
+                text_sources = [
+                    q.get("question", ""),
+                    q.get("positive_symptom", ""),
+                    q.get("negative_symptom", ""),
+                ]
+                for text in text_sources:
+                    concepts = extract_clinical_concepts(text)
+                    self.profiles[disease].update(concepts)
+    
+    def get_profile(self, disease: str) -> set:
+        """Get the valid Concept IDs for a disease."""
+        return self.profiles.get(disease, set())
+
+
+class VerificationLayer:
+    """
+    Neuro-Symbolic Verification Layer.
+    Compares extracted clinical concepts from user input against the predicted disease's ontology.
+    Flags OUT_OF_SCOPE if high-value concepts are unexplained.
+    """
+    
+    def __init__(self, ontology: OntologyBuilder):
+        self.ontology = ontology
+    
+    def verify(self, text: str, predicted_disease: str) -> dict:
+        """
+        Verify if the input text is consistent with the predicted disease.
+        
+        Returns:
+            {
+                "is_valid": bool,
+                "unexplained_concepts": set of concept IDs,
+                "reason": str (if invalid)
+            }
+        """
+        # Extract high-value concepts from input
+        extracted = extract_clinical_concepts(text)
+        high_value_extracted = extracted & config.HIGH_VALUE_CONCEPTS
+        
+        if not high_value_extracted:
+            # No high-value concepts found - allow prediction to proceed
+            return {"is_valid": True, "unexplained_concepts": set(), "reason": None}
+        
+        # Get the disease profile (Set of Concept IDs)
+        disease_profile = self.ontology.get_profile(predicted_disease)
+        
+        # Check if each high-value concept is in the disease profile
+        unexplained = set()
+        for concept in high_value_extracted:
+            if concept not in disease_profile:
+                unexplained.add(concept)
+        
+        if unexplained:
+            return {
+                "is_valid": False,
+                "unexplained_concepts": unexplained,
+                "reason": f"Clinical concepts not associated with {predicted_disease}: {unexplained}"
+            }
+        
+        return {"is_valid": True, "unexplained_concepts": set(), "reason": None}
+
+
+# Initialize the Ontology and Verification Layer
+ontology_builder = OntologyBuilder(QUESTION_BANK_EN, QUESTION_BANK_TL)
+verification_layer = VerificationLayer(ontology_builder)
+
+
+# Configure CORS for production - MUST support credentials for sessions
 CORS(
     app,
     origins=[
@@ -37,295 +235,102 @@ CORS(
         "http://aill-be-sick.vercel.app/",
         os.getenv("FRONTEND_URL", "*"),
     ],
+    supports_credentials=True,  # CRITICAL: Enable cookie/session support
 )
 
-eng_model_path = "notlath/BioClinical-ModernBERT-base-Symptom2Disease_WITH-DROPOUT-42"
-fil_model_path = "notlath/RoBERTa-Tagalog-base-Symptom2Disease_WITH-DROPOUT-42"
+eng_model_path = config.ENG_MODEL_PATH
+fil_model_path = config.FIL_MODEL_PATH
 
-# --- Configurable gating thresholds for validating symptom narratives ---
-# Reject very short/off-topic inputs and low-confidence/high-uncertainty predictions
-SYMPTOM_MIN_CONF = float(os.getenv("SYMPTOM_MIN_CONF", "0.50"))
-SYMPTOM_MAX_MI = float(os.getenv("SYMPTOM_MAX_MI", "0.10"))
-# Soft-accept band: allow follow-ups to proceed when signal exists but is below hard threshold
-SYMPTOM_SOFT_MIN_CONF = float(os.getenv("SYMPTOM_SOFT_MIN_CONF", "0.35"))
-SYMPTOM_SOFT_MAX_MI = float(os.getenv("SYMPTOM_SOFT_MAX_MI", "0.12"))
-# Require at least N words OR M characters before attempting a diagnosis
-SYMPTOM_MIN_WORDS = int(os.getenv("SYMPTOM_MIN_WORDS", "3"))
-SYMPTOM_MIN_CHARS = int(os.getenv("SYMPTOM_MIN_CHARS", "15"))
+def detect_language_heuristic(text, debug=False):
+    """
+    Deterministic Language Detection Heuristic.
+    Comparison of Tokenizer Efficiency:
+    - Tokenizes text with both English (ModernBERT) and Tagalog (RoBERTa) tokenizers.
+    - The model that represents the text with FEWER tokens generally has a better
+      vocabulary fit and is thus the correct language.
+    - Tie-breaker: Checks for language-specific medical keywords.
+    """
+    # Quick fallback for empty text
+    if not text or not text.strip():
+        return "en"
 
-# Medical keyword lists for semantic filtering (basic health-related terms)
-MEDICAL_KEYWORDS_EN = {
-    # Symptoms - General (from dataset analysis)
-    "fever",
-    "pain",
-    "ache",
-    "aches",
-    "chills",
-    "weak",
-    "weakness",
-    "sick",
-    "ill",
-    "hurt",
-    "sore",
-    "sores",
-    "headache",
-    "headaches",
-    "dizzy",
-    "dizziness",
-    "fatigue",
-    "fatigued",
-    "tired",
-    "exhausted",
-    "exhaustion",
-    "sweating",
-    "sweat",
-    "sweats",
-    "bleeding",
-    "swelling",
-    "infection",
-    "cold",
-    "painful",
-    # GI/Digestive symptoms
-    "nausea",
-    "nauseated",
-    "vomit",
-    "vomiting",
-    "vomited",
-    "diarrhea",
-    "diarrhoea",
-    "constipation",
-    "constipated",
-    "bloat",
-    "bloating",
-    "bloated",
-    "cramp",
-    "cramps",
-    "cramping",
-    "gas",
-    "indigestion",
-    "heartburn",
-    "reflux",
-    "appetite",
-    "nauseous",
-    "bowel",
-    "stool",
-    "stools",
-    # Respiratory symptoms
-    "cough",
-    "coughing",
-    "coughed",
-    "phlegm",
-    "mucus",
-    "sputum",
-    "breathing",
-    "breathe",
-    "breath",
-    "shortness",
-    "wheeze",
-    "wheezing",
-    "congestion",
-    "congested",
-    "runny",
-    "stuffy",
-    # Skin symptoms
-    "rash",
-    "rashes",
-    "itchy",
-    "itching",
-    "itch",
-    "blister",
-    "blisters",
-    "blistering",
-    "lesion",
-    "lesions",
-    "wound",
-    "wounds",
-    "pus",
-    "discharge",
-    "spots",
-    "bumps",
-    # Body parts
-    "head",
-    "eye",
-    "eyes",
-    "nose",
-    "throat",
-    "chest",
-    "stomach",
-    "abdomen",
-    "abdominal",
-    "belly",
-    "back",
-    "muscle",
-    "muscles",
-    "joint",
-    "joints",
-    "skin",
-    "ear",
-    "ears",
-    "mouth",
-    "body",
-    "face",
-    "neck",
-    "arms",
-    "legs",
-    "lung",
-    "lungs",
-    "heart",
-    # Medical/health terms
-    "symptom",
-    "symptoms",
-    "disease",
-    "diagnosis",
-    "treatment",
-    "medicine",
-    "medication",
-    "doctor",
-    "hospital",
-    "clinic",
-    "health",
-    "medical",
-    "feel",
-    "feeling",
-    "feels",
-    # Common descriptors
-    "severe",
-    "mild",
-    "constant",
-    "uncomfortable",
-    "discomfort",
-    "difficult",
-    "trouble",
-    "suffering",
-    "temperature",
-    "racing",
-    "rapid",
-}
+    try:
+        # Load tokenizers (global or passed) - assuming they are loaded in MCDClassifier
+        # We can access them via the initialized classifiers if available, 
+        # or load them on demand (cached).
+        # For efficiency, we'll assume the classifiers are initialized globally below.
+        # But wait, classifiers are initialized inside a function? No, usually global.
+        # Let's peek at lines 530+ in previous app.py. 
+        # Actually initializing tokenizers here is cheap compared to models.
+        
+        # Access global classifiers if they exist, else return "en" safely
+        # It's better to instantiate tokenizers once globally if not present.
+        
+        # Helper to get tokenizer
+        def get_tok(model_path):
+            return AutoTokenizer.from_pretrained(model_path)
 
-MEDICAL_KEYWORDS_TL = {
-    # Symptoms (Tagalog) - from dataset analysis
-    "lagnat",
-    "nilalagnat",
-    "nilagnat",
-    "ubo",
-    "inuubo",
-    "umuubo",
-    "sakit",
-    "masakit",
-    "sumasakit",
-    "pananakit",
-    "pains",
-    "pagdurugo",
-    "pantal",
-    "singaw",
-    "sipon",
-    "hilo",
-    "nahihilo",
-    "suka",
-    "nasusuka",
-    "pagsusuka",
-    "sumuka",
-    "pagod",
-    "napagod",
-    "kapaguran",
-    "nanghihina",
-    "mahina",
-    "panghihina",
-    "pamumula",
-    "pamamaga",
-    "namamaga",
-    "impeksyon",
-    "ginaw",
-    "giniginaw",
-    "panginginig",
-    "nanginginig",
-    # GI symptoms (Tagalog)
-    "pagtatae",
-    "nagtae",
-    "diarrhea",
-    "diarrhoea",
-    "constipation",
-    "tibi",
-    "pagtitibi",
-    "pag-tibi",
-    "pamamaga ng tiyan",
-    "pulikat",
-    "kabag",
-    "almoranas",
-    "gana",
-    "nawalan",
-    # Respiratory (Tagalog)
-    "plema",
-    "plemang",
-    "hirap",
-    "nahihirapan",
-    "huminga",
-    "paghinga",
-    "hininga",
-    "lalamunan",
-    "lalamunan",
-    # Skin symptoms (Tagalog)
-    "sugat",
-    "paltos",
-    "makati",
-    "pantal",
-    "pulang",
-    "pamumula",
-    "lumalabas",
-    "likido",
-    # Body parts (Tagalog)
-    "ulo",
-    "mata",
-    "dibdib",
-    "tiyan",
-    "puson",
-    "likod",
-    "katawan",
-    "balat",
-    "ilong",
-    "tainga",
-    "bibig",
-    "kalamnan",
-    "kasukasuan",
-    "mukha",
-    "leeg",
-    "braso",
-    "binti",
-    "puso",
-    "tibok",
-    # Medical/feeling terms (Tagalog)
-    "sintomas",
-    "gamot",
-    "doktor",
-    "ospital",
-    "klinika",
-    "kalusugan",
-    "medikal",
-    "pakiramdam",
-    "nararamdaman",
-    "ramdam",
-    "nakakaramdam",
-    "lunok",
-    "tulog",
-    "temperatura",
-    "meron",
-    "mayroon",
-    "nakakaabala",
-    "hindi komportable",
-    "sobrang",
-    "matinding",
-    "mataas",
-    "mabilis",
-    "pawis",
-    "pinagpapawisan",
-    "paminsang",
-    "patuloy",
-    "palaging",
-    "kumain",
-    "labis",
-    "aalala",
-    "nag-aalala",
-}
+        # We can reuse the classifiers' tokenizers
+        # Accessing global 'classifier_en' and 'classifier_tl' might be risky if not yet init.
+        # So providing a safe fallback logic.
+        
+        # Since this heuristic runs BEFORE classifier selection, we need tokenizers.
+        # Ideally, we should init tokenizers globally.
+        pass
+        
+    except Exception:
+        pass
+        
+    # SIMPLIFIED IMPLEMENTATION based on previous success:
+    # We will assume classifier_en and classifier_tl are available as globals 
+    # OR we use the keyword fallback only if tokenizers aren't ready?
+    # No, we need the tokenizer logic. 
+    
+    # Let's redefine it to be self-contained for safety or rely on the globals defined later.
+    # The classifiers are initialized at the bottom of the script usually. 
+    # If this function is called inside routes, globals are ready.
+    
+    try:
+        tokenizer_en = eng_classifier.tokenizer
+        tokenizer_tl = fil_classifier.tokenizer
+        
+        tokens_en = tokenizer_en.encode(text, add_special_tokens=False)
+        tokens_tl = tokenizer_tl.encode(text, add_special_tokens=False)
+        
+        # Tie-breaker / Strong Signal: Check for language-specific medical keywords
+        # If strong Tagalog keywords are present, prefer Tagalog regardless of token count
+        # (unless English keywords are ALSO present strongly, then allow token count to decide)
+        text_lower = text.lower()
+        has_tl = any(k in text_lower for k in config.MEDICAL_KEYWORDS_TL)
+        has_en = any(k in text_lower for k in config.MEDICAL_KEYWORDS_EN)
+
+        if has_tl and not has_en:
+             if debug:
+                print(f"[DEBUG] Heuristic: Tagalog keywords found, forcing TL")
+             return "tl"
+        
+        # Original Tokenizer Logic
+        count_en = len(tokens_en)
+        count_tl = len(tokens_tl)
+        
+        if debug:
+            print(f"[DEBUG] Tokens EN: {count_en} | TL: {count_tl}")
+            
+        if count_en < count_tl:
+            return "en"
+        elif count_tl < count_en:
+            return "tl"
+        else:
+            return "tl" if has_tl else "en"
+            
+    except Exception as e:
+        print(f"[LANG] Heuristic error: {e}")
+        # Keyword fallback
+        text_lower = text.lower()
+        has_tl = any(k in text_lower for k in config.MEDICAL_KEYWORDS_TL)
+        return "tl" if has_tl else "en"
+
+# All threshold constants and medical keywords are now in config.py
 
 
 def _count_words(text: str) -> int:
@@ -343,15 +348,15 @@ def _has_medical_keywords(text: str, lang: str = "en") -> bool:
     text_lower = text.lower()
 
     # Check both language sets to handle langdetect misidentifications
-    has_en_keyword = any(keyword in text_lower for keyword in MEDICAL_KEYWORDS_EN)
-    has_tl_keyword = any(keyword in text_lower for keyword in MEDICAL_KEYWORDS_TL)
+    has_en_keyword = any(keyword in text_lower for keyword in config.MEDICAL_KEYWORDS_EN)
+    has_tl_keyword = any(keyword in text_lower for keyword in config.MEDICAL_KEYWORDS_TL)
 
     return has_en_keyword or has_tl_keyword
 
 
 class MCDClassifierWithSHAP:
     def __init__(
-        self, model_path, n_iterations=50, inference_dropout_rate=0.05, device=None
+        self, model_path, n_iterations=30, inference_dropout_rate=0.05, device=None
     ):
         self.n_iterations = n_iterations
         self.inference_dropout_rate = inference_dropout_rate
@@ -360,22 +365,26 @@ class MCDClassifierWithSHAP:
         )
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+
+        # CRITICAL FIX: Replace standard Dropout with ThreadSafeDropout
+        # This allows per-request dropout control without global .train() state
+        self._replace_dropout_layers()
+        
+        # Move model to device and strict eval mode
+        self.model.to(self.device)
         self.model.eval()
 
-    def enable_dropout_with_rate(self, dropout_rate=None):
+    def _replace_dropout_layers(self):
         """
-        Enable dropout layers with a specified rate (or use default).
-        For MC Dropout, use LOWER rate than training (e.g., 0.05 instead of 0.1)
+        Recursively replace all torch.nn.Dropout layers with ThreadSafeDropout.
+        Preserves the module structure but swaps the dropout logic.
         """
-        if dropout_rate is None:
-            dropout_rate = self.inference_dropout_rate
-
-        for module in self.model.modules():
-            if module.__class__.__name__.startswith("Dropout"):
-                module.p = dropout_rate
-                module.train()
-            elif "Norm" in module.__class__.__name__:
-                module.eval()
+        for name, module in self.model.named_modules():
+            for child_name, child in module.named_children():
+                if isinstance(child, torch.nn.Dropout):
+                    # Create thread-safe replacement
+                    new_dropout = ThreadSafeDropout(p=child.p)
+                    setattr(module, child_name, new_dropout)
 
     def predict_with_uncertainty(self, text):
         inputs = self.tokenizer(
@@ -383,35 +392,72 @@ class MCDClassifierWithSHAP:
             return_tensors="pt",
             truncation=True,
             padding=True,
-        ).to(
-            self.device
-        )  # Move inputs to device and ensure correct type
+        ).to(self.device)
         inputs["input_ids"] = inputs["input_ids"].to(torch.long)
         inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
 
-        self.enable_dropout_with_rate(dropout_rate=self.inference_dropout_rate)
+        # Set thread-local context for this specific inference call
+        token_enabled = mcd_enabled_ctx.set(True)
+        token_rate = mcd_rate_ctx.set(self.inference_dropout_rate)
 
-        all_predictions = []
+        try:
+            with torch.no_grad():
+                # BATCHED INFERENCE OPTIMIZATION:
+                # Instead of loop, expand inputs to process all MC samples in parallel
+                # Shape: [batch_size, seq_len] -> [batch_size * n_iterations, seq_len]
+                # Default batch size = 1 (single query), so we process n_iterations rows
+                
+                # Replicate input tensors
+                input_ids = inputs["input_ids"].repeat(self.n_iterations, 1)
+                attention_mask = inputs["attention_mask"].repeat(self.n_iterations, 1)
+                
+                # Single forward pass with thread-safe dropout active
+                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
+                
+                # Reshape logits: [n_iterations, num_classes]
+                logits = outputs.logits
+                probabilities = torch.softmax(logits, dim=-1) # [n_iterations, n_classes]
+                
+                # Convert to numpy for stats calculation
+                all_predictions = probabilities.cpu().numpy()
+                
+                # all_predictions shape is already [n_iterations, n_classes], no stack needed
+                
+        finally:
+            # RESET context to prevent leakage to other threads/requests
+            mcd_enabled_ctx.reset(token_enabled)
+            mcd_rate_ctx.reset(token_rate)
+            
+            # Clean up VRAM
+            del inputs, input_ids, attention_mask, outputs, logits, probabilities
+            torch.cuda.empty_cache() if torch.cuda.is_available() else None
+            gc.collect()
 
-        with torch.no_grad():
-            for _ in range(self.n_iterations):
-                outputs = self.model(**inputs)
-                probabilities = torch.softmax(outputs.logits, dim=-1)
-                all_predictions.append(probabilities.cpu().numpy())
-
-                if _ % 10 == 0:
-                    gc.collect()
-
-        all_predictions = np.stack(all_predictions)
         mean_probs = all_predictions.mean(axis=0)
         std_probs = all_predictions.std(axis=0)
         predicted_class = mean_probs.argmax(axis=-1)
         confidence = mean_probs.max(axis=-1)
         predictive_entropy = entropy(mean_probs, axis=-1)
+        
+        # Reshape for MI calculation as it expects [n_iterations, n_classes]
+        # (It already is, but just ensuring compatibility with shared code if any)
         mutual_information = self.compute_mutual_information(all_predictions)
-
-        del all_predictions
-        gc.collect()
+        
+        # Add extra dimension to match original return shape if needed, 
+        # but original code returned scalars for single input.
+        # Let's align with original return structure. 
+        # Original: mean_probs was [1, n_classes] or [n_classes]. 
+        # Numpy mean over axis 0 reduces dimension.
+        # If original input was batch 1, mean_probs is (n_classes,).
+        
+        # Ensuring scalar wrappers for return
+        if predicted_class.ndim == 0:
+            predicted_class = np.expand_dims(predicted_class, 0)
+            confidence = np.expand_dims(confidence, 0)
+            predictive_entropy = np.expand_dims(predictive_entropy, 0)
+            mutual_information = np.expand_dims(mutual_information, 0)
+            mean_probs = np.expand_dims(mean_probs, 0)
+            std_probs = np.expand_dims(std_probs, 0)
 
         return {
             "predicted_class": predicted_class,
@@ -619,11 +665,11 @@ def _build_cdss_payload(
             "Avoid delays; consider calling local emergency number",
         ]
     else:
-        if confidence >= 0.90 and uncertainty <= 0.03:
+        if confidence >= config.TRIAGE_HIGH_CONFIDENCE and uncertainty <= config.TRIAGE_LOW_UNCERTAINTY:
             triage_level = "Non-urgent"
             triage_reasons = [
-                "High model confidence (≥ 0.90)",
-                "Low uncertainty (≤ 0.03)",
+                f"High model confidence (≥ {config.TRIAGE_HIGH_CONFIDENCE})",
+                f"Low uncertainty (≤ {config.TRIAGE_LOW_UNCERTAINTY})",
             ]
             care_setting = "Home care or routine clinic"
             actions = [
@@ -688,10 +734,10 @@ def _build_cdss_payload(
                 eng_model_path if "ModernBERT" in model_used else fil_model_path
             ),
             "thresholds": {
-                "hard_min_conf": SYMPTOM_MIN_CONF,
-                "soft_min_conf": SYMPTOM_SOFT_MIN_CONF,
-                "hard_max_mi": SYMPTOM_MAX_MI,
-                "soft_max_mi": SYMPTOM_SOFT_MAX_MI,
+                "hard_min_conf": config.SYMPTOM_MIN_CONF,
+                "soft_min_conf": config.SYMPTOM_SOFT_MIN_CONF,
+                "hard_max_mi": config.SYMPTOM_MAX_MI,
+                "soft_max_mi": config.SYMPTOM_SOFT_MAX_MI,
             },
         },
     }
@@ -703,73 +749,12 @@ def classifier(text):
     try:
         # Pre-validate: reject very short/random text before language detection
         # This prevents langdetect from misclassifying gibberish as random languages
-        if _count_words(text) < SYMPTOM_MIN_WORDS and len(text) < SYMPTOM_MIN_CHARS:
+        if _count_words(text) < config.SYMPTOM_MIN_WORDS and len(text) < config.SYMPTOM_MIN_CHARS:
             raise ValueError("INSUFFICIENT_SYMPTOM_EVIDENCE:Text too short")
 
-        """
-        Language Detection Strategy:
-        ---------------------------
-        This block uses langdetect's `detect_langs` to obtain language probabilities for the input text.
-        However, langdetect can misidentify short or medical symptom narratives (especially Tagalog) as unrelated languages (e.g., Indonesian, Slovenian).
-        To address this, we implement a fallback strategy:
-          1. Attempt to detect if English ('en'), Tagalog ('tl'), or Filipino ('fil') are among the top candidates.
-          2. If not, use medical keyword matching to infer the language:
-             - If only English keywords are present, set language to 'en'.
-             - If only Tagalog keywords are present, set language to 'tl'.
-             - If both or ambiguous, default to 'en'.
-             - If neither, use the top detected language even if unsupported.
-        This ensures robust handling of edge cases and improves reliability for medical symptom inputs.
-        """
-
-        # Wrap language detection in try-except to handle edge cases
-        try:
-            # Get language probabilities instead of just top language
-            lang_probs = detect_langs(text)
-
-            # Check if English or Tagalog/Filipino are in top candidates
-            supported_langs = {"en", "tl", "fil"}
-            detected_lang = None
-
-            for lang_prob in lang_probs:
-                if lang_prob.lang in supported_langs:
-                    detected_lang = lang_prob.lang
-                    print(
-                        f"[LANG] Detected: {lang_prob.lang} (confidence: {lang_prob.prob:.2f})"
-                    )
-                    break
-
-            # If no supported language found, check for medical keywords to determine language
-            if detected_lang is None:
-                text_lower = text.lower()
-                has_en_keyword = any(
-                    keyword in text_lower for keyword in MEDICAL_KEYWORDS_EN
-                )
-                has_tl_keyword = any(
-                    keyword in text_lower for keyword in MEDICAL_KEYWORDS_TL
-                )
-
-                top_lang = lang_probs[0].lang if lang_probs else "unknown"
-
-                if has_en_keyword and not has_tl_keyword:
-                    detected_lang = "en"
-                    print(f"[LANG] Fallback: {top_lang} → en (English keywords found)")
-                elif has_tl_keyword and not has_en_keyword:
-                    detected_lang = "tl"
-                    print(f"[LANG] Fallback: {top_lang} → tl (Tagalog keywords found)")
-                elif has_en_keyword or has_tl_keyword:
-                    # Both or ambiguous, default to English
-                    detected_lang = "en"
-                    print(f"[LANG] Fallback: {top_lang} → en (ambiguous keywords)")
-                else:
-                    # Use the top detected language even if unsupported
-                    detected_lang = top_lang
-
-            lang = detected_lang
-
-        except Exception as lang_err:
-            print(f"[LANG] Detection failed: {lang_err}, defaulting to en")
-            # Default to English if detection fails on edge cases
-            lang = "en"
+        # Use tokenizer-based language detection (deterministic and robust)
+        lang = detect_language_heuristic(text)
+        print(f"[LANG] Detected: {lang}")
 
         # Check for medical keywords to ensure the text is health-related
         if not _has_medical_keywords(text, lang):
@@ -784,30 +769,30 @@ def classifier(text):
             sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
             probs = []
             top_diseases = []
-            # Only consider allowed diseases
-            allowed = {"Dengue", "Pneumonia", "Typhoid", "Impetigo"}
+            # Raw model predictions (no artificial filtering)
+            pred = result["predicted_label"][0]
+            confidence = float(result["confidence"][0])
+            uncertainty = float(result["mutual_information"][0])
+            mean_probs = result["mean_probabilities"].tolist()
 
-            # iterate over all labels but only keep allowed ones, preserving probabilities
+            # Get top diseases directly from model
             all_probs = result["mean_probabilities"][0]
+            top_diseases = []
+            
             for idx, label in eng_classifier.model.config.id2label.items():
-                if label in allowed:
-                    prob = float(all_probs[idx])
-                    probs.append(f"{label}: {prob*100:.2f}%")
-                    top_diseases.append({"disease": label, "probability": prob})
+                prob = float(all_probs[idx])
+                top_diseases.append({"disease": label, "probability": prob})
 
-            # sort allowed diseases by probability desc
+            # Sort by probability desc
             top_diseases.sort(key=lambda x: x["probability"], reverse=True)
+            
+            # Formatting for logs/response
             probs = [
                 f"{d['disease']}: {(d['probability']*100):.2f}%" for d in top_diseases
             ]
-            mean_probs = result["mean_probabilities"].tolist()
 
             print(f"[RESULT] {pred} (conf: {confidence:.3f}, MI: {uncertainty:.4f})")
-
-            # ensure pred is an allowed disease; if not, take top allowed
-            if pred not in allowed and len(top_diseases) > 0:
-                pred = top_diseases[0]["disease"]
-
+            
             gc.collect()
             return (
                 pred,
@@ -822,21 +807,18 @@ def classifier(text):
         elif lang in ["tl", "fil"]:
             print("[CLASSIFIER] Using Tagalog RoBERTa model")
             result = fil_classifier.predict_with_uncertainty(text)
+            
             pred = result["predicted_label"][0]
             confidence = float(result["confidence"][0])
             uncertainty = float(result["mutual_information"][0])
-            sorted_idx = result["mean_probabilities"][0].argsort()[-5:][::-1]
-            probs = []
-            top_diseases = []
             mean_probs = result["mean_probabilities"].tolist()
 
             all_probs = result["mean_probabilities"][0]
-            allowed = {"Dengue", "Pneumonia", "Typhoid", "Impetigo"}
+            top_diseases = []
+            
             for idx, label in fil_classifier.model.config.id2label.items():
-                if label in allowed:
-                    prob = float(all_probs[idx])
-                    probs.append(f"{label}: {prob*100:.2f}%")
-                    top_diseases.append({"disease": label, "probability": prob})
+                prob = float(all_probs[idx])
+                top_diseases.append({"disease": label, "probability": prob})
 
             top_diseases.sort(key=lambda x: x["probability"], reverse=True)
             probs = [
@@ -844,9 +826,6 @@ def classifier(text):
             ]
 
             print(f"[RESULT] {pred} (conf: {confidence:.3f}, MI: {uncertainty:.4f})")
-
-            if pred not in allowed and len(top_diseases) > 0:
-                pred = top_diseases[0]["disease"]
 
             gc.collect()
             return (
@@ -930,7 +909,7 @@ def explainer(text: str, mean_probs=None):
     try:
         # Language hint: prefer Tagalog if Tagalog keywords appear
         text_lower = (text or "").lower()
-        has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
+        has_tl = any(k in text_lower for k in config.MEDICAL_KEYWORDS_TL)
         lang = "tl" if has_tl else "en"
 
         # Normalize mean_probs to a numpy array/list for downstream use
@@ -986,7 +965,10 @@ def index():
 
 @app.route("/diagnosis/new", methods=["POST"])
 def new_case():
-    """Create new case endpoint"""
+    """
+    Start a new diagnosis case. Accepts a symptom description.
+    """
+    session.clear()  # Start fresh for every new case
     try:
         data = request.get_json()
 
@@ -1002,8 +984,8 @@ def new_case():
 
         # Quick pre-filter for obviously non-symptom inputs
         if (
-            _count_words(symptoms) < SYMPTOM_MIN_WORDS
-            and len(symptoms) < SYMPTOM_MIN_CHARS
+            _count_words(symptoms) < config.SYMPTOM_MIN_WORDS
+            and len(symptoms) < config.SYMPTOM_MIN_CHARS
         ):
             return (
                 jsonify(
@@ -1011,8 +993,8 @@ def new_case():
                         "error": "INSUFFICIENT_SYMPTOM_EVIDENCE",
                         "message": "Please describe your symptoms in a short sentence (e.g., 'I have had fever and cough for two days').",
                         "details": {
-                            "min_words": SYMPTOM_MIN_WORDS,
-                            "min_chars": SYMPTOM_MIN_CHARS,
+                            "min_words": config.SYMPTOM_MIN_WORDS,
+                            "min_chars": config.SYMPTOM_MIN_CHARS,
                         },
                     }
                 ),
@@ -1023,8 +1005,56 @@ def new_case():
             classifier(symptoms)
         )
 
+        # NEURO-SYMBOLIC VERIFICATION: Check for ontology mismatch
+        verification_result = verification_layer.verify(symptoms, pred)
+        if not verification_result["is_valid"]:
+            unexplained = verification_result["unexplained_concepts"]
+            print(
+                f"[VERIFICATION] FAIL: Unexplained concepts {unexplained} for predicted disease {pred}"
+            )
+            print(
+                f"[LOG_INSTANCE] ONTOLOGY_MISMATCH | predicted={pred} | unexplained={unexplained} | conf={confidence:.4f}"
+            )
+            cdss = _build_cdss_payload(
+                symptoms,
+                pred,
+                confidence,
+                uncertainty,
+                top_diseases,
+                model_used,
+            )
+            # Add verification failure to red flags
+            cdss["red_flags"] = cdss.get("red_flags", []) + [
+                f"Symptoms detected that are not typical of {pred}. Please consult a healthcare professional."
+            ]
+            return (
+                jsonify(
+                    {
+                        "data": {
+                            "pred": pred,
+                            "confidence": confidence,
+                            "uncertainty": uncertainty,
+                            "probs": probs,
+                            "model_used": model_used,
+                            "disease": pred,
+                            "top_diseases": top_diseases,
+                            "mean_probs": mean_probs,
+                            "cdss": cdss,
+                            "skip_followup": True,
+                            "skip_reason": "OUT_OF_SCOPE",
+                            "is_valid": False,
+                            "verification_failure": {
+                                "unexplained_concepts": list(unexplained),
+                                "message": "Your symptoms include indicators not typically associated with our supported conditions. Please consult a healthcare professional."
+                            }
+                        }
+                    }
+                ),
+                200,
+            )
+
         # EARLY STOP: If initial diagnosis is very confident, skip follow-up questions entirely
-        if confidence >= 0.95 and uncertainty <= 0.01:
+        if confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
             print(
                 f"[NEW CASE] STOP: Very high confidence on initial diagnosis (conf={confidence:.3f}, MI={uncertainty:.4f})"
             )
@@ -1061,11 +1091,11 @@ def new_case():
             )
 
         # Gate low-confidence / high-uncertainty predictions
-        if confidence < SYMPTOM_MIN_CONF or uncertainty > SYMPTOM_MAX_MI:
+        if confidence < config.SYMPTOM_MIN_CONF or uncertainty > config.SYMPTOM_MAX_MI:
             # If it's within the soft band, proceed with a low-confidence advisory
             if (
-                confidence >= SYMPTOM_SOFT_MIN_CONF
-                and uncertainty <= SYMPTOM_SOFT_MAX_MI
+                confidence >= config.SYMPTOM_SOFT_MIN_CONF
+                and uncertainty <= config.SYMPTOM_SOFT_MAX_MI
             ):
                 cdss = _build_cdss_payload(
                     symptoms,
@@ -1092,10 +1122,10 @@ def new_case():
                                     "low_confidence": True,
                                     "message": "We couldn't confidently match your symptoms yet. We'll ask a few targeted questions to narrow it down.",
                                     "thresholds": {
-                                        "hard_min_conf": SYMPTOM_MIN_CONF,
-                                        "soft_min_conf": SYMPTOM_SOFT_MIN_CONF,
-                                        "hard_max_mi": SYMPTOM_MAX_MI,
-                                        "soft_max_mi": SYMPTOM_SOFT_MAX_MI,
+                                        "hard_min_conf": config.SYMPTOM_MIN_CONF,
+                                        "soft_min_conf": config.SYMPTOM_SOFT_MIN_CONF,
+                                        "hard_max_mi": config.SYMPTOM_MAX_MI,
+                                        "soft_max_mi": config.SYMPTOM_SOFT_MAX_MI,
                                     },
                                 },
                             }
@@ -1113,8 +1143,8 @@ def new_case():
                         "details": {
                             "confidence": confidence,
                             "mutual_information": uncertainty,
-                            "min_conf": SYMPTOM_MIN_CONF,
-                            "max_mi": SYMPTOM_MAX_MI,
+                            "min_conf": config.SYMPTOM_MIN_CONF,
+                            "max_mi": config.SYMPTOM_MAX_MI,
                         },
                     }
                 ),
@@ -1129,6 +1159,22 @@ def new_case():
             top_diseases,
             model_used,
         )
+        # Determine language from model_used
+        lang_detected = "tl" if "Tagalog" in str(model_used) or "TAGALOG" in str(model_used).upper() else "en"
+
+        # SAVE TO SESSION (Server-Side State)
+        # Verify serializable types
+        session["diagnosis"] = {
+            "disease": pred,
+            "confidence": float(confidence),
+            "uncertainty": float(uncertainty),
+            "top_diseases": top_diseases,
+            "mean_probs": mean_probs,
+            "symptoms_text": symptoms,
+            "lang": lang_detected,
+            "start_time": time.time(),
+        }
+
         return (
             jsonify(
                 {
@@ -1142,6 +1188,7 @@ def new_case():
                         "top_diseases": top_diseases,  # Add top competing diseases
                         "mean_probs": mean_probs,
                         "cdss": cdss,
+                        "session_valid": True,
                     }
                 }
             ),
@@ -1214,13 +1261,48 @@ def follow_up_question():
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
 
+        # SESSION VALIDATION (Prevent Tampering)
+        session_data = session.get("diagnosis")
+        if not session_data:
+            # Session expired or not found
+            print("[SECURITY] Session missing or expired in follow-up")
+            return (
+                jsonify(
+                    {
+                        "error": "SESSION_EXPIRED",
+                        "message": "Your session has expired. Please start a new diagnosis.",
+                        "code": "SESSION_EXPIRED",
+                    }
+                ),
+                440,
+            )
+            
+        # Validate session age (e.g., 1 hour expiry)
+        if time.time() - session_data.get("start_time", 0) > 3600:
+            session.clear()
+            return (
+                jsonify(
+                    {
+                        "error": "SESSION_EXPIRED",
+                        "message": "Your session has timed out. Please start over.",
+                    }
+                ),
+                440,
+            )
+
         # Use updated symptoms string (initial + positives)
-        symptoms_text = data.get("symptoms", "")
-        # Also accept prior diagnosis context to allow fallback when no new symptom text is provided
-        prior_disease = data.get("disease")
-        prior_confidence = data.get("confidence")
-        prior_uncertainty = data.get("uncertainty")
-        prior_top_diseases = data.get("top_diseases", []) or []
+        symptoms_text = data.get("symptoms", "").strip()
+        if not symptoms_text:
+             # Fallback to session symptoms if not provided
+             symptoms_text = session_data.get("symptoms_text", "")
+        
+        # TRUST SERVER STATE for context, ignore client-provided context fields if they differ
+        prior_disease = session_data.get("disease")
+        prior_confidence = session_data.get("confidence")
+        prior_uncertainty = session_data.get("uncertainty")
+        prior_top_diseases = session_data.get("top_diseases", []) or []
+        
+        # These fields still come from client as they are interaction logic
         asked_questions = data.get("asked_questions", [])
         force_question = data.get("force", False)
         mode = data.get("mode", "adaptive")
@@ -1251,8 +1333,8 @@ def follow_up_question():
         # If caller didn't provide enough text, fall back to prior diagnosis context to continue Q&A.
         try:
             too_short = (
-                _count_words(symptoms_text) < SYMPTOM_MIN_WORDS
-                and len(symptoms_text) < SYMPTOM_MIN_CHARS
+                _count_words(symptoms_text) < config.SYMPTOM_MIN_WORDS
+                and len(symptoms_text) < config.SYMPTOM_MIN_CHARS
             )
 
             if not too_short:
@@ -1278,8 +1360,8 @@ def follow_up_question():
                                 "error": "INSUFFICIENT_SYMPTOM_EVIDENCE",
                                 "message": "No new symptom details provided and prior diagnosis context missing. Please resend the cumulative symptoms string or include prior diagnosis fields.",
                                 "details": {
-                                    "min_words": SYMPTOM_MIN_WORDS,
-                                    "min_chars": SYMPTOM_MIN_CHARS,
+                                    "min_words": config.SYMPTOM_MIN_WORDS,
+                                    "min_chars": config.SYMPTOM_MIN_CHARS,
                                 },
                             }
                         ),
@@ -1331,36 +1413,75 @@ def follow_up_question():
                     ),
                     400,
                 )
-            return jsonify({"error": "Classifier error", "details": err}), 500
+            print(f"ERROR in follow_up_question: {err}", file=sys.stderr)
+            return jsonify({
+                "error": "Classifier error", 
+                "message": f"An internal error occurred: {err}",
+                "details": err
+            }), 500
+
+        # Neuro-Symbolic Verification (Catch Out-of-Scope even in follow-up)
+        # This prevents confidence drift from accepting invalid diseases
+        verification_result = verification_layer.verify(symptoms_text, pred)
+        if not verification_result["is_valid"]:
+            unexplained = verification_result["unexplained_concepts"]
+            print(
+                f"[VERIFICATION-FOLLOWUP] FAIL: Unexplained concepts {unexplained} for predicted disease {pred}"
+            )
+            print(
+                f"[LOG_INSTANCE] ONTOLOGY_MISMATCH_FOLLOWUP | predicted={pred} | unexplained={unexplained} | conf={confidence:.4f}"
+            )
+            cdss = _build_cdss_payload(
+                symptoms_text,
+                pred,
+                confidence,
+                uncertainty,
+                top_diseases,
+                model_used,
+            )
+            return (
+                jsonify(
+                    {
+                        "data": {
+                            "should_stop": True,
+                            "reason": "OUT_OF_SCOPE",
+                            "message": "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for proper evaluation.",
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "is_valid": False,
+                                "cdss": cdss,
+                                "verification_failure": {
+                                    "unexplained_concepts": list(unexplained),
+                                    "message": "Your symptoms include indicators not typically associated with our supported conditions. Please consult a healthcare professional."
+                                }
+                            },
+                        }
+                    }
+                ),
+                200,
+            )
 
         # Language detection for question bank
-        try:
-            if symptoms_text:
-                lang_probs = detect_langs(symptoms_text)
-                supported_langs = {"en", "tl", "fil"}
-                lang = None
-                for lang_prob in lang_probs:
-                    if lang_prob.lang in supported_langs:
-                        lang = lang_prob.lang
-                        break
-                if lang is None:
-                    text_lower = symptoms_text.lower()
-                    has_en = any(k in text_lower for k in MEDICAL_KEYWORDS_EN)
-                    has_tl = any(k in text_lower for k in MEDICAL_KEYWORDS_TL)
-                    if has_tl and not has_en:
-                        lang = "tl"
-                    else:
-                        lang = "en"
-            else:
-                lang = "en"
-        except Exception as e:
-            lang = "en"
+        # Language detection for question bank using robust heuristic
+        # Determine Language
+        session_lang = session_data.get("lang")
+        if (symptoms_text or "").strip():
+             lang = detect_language_heuristic(symptoms_text)
+        else:
+             lang = session_lang if session_lang else "en"
 
         QUESTION_BANK = QUESTION_BANK_TL if lang in ["tl", "fil"] else QUESTION_BANK_EN
 
         # EARLY STOP: Check high confidence FIRST, before any other logic
         # This prevents asking questions when diagnosis is already very confident
-        if not force_question and confidence >= 0.95 and uncertainty <= 0.01:
+        if not force_question and confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
             print(
                 f"[FOLLOW-UP] STOP: Very high confidence reached (conf={confidence:.3f}, MI={uncertainty:.4f})"
             )
@@ -1394,27 +1515,30 @@ def follow_up_question():
                 200,
             )
 
-        # Early stop logic (same as before)
-        MAX_QUESTIONS_THRESHOLD = 8
-        LOW_CONFIDENCE_THRESHOLD = 0.65
-        EXHAUSTED_QUESTIONS_THRESHOLD = 10
+        # Early stop logic: Check if prediction meets thesis validity thresholds
+        # If not, flag as OUT_OF_SCOPE instead of forcing a potentially incorrect diagnosis
+        is_valid_prediction = (
+            confidence >= config.VALID_MIN_CONF 
+            and uncertainty <= config.VALID_MAX_UNCERTAINTY
+        )
+        
         if (
-            len(asked_questions) >= MAX_QUESTIONS_THRESHOLD
-            and confidence < LOW_CONFIDENCE_THRESHOLD
+            len(asked_questions) >= config.MAX_QUESTIONS_THRESHOLD
+            and not is_valid_prediction
         ):
             print(
-                f"[FOLLOW-UP] STOP: Low confidence after {len(asked_questions)} questions (conf={confidence:.3f}, MI={uncertainty:.4f})"
+                f"[FOLLOW-UP] STOP: OUT_OF_SCOPE after {len(asked_questions)} questions (conf={confidence:.3f} < {config.VALID_MIN_CONF}, MI={uncertainty:.4f} > {config.VALID_MAX_UNCERTAINTY})"
             )
             print(
-                f"[LOG_INSTANCE] LOW_CONFIDENCE_FINAL | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | asked_questions={len(asked_questions)} | top_disease_prob={top_diseases[0]['probability']:.4f if top_diseases else 0} | frontend_will_show_error={'YES' if confidence < 0.95 else 'NO'}"
+                f"[LOG_INSTANCE] OUT_OF_SCOPE | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | asked_questions={len(asked_questions)} | threshold_conf={config.VALID_MIN_CONF} | threshold_mi={config.VALID_MAX_UNCERTAINTY}"
             )
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": True,
-                            "reason": "LOW_CONFIDENCE_FINAL",
-                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "reason": "OUT_OF_SCOPE",
+                            "message": "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for proper evaluation.",
                             "diagnosis": {
                                 "pred": pred,
                                 "disease": pred,
@@ -1424,6 +1548,7 @@ def follow_up_question():
                                 "model_used": model_used,
                                 "top_diseases": top_diseases,
                                 "mean_probs": mean_probs,
+                                "is_valid": False,
                                 "cdss": _build_cdss_payload(
                                     symptoms_text,
                                     pred,
@@ -1438,17 +1563,27 @@ def follow_up_question():
                 ),
                 200,
             )
-        if len(asked_questions) >= EXHAUSTED_QUESTIONS_THRESHOLD:
+        if len(asked_questions) >= config.EXHAUSTED_QUESTIONS_THRESHOLD:
+            # Check validity before exhaustion response
+            is_exhausted_valid = (
+                confidence >= config.VALID_MIN_CONF 
+                and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            )
+            reason = "HIGH_CONFIDENCE_FINAL" if is_exhausted_valid else "OUT_OF_SCOPE"
+            message = (
+                f"Final assessment: {pred}" if is_exhausted_valid 
+                else "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for proper evaluation."
+            )
             print(
-                f"[FOLLOW-UP] STOP: Exhausted questions for disease={pred} after {len(asked_questions)} asked"
+                f"[FOLLOW-UP] STOP: Exhausted questions for disease={pred} after {len(asked_questions)} asked | valid={is_exhausted_valid}"
             )
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": True,
-                            "reason": "LOW_CONFIDENCE_FINAL",
-                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "reason": reason,
+                            "message": message,
                             "diagnosis": {
                                 "pred": pred,
                                 "disease": pred,
@@ -1458,6 +1593,7 @@ def follow_up_question():
                                 "model_used": model_used,
                                 "top_diseases": top_diseases,
                                 "mean_probs": mean_probs,
+                                "is_valid": is_exhausted_valid,
                                 "cdss": _build_cdss_payload(
                                     symptoms_text,
                                     pred,
@@ -1475,7 +1611,7 @@ def follow_up_question():
 
         # If not forced, stop when confidence and uncertainty thresholds are met (secondary check)
         # This catches cases where confidence increased after first follow-up
-        if not force_question and confidence >= 0.95 and uncertainty <= 0.01:
+        if not force_question and confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
             print("[FOLLOW-UP] STOP: High confidence and low uncertainty reached")
             return (
                 jsonify(
@@ -1515,9 +1651,33 @@ def follow_up_question():
             )
             return (
                 jsonify(
-                    {"error": f"No questions available for disease: {current_disease}"}
+                    {
+                        "data": {
+                            "should_stop": True,
+                            "reason": "NO_QUESTIONS_AVAILABLE",
+                            "message": f"No follow-up questions available for {current_disease}. Diagnosis complete.",
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "cdss": _build_cdss_payload(
+                                    symptoms_text,
+                                    pred,
+                                    confidence,
+                                    uncertainty,
+                                    top_diseases,
+                                    model_used,
+                                ),
+                            },
+                        }
+                    }
                 ),
-                400,
+                200,
             )
         primary_questions = QUESTION_BANK[current_disease]
         symptoms_lower = (symptoms_text or "").lower()
@@ -1848,95 +2008,231 @@ def follow_up_question():
                     "kalamnan",
                     "buto",
                 ],
-                # Impetigo (English + Tagalog)
-                "impetigo_q1": [
-                    "face",
-                    "nose",
-                    "mouth",
-                    "lip",
-                    "lips",
-                    "chin",
-                    "mukha",
-                    "ilong",
-                    "bibig",
-                    "labi",
-                ],
-                "impetigo_q2": [
-                    "sore",
-                    "sores",
-                    "lesion",
-                    "lesions",
-                    "wound",
-                    "wounds",
-                    "sugat",
-                ],
-                "impetigo_q3": [
-                    "oozing",
-                    "discharge",
-                    "fluid",
+
+                # Diarrhea (English + Tagalog)
+                "diarrhea_q1": [
+                    "watery",
+                    "loose",
                     "liquid",
-                    "pus",
-                    "weeping",
-                    "nana",
-                    "likido",
+                    "stool",
+                    "poop",
+                    "bowel",
+                    "dumi",
+                    "tae",
+                    "matubig",
+                    "malabnaw",
                 ],
-                "impetigo_q4": [
-                    "rash",
-                    "eruption",
-                    "skin eruption",
-                    "pantal",
+                "diarrhea_q2": [
+                    "blood",
+                    "bloody",
+                    "stools",
+                    "dugo",
+                    "madugo",
+                    "may dugo",
                 ],
-                "impetigo_q5": [
-                    "pain",
-                    "painful",
-                    "tender",
-                    "discomfort",
-                    "hurt",
-                    "masakit",
-                    "pananakit",
-                    "sakit",
+                "diarrhea_q3": [
+                    "stomach pain",
+                    "abdominal pain",
+                    "cramps",
+                    "stomach ache",
+                    "belly pain",
+                    "tiyan",
+                    "sakit ng tiyan",
+                    "pulikat",
+                    "kabag",
                 ],
-                "impetigo_q6": [
-                    "red",
-                    "redness",
-                    "inflamed",
-                    "inflammation",
-                    "swelling",
-                    "pula",
-                    "namumula",
-                    "pamumula",
-                    "pamamaga",
+                "diarrhea_q4": [
+                    "thirsty",
+                    "dry mouth",
+                    "dehydrated",
+                    "dehydration",
+                    "uhaw",
+                    "tuyo ang bibig",
+                    "tuyot",
                 ],
-                "impetigo_q7": [
-                    "blister",
-                    "blisters",
-                    "pustule",
-                    "pustules",
-                    "paltos",
-                ],
-                "impetigo_q8": [
+                "diarrhea_q5": [
                     "fever",
+                    "high fever",
                     "temperature",
                     "lagnat",
+                    "sinat",
+                    "mainit",
+                ],
+                "diarrhea_q6": [
+                    "nausea",
+                    "vomit",
+                    "vomiting",
+                    "suka",
+                    "nagsusuka",
+                    "nasusuka",
+                    "duwal",
+                ],
+                "diarrhea_q7": [
+                    "mucus",
+                    "slime",
+                    "slimy",
+                    "uhog",
+                    "madulas",
+                ],
+                "diarrhea_q8": [
+                    "urgent",
+                    "urgency",
+                    "bathroom",
+                    "cr",
+                    "toilet",
+                    "banyo",
+                ],
+                "diarrhea_q9": [
+                    "weak",
+                    "weakness",
+                    "tired",
+                    "fatigue",
+                    "hina",
+                    "nanghihina",
+                    "pagod",
+                ],
+                "diarrhea_q10": [
+                    "appetite",
+                    "eat",
+                    "food",
+                    "gana",
+                    "kain",
+                ],
+                # Measles (English + Tagalog)
+                "measles_q1": [
+                    "rash",
+                    "spots",
+                    "face",
+                    "pantal",
+                    "pula",
+                    "mukha",
+                ],
+                "measles_q2": [
+                    "fever",
+                    "high fever",
+                    "lagnat",
                     "mataas na lagnat",
-                    "nilalagnat",
                 ],
-                "impetigo_q9": [
-                    "itching",
-                    "itchy",
-                    "irritation",
-                    "itch",
-                    "kati",
-                    "makati",
-                    "pangangati",
+                "measles_q3": [
+                    "cough",
+                    "coughing",
+                    "dry cough",
+                    "ubo",
+                    "umuubo",
                 ],
-                "impetigo_q10": [
-                    "joint pain",
+                "measles_q4": [
+                    "runny nose",
+                    "coryza",
+                    "sipon",
+                    "tumutulo ang sipon",
+                ],
+                "measles_q5": [
+                    "red eyes",
+                    "watery eyes",
+                    "conjunctivitis",
+                    "pula ang mata",
+                    "mata",
+                ],
+                "measles_q6": [
+                    "white spots",
+                    "mouth",
+                    "spots in mouth",
+                    "koplik",
+                    "puti",
+                    "bibig",
+                ],
+                "measles_q7": [
+                    "light",
+                    "sensitive",
+                    "eyes",
+                    "ilaw",
+                    "silaw",
+                    "liwanag",
+                ],
+                "measles_q8": [
                     "muscle pain",
-                    "joints",
-                    "muscles",
+                    "body pain",
+                    "ache",
+                    "sakit ng katawan",
                     "kalamnan",
-                    "buto",
+                ],
+                "measles_q9": [
+                    "sore throat",
+                    "throat",
+                    "lalamunan",
+                    "masakit ang lalamunan",
+                ],
+                "measles_q10": [
+                    "tired",
+                    "fatigue",
+                    "pagod",
+                    "hina",
+                ],
+                # Influenza (English + Tagalog)
+                "influenza_q1": [
+                    "sudden",
+                    "abrupt",
+                    "suddenly",
+                    "fever",
+                    "bigla",
+                    "lagnat",
+                ],
+                "influenza_q2": [
+                    "muscle ache",
+                    "body ache",
+                    "severe pain",
+                    "sakit ng katawan",
+                    "kalamnan",
+                    "ngalay",
+                ],
+                "influenza_q3": [
+                    "chills",
+                    "sweat",
+                    "shivering",
+                    "ginaw",
+                    "nanginginig",
+                    "pawis",
+                ],
+                "influenza_q4": [
+                    "dry cough",
+                    "cough",
+                    "ubo",
+                ],
+                "influenza_q5": [
+                    "fatigue",
+                    "exhausted",
+                    "tired",
+                    "pagod",
+                    "hapo",
+                    "hina",
+                ],
+                "influenza_q6": [
+                    "headache",
+                    "head pain",
+                    "sakit ng ulo",
+                ],
+                "influenza_q7": [
+                    "sore throat",
+                    "lalamunan",
+                ],
+                "influenza_q8": [
+                    "runny nose",
+                    "stuffy nose",
+                    "blocked nose",
+                    "sipon",
+                    "barado",
+                ],
+                "influenza_q9": [
+                    "eye pain",
+                    "behind eyes",
+                    "sakit ng mata",
+                ],
+                "influenza_q10": [
+                    "vomit",
+                    "diarrhea",
+                    "suka",
+                    "tae",
+                    "dudumi",
                 ],
             }
 
@@ -1966,13 +2262,25 @@ def follow_up_question():
             print(
                 f"[FOLLOW-UP] STOP: All questions asked for disease: {current_disease}"
             )
+            
+            # Check validity before exhaustion response (Same logic as EXHAUSTED_QUESTIONS_THRESHOLD)
+            is_exhausted_valid = (
+                confidence >= config.VALID_MIN_CONF 
+                and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            )
+            reason = "HIGH_CONFIDENCE_FINAL" if is_exhausted_valid else "LOW_CONFIDENCE_FINAL"
+            message = (
+                f"Final assessment: {pred}" if is_exhausted_valid 
+                else "You may not be experiencing a disease that this system can process or your inputs are invalid."
+            )
+            
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": True,
-                            "reason": "LOW_CONFIDENCE_FINAL",
-                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "reason": reason,
+                            "message": message,
                             "diagnosis": {
                                 "pred": pred,
                                 "disease": pred,
@@ -1982,6 +2290,7 @@ def follow_up_question():
                                 "model_used": model_used,
                                 "top_diseases": top_diseases,
                                 "mean_probs": mean_probs,
+                                "is_valid": is_exhausted_valid,
                                 "cdss": _build_cdss_payload(
                                     symptoms_text,
                                     pred,
@@ -2011,15 +2320,14 @@ def follow_up_question():
                 f"[FOLLOW-UP] STOP: Sufficient evidence reached (coverage_primary={coverage_primary}, conf={confidence:.3f}, MI={uncertainty:.4f})"
             )
             print(
-                f"[LOG_INSTANCE] SUFFICIENT_EVIDENCE | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | coverage_primary={coverage_primary} | asked_questions={len(asked_questions)} | frontend_will_show_error={'YES' if confidence < 0.95 else 'NO'}"
+                f"[LOG_INSTANCE] SUFFICIENT_EVIDENCE | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | coverage_primary={coverage_primary} | asked_questions={len(asked_questions)} | frontend_will_show_error=NO"
             )
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": True,
-                            "reason": "LOW_CONFIDENCE_FINAL",
-                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "reason": "High confidence reached",
                             "diagnosis": {
                                 "pred": pred,
                                 "disease": pred,
@@ -2186,6 +2494,24 @@ def explain_diagnosis():
 @app.errorhandler(404)
 def not_found(error):
     return jsonify({"error": "Endpoint not found"}), 404
+
+
+@app.errorhandler(400)
+def bad_request(error):
+    return jsonify({
+        "error": "BAD_REQUEST",
+        "message": f"Bad Request: {error.description if hasattr(error, 'description') else str(error)}",
+        "details": str(error)
+    }), 400
+
+
+@app.errorhandler(415)
+def unsupported_media_type(error):
+    return jsonify({
+        "error": "UNSUPPORTED_MEDIA_TYPE",
+        "message": "Unsupported Media Type: Content-Type must be 'application/json'",
+        "details": str(error)
+    }), 415
 
 
 @app.errorhandler(405)
