@@ -133,6 +133,19 @@ def detect_language_heuristic(text, debug=False):
         tokens_en = tokenizer_en.encode(text, add_special_tokens=False)
         tokens_tl = tokenizer_tl.encode(text, add_special_tokens=False)
         
+        # Tie-breaker / Strong Signal: Check for language-specific medical keywords
+        # If strong Tagalog keywords are present, prefer Tagalog regardless of token count
+        # (unless English keywords are ALSO present strongly, then allow token count to decide)
+        text_lower = text.lower()
+        has_tl = any(k in text_lower for k in config.MEDICAL_KEYWORDS_TL)
+        has_en = any(k in text_lower for k in config.MEDICAL_KEYWORDS_EN)
+
+        if has_tl and not has_en:
+             if debug:
+                print(f"[DEBUG] Heuristic: Tagalog keywords found, forcing TL")
+             return "tl"
+        
+        # Original Tokenizer Logic
         count_en = len(tokens_en)
         count_tl = len(tokens_tl)
         
@@ -144,13 +157,7 @@ def detect_language_heuristic(text, debug=False):
         elif count_tl < count_en:
             return "tl"
         else:
-            # Tie-breaker keywords
-            text_lower = text.lower()
-            has_en = any(k in text_lower for k in config.MEDICAL_KEYWORDS_EN)
-            has_tl = any(k in text_lower for k in config.MEDICAL_KEYWORDS_TL)
-            if has_tl and not has_en:
-                return "tl"
-            return "en"
+            return "tl" if has_tl else "en"
             
     except Exception as e:
         print(f"[LANG] Heuristic error: {e}")
@@ -940,6 +947,9 @@ def new_case():
             top_diseases,
             model_used,
         )
+        # Determine language from model_used
+        lang_detected = "tl" if "Tagalog" in str(model_used) or "TAGALOG" in str(model_used).upper() else "en"
+
         # SAVE TO SESSION (Server-Side State)
         # Verify serializable types
         session["diagnosis"] = {
@@ -949,6 +959,7 @@ def new_case():
             "top_diseases": top_diseases,
             "mean_probs": mean_probs,
             "symptoms_text": symptoms,
+            "lang": lang_detected,
             "start_time": time.time(),
         }
 
@@ -1068,7 +1079,10 @@ def follow_up_question():
             )
 
         # Use updated symptoms string (initial + positives)
-        symptoms_text = data.get("symptoms", "")
+        symptoms_text = data.get("symptoms", "").strip()
+        if not symptoms_text:
+             # Fallback to session symptoms if not provided
+             symptoms_text = session_data.get("symptoms_text", "")
         
         # TRUST SERVER STATE for context, ignore client-provided context fields if they differ
         prior_disease = session_data.get("disease")
@@ -1196,10 +1210,12 @@ def follow_up_question():
 
         # Language detection for question bank
         # Language detection for question bank using robust heuristic
-        if symptoms_text:
-            lang = detect_language_heuristic(symptoms_text)
+        # Determine Language
+        session_lang = session_data.get("lang")
+        if (symptoms_text or "").strip():
+             lang = detect_language_heuristic(symptoms_text)
         else:
-            lang = "en"  # Default to English if no symptoms provided
+             lang = session_lang if session_lang else "en"
 
         QUESTION_BANK = QUESTION_BANK_TL if lang in ["tl", "fil"] else QUESTION_BANK_EN
 
