@@ -26,12 +26,12 @@ const PatientClusters = async () => {
       <Card className="col-span-2 border-red-200/50 bg-red-50/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-red-700">
-            <div className="bg-red-100 p-3 rounded-[12px]">
+            <div className="rounded-[12px] bg-red-100 p-3">
               <AlertCircle className="size-6" />
             </div>
             <span>Error Loading Patient Clusters</span>
           </CardTitle>
-          <CardDescription className="text-red-600 ml-[60px]">
+          <CardDescription className="ml-[60px] text-red-600">
             Could not connect to the clustering service. Please ensure it is
             running and try again.
           </CardDescription>
@@ -48,8 +48,8 @@ const PatientClustersWrapper = () => {
         <Card className="col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-3 rounded-[12px]">
-                <Activity className="size-6 animate-pulse text-primary" />
+              <div className="from-primary/10 to-primary/5 rounded-[12px] bg-gradient-to-br p-3">
+                <Activity className="text-primary size-6 animate-pulse" />
               </div>
               <span>Loading Patient Clusters...</span>
             </CardTitle>

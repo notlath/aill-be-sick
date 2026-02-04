@@ -7,7 +7,16 @@ from sqlalchemy import text
 from database import get_db_engine
 
 
-def fetch_patient_data(db_url=None):
+def fetch_patient_data(
+    db_url=None,
+    include_age=True,
+    include_gender=True,
+    include_city=True,
+    include_region=True,
+    include_disease=True,
+    include_latitude=False,
+    include_longitude=False,
+):
     """
     Fetch patient data from PostgreSQL database.
     Uses DATABASE_URL environment variable if db_url not provided.
@@ -63,8 +72,9 @@ def fetch_patient_data(db_url=None):
         # Encode gender: MALE=1, FEMALE=0, OTHER=0.5
         gender_encoded = 1 if gender == "MALE" else (0 if gender == "FEMALE" else 0.5)
 
-        # Normalize age to 0-1 range (assuming age 18-100)
-        age_normalized = (age - 18) / (100 - 18)
+        # Normalize age to 0-1 range (assuming age 18-100) and clamp to [0, 1]
+        age_normalized_raw = (age - 18) / (100 - 18)
+        age_normalized = max(0.0, min(1.0, age_normalized_raw))
 
         # For region/city, use hash or simple numeric encoding
         city_encoded = hash(city or "") % 1000
@@ -75,18 +85,24 @@ def fetch_patient_data(db_url=None):
         disease_list = ["Dengue", "Pneumonia", "Typhoid", "Impetigo"]
         disease_one_hot = [1 if disease == d else 0 for d in disease_list]
 
-        # Features for clustering: [latitude, longitude, age_normalized, gender_encoded, city_encoded, region_encoded, *disease_one_hot]
-        encoded_data.append(
-            [
-                latitude,
-                longitude,
-                age_normalized,
-                gender_encoded,
-                city_encoded,
-                region_encoded,
-                *disease_one_hot,
-            ]
-        )
+        features = []
+
+        if include_latitude:
+            features.append(latitude)
+        if include_longitude:
+            features.append(longitude)
+        if include_age:
+            features.append(age_normalized)
+        if include_gender:
+            features.append(gender_encoded)
+        if include_city:
+            features.append(city_encoded)
+        if include_region:
+            features.append(region_encoded)
+        if include_disease:
+            features.extend(disease_one_hot)
+
+        encoded_data.append(features)
 
         # Store patient info for later use
         patient_info.append(
@@ -131,6 +147,8 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
     Calculate statistics for each cluster.
     Returns: list of cluster statistics
     """
+    from collections import Counter
+
     cluster_stats = []
 
     for cluster_id in range(n_clusters):
@@ -145,11 +163,14 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
                     "cluster_id": cluster_id,
                     "count": 0,
                     "avg_age": 0,
+                    "min_age": 0,
+                    "max_age": 0,
                     "gender_distribution": {"MALE": 0, "FEMALE": 0, "OTHER": 0},
                     "top_regions": [],
                     "top_cities": [],
                     "disease_distribution": {},
                     "top_diseases": [],
+                    "disease_city_correlations": [],
                 }
             )
             continue
@@ -157,6 +178,8 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
         # Calculate statistics
         ages = [p["age"] for p in cluster_patients]
         avg_age = sum(ages) / len(ages)
+        min_age = min(ages)
+        max_age = max(ages)
 
         # Gender distribution
         gender_dist = {"MALE": 0, "FEMALE": 0, "OTHER": 0}
@@ -164,15 +187,14 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
             gender_dist[p["gender"]] = gender_dist.get(p["gender"], 0) + 1
 
         # Top regions and cities
-        from collections import Counter
-
         regions = [p["region"] for p in cluster_patients if p["region"]]
         cities = [p["city"] for p in cluster_patients if p["city"]]
         diseases = [p.get("disease") for p in cluster_patients if p.get("disease")]
 
-        top_regions = Counter(regions).most_common(3)
-        top_cities = Counter(cities).most_common(3)
+        top_regions = Counter(regions).most_common()
+        top_cities = Counter(cities).most_common()
         disease_counts = Counter(diseases)
+
         # Compute percentages per disease
         total = max(1, len(cluster_patients))
         disease_distribution = {
@@ -181,7 +203,7 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
         }
         top_diseases = [
             {"disease": (k or "UNKNOWN"), "count": v}
-            for k, v in disease_counts.most_common(3)
+            for k, v in disease_counts.most_common()
         ]
 
         cluster_stats.append(
@@ -189,6 +211,8 @@ def get_cluster_statistics(patient_info, clusters, n_clusters):
                 "cluster_id": cluster_id,
                 "count": len(cluster_patients),
                 "avg_age": round(avg_age, 1),
+                "min_age": min_age,
+                "max_age": max_age,
                 "gender_distribution": gender_dist,
                 "top_regions": [{"region": r, "count": c} for r, c in top_regions],
                 "top_cities": [{"city": c, "count": cnt} for c, cnt in top_cities],
