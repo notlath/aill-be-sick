@@ -148,13 +148,15 @@ const ChatWindow = ({
             };
           }
 
-          if (reason === "SYMPTOMS_NOT_MATCHING") {
+          if (reason === "SYMPTOMS_NOT_MATCHING" || reason === "OUT_OF_SCOPE") {
             // Terminal but not a confident final prediction; do not show CDSS summary
             setIsFinalDiagnosis(false);
+            const outOfScopeMessage = reason === "OUT_OF_SCOPE" 
+              ? "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for a proper evaluation."
+              : "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover. We recommend consulting with a healthcare professional for a proper evaluation.";
             createMessageExecute({
               chatId,
-              content:
-                "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover (Dengue, Pneumonia, Typhoid, or Impetigo). We recommend consulting with a healthcare professional for a proper evaluation.",
+              content: outOfScopeMessage,
               type: "ERROR",
               role: "AI",
             });
@@ -319,6 +321,25 @@ const ChatWindow = ({
           );
 
           if (shouldSkipFollowup) {
+            const skipReason = (data.diagnosis as any)?.skip_reason;
+            
+            if (skipReason === "OUT_OF_SCOPE") {
+               // Verification failure - show error message instead of diagnosis
+               setIsFinalDiagnosis(false);
+               const verificationFailure = (data.diagnosis as any)?.verification_failure;
+               const errorMessage = verificationFailure?.message || 
+                 "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional.";
+               
+               createMessageExecute({
+                chatId,
+                content: errorMessage,
+                type: "ERROR",
+                role: "AI",
+               });
+               setCurrentQuestion(null);
+               return;
+            }
+
             // Backend says diagnosis is very confident (≥95%), mark as final immediately
             setIsFinalDiagnosis(true);
 

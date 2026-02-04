@@ -63,6 +63,170 @@ with open("question_bank.json", "r", encoding="utf-8") as f:
 with open("question_bank_tagalog.json", "r", encoding="utf-8") as f:
     QUESTION_BANK_TL = json.load(f)
 
+
+# =============================================================================
+# NEURO-SYMBOLIC VERIFICATION LAYER
+# =============================================================================
+
+class OntologyBuilder:
+    """
+    Builds a dynamic symptom ontology from the question bank.
+    Each disease gets a set of valid clinical concepts extracted from its questions.
+    """
+    
+    def __init__(self, question_bank_en: dict, question_bank_tl: dict):
+        self.profiles = {}
+        self._build_profiles(question_bank_en, "en")
+        self._build_profiles(question_bank_tl, "tl")
+        print(f"[ONTOLOGY] Built profiles for {len(self.profiles)} diseases")
+    
+    def _build_profiles(self, question_bank: dict, lang: str):
+        """Extract keywords from each disease's questions to build its symptom profile."""
+        for disease, questions in question_bank.items():
+            if disease not in self.profiles:
+                self.profiles[disease] = set()
+            
+            for q in questions:
+                # Extract keywords from question text and symptom descriptions
+                text_sources = [
+                    q.get("question", ""),
+                    q.get("positive_symptom", ""),
+                    q.get("negative_symptom", ""),
+                ]
+                for text in text_sources:
+                    # Simple word extraction (lowercase)
+                    words = text.lower().split()
+                    self.profiles[disease].update(words)
+    
+    def get_profile(self, disease: str) -> set:
+        """Get the valid symptom keywords for a disease."""
+        return self.profiles.get(disease, set())
+
+
+class VerificationLayer:
+    """
+    Neuro-Symbolic Verification Layer.
+    Compares extracted clinical concepts from user input against the predicted disease's ontology.
+    Flags OUT_OF_SCOPE if high-value concepts are unexplained.
+    """
+    
+    def __init__(self, ontology: OntologyBuilder):
+        self.ontology = ontology
+    
+
+def extract_clinical_concepts(text: str) -> set:
+    """
+    Extract clinical concepts from text using the CLINICAL_CONCEPTS dictionary.
+    Returns a set of concept IDs (e.g., {'RISK_FLOOD_EXPOSURE', 'SX_JAUNDICE'}).
+    Uses regex word boundaries to avoid partial matches (e.g., 'ihi' in 'nanghihina').
+    """
+    if not text:
+        return set()
+        
+    text_lower = text.lower()
+    found_concepts = set()
+    
+    # Check for each clinical concept term with word boundaries
+    import re
+    for term, concept_id in config.CLINICAL_CONCEPTS.items():
+        # Escape term for regex safety
+        escaped_term = re.escape(term)
+        # Pattern: \bterm\b (whole word match)
+        pattern = fr"\b{escaped_term}\b"
+        
+        if re.search(pattern, text_lower):
+            found_concepts.add(concept_id)
+    
+    return found_concepts
+
+
+class OntologyBuilder:
+    """
+    Builds a dynamic symptom ontology from the question bank.
+    Each disease gets a set of VALID CLINICAL CONCEPT IDs extracted from its questions.
+    """
+    
+    def __init__(self, question_bank_en: dict, question_bank_tl: dict):
+        self.profiles = {}
+        self._build_profiles(question_bank_en)
+        self._build_profiles(question_bank_tl)
+        print(f"[ONTOLOGY] Built profiles for {len(self.profiles)} diseases")
+    
+    def _build_profiles(self, question_bank: dict):
+        """Extract concepts from each disease's questions to build its symptom profile."""
+        for disease, questions in question_bank.items():
+            if disease not in self.profiles:
+                self.profiles[disease] = set()
+            
+            for q in questions:
+                # Extract concepts from question text and symptom descriptions
+                text_sources = [
+                    q.get("question", ""),
+                    q.get("positive_symptom", ""),
+                    q.get("negative_symptom", ""),
+                ]
+                for text in text_sources:
+                    concepts = extract_clinical_concepts(text)
+                    self.profiles[disease].update(concepts)
+    
+    def get_profile(self, disease: str) -> set:
+        """Get the valid Concept IDs for a disease."""
+        return self.profiles.get(disease, set())
+
+
+class VerificationLayer:
+    """
+    Neuro-Symbolic Verification Layer.
+    Compares extracted clinical concepts from user input against the predicted disease's ontology.
+    Flags OUT_OF_SCOPE if high-value concepts are unexplained.
+    """
+    
+    def __init__(self, ontology: OntologyBuilder):
+        self.ontology = ontology
+    
+    def verify(self, text: str, predicted_disease: str) -> dict:
+        """
+        Verify if the input text is consistent with the predicted disease.
+        
+        Returns:
+            {
+                "is_valid": bool,
+                "unexplained_concepts": set of concept IDs,
+                "reason": str (if invalid)
+            }
+        """
+        # Extract high-value concepts from input
+        extracted = extract_clinical_concepts(text)
+        high_value_extracted = extracted & config.HIGH_VALUE_CONCEPTS
+        
+        if not high_value_extracted:
+            # No high-value concepts found - allow prediction to proceed
+            return {"is_valid": True, "unexplained_concepts": set(), "reason": None}
+        
+        # Get the disease profile (Set of Concept IDs)
+        disease_profile = self.ontology.get_profile(predicted_disease)
+        
+        # Check if each high-value concept is in the disease profile
+        unexplained = set()
+        for concept in high_value_extracted:
+            if concept not in disease_profile:
+                unexplained.add(concept)
+        
+        if unexplained:
+            return {
+                "is_valid": False,
+                "unexplained_concepts": unexplained,
+                "reason": f"Clinical concepts not associated with {predicted_disease}: {unexplained}"
+            }
+        
+        return {"is_valid": True, "unexplained_concepts": set(), "reason": None}
+
+
+# Initialize the Ontology and Verification Layer
+ontology_builder = OntologyBuilder(QUESTION_BANK_EN, QUESTION_BANK_TL)
+verification_layer = VerificationLayer(ontology_builder)
+
+
 # Configure CORS for production - MUST support credentials for sessions
 CORS(
     app,
@@ -841,6 +1005,54 @@ def new_case():
             classifier(symptoms)
         )
 
+        # NEURO-SYMBOLIC VERIFICATION: Check for ontology mismatch
+        verification_result = verification_layer.verify(symptoms, pred)
+        if not verification_result["is_valid"]:
+            unexplained = verification_result["unexplained_concepts"]
+            print(
+                f"[VERIFICATION] FAIL: Unexplained concepts {unexplained} for predicted disease {pred}"
+            )
+            print(
+                f"[LOG_INSTANCE] ONTOLOGY_MISMATCH | predicted={pred} | unexplained={unexplained} | conf={confidence:.4f}"
+            )
+            cdss = _build_cdss_payload(
+                symptoms,
+                pred,
+                confidence,
+                uncertainty,
+                top_diseases,
+                model_used,
+            )
+            # Add verification failure to red flags
+            cdss["red_flags"] = cdss.get("red_flags", []) + [
+                f"Symptoms detected that are not typical of {pred}. Please consult a healthcare professional."
+            ]
+            return (
+                jsonify(
+                    {
+                        "data": {
+                            "pred": pred,
+                            "confidence": confidence,
+                            "uncertainty": uncertainty,
+                            "probs": probs,
+                            "model_used": model_used,
+                            "disease": pred,
+                            "top_diseases": top_diseases,
+                            "mean_probs": mean_probs,
+                            "cdss": cdss,
+                            "skip_followup": True,
+                            "skip_reason": "OUT_OF_SCOPE",
+                            "is_valid": False,
+                            "verification_failure": {
+                                "unexplained_concepts": list(unexplained),
+                                "message": "Your symptoms include indicators not typically associated with our supported conditions. Please consult a healthcare professional."
+                            }
+                        }
+                    }
+                ),
+                200,
+            )
+
         # EARLY STOP: If initial diagnosis is very confident, skip follow-up questions entirely
         if confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
             print(
@@ -1255,24 +1467,30 @@ def follow_up_question():
                 200,
             )
 
-        # Early stop logic (same as before)
+        # Early stop logic: Check if prediction meets thesis validity thresholds
+        # If not, flag as OUT_OF_SCOPE instead of forcing a potentially incorrect diagnosis
+        is_valid_prediction = (
+            confidence >= config.VALID_MIN_CONF 
+            and uncertainty <= config.VALID_MAX_UNCERTAINTY
+        )
+        
         if (
             len(asked_questions) >= config.MAX_QUESTIONS_THRESHOLD
-            and confidence < config.LOW_CONFIDENCE_THRESHOLD
+            and not is_valid_prediction
         ):
             print(
-                f"[FOLLOW-UP] STOP: Low confidence after {len(asked_questions)} questions (conf={confidence:.3f}, MI={uncertainty:.4f})"
+                f"[FOLLOW-UP] STOP: OUT_OF_SCOPE after {len(asked_questions)} questions (conf={confidence:.3f} < {config.VALID_MIN_CONF}, MI={uncertainty:.4f} > {config.VALID_MAX_UNCERTAINTY})"
             )
             print(
-                f"[LOG_INSTANCE] LOW_CONFIDENCE_FINAL | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | asked_questions={len(asked_questions)} | top_disease_prob={top_diseases[0]['probability']:.4f if top_diseases else 0} | frontend_will_show_error={'YES' if confidence < 0.95 else 'NO'}"
+                f"[LOG_INSTANCE] OUT_OF_SCOPE | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | asked_questions={len(asked_questions)} | threshold_conf={config.VALID_MIN_CONF} | threshold_mi={config.VALID_MAX_UNCERTAINTY}"
             )
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": True,
-                            "reason": "LOW_CONFIDENCE_FINAL",
-                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "reason": "OUT_OF_SCOPE",
+                            "message": "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for proper evaluation.",
                             "diagnosis": {
                                 "pred": pred,
                                 "disease": pred,
@@ -1282,6 +1500,7 @@ def follow_up_question():
                                 "model_used": model_used,
                                 "top_diseases": top_diseases,
                                 "mean_probs": mean_probs,
+                                "is_valid": False,
                                 "cdss": _build_cdss_payload(
                                     symptoms_text,
                                     pred,
@@ -1297,16 +1516,26 @@ def follow_up_question():
                 200,
             )
         if len(asked_questions) >= config.EXHAUSTED_QUESTIONS_THRESHOLD:
+            # Check validity before exhaustion response
+            is_exhausted_valid = (
+                confidence >= config.VALID_MIN_CONF 
+                and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            )
+            reason = "HIGH_CONFIDENCE_FINAL" if is_exhausted_valid else "OUT_OF_SCOPE"
+            message = (
+                f"Final assessment: {pred}" if is_exhausted_valid 
+                else "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for proper evaluation."
+            )
             print(
-                f"[FOLLOW-UP] STOP: Exhausted questions for disease={pred} after {len(asked_questions)} asked"
+                f"[FOLLOW-UP] STOP: Exhausted questions for disease={pred} after {len(asked_questions)} asked | valid={is_exhausted_valid}"
             )
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": True,
-                            "reason": "LOW_CONFIDENCE_FINAL",
-                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "reason": reason,
+                            "message": message,
                             "diagnosis": {
                                 "pred": pred,
                                 "disease": pred,
@@ -1316,6 +1545,7 @@ def follow_up_question():
                                 "model_used": model_used,
                                 "top_diseases": top_diseases,
                                 "mean_probs": mean_probs,
+                                "is_valid": is_exhausted_valid,
                                 "cdss": _build_cdss_payload(
                                     symptoms_text,
                                     pred,

@@ -29,6 +29,11 @@ SYMPTOM_MIN_CHARS = int(os.getenv("SYMPTOM_MIN_CHARS", "15"))
 HIGH_CONFIDENCE_THRESHOLD = float(os.getenv("HIGH_CONFIDENCE_THRESHOLD", "0.95"))
 LOW_UNCERTAINTY_THRESHOLD = float(os.getenv("LOW_UNCERTAINTY_THRESHOLD", "0.01"))
 
+# Thesis-aligned thresholds for VALID predictions (per sensitivity analysis)
+# Predictions below these are considered unreliable and should be flagged
+VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.70"))  # Thesis: 70%
+VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.05"))  # Thesis: 5%
+
 # Low confidence - stop asking questions after MAX_QUESTIONS_THRESHOLD
 LOW_CONFIDENCE_THRESHOLD = float(os.getenv("LOW_CONFIDENCE_THRESHOLD", "0.65"))
 
@@ -315,3 +320,72 @@ MEDICAL_KEYWORDS_TL = {
     "aalala",
     "nag-aalala",
 }
+
+# --- Neuro-Symbolic Verification: Clinical Concept Ontology ---
+# Maps raw terms (EN/TL) to standardized clinical concepts.
+# Used by VerificationLayer to detect symptoms/risk factors outside the 6 in-scope diseases.
+# Format: { "raw_term": "CONCEPT_ID" }
+CLINICAL_CONCEPTS = {
+    # Risk Factors - Environmental Exposure
+    "flood": "RISK_FLOOD_EXPOSURE",
+    "baha": "RISK_FLOOD_EXPOSURE",
+    "floodwater": "RISK_FLOOD_EXPOSURE",
+    "tubig baha": "RISK_FLOOD_EXPOSURE",
+    "lumusong": "RISK_FLOOD_EXPOSURE",
+    "rat": "RISK_RODENT_EXPOSURE",
+    "daga": "RISK_RODENT_EXPOSURE",
+    "rodent": "RISK_RODENT_EXPOSURE",
+    "mouse": "RISK_RODENT_EXPOSURE",
+    "mice": "RISK_RODENT_EXPOSURE",
+    "urine": "RISK_CONTAMINATED_WATER",
+    "ihi": "RISK_CONTAMINATED_WATER",
+    
+    # Distinctive Symptoms - Sensory Loss (COVID-19 indicative)
+    "loss of taste": "SX_AGEUSIA",
+    "lost taste": "SX_AGEUSIA",
+    "can't taste": "SX_AGEUSIA",
+    "no taste": "SX_AGEUSIA",
+    "lost my sense of taste": "SX_AGEUSIA",
+    "lost sense of taste": "SX_AGEUSIA",
+    "no sense of taste": "SX_AGEUSIA",
+    "walang panlasa": "SX_AGEUSIA",
+    "nawalan ng panlasa": "SX_AGEUSIA",
+    
+    "loss of smell": "SX_ANOSMIA",
+    "lost smell": "SX_ANOSMIA",
+    "can't smell": "SX_ANOSMIA",
+    "no smell": "SX_ANOSMIA",
+    "lost my sense of smell": "SX_ANOSMIA",
+    "lost sense of smell": "SX_ANOSMIA",
+    "no sense of smell": "SX_ANOSMIA",
+    "walang pang-amoy": "SX_ANOSMIA",
+    "nawalan ng pang-amoy": "SX_ANOSMIA",
+    
+    # Distinctive Symptoms - Hepatic (Leptospirosis/Hepatitis indicative)
+    "yellow skin": "SX_JAUNDICE",
+    "naninilaw": "SX_JAUNDICE",
+    "jaundice": "SX_JAUNDICE",
+    "yellowish": "SX_JAUNDICE",
+    "kulay tsaa": "SX_DARK_URINE",
+    "dark urine": "SX_DARK_URINE",
+    "tea-colored urine": "SX_DARK_URINE",
+    
+    # Distinctive Symptoms - Ocular (Leptospirosis indicative)
+    "red eyes": "SX_CONJUNCTIVAL_SUFFUSION",
+    "namumula ang mata": "SX_CONJUNCTIVAL_SUFFUSION",
+    "bloodshot eyes": "SX_CONJUNCTIVAL_SUFFUSION",
+}
+
+# Concepts that MUST be explained by the predicted disease ontology.
+# If these are found in input but NOT in the disease profile, flag OUT_OF_SCOPE.
+HIGH_VALUE_CONCEPTS = {
+    "RISK_FLOOD_EXPOSURE",
+    "RISK_RODENT_EXPOSURE", 
+    "RISK_CONTAMINATED_WATER",
+    "SX_AGEUSIA",
+    "SX_ANOSMIA",
+    "SX_JAUNDICE",
+    "SX_DARK_URINE",
+    "SX_CONJUNCTIVAL_SUFFUSION",
+}
+
