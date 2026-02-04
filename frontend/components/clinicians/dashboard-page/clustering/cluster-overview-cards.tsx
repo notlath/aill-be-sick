@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, Activity, MapPin, Sparkles } from "lucide-react";
+import { Users, MapPin, HeartPulse } from "lucide-react";
 import type { ClusterStatistics } from "@/types";
 
 interface ClusterOverviewCardsProps {
@@ -95,9 +95,42 @@ const CLUSTER_THEMES = [
 const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
   statistics,
 }) => {
+  const [expandedClusters, setExpandedClusters] = React.useState<
+    Record<string, boolean>
+  >({});
+
+  // Helper function to check if cluster has dominant disease (40% higher than second)
+  const hasDominantDisease = (stat: ClusterStatistics): boolean => {
+    if (!stat.disease_distribution) return false;
+
+    const entries = Object.entries(stat.disease_distribution);
+    if (entries.length <= 1) return true; // Single disease is always dominant
+
+    const sorted = entries.sort((a, b) => b[1].count - a[1].count);
+    const topDisease = sorted[0];
+    const secondDisease = sorted[1];
+    const percentageIncrease =
+      (topDisease[1].count - secondDisease[1].count) / secondDisease[1].count;
+
+    return percentageIncrease >= 0.4;
+  };
+
+  // Sort clusters: dominant disease first, then by patient count (descending)
+  const sortedStatistics = [...statistics].sort((a, b) => {
+    const aDominant = hasDominantDisease(a);
+    const bDominant = hasDominantDisease(b);
+
+    // Prioritize clusters with dominant disease
+    if (aDominant && !bDominant) return -1;
+    if (!aDominant && bDominant) return 1;
+
+    // Then sort by patient count
+    return b.count - a.count;
+  });
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-      {statistics.map((stat, index) => {
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {sortedStatistics.map((stat, index) => {
         const theme = CLUSTER_THEMES[index % CLUSTER_THEMES.length];
         const totalGender =
           stat.gender_distribution.MALE +
@@ -113,188 +146,484 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
             : 0;
 
         // Determine dominant disease from distribution if available
+        // Only show if top disease is at least 40% higher than second disease
         let dominantDisease: { disease: string; percent: number } | null = null;
         if (stat.disease_distribution) {
           const entries = Object.entries(stat.disease_distribution);
           if (entries.length > 0) {
-            const top = entries.sort((a, b) => b[1].percent - a[1].percent)[0];
-            dominantDisease = { disease: top[0], percent: top[1].percent };
+            const sorted = entries.sort((a, b) => b[1].count - a[1].count);
+            const topDisease = sorted[0];
+
+            if (sorted.length === 1) {
+              // Only one disease, show it
+              dominantDisease = {
+                disease: topDisease[0],
+                percent: topDisease[1].percent,
+              };
+            } else {
+              // Check if top disease is at least 40% higher than second
+              const secondDisease = sorted[1];
+              const percentageIncrease =
+                (topDisease[1].count - secondDisease[1].count) /
+                secondDisease[1].count;
+
+              if (percentageIncrease >= 0.4) {
+                dominantDisease = {
+                  disease: topDisease[0],
+                  percent: topDisease[1].percent,
+                };
+              }
+            }
           }
         }
 
         return (
           <Card
             key={stat.cluster_id}
-            className={`group relative overflow-hidden transition-all duration-500 ${theme.border} ${theme.hoverBorder} hover:shadow-lg border-2`}
+            className={`group relative overflow-hidden transition-all duration-500 ${theme.border} ${theme.hoverBorder} border-2 hover:shadow-lg`}
           >
             {/* Gradient Background Overlay */}
             <div
-              className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-60 group-hover:opacity-100 transition-opacity duration-500`}
+              className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-60 transition-opacity duration-500 group-hover:opacity-100`}
             />
 
             <CardHeader className="relative pb-4">
-              {/* Header: Disease Name + Icon */}
+              {/* Header: Disease Name */}
               <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-muted/60 uppercase tracking-wider mb-1.5">
-                    Cluster {stat.cluster_id + 1}
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 font-semibold">Group {index + 1}</div>
+                  {/* Clinical Notes - Minimal Card */}
+                  <div className="">
+                    <div
+                      className={`${theme.accentBg} rounded-[12px] border p-3.5 ${theme.border}`}
+                    >
+                      <div className="text-base-content/70 text-xs leading-relaxed">
+                        {(() => {
+                          // Age descriptor
+                          let ageDescriptor = "patients";
+                          if (stat.avg_age >= 60) {
+                            ageDescriptor = "predominantly older adults";
+                          } else if (stat.avg_age >= 36) {
+                            ageDescriptor = "predominantly middle-aged adults";
+                          } else if (stat.avg_age >= 18) {
+                            ageDescriptor = "predominantly young adults";
+                          } else if (stat.avg_age >= 13) {
+                            ageDescriptor = "predominantly adolescents";
+                          } else {
+                            ageDescriptor = "predominantly children";
+                          }
+
+                          // Region or City
+                          let regionLocation = "";
+                          let regionPrefix = "from"; // "from" or "mostly from"
+
+                          if (stat.top_cities && stat.top_cities.length === 1) {
+                            // Only one city, display "from {city}"
+                            regionLocation = stat.top_cities[0].city;
+                            regionPrefix = "from";
+                          } else if (
+                            stat.top_regions &&
+                            stat.top_regions.length === 1
+                          ) {
+                            // Only one region, display "from {region}"
+                            regionLocation = stat.top_regions[0].region;
+                            regionPrefix = "from";
+                          } else if (
+                            stat.top_regions &&
+                            stat.top_regions.length >= 2
+                          ) {
+                            // Two or more regions
+                            const topRegion = stat.top_regions[0];
+                            const secondRegion = stat.top_regions[1];
+                            const percentageIncrease =
+                              (topRegion.count - secondRegion.count) /
+                              secondRegion.count;
+
+                            if (percentageIncrease >= 0.4) {
+                              // Top region is 40% higher, display "mostly from {region}"
+                              regionLocation = topRegion.region;
+                              regionPrefix = "mostly from";
+                            }
+                            // Otherwise, don't mention region at all
+                          }
+
+                          // Gender descriptor
+                          let genderDescriptor = "";
+                          let genderWord = "";
+                          if (malePercent >= 60) {
+                            genderDescriptor = "mostly";
+                            genderWord = "male";
+                          } else if (femalePercent >= 60) {
+                            genderDescriptor = "mostly";
+                            genderWord = "female";
+                          }
+
+                          return (
+                            <>
+                              {stat.count} patients
+                              {regionLocation && (
+                                <>
+                                  {" "}
+                                  {regionPrefix}{" "}
+                                  <strong>{regionLocation}</strong>
+                                </>
+                              )}
+                              , {ageDescriptor}
+                              {genderWord && (
+                                <>
+                                  , {genderDescriptor}{" "}
+                                  <strong>{genderWord}</strong>
+                                </>
+                              )}
+                              {dominantDisease && (
+                                <>
+                                  , has mostly{" "}
+                                  <strong>{dominantDisease.disease}</strong>
+                                </>
+                              )}
+                              .
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-semibold text-base-content tracking-tight truncate">
-                    {dominantDisease?.disease || "Mixed Cluster"}
-                  </h3>
-                </div>
-                <div
-                  className={`flex-shrink-0 ${theme.iconBg} ${theme.shadow} p-3 rounded-[12px] shadow-lg group-hover:scale-110 transition-transform duration-500`}
-                >
-                  <Activity className="size-5 text-white stroke-[2]" />
                 </div>
               </div>
 
               {/* Patient Count - Large and Prominent */}
-              <div className="mt-4 flex items-baseline gap-2">
+              <div className="flex items-baseline gap-2">
                 <span
                   className={`text-4xl font-semibold tracking-tight ${theme.accentText} tabular-nums`}
                 >
                   {stat.count}
                 </span>
-                <span className="text-sm font-medium text-muted">patients</span>
+                <span className="text-muted text-sm font-medium">patients</span>
               </div>
             </CardHeader>
 
             <CardContent className="relative space-y-5">
-              {/* Dominant Disease Badge */}
-              {dominantDisease && (
-                <div className="flex items-center gap-2 pb-4 border-b border-base-300/50">
-                  <Sparkles className={`size-3.5 ${theme.accentText}`} />
-                  <span className="text-xs font-medium text-muted">
-                    Primary diagnosis
-                  </span>
-                  <Badge className={`ml-auto border ${theme.badgeBg}`}>
-                    {dominantDisease.percent}%
-                  </Badge>
+              {/* Top Diseases */}
+              {stat.top_diseases && stat.top_diseases.length > 0 && (
+                <div>
+                  {stat.top_diseases.length <= 5 ? (
+                    // No collapse needed - show all diseases
+                    <div>
+                      <div className="mb-3 flex items-center gap-2">
+                        <HeartPulse
+                          className={`size-3.5 ${theme.accentText}`}
+                        />
+                        <div className="text-base-content/80 text-xs font-semibold">
+                          Top Diagnosed Diseases ({stat.top_diseases.length})
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        {stat.top_diseases.map((d, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between text-xs"
+                          >
+                            <span className="text-base-content/80">
+                              {d.disease}
+                            </span>
+                            <span className="text-base-content font-semibold">
+                              ({d.count})
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    // Show collapse with first 5 and rest
+                    <div className="collapse rounded-none">
+                      <input
+                        type="checkbox"
+                        checked={
+                          expandedClusters[`${stat.cluster_id}-diseases`] ||
+                          false
+                        }
+                        onChange={(e) =>
+                          setExpandedClusters({
+                            ...expandedClusters,
+                            [`${stat.cluster_id}-diseases`]: e.target.checked,
+                          })
+                        }
+                      />
+                      <div className="collapse-title p-0">
+                        <div className="text-base-content/80 mb-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <HeartPulse
+                              className={`size-3.5 ${theme.accentText}`}
+                            />
+                            <span className="text-xs font-semibold">
+                              Top Diagnosed Diseases ({stat.top_diseases.length}
+                              )
+                            </span>
+                          </div>
+                          <span
+                            className={`swap swap-rotate ${
+                              expandedClusters[`${stat.cluster_id}-diseases`]
+                                ? "swap-active"
+                                : ""
+                            }`}
+                          >
+                            <div className="swap-on">-</div>
+                            <div className="swap-off">+</div>
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {stat.top_diseases.slice(0, 5).map((d, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between text-xs"
+                            >
+                              <span className="text-base-content/80">
+                                {d.disease}
+                              </span>
+                              <span className="text-base-content font-semibold">
+                                ({d.count})
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="collapse-content mt-1.5 p-0">
+                        <div className="space-y-1.5">
+                          {stat.top_diseases.slice(5).map((d, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between text-xs"
+                            >
+                              <span className="text-base-content/80">
+                                {d.disease}
+                              </span>
+                              <span className="text-base-content font-semibold">
+                                ({d.count})
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Demographics - Clean Two Column */}
               <div>
-                <div className="flex items-center gap-2 mb-3">
+                <div className="mb-3 flex items-center gap-2">
                   <Users className={`size-3.5 ${theme.accentText}`} />
-                  <span className="text-xs font-semibold text-base-content/80 uppercase tracking-wide">
+                  <span className="text-base-content/80 text-xs font-semibold">
                     Demographics
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 text-sm">
-                  <div className="space-y-0.5">
-                    <div className="text-xs text-muted">Avg. Age</div>
-                    <div className="font-semibold text-base-content">
-                      {stat.avg_age} yrs
+
+                <div className="space-y-1 text-sm">
+                  <div className="grid grid-cols-3 gap-x-4 gap-y-2.5 text-sm">
+                    <div className="space-y-0.5">
+                      <div className="text-muted text-xs">Avg. Age</div>
+                      <div className="text-base-content text-sm font-semibold">
+                        {stat.avg_age} yrs
+                      </div>
+                      <div className="text-muted text-xs font-normal">
+                        ({stat.min_age}-{stat.max_age})
+                      </div>
                     </div>
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="text-xs text-muted">Male</div>
-                    <div className="font-semibold text-base-content">
-                      {malePercent}%
+
+                    <div className="space-y-0.5">
+                      <div className="text-muted text-xs">Male</div>
+                      <div className="text-base-content font-semibold">
+                        {malePercent}%
+                      </div>
                     </div>
-                  </div>
-                  <div className="col-span-2 space-y-0.5">
-                    <div className="text-xs text-muted">Female</div>
-                    <div className="font-semibold text-base-content">
-                      {femalePercent}%
+                    <div className="space-y-0.5">
+                      <div className="text-muted text-xs">Female</div>
+                      <div className="text-base-content font-semibold">
+                        {femalePercent}%
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Top Regions - Pill Badges */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <MapPin className={`size-3.5 ${theme.accentText}`} />
-                  <span className="text-xs font-semibold text-base-content/80 uppercase tracking-wide">
-                    Top Regions
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {stat.top_regions.slice(0, 2).map((region, idx) => (
-                    <Badge
-                      key={idx}
-                      variant="outline"
-                      className="text-xs font-medium"
-                    >
-                      {region.region} ({region.count})
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Top Diseases */}
-              {stat.top_diseases && stat.top_diseases.length > 0 && (
+              {/* Top Cities - Pill Badges */}
+              {stat.top_cities && stat.top_cities.length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-base-content/80 uppercase tracking-wide mb-3">
-                    Top Diagnosed
-                  </div>
-                  <div className="space-y-1.5">
-                    {stat.top_diseases.slice(0, 3).map((d, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between text-xs"
-                      >
-                        <span className="text-base-content/80">
-                          {d.disease}
-                        </span>
-                        <span className="font-semibold text-base-content">
-                          ({d.count})
+                  {stat.top_cities.length <= 5 ? (
+                    // No collapse needed - show all cities
+                    <div>
+                      <div className="mb-3 flex items-center gap-2">
+                        <MapPin className={`size-3.5 ${theme.accentText}`} />
+                        <span className="text-base-content/80 text-xs font-semibold tracking-wide">
+                          Top Cities ({stat.top_cities.length})
                         </span>
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {stat.top_cities.map((city, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className="text-xs font-medium"
+                          >
+                            {city.city} ({city.count})
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    // Show collapse with first 5 and rest
+                    <div className="collapse rounded-none">
+                      <input
+                        type="checkbox"
+                        checked={expandedClusters[stat.cluster_id] || false}
+                        onChange={(e) =>
+                          setExpandedClusters({
+                            ...expandedClusters,
+                            [stat.cluster_id]: e.target.checked,
+                          })
+                        }
+                      />
+                      <div className="collapse-title p-0">
+                        <div className="text-base-content/80 mb-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <MapPin
+                              className={`size-3.5 ${theme.accentText}`}
+                            />
+                            <span className="text-xs font-semibold">
+                              Top Cities ({stat.top_cities.length})
+                            </span>
+                          </div>
+                          <span
+                            className={`swap swap-rotate ${
+                              expandedClusters[stat.cluster_id]
+                                ? "swap-active"
+                                : ""
+                            }`}
+                          >
+                            <div className="swap-on">-</div>
+                            <div className="swap-off">+</div>
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {stat.top_cities.slice(0, 5).map((city, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs font-medium"
+                            >
+                              {city.city} ({city.count})
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="collapse-content mt-1.5 p-0">
+                        <div className="flex flex-wrap gap-1.5">
+                          {stat.top_cities.slice(5).map((city, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs font-medium"
+                            >
+                              {city.city} ({city.count})
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Clinical Notes - Minimal Card */}
-              <div className="pt-4 border-t border-base-300/50">
-                <div
-                  className={`${theme.accentBg} rounded-[12px] p-3.5 border ${theme.border}`}
-                >
-                  <div className="text-[11px] leading-relaxed text-base-content/70">
-                    {(() => {
-                      const notes = [];
-
-                      // Primary diagnosis summary
-                      if (dominantDisease) {
-                        notes.push(
-                          `Primary diagnosis: ${dominantDisease.disease} (${dominantDisease.percent}% of patients).`
-                        );
-                      }
-
-                      // Patient count assessment
-                      if (stat.count >= 30) {
-                        notes.push(
-                          `High patient volume (${stat.count} cases).`
-                        );
-                      } else if (stat.count >= 15) {
-                        notes.push(
-                          `Moderate patient group (${stat.count} cases).`
-                        );
-                      }
-
-                      // Geographic concentration
-                      if (stat.top_regions && stat.top_regions.length > 0) {
-                        const topRegion = stat.top_regions[0];
-                        const regionPercent = Math.round(
-                          (topRegion.count / stat.count) * 100
-                        );
-                        if (regionPercent >= 50) {
-                          notes.push(
-                            `Geographic cluster: ${regionPercent}% in ${topRegion.region}.`
-                          );
+              {/* Top Regions - Pill Badges */}
+              {stat.top_regions && stat.top_regions.length > 0 && (
+                <div>
+                  {stat.top_regions.length <= 5 ? (
+                    // No collapse needed - show all regions
+                    <div>
+                      <div className="mb-3 flex items-center gap-2">
+                        <MapPin className={`size-3.5 ${theme.accentText}`} />
+                        <span className="text-base-content/80 text-xs font-semibold tracking-wide">
+                          Top Regions ({stat.top_regions.length})
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {stat.top_regions.map((region, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            className="text-xs font-medium"
+                          >
+                            {region.region} ({region.count})
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    // Show collapse with first 5 and rest
+                    <div className="collapse rounded-none">
+                      <input
+                        type="checkbox"
+                        checked={
+                          expandedClusters[`${stat.cluster_id}-regions`] ||
+                          false
                         }
-                      }
-
-                      return notes.join(" ");
-                    })()}
-                  </div>
+                        onChange={(e) =>
+                          setExpandedClusters({
+                            ...expandedClusters,
+                            [`${stat.cluster_id}-regions`]: e.target.checked,
+                          })
+                        }
+                      />
+                      <div className="collapse-title p-0">
+                        <div className="text-base-content/80 mb-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <MapPin
+                              className={`size-3.5 ${theme.accentText}`}
+                            />
+                            <span className="text-xs font-semibold">
+                              Top Regions ({stat.top_regions.length})
+                            </span>
+                          </div>
+                          <span
+                            className={`swap swap-rotate ${
+                              expandedClusters[`${stat.cluster_id}-regions`]
+                                ? "swap-active"
+                                : ""
+                            }`}
+                          >
+                            <div className="swap-on">-</div>
+                            <div className="swap-off">+</div>
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {stat.top_regions.slice(0, 5).map((region, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs font-medium"
+                            >
+                              {region.region} ({region.count})
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="collapse-content mt-1.5 p-0">
+                        <div className="flex flex-wrap gap-1.5">
+                          {stat.top_regions.slice(5).map((region, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs font-medium"
+                            >
+                              {region.region} ({region.count})
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         );

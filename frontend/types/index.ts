@@ -46,6 +46,8 @@ export interface ClusterStatistics {
   cluster_id: number;
   count: number;
   avg_age: number;
+  min_age: number;
+  max_age: number;
   gender_distribution: GenderDistribution;
   top_regions: RegionCount[];
   top_cities: CityCount[];
