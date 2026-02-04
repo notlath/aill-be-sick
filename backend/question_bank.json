@@ -124,8 +124,8 @@
     },
     {
       "id": "pneumonia_q6",
-      "question": "Are you experiencing chills or feeling unusually cold?",
-      "positive_symptom": "I am experiencing chills or feeling unusually cold",
+      "question": "Are you experiencing shaking chills or feeling unusually cold?",
+      "positive_symptom": "I am experiencing shaking chills or feeling unusually cold",
       "negative_symptom": "I am not experiencing chills",
       "weight": 0.89,
       "category": "secondary"

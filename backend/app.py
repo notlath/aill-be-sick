@@ -1420,6 +1420,54 @@ def follow_up_question():
                 "details": err
             }), 500
 
+        # Neuro-Symbolic Verification (Catch Out-of-Scope even in follow-up)
+        # This prevents confidence drift from accepting invalid diseases
+        verification_result = verification_layer.verify(symptoms_text, pred)
+        if not verification_result["is_valid"]:
+            unexplained = verification_result["unexplained_concepts"]
+            print(
+                f"[VERIFICATION-FOLLOWUP] FAIL: Unexplained concepts {unexplained} for predicted disease {pred}"
+            )
+            print(
+                f"[LOG_INSTANCE] ONTOLOGY_MISMATCH_FOLLOWUP | predicted={pred} | unexplained={unexplained} | conf={confidence:.4f}"
+            )
+            cdss = _build_cdss_payload(
+                symptoms_text,
+                pred,
+                confidence,
+                uncertainty,
+                top_diseases,
+                model_used,
+            )
+            return (
+                jsonify(
+                    {
+                        "data": {
+                            "should_stop": True,
+                            "reason": "OUT_OF_SCOPE",
+                            "message": "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for proper evaluation.",
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "is_valid": False,
+                                "cdss": cdss,
+                                "verification_failure": {
+                                    "unexplained_concepts": list(unexplained),
+                                    "message": "Your symptoms include indicators not typically associated with our supported conditions. Please consult a healthcare professional."
+                                }
+                            },
+                        }
+                    }
+                ),
+                200,
+            )
+
         # Language detection for question bank
         # Language detection for question bank using robust heuristic
         # Determine Language
@@ -2214,13 +2262,25 @@ def follow_up_question():
             print(
                 f"[FOLLOW-UP] STOP: All questions asked for disease: {current_disease}"
             )
+            
+            # Check validity before exhaustion response (Same logic as EXHAUSTED_QUESTIONS_THRESHOLD)
+            is_exhausted_valid = (
+                confidence >= config.VALID_MIN_CONF 
+                and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            )
+            reason = "HIGH_CONFIDENCE_FINAL" if is_exhausted_valid else "LOW_CONFIDENCE_FINAL"
+            message = (
+                f"Final assessment: {pred}" if is_exhausted_valid 
+                else "You may not be experiencing a disease that this system can process or your inputs are invalid."
+            )
+            
             return (
                 jsonify(
                     {
                         "data": {
                             "should_stop": True,
-                            "reason": "LOW_CONFIDENCE_FINAL",
-                            "message": "You may not be experiencing a disease that this system can process or your inputs are invalid.",
+                            "reason": reason,
+                            "message": message,
                             "diagnosis": {
                                 "pred": pred,
                                 "disease": pred,
@@ -2230,6 +2290,7 @@ def follow_up_question():
                                 "model_used": model_used,
                                 "top_diseases": top_diseases,
                                 "mean_probs": mean_probs,
+                                "is_valid": is_exhausted_valid,
                                 "cdss": _build_cdss_payload(
                                     symptoms_text,
                                     pred,

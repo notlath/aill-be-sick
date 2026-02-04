@@ -26,7 +26,7 @@ SYMPTOM_MIN_CHARS = int(os.getenv("SYMPTOM_MIN_CHARS", "15"))
 
 # --- Diagnosis Confidence Thresholds ---
 # Very high confidence - skip follow-up questions entirely
-HIGH_CONFIDENCE_THRESHOLD = float(os.getenv("HIGH_CONFIDENCE_THRESHOLD", "0.95"))
+HIGH_CONFIDENCE_THRESHOLD = float(os.getenv("HIGH_CONFIDENCE_THRESHOLD", "0.90"))
 LOW_UNCERTAINTY_THRESHOLD = float(os.getenv("LOW_UNCERTAINTY_THRESHOLD", "0.01"))
 
 # Thesis-aligned thresholds for VALID predictions (per sensitivity analysis)
@@ -374,6 +374,144 @@ CLINICAL_CONCEPTS = {
     "red eyes": "SX_CONJUNCTIVAL_SUFFUSION",
     "namumula ang mata": "SX_CONJUNCTIVAL_SUFFUSION",
     "bloodshot eyes": "SX_CONJUNCTIVAL_SUFFUSION",
+
+    # Distinctive Symptoms - Diabetes indicative (Out of Scope)
+    # SX_POLYURIA (Frequent urination)
+    "umihi": "SX_POLYURIA",
+    "frequent urination": "SX_POLYURIA",
+    "urinate": "SX_POLYURIA",
+    "peeing": "SX_POLYURIA",
+    "ihi nang ihi": "SX_POLYURIA",
+    "madalas umihi": "SX_POLYURIA",
+    
+    # SX_POLYDIPSIA (Excessive thirst)
+    "uhaw": "SX_POLYDIPSIA",
+    "thirsty": "SX_POLYDIPSIA",
+    "thirst": "SX_POLYDIPSIA",
+    "dry mouth": "SX_POLYDIPSIA",
+    "tuyong bibig": "SX_POLYDIPSIA",
+    "tuyo ang lalamunan": "SX_POLYDIPSIA",
+    "tuyong lalamunan": "SX_POLYDIPSIA",
+    
+    # SX_POLYPHAGIA (Excessive hunger)
+    "gutom": "SX_POLYPHAGIA",
+    "hungry": "SX_POLYPHAGIA",
+    "hunger": "SX_POLYPHAGIA",
+    "kain nang kain": "SX_POLYPHAGIA",
+    "lagi akong gutom": "SX_POLYPHAGIA",
+    "madalas gutom": "SX_POLYPHAGIA",
+    
+    # SX_WEIGHT_LOSS (Unexplained weight loss)
+    "pumapayat": "SX_WEIGHT_LOSS",
+    "weight loss": "SX_WEIGHT_LOSS",
+    "losing weight": "SX_WEIGHT_LOSS",
+    "bumababa ang timbang": "SX_WEIGHT_LOSS",
+    
+    # SX_SLOW_HEALING (Slow healing wounds)
+    "ayaw gumaling": "SX_SLOW_HEALING",
+    "not healing": "SX_SLOW_HEALING",
+    "sugat na matagal gumaling": "SX_SLOW_HEALING",
+    "sugat": "SX_SLOW_HEALING", # Context sensitive, but often strong signal if persistent
+    
+    # SX_NEUROPATHY (Numbness/Tingling)
+    "manhid": "SX_NEUROPATHY",
+    "namamanhid": "SX_NEUROPATHY",
+    "numbness": "SX_NEUROPATHY",
+    "numb": "SX_NEUROPATHY",
+    "tusok-tusok": "SX_NEUROPATHY",
+    "tingling": "SX_NEUROPATHY",
+    "pins and needles": "SX_NEUROPATHY",
+    
+    # SX_BLURRED_VISION
+    "labo mata": "SX_BLURRED_VISION",
+    "malabo ang mata": "SX_BLURRED_VISION",
+    "blurred vision": "SX_BLURRED_VISION",
+    "paningin": "SX_BLURRED_VISION", # Context: "lumalabo na rin yung paningin"
+
+    # --- NEW: PH-Specific Red Flags (Per Thesis Requirements) ---
+
+    # F1. Dengue Confounders (Lepto, Malaria, Meningo)
+    # Leptospirosis - Calf Pain
+    "calf pain": "SX_CALF_PAIN",
+    "pain in calves": "SX_CALF_PAIN",
+    "sakit ng binti": "SX_CALF_PAIN",
+    "masakit ang binti": "SX_CALF_PAIN",
+    "ngalay ang binti": "SX_CALF_PAIN",
+    # Leptospirosis - Oliguria
+    "urine stopped": "SX_OLIGURIA",
+    "can't pee": "SX_OLIGURIA",
+    "hindi makaihi": "SX_OLIGURIA",
+    "walang ihi": "SX_OLIGURIA",
+    "konti ang ihi": "SX_OLIGURIA",
+    # Malaria - Rigors/Pallor
+    "shaking chills": "SX_RIGORS",
+    "violent shaking": "SX_RIGORS",
+    "nanginginig sa ginaw": "SX_RIGORS",
+    "pale": "SX_PALLOR",
+    "pallor": "SX_PALLOR",
+    "namumutla": "SX_PALLOR",
+    "maputla": "SX_PALLOR",
+    # Meningococcemia - Stiff Neck/Purpura
+    "stiff neck": "SX_NECK_STIFFNESS",
+    "neck stiffness": "SX_NECK_STIFFNESS",
+    "matigas ang leeg": "SX_NECK_STIFFNESS",
+    "purple spots": "SX_PURPURA",
+    "purple rash": "SX_PURPURA",
+    "pasa-pasa": "SX_PURPURA", # Bruise-like
+
+    # F2. Diarrhea Confounders (Cancer, Amoebiasis)
+    # Colorectal Cancer
+    "pencil thin stool": "SX_PENCIL_STOOL",
+    "thin stool": "SX_PENCIL_STOOL",
+    "duming parang lapis": "SX_PENCIL_STOOL",
+    "manipis na dumi": "SX_PENCIL_STOOL",
+    "urge to poop but nothing": "SX_TENESMUS",
+    "parang natatae pero wala": "SX_TENESMUS",
+    # Amoebiasis
+    "raspberry jelly": "SX_RASPBERRY_STOOL",
+    "bloody mucus": "SX_RASPBERRY_STOOL",
+    "jelly stool": "SX_RASPBERRY_STOOL",
+    "madugo at madulas": "SX_RASPBERRY_STOOL",
+
+    # F3. Measles Confounders (Kawasaki, Rubella)
+    # Kawasaki Disease
+    "strawberry tongue": "SX_STRAWBERRY_TONGUE",
+    "red tongue": "SX_STRAWBERRY_TONGUE",
+    "peeling skin": "SX_PEELING_SKIN",
+    "nagbabalat": "SX_PEELING_SKIN",
+    "peeling hands": "SX_PEELING_SKIN",
+    "fever for 5 days": "SX_PROLONGED_FEVER",
+    "matagal na lagnat": "SX_PROLONGED_FEVER",
+    # Rubella
+    "lump behind ear": "SX_POST_AURICULAR_LYMPHADENOPATHY",
+    "swollen behind ear": "SX_POST_AURICULAR_LYMPHADENOPATHY",
+    "bukol sa likod ng tenga": "SX_POST_AURICULAR_LYMPHADENOPATHY",
+
+    # F4. Pneumonia Confounders (TB, Heart Failure, Asthma)
+    # Tuberculosis
+    "coughing blood": "SX_HEMOPTYSIS",
+    "blood in phlegm": "SX_HEMOPTYSIS",
+    "umuubo ng dugo": "SX_HEMOPTYSIS",
+    "may dugo ang plema": "SX_HEMOPTYSIS",
+    "night sweats": "SX_NIGHT_SWEATS",
+    "sweating at night": "SX_NIGHT_SWEATS",
+    "pinapawisan sa gabi": "SX_NIGHT_SWEATS",
+    "cough for 2 weeks": "SX_CHRONIC_COUGH",
+    "tagal na ng ubo": "SX_CHRONIC_COUGH",
+    "2 linggo na ubo": "SX_CHRONIC_COUGH",
+    # Heart Failure
+    "can't lie flat": "SX_ORTHOPNEA",
+    "needs pillows to sleep": "SX_ORTHOPNEA",
+    "hindi makahiga": "SX_ORTHOPNEA",
+    "hirap huminga pag nakahiga": "SX_ORTHOPNEA",
+    "pink froth": "SX_PINK_FROTHY_SPUTUM",
+    "pink phlegm": "SX_PINK_FROTHY_SPUTUM",
+    "kulay rosas na plema": "SX_PINK_FROTHY_SPUTUM",
+    # Asthma
+    "wheezing": "SX_WHEEZING",
+    "whistling breath": "SX_WHEEZING",
+    "humuhuni": "SX_WHEEZING",
+    "huni": "SX_WHEEZING",
 }
 
 # Concepts that MUST be explained by the predicted disease ontology.
@@ -387,5 +525,17 @@ HIGH_VALUE_CONCEPTS = {
     "SX_JAUNDICE",
     "SX_DARK_URINE",
     "SX_CONJUNCTIVAL_SUFFUSION",
+    "SX_POLYURIA",
+    "SX_POLYDIPSIA",
+    "SX_POLYPHAGIA",
+    "SX_WEIGHT_LOSS",
+    "SX_SLOW_HEALING",
+    "SX_NEUROPATHY",
+    "SX_BLURRED_VISION",
+    # PH Red Flags
+    "SX_CALF_PAIN", "SX_OLIGURIA", "SX_RIGORS", "SX_PALLOR", "SX_NECK_STIFFNESS", "SX_PURPURA",
+    "SX_PENCIL_STOOL", "SX_TENESMUS", "SX_RASPBERRY_STOOL",
+    "SX_STRAWBERRY_TONGUE", "SX_PEELING_SKIN", "SX_PROLONGED_FEVER", "SX_POST_AURICULAR_LYMPHADENOPATHY",
+    "SX_HEMOPTYSIS", "SX_NIGHT_SWEATS", "SX_CHRONIC_COUGH", "SX_ORTHOPNEA", "SX_PINK_FROTHY_SPUTUM", "SX_WHEEZING",
 }
 

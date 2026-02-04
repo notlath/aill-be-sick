@@ -124,8 +124,8 @@
     },
     {
       "id": "pneumonia_q6",
-      "question": "Nakakaranas ka ba ng panginginig o pakiramdam na sobrang lamig?",
-      "positive_symptom": "Nakakaranas ako ng panginginig o pakiramdam na sobrang lamig",
+      "question": "Nakakaranas ka ba ng panginginig o nanginginig sa ginaw?",
+      "positive_symptom": "Nakakaranas ako ng nanginginig sa ginaw o pakiramdam na sobrang lamig",
       "negative_symptom": "Hindi ako nakakaranas ng panginginig",
       "weight": 0.89,
       "category": "secondary"
