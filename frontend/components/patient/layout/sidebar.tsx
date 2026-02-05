@@ -1,18 +1,40 @@
+"use client";
+
 import SidebarWrapper from "./sidebar-wrapper";
 import SidebarContent from "./sidebar-content";
+import { useEffect, useState } from "react";
 import { getCurrentDbUser } from "@/utils/user";
 
-const Sidebar = async () => {
-  const { success: dbUser, error } = await getCurrentDbUser();
+const Sidebar = () => {
+  const [dbUser, setDbUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!dbUser) {
-    // TODO: Error handling
-    return null;
+  useEffect(() => {
+    async function fetchUser() {
+      const { success, error } = await getCurrentDbUser();
+      if (success) {
+        setDbUser(success);
+      } else {
+        setError(error || "Failed to fetch user");
+      }
+      setLoading(false);
+    }
+    fetchUser();
+  }, []);
+
+  if (loading) {
+    return (
+      <SidebarWrapper>
+        <div className="flex items-center justify-center h-full">
+          <span className="loading loading-spinner loading-md"></span>
+        </div>
+      </SidebarWrapper>
+    );
   }
 
-  if (error) {
-    // TODO: Error handling
-    return <div>Error: {JSON.stringify(error)}</div>;
+  if (!dbUser || error) {
+    return null;
   }
 
   return (
