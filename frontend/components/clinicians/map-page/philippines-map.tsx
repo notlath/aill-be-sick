@@ -11,6 +11,7 @@ import {
 import { ChevronLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { DiseaseMapData } from "@/utils/map-data";
 
 // Helper to determine next level in the flow
 const getNextLevel = (current: ViewLevel): ViewLevel | null => {
@@ -29,14 +30,166 @@ type SearchItem = {
   lbl?: string; // Display Label
 };
 
-type PhilippinesMapProps = {
-  selectedTab?: "disease" | "cluster" | "anomaly";
-  selectedDisease?: string;
-  selectedCluster?: string;
+// Province to Region mapping - each province belongs to one region
+const PROVINCE_TO_REGION: Record<string, string> = {
+  // NCR (National Capital Region)
+  "Metro Manila": "NCR",
+  "National Capital Region": "NCR",
+  "NCR, City of Manila, First District (Not a Province)": "NCR",
+  "NCR, Second District (Not a Province)": "NCR",
+  "NCR, Third District (Not a Province)": "NCR",
+  "NCR, Fourth District (Not a Province)": "NCR",
+  
+  // CAR (Cordillera Administrative Region)
+  "Abra": "Cordillera",
+  "Apayao": "Cordillera",
+  "Benguet": "Cordillera",
+  "Ifugao": "Cordillera",
+  "Kalinga": "Cordillera",
+  "Mountain Province": "Cordillera",
+  "Nueva Vizcaya": "Cordillera",
+  "Quirino": "Cordillera",
+  
+  // Region I (Ilocos)
+  "Ilocos Norte": "Region I",
+  "Ilocos Sur": "Region I",
+  "La Union": "Region I",
+  "Pangasinan": "Region I",
+  
+  // Region II (Cagayan Valley)
+  "Batanes": "Region II",
+  "Cagayan": "Region II",
+  "Isabela": "Region II",
+  
+  // Region III (Central Luzon)
+  "Aurora": "Region III",
+  "Bataan": "Region III",
+  "Bulacan": "Region III",
+  "Nueva Ecija": "Region III",
+  "Pampanga": "Region III",
+  "Tarlac": "Region III",
+  "Zambales": "Region III",
+  
+  // Region IV-A (CALABARZON)
+  "Batangas": "CALABARZON",
+  "Cavite": "CALABARZON",
+  "Laguna": "CALABARZON",
+  "Quezon": "CALABARZON",
+  "Rizal": "CALABARZON",
+  
+  // Region IV-B (MIMAROPA)
+  "Marinduque": "Region IV-B",
+  "Occidental Mindoro": "Region IV-B",
+  "Oriental Mindoro": "Region IV-B",
+  "Palawan": "Region IV-B",
+  "Romblon": "Region IV-B",
+  
+  // Region V (Bicol)
+  "Albay": "Region V",
+  "Camarines Norte": "Region V",
+  "Camarines Sur": "Region V",
+  "Catanduanes": "Region V",
+  "Masbate": "Region V",
+  "Sorsogon": "Region V",
+  
+  // Region VI (Western Visayas)
+  "Aklan": "Western Visayas",
+  "Antique": "Western Visayas",
+  "Capiz": "Western Visayas",
+  "Guimaras": "Western Visayas",
+  "Iloilo": "Western Visayas",
+  "Negros Occidental": "Western Visayas",
+  
+  // Region VII (Central Visayas)
+  "Bohol": "Central Visayas",
+  "Cebu": "Central Visayas",
+  "Negros Oriental": "Central Visayas",
+  "Siquijor": "Central Visayas",
+  
+  // Region VIII (Eastern Visayas)
+  "Biliran": "Region VIII",
+  "Eastern Samar": "Region VIII",
+  "Leyte": "Region VIII",
+  "Northern Samar": "Region VIII",
+  "Samar": "Region VIII",
+  "Southern Leyte": "Region VIII",
+  
+  // Region IX (Zamboanga Peninsula)
+  "Zamboanga del Norte": "Zamboanga Peninsula",
+  "Zamboanga del Sur": "Zamboanga Peninsula",
+  "Zamboanga Sibugay": "Zamboanga Peninsula",
+  "City of Isabela (Not a Province)": "Zamboanga Peninsula",
+  
+  // Region X (Northern Mindanao)
+  "Bukidnon": "Northern Mindanao",
+  "Camiguin": "Northern Mindanao",
+  "Lanao del Norte": "Northern Mindanao",
+  "Misamis Occidental": "Northern Mindanao",
+  "Misamis Oriental": "Northern Mindanao",
+  
+  // Region XI (Davao)
+  "Davao de Oro": "Davao Region",
+  "Davao del Norte": "Davao Region",
+  "Davao del Sur": "Davao Region",
+  "Davao Occidental": "Davao Region",
+  "Davao Oriental": "Davao Region",
+  
+  // Region XII (SOCCSKSARGEN)
+  "Cotabato": "SOCCSKSARGEN",
+  "Sarangani": "SOCCSKSARGEN",
+  "South Cotabato": "SOCCSKSARGEN",
+  "Sultan Kudarat": "SOCCSKSARGEN",
+  "North Cotabato": "SOCCSKSARGEN",
+  
+  // Region XIII (Caraga)
+  "Agusan del Norte": "Region XIII",
+  "Agusan del Sur": "Region XIII",
+  "Dinagat Islands": "Region XIII",
+  "Surigao del Norte": "Region XIII",
+  "Surigao del Sur": "Region XIII",
+  
+  // BARMM
+  "Basilan": "BARMM",
+  "Lanao del Sur": "BARMM",
+  "Maguindanao": "BARMM",
+  "Maguindanao del Norte": "BARMM",
+  "Maguindanao del Sur": "BARMM",
+  "Sulu": "BARMM",
+  "Tawi-Tawi": "BARMM",
 };
 
+type PhilippinesMapProps = {
+  selectedTab?: "disease" | "cluster" | "anomaly";
+  selectedCluster?: string;
+  diseaseData?: DiseaseMapData;
+};
+
+const HEATMAP_COLORS = [
+  "#ffffcc",
+  "#ffeda0",
+  "#fed976",
+  "#feb24c",
+  "#fd8d3c",
+  "#fc4e2a",
+  "#e31a1c",
+  "#bd0026",
+  "#800026",
+];
+
+const HEATMAP_LABELS = [
+  "0-5",
+  "6-10",
+  "11-25",
+  "26-50",
+  "51-100",
+  "101-200",
+  "201-500",
+  "501-1000",
+  "1000+",
+];
+
 const PhilippinesMap = memo(
-  ({ selectedTab, selectedDisease, selectedCluster }: PhilippinesMapProps) => {
+  ({ selectedTab, selectedCluster, diseaseData }: PhilippinesMapProps) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -47,10 +200,29 @@ const PhilippinesMap = memo(
     });
 
     const [history, setHistory] = useState<ViewState[]>([]);
+    const [zoomLevel, setZoomLevel] = useState<"region" | "city">("region");
+    const [selectedRegionForCity, setSelectedRegionForCity] = useState<string | null>(null);
 
     // --- Date Range State ---
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
+
+    // Reset zoom level when returning to country view
+    useEffect(() => {
+      if (viewState.level === "country") {
+        setZoomLevel("region");
+        setSelectedRegionForCity(null);
+        // Reset debug flag
+        const globalWindow = window as any;
+        globalWindow.cityDebugLogged = false;
+      }
+    }, [viewState.level]);
+
+    // Reset debug flag when zoom level changes
+    useEffect(() => {
+      const globalWindow = window as any;
+      globalWindow.cityDebugLogged = false;
+    }, [zoomLevel]);
 
     // --- Search State ---
     const [searchIndex, setSearchIndex] = useState<SearchItem[]>([]);
@@ -274,8 +446,105 @@ const PhilippinesMap = memo(
 
         const pathGenerator = d3.geoPath().projection(projection);
 
-        // Color Scale
-        const colorScale = d3.scaleOrdinal(d3.schemeBlues[9]);
+        // Location name aliases for matching region names to database values
+        // Each key should match a value in PROVINCE_TO_REGION for consistency
+        const LOCATION_ALIASES: Record<string, string[]> = {
+          "NCR": ["National Capital Region", "Metro Manila", "Metropolitan Manila", "NCR", "Manila", "National Capital Reg"],
+          "Cordillera": ["Cordillera Administrative Region", "CAR", "Cordillera", "Cordillera Admin Region"],
+          "BARMM": ["Bangsamoro Autonomous Region in Muslim Mindanao", "BARMM", "Bangsamoro", "ARMM"],
+          "Region I": ["Ilocos Region", "Region 1", "Region I", "Ilocos", "Region I - Ilocos Region"],
+          "Region II": ["Cagayan Valley", "Region 2", "Region II", "Region II - Cagayan Valley"],
+          "Region III": ["Central Luzon", "Region 3", "Region III", "Region III - Central Luzon"],
+          "CALABARZON": ["CALABARZON", "Region 4A", "Region IV-A", "Region 4-A", "Region IVA"],
+          "Region IV-B": ["MIMAROPA", "Region 4B", "Region IV-B", "Region 4-B", "Region IVB"],
+          "Region V": ["Bicol Region", "Region 5", "Region V", "Bicol", "Region V - Bicol Region"],
+          "Western Visayas": ["Western Visayas", "Region 6", "Region VI", "Region VI - Western Visayas"],
+          "Central Visayas": ["Central Visayas", "Region 7", "Region VII", "Region VII - Central Visayas"],
+          "Region VIII": ["Eastern Visayas", "Region 8", "Region VIII", "Region VIII - Eastern Visayas"],
+          "Zamboanga Peninsula": ["Zamboanga Peninsula", "Region 9", "Region IX", "Region IX - Zamboanga Peninsula"],
+          "Northern Mindanao": ["Northern Mindanao", "Region 10", "Region X", "Region X - Northern Mindanao"],
+          "Davao Region": ["Davao Region", "Region 11", "Region XI", "Region XI - Davao Region"],
+          "SOCCSKSARGEN": ["SOCCSKSARGEN", "Region 12", "Region XII", "Region XII - SOCCSKSARGEN", "SOCSARGEN"],
+          "Region XIII": ["Caraga", "Region 13", "Region XIII", "Region XIII - Caraga", "Caraga Region"],
+        };
+
+        // Get features early for debug logging
+        const features = geoData.features;
+        const boundaries = geoData.boundaries || [];
+
+        // Color Scale - Get patient count for a region
+        const getRegionCount = (regionName: string): number => {
+          if (!diseaseData) return 0;
+          
+          // Normalize region name
+          const searchRegion = regionName.toLowerCase().trim();
+          
+          // Try to find matching region in the data
+          const match = diseaseData.byRegion.find(r => {
+            const dataRegion = r.location.toLowerCase().trim();
+            
+            // 1. Direct exact match
+            if (dataRegion === searchRegion) {
+              return true;
+            }
+            
+            // 2. Check if both are in the same alias group
+            for (const [key, aliases] of Object.entries(LOCATION_ALIASES)) {
+              const lowerAliases = aliases.map(a => a.toLowerCase());
+              const lowerKey = key.toLowerCase();
+              
+              const dataInGroup = lowerAliases.includes(dataRegion) || lowerKey === dataRegion;
+              const searchInGroup = lowerAliases.includes(searchRegion) || lowerKey === searchRegion;
+              
+              // Both database region and search region match the same alias group
+              if (dataInGroup && searchInGroup) {
+                return true;
+              }
+            }
+            
+            return false;
+          });
+          
+          return match ? match.count : 0;
+        };
+
+        // Get patient count for a city
+        const getCityCount = (cityName: string): number => {
+          if (!diseaseData || !cityName) return 0;
+          
+          const normalizeCityName = (name: string): string => {
+            // Remove common city type suffixes and normalize
+            return name
+              .toLowerCase()
+              .trim()
+              .replace(/\s+(city|municipality|municipal|prov\.?|province)$/i, '')
+              .trim();
+          };
+          
+          const searchCity = normalizeCityName(cityName);
+          
+          // Try exact match first (normalized)
+          let match = diseaseData.byCity.find(c => 
+            normalizeCityName(c.location) === searchCity
+          );
+          
+          if (match) return match.count;
+          
+          // Try partial match (contains or is contained)
+          match = diseaseData.byCity.find(c => {
+            const dbCity = normalizeCityName(c.location);
+            return dbCity.includes(searchCity) || searchCity.includes(dbCity);
+          });
+          
+          if (match) return match.count;
+          
+          return 0;
+        };
+
+        // Create quantile-based color scale
+        const colorScale = d3.scaleThreshold<number, string>()
+          .domain([0, 5, 10, 25, 50, 100, 200, 500, 1000])
+          .range(HEATMAP_COLORS);
 
         // Create Group Hierarchy
         const g = svg.append("g");
@@ -313,8 +582,6 @@ const PhilippinesMap = memo(
         svg.call(zoom as any);
 
         // --- Render Features Layer ---
-        const features = geoData.features;
-        const boundaries = geoData.boundaries || [];
 
         const featureLayer = g.append("g").attr("class", "layer-features");
 
@@ -337,13 +604,73 @@ const PhilippinesMap = memo(
           .join("path")
           .attr("d", pathGenerator as any)
           .attr("fill", (d) => {
-            const name =
-              d.properties.adm4_en ||
-              d.properties.adm3_en ||
-              d.properties.adm2_en ||
-              d.properties.adm1_en ||
-              "unknown";
-            return colorScale(name);
+            if (!diseaseData) return colorScale(0);
+            
+            // If in city zoom mode, color by city
+            if (zoomLevel === "city") {
+              // Try to get city from different property sources
+              const adm2 = d.properties.adm2_en; // Province
+              const adm3 = d.properties.adm3_en; // City
+              const adm4 = d.properties.adm4_en; // Barangay or subdivision
+              const adm1 = d.properties.adm1_en; // Region or municipality
+              
+              // Build list of candidates to try for city matching
+              const cityCandidates = [adm3, adm4, adm1].filter(Boolean);
+              
+              let patientCount = 0;
+              let matchedCity = null;
+              
+              // Try each candidate
+              for (const candidate of cityCandidates) {
+                if (candidate) {
+                  const count = getCityCount(candidate);
+                  if (count > 0) {
+                    patientCount = count;
+                    matchedCity = candidate;
+                    break;
+                  }
+                }
+              }
+              
+              // If no city match found, fall back to region coloring for city view
+              if (patientCount === 0 && adm2) {
+                const regionName = PROVINCE_TO_REGION[adm2];
+                if (regionName) {
+                  patientCount = getRegionCount(regionName);
+                  matchedCity = regionName;
+                }
+              }
+              
+              // Debug first few features
+              const globalWindow = window as any;
+              if (!globalWindow.cityDebugLogged) {
+                console.log(`[City View] Sample city mapping:`, {
+                  adm1_en: adm1,
+                  adm2_en: adm2,
+                  adm3_en: adm3,
+                  adm4_en: adm4,
+                  cityCandidates: cityCandidates,
+                  matchedCity: matchedCity,
+                  patientCount: patientCount,
+                  availableCities: diseaseData.byCity.slice(0, 5).map(c => c.location)
+                });
+                globalWindow.cityDebugLogged = true;
+              }
+              
+              return colorScale(patientCount);
+            }
+            
+            // Otherwise color by region (region view)
+            const provinceName = d.properties.adm2_en;
+            if (!provinceName) return colorScale(0);
+            
+            const regionName = PROVINCE_TO_REGION[provinceName];
+            if (!regionName) {
+              return colorScale(0);
+            }
+            
+            const patientCount = getRegionCount(regionName);
+            return colorScale(patientCount);
           })
           .attr("stroke", (d) => {
             // Check highlight for Feature Layer (Barangays usually)
@@ -398,17 +725,57 @@ const PhilippinesMap = memo(
             handleFeatureClick(d);
           })
           .on("mousemove", (event, d: any) => {
-            const name =
-              d.properties.adm4_en ||
-              d.properties.adm3_en ||
-              d.properties.adm2_en ||
-              d.properties.adm1_en ||
-              "Feature";
+            let tooltipText = "";
+            
+            if (zoomLevel === "city") {
+              // City view - use same matching logic as fill
+              const adm2 = d.properties.adm2_en;
+              const adm3 = d.properties.adm3_en;
+              const adm4 = d.properties.adm4_en;
+              const adm1 = d.properties.adm1_en;
+              
+              const cityCandidates = [adm3, adm4, adm1].filter(Boolean);
+              
+              let displayName = adm2 || "Feature";
+              let cityCount = 0;
+              
+              // Try each candidate
+              for (const candidate of cityCandidates) {
+                if (candidate) {
+                  const count = getCityCount(candidate);
+                  if (count > 0) {
+                    cityCount = count;
+                    displayName = candidate;
+                    break;
+                  }
+                }
+              }
+              
+              tooltipText = cityCount > 0 
+                ? `${displayName}: ${cityCount} patient${cityCount !== 1 ? 's' : ''}`
+                : displayName;
+            } else {
+              // Region view - show province name and regional patient count
+              const provinceName = d.properties.adm2_en;
+              const regionName = provinceName ? PROVINCE_TO_REGION[provinceName] : null;
+              const displayName =
+                d.properties.adm4_en ||
+                d.properties.adm3_en ||
+                provinceName ||
+                d.properties.adm1_en ||
+                "Feature";
+              
+              const caseCount = regionName ? getRegionCount(regionName) : 0;
+              tooltipText = caseCount > 0 
+                ? `${displayName}: ${caseCount} patient${caseCount !== 1 ? 's' : ''} (${regionName})`
+                : displayName;
+            }
+            
             tooltip
               .style("display", "block")
               .style("left", event.pageX + 10 + "px")
               .style("top", event.pageY - 10 + "px")
-              .text(name);
+              .text(tooltipText);
           })
           .on("mouseleave", () => {
             tooltip.style("display", "none");
@@ -485,33 +852,61 @@ const PhilippinesMap = memo(
     // Handle Drill-down
     const handleFeatureClick = (feature: MapFeature) => {
       const props = feature.properties;
-      const nextLevel = getNextLevel(viewState.level);
-
-      // Clear highlight on manual click (optional, but good UX)
+      
+      // Clear highlight on manual click
       setHighlightId(null);
 
-      if (viewState.level === "country" && nextLevel === "province") {
-        let nextId: string | null = null;
-        let nextName = "Unknown";
+      // If in province view and clicking a city/barangay, zoom to city view
+      if (viewState.level === "province" && zoomLevel === "region") {
+        const cityName = props.adm3_en || props.adm2_en;
+        const provinceName = props.adm2_en;
+        const regionName = provinceName ? PROVINCE_TO_REGION[provinceName] : undefined;
+        
+        if (cityName && regionName) {
+          setSelectedRegionForCity(regionName);
+          setZoomLevel("city");
+          setViewState(prev => ({
+            ...prev,
+            name: `${cityName} (${regionName})`
+          }));
+          return;
+        }
+      }
 
-        nextId = props.adm2_psgc ? props.adm2_psgc.toString() : null;
-        nextName = props.adm2_en || "Province";
+      // If in country view, drill down to province
+      if (viewState.level === "country") {
+        const nextLevel = getNextLevel(viewState.level);
+        if (nextLevel === "province") {
+          let nextId: string | null = null;
+          let nextName = "Unknown";
 
-        if (!nextId && props.id) nextId = props.id.toString();
+          nextId = props.adm2_psgc ? props.adm2_psgc.toString() : null;
+          nextName = props.adm2_en || "Province";
 
-        if (nextId) {
-          setHistory((prev) => [...prev, viewState]);
-          setViewState({
-            level: nextLevel,
-            id: nextId,
-            name: nextName,
-          });
+          if (!nextId && props.id) nextId = props.id.toString();
+
+          if (nextId) {
+            setHistory((prev) => [...prev, viewState]);
+            setViewState({
+              level: nextLevel,
+              id: nextId,
+              name: nextName,
+            });
+          }
         }
       }
     };
 
     const handleBack = () => {
       setHighlightId(null);
+      
+      // If in city view, go back to region view
+      if (zoomLevel === "city") {
+        setZoomLevel("region");
+        setSelectedRegionForCity(null);
+        return;
+      }
+      
       if (history.length === 0) return;
       const previousState = history[history.length - 1];
       setHistory((prev) => prev.slice(0, -1));
@@ -593,7 +988,7 @@ const PhilippinesMap = memo(
             {/* Navigation / Header */}
             <div className="absolute top-4 left-4 flex items-center justify-between pointer-events-none z-20">
               <div className="flex items-center gap-2 text-sm pointer-events-auto">
-                {history.length > 0 && (
+                {(history.length > 0 || zoomLevel === "city") && (
                   <button
                     onClick={handleBack}
                     className="btn btn-sm btn-soft bg-white/80 backdrop-blur-sm"
@@ -604,14 +999,19 @@ const PhilippinesMap = memo(
                 <span className="font-semibold text-lg bg-white/80 backdrop-blur-sm px-2 py-1 rounded">
                   {viewState.name}
                 </span>
-                {history.length === 0 && (
+                {history.length === 0 && zoomLevel === "region" && (
                   <span className="badge badge-info text-xs">
                     All Provinces
                   </span>
                 )}
-                {viewState.level === "province" && (
+                {viewState.level === "province" && zoomLevel === "region" && (
                   <span className="badge badge-success text-xs">
                     Detailed View
+                  </span>
+                )}
+                {zoomLevel === "city" && (
+                  <span className="badge badge-warning text-xs">
+                    City View
                   </span>
                 )}
               </div>
@@ -648,94 +1048,22 @@ const PhilippinesMap = memo(
                   <p>Scroll: Pan (Vertical)</p>
                   <p>Shift + Scroll: Pan (Horizontal)</p>
                   <p>Ctrl + Scroll: Zoom</p>
-                  <p>Click: Drill down</p>
+                  <p>Click: {zoomLevel === "region" ? "Drill down to city" : "Go back to region"}</p>
                 </div>
 
                 {/* Color Legend */}
                 <div className="absolute bottom-4 right-4 bg-white/85 backdrop-blur-sm p-3 rounded shadow pointer-events-none z-10">
-                  <p className="font-bold text-xs mb-1">Disease Cases</p>
+                  <p className="font-bold text-xs mb-1">Patient Count</p>
                   <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2 justify-between">
-                      <div className="flex items-center gap-2">
+                    {HEATMAP_COLORS.map((color, idx) => (
+                      <div key={color} className="flex items-center gap-2">
                         <div
                           className="w-6 h-4 rounded"
-                          style={{ backgroundColor: "#f7fbff" }}
+                          style={{ backgroundColor: color }}
                         ></div>
-                        <span className="text-xs">0-5</span>
+                        <span className="text-xs">{HEATMAP_LABELS[idx]}</span>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-4 rounded"
-                          style={{ backgroundColor: "#deebf7" }}
-                        ></div>
-                        <span className="text-xs">6-10</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-4 rounded"
-                          style={{ backgroundColor: "#c6dbef" }}
-                        ></div>
-                        <span className="text-xs">11-25</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-4 rounded"
-                          style={{ backgroundColor: "#9ecae1" }}
-                        ></div>
-                        <span className="text-xs">26-50</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-4 rounded"
-                          style={{ backgroundColor: "#6baed6" }}
-                        ></div>
-                        <span className="text-xs">51-100</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-4 rounded"
-                          style={{ backgroundColor: "#4292c6" }}
-                        ></div>
-                        <span className="text-xs">101-200</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-4 rounded"
-                          style={{ backgroundColor: "#2171b5" }}
-                        ></div>
-                        <span className="text-xs">201-500</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-4 rounded"
-                          style={{ backgroundColor: "#08519c" }}
-                        ></div>
-                        <span className="text-xs">501-1000</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-6 h-4 rounded"
-                          style={{ backgroundColor: "#08306b" }}
-                        ></div>
-                        <span className="text-xs">1000+</span>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </>
