@@ -23,6 +23,7 @@ logs/
 
 # VS Code
 .vscode/
+!.vscode/tasks.json
 
 # Python compiled files
 *.pyc
