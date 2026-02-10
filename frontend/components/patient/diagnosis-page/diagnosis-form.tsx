@@ -24,6 +24,7 @@ const DiagnosisForm = ({
       type: "SYMPTOMS",
       role: "USER",
     });
+    form.setValue("symptoms", "");
   };
 
   return (
