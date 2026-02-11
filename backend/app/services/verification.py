@@ -37,11 +37,11 @@ class OntologyBuilder:
     
     def __init__(self, question_bank_en: dict, question_bank_tl: dict):
         self.profiles: Dict[str, Set[str]] = {}
-        self._build_profiles(question_bank_en)
-        self._build_profiles(question_bank_tl)
-        print(f"[ONTOLOGY] Built profiles for {len(self.profiles)} diseases")
+        self._build_profiles(question_bank_en, label="EN")
+        self._build_profiles(question_bank_tl, label="TL")
+        print(f"[ONTOLOGY] Built profiles for {len(self.profiles)} diseases (EN + TL merged)")
     
-    def _build_profiles(self, question_bank: dict):
+    def _build_profiles(self, question_bank: dict, label: str = ""):
         """Extract concepts from each disease's questions to build its symptom profile."""
         for disease, questions in question_bank.items():
             if disease not in self.profiles:

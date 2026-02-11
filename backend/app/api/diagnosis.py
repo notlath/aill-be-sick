@@ -324,16 +324,13 @@ def new_case():
         print(f"ERROR in new_case:")
         print(error_details)
         # gc.collect() - GC calls moved to ml.py internally
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_ERROR",
-                    "message": error_msg,
-                    "details": error_details,
-                }
-            ),
-            500,
-        )
+        payload = {
+            "error": "INTERNAL_ERROR",
+            "message": error_msg,
+        }
+        if current_app.debug:
+            payload["details"] = error_details
+        return jsonify(payload), 500
 
 
 # ── /diagnosis/follow-up ─────────────────────────────────────────────────────
@@ -517,11 +514,13 @@ def follow_up_question():
                     400,
                 )
             print(f"ERROR in follow_up_question: {err}")
-            return jsonify({
-                "error": "Classifier error", 
+            payload = {
+                "error": "Classifier error",
                 "message": f"An internal error occurred: {err}",
-                "details": err
-            }), 500
+            }
+            if current_app.debug:
+                payload["details"] = err
+            return jsonify(payload), 500
 
         # Neuro-Symbolic Verification (Catch Out-of-Scope even in follow-up)
         # This prevents confidence drift from accepting invalid diseases
@@ -815,16 +814,13 @@ def follow_up_question():
         error_details = traceback.format_exc()
         print(f"ERROR in follow_up_question:")
         print(error_details)
-        return (
-            jsonify(
-                {
-                    "error": "INTERNAL_ERROR",
-                    "message": error_msg,
-                    "details": error_details,
-                }
-            ),
-            500,
-        )
+        payload = {
+            "error": "INTERNAL_ERROR",
+            "message": error_msg,
+        }
+        if current_app.debug:
+            payload["details"] = error_details
+        return jsonify(payload), 500
 
 
 # ── /diagnosis/explain ────────────────────────────────────────────────────────
@@ -858,13 +854,12 @@ def explain_diagnosis():
     except Exception as e:
         error_msg = str(e)
         error_details = traceback.format_exc()
-        return (
-            jsonify(
-                {
-                    "error": "EXPLANATION_ERROR",
-                    "message": error_msg,
-                    "details": error_details,
-                }
-            ),
-            500,
-        )
+        print(f"ERROR in explain_diagnosis:")
+        print(error_details)
+        payload = {
+            "error": "EXPLANATION_ERROR",
+            "message": error_msg,
+        }
+        if current_app.debug:
+            payload["details"] = error_details
+        return jsonify(payload), 500

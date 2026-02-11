@@ -55,7 +55,9 @@ def create_app():
     flask_app.secret_key = secrets.token_hex(32)
     flask_app.config["SESSION_COOKIE_HTTPONLY"] = True
     flask_app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    flask_app.config["SESSION_COOKIE_SECURE"] = False  # Set True in production with HTTPS
+    flask_app.config["SESSION_COOKIE_SECURE"] = os.environ.get(
+        "SESSION_COOKIE_SECURE", "true" if os.environ.get("FLASK_ENV") != "development" else "false"
+    ).lower() == "true"
 
     # --- CORS ---
     CORS(
