@@ -1,25 +1,45 @@
-FROM python:3.11-slim
+# ---- Build stage: install dependencies ----
+FROM python:3.11-slim AS builder
 
-# Set working directory
-WORKDIR /app
+WORKDIR /build
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install build-time system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
 COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+
+# ---- Runtime stage: lean production image ----
+FROM python:3.11-slim
+
+# Security: run as non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser
+
+WORKDIR /app
+
+# Copy only the installed packages from the builder stage
+COPY --from=builder /install /usr/local
 
 # Copy application code
 COPY . .
 
-# Expose port (Render will assign PORT via environment variable)
+# Own app directory to the non-root user
+RUN chown -R appuser:appuser /app
+
+USER appuser
+
+# Expose port (platforms like Render/Railway inject PORT at runtime)
 EXPOSE 10000
 
-# Use only 1 worker with 1 thread to minimize memory usage
-# Increase timeout for ML model inference
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 1 --timeout 300 --max-requests 100 --max-requests-jitter 10 app:app
+# Healthcheck for container orchestrators
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT:-10000}/')" || exit 1
+
+# Use Gunicorn with sensible production defaults
+# - 1 worker / 1 thread to keep memory low on free tiers
+# - 300s timeout for ML model inference
+# - max-requests for worker recycling to prevent memory leaks
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-10000} --workers 1 --threads 1 --timeout 300 --max-requests 100 --max-requests-jitter 10 --access-logfile - --error-logfile - app:app"]

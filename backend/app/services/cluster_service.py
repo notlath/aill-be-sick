@@ -4,7 +4,7 @@ import os
 import numpy as np
 from sklearn.cluster import KMeans
 from sqlalchemy import text
-from database import get_db_engine
+from app.utils.database import get_db_engine
 
 
 def fetch_patient_data(

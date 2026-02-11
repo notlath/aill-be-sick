@@ -13,7 +13,7 @@ class TestExplainConfusion(unittest.TestCase):
     def setUp(self):
         self.client = app.test_client()
 
-    @patch('app.explainer')
+    @patch('app.api.diagnosis.explainer')
     def test_explain_valid_payload(self, mock_explainer):
         """
         Scenario: Call /diagnosis/explain with valid payload (Confusion case).

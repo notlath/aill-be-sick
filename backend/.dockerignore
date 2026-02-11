@@ -1,15 +1,51 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
+# Virtual environments
+.venv/
 env/
 venv/
 ENV/
-*.log
-.git
-.gitignore
-README.md
-*.md
-.env
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
 .DS_Store
+
+# Logs
+*.log
+
+# Git
+.git/
+.gitignore
+
+# Docs (not needed at runtime)
+*.md
+documentations/
+deprecated/
+
+# Environment / secrets
+.env
+.env.*
+
+# Tests (not needed in production image)
+tests/
+
+# Docker-in-Docker prevention
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# CI / deployment configs
+render.yaml
+railway.json
+
+# Agent configs
+.agent/
+AGENTS.md

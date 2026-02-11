@@ -1,149 +1,128 @@
-# AILL-BE-SICK - A Predictive Intelligent Health Screening and Analysis System
+# AILL-BE-SICK — Predictive Intelligent Health Screening & Analysis System
 
-A full-stack application for disease detection based on symptoms, built with a Flask backend and a Next.js (App Router) frontend using TypeScript, Prisma, and Supabase.
+A full-stack disease screening application combining a **Flask** backend (Monte Carlo Dropout classification, neuro-symbolic verification, SHAP explanations) with a **Next.js** frontend (TypeScript, Prisma, Supabase).
 
 ## Project Structure
 
 ```text
 aill-be-sick/
-├── backend/          # Flask REST API
-├── frontend/         # Next.js app (TypeScript, Prisma, Supabase)
+├── backend/                # Flask REST API (Python)
+│   ├── app/                #   Application package
+│   │   ├── api/            #     Blueprints (diagnosis, cluster, surveillance)
+│   │   ├── services/       #     ML classifier, verification, clustering, outbreak detection
+│   │   ├── utils/          #     Helpers, database connection
+│   │   ├── config.py       #     Centralised configuration & thresholds
+│   │   └── evidence_keywords.py
+│   ├── run.py              #   Entry point
+│   ├── requirements.txt
+│   └── Dockerfile
+├── frontend/               # Next.js app (TypeScript, Prisma, Supabase)
+│   ├── app/                #   App Router pages & layouts
+│   ├── actions/            #   Server actions
+│   ├── components/         #   UI components
+│   ├── prisma/             #   Schema & migrations
+│   └── package.json
 └── README.md
 ```
 
 ## Prerequisites
 
-Before setting up the project, ensure you have the following installed:
+- **Python 3.10+** and **pip** (or [uv](https://docs.astral.sh/uv/))
+- **Node.js 18+** and **npm** (or **bun**)
+- **PostgreSQL** database (local or hosted, e.g. Supabase)
+- **Git**
 
-- **Python 3.8+** (for Flask backend)
-- **Node.js 18+** (for Next.js frontend)
-- **npm** or **yarn** or **bun** (package manager)
-- **Git** (for version control)
+---
 
-## Backend Setup (Flask)
+## Backend Setup
 
-For detailed backend docs, see backend/README.md.
-
-### 1. Navigate to Backend Directory
+### 1. Create & Activate Virtual Environment
 
 ```bash
 cd backend
+
+# Using uv (recommended)
+uv venv && source .venv/bin/activate
+
+# Or using venv
+python3 -m venv .venv && source .venv/bin/activate
 ```
 
-### 2. Create Virtual Environment
+> **Windows:** use `.venv\Scripts\activate` instead.
 
-**Windows:**
-
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-**macOS/Linux:**
+### 2. Install Dependencies
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
+# Using pip
 pip install -r requirements.txt
+
+# Using uv (faster)
+uv pip install -r requirements.txt
 ```
 
-### 4. Start Development Server
+### 3. Environment Variables
 
-Option 1: Direct Python execution
+Create a `.env` file in `backend/` (or set these in your shell):
+
+| Variable | Description | Default |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string | *(required)* |
+| `FLASK_ENV` | `development` or `production` | `production` |
+| `SESSION_COOKIE_SECURE` | `true` / `false` — override cookie security | auto (based on `FLASK_ENV`) |
+
+Thresholds for symptom validation, confidence, triage levels, etc. are defined in [`app/config.py`](backend/app/config.py) and can be overridden with environment variables where noted.
+
+### 4. Start the Server
 
 ```bash
-python app.py
+# Development
+python run.py
+
+# Production (Gunicorn)
+gunicorn -w 4 -b 0.0.0.0:8000 "app:create_app()"
 ```
 
-Option 2: Windows batch file
-
-```bash
-run_flask.bat
-```
-
-Option 3: Gunicorn (production-like)
-
-```bash
-gunicorn -w 4 -b 0.0.0.0:8000 app:app
-```
-
-The Flask backend will be available at `http://localhost:8000`.
+The API will be available at **http://localhost:8000**.
 
 ### API Endpoints
 
-- `GET /diagnosis/` - Health check / greeting
-- `POST /diagnosis/new` - Disease diagnosis endpoint
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/diagnosis/` | Health check |
+| `POST` | `/diagnosis/new` | Initial symptom classification |
+| `POST` | `/diagnosis/follow-up` | Follow-up question & re-classification |
+| `POST` | `/diagnosis/explain` | SHAP-based symptom attribution |
+| `GET` | `/api/patient-clusters` | K-Means patient clustering |
+| `GET` | `/api/patient-clusters/silhouette` | Silhouette analysis |
+| `GET` | `/api/surveillance/outbreaks` | Isolation Forest outbreak detection |
 
-## Frontend Setup (Next.js App Router)
+### Key Features
 
-The `frontend` directory contains the Next.js application. It uses the App Router, Prisma (with PostgreSQL), and Supabase for authentication.
+- **Monte Carlo Dropout** — uncertainty-aware classification with confidence & mutual information scores
+- **Neuro-Symbolic Verification** — ontology-based concept matching to flag out-of-scope predictions
+- **GradientSHAP Explanations** — token-level attribution for model transparency
+- **Bilingual Support** — English and Tagalog symptom input with automatic language detection
+- **Dynamic Follow-Up** — evidence-weighted question selection with deduplication and early stopping
 
-### Key Technologies
+---
 
-- Next.js (App Router, TypeScript)
-- Prisma ORM with PostgreSQL
-- Supabase auth and helpers
-- Tailwind CSS
+## Frontend Setup
 
-### Updated Folder Highlights
+### 1. Install Dependencies
 
-Below are the important paths you’ll use most often:
-
-```text
-frontend/
-├── app/                         # App Router pages and layouts
-│   ├── page.tsx                 # Home page
-│   ├── (app)/                   # Main application flow
-│   │   ├── (patient)/
-│   │   │   ├── diagnosis/       # Patient diagnosis
-│   │   │   └── history/         # Patient history
-│   │   └── (clinician)/
-│   │       └── dashboard/       # Clinician dashboard
-│   ├── (auth)/                  # Auth flow
-│   │   ├── login/               # Patient login page
-│   │   └── clinician-login/     # Clinician login page
-│   └── auth/callback/route.ts   # Supabase auth callback route
-├── actions/                     # Server actions (create chat, message, diagnosis)
-├── components/                  # UI components
-├── utils/                       # Helpers (auth, chat, user, message)
-│   └── supabase/                # Supabase client/middleware/server helpers
-├── prisma/
-│   ├── schema.prisma            # Prisma schema
-│   └── migrations/              # Prisma migrations
-├── middleware.ts                # Next.js middleware (auth/session)
-├── next.config.ts               # Next.js config
-├── package.json                 # Scripts and deps
-└── tsconfig.json                # TypeScript config
-```
-
-Note: A generated Prisma client may exist under `app/generated/prisma` or `frontend/generated/prisma` during builds; this is not typically edited by hand.
-
-### 1) Navigate to Frontend
-
-```powershell
+```bash
 cd frontend
-```
 
-### 2) Install Dependencies
-
-Choose one package manager (bun or npm recommended):
-
-```powershell
-# bun (fast)
-bun install
-
-# or npm
+# Using npm
 npm install
+
+# Using bun (faster)
+bun install
 ```
 
-### 3) Environment Variables
+### 2. Environment Variables
 
-Create a `.env.local` in `frontend` (if one isn’t already present). These are the common variables used by the app:
+Create `.env.local` in `frontend/`:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
@@ -151,134 +130,67 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
 ```
 
-- Keep secrets out of version control; prefer `.env.local` for local dev.
-- If a `.env` already exists in the repo, `.env.local` will override for your machine.
+### 3. Database & Prisma
 
-### 4) Database and Prisma
-
-Generate the Prisma client and apply your schema to the database:
-
-```powershell
+```bash
+# Using npm
 npx prisma generate
 npx prisma db push
+
+# Using bun
+bunx prisma generate
+bunx prisma db push
 ```
 
-If you prefer migrations for iterative changes:
+### 4. Start Dev Server
 
-```powershell
-npx prisma migrate dev --name init
-```
-
-### 5) Start the Next.js Dev Server
-
-```powershell
-# bun
-bun dev
-
-# or npm
+```bash
+# Using npm
 npm run dev
+
+# Using bun
+bun dev
 ```
 
-The frontend runs at [http://localhost:3000](http://localhost:3000).
+The frontend runs at **http://localhost:3000**.
+
+### Key Technologies
+
+- Next.js (App Router, TypeScript)
+- Prisma ORM with PostgreSQL
+- Supabase authentication & middleware
+- Tailwind CSS
+- Server Actions for chat/diagnosis flows
+
+---
 
 ## Running the Full Application
 
-### 1. Start Backend Server
+1. **Backend** — in `backend/`: `python run.py`
+2. **Frontend** — in `frontend/`: `npm run dev`
+3. Open **http://localhost:3000**
 
-In the `backend` directory:
+### User Flows
 
-```bash
-python app.py
-```
+| Role | Login | Features |
+|---|---|---|
+| Patient | `/login` | Symptom chat → diagnosis → history |
+| Clinician | `/clinician-login` | Dashboard, patient clusters, outbreak surveillance |
 
-(or use `run_flask.bat` on Windows)
-
-### 2. Start Frontend Server
-
-In the `frontend` directory:
-
-```bash
-npm run dev
-```
-
-### 3. Access the Application
-
-- Frontend: [http://localhost:3000](http://localhost:3000)
-- Backend API: [http://localhost:8000](http://localhost:8000)
-
-## Usage
-
-1. Open [http://localhost:3000](http://localhost:3000)
-2. Sign in (Patient: `/login`, Clinician: `/clinician-login`)
-3. For patients, start a diagnosis from the Diagnosis page in the UI
-4. Chat and submit symptoms to receive disease screening results
-5. View history (patients) or dashboard (clinicians) after login
-
-## Development Features
-
-### Backend (Flask)
-
-- REST API for disease detection
-- CORS enabled for frontend integration
-- JSON request/response handling
-- Simple, lightweight setup with fast startup
-
-### Frontend (Next.js)
-
-- App Router with server components
-- TypeScript and Tailwind CSS
-- Prisma ORM (PostgreSQL) for data access
-- Supabase authentication and middleware
-- Server Actions for chat/message/diagnosis flows
-- Responsive UI components
-
-## Project Architecture
-
-- Backend: Flask REST API that processes symptoms and returns disease predictions
-- Frontend: Next.js App Router app with server-side rendering and interactive chat
-- Database: PostgreSQL (Prisma) with Supabase auth integration
+---
 
 ## Troubleshooting
 
-### Common Issues
+| Issue | Fix |
+|---|---|
+| Port conflict (3000/8000) | Kill existing processes or change ports |
+| CORS errors | Verify `Flask-Cors` is installed; allowed origins are set in `app/__init__.py` |
+| Database connection | Check `DATABASE_URL` in `.env` / `.env.local` |
+| Prisma client stale | Re-run `npx prisma generate` after schema changes |
+| Model loading slow | First run downloads transformer models (~500 MB); subsequent starts use cache |
 
-1. Port conflicts: Ensure 3000 (frontend) and 8000 (backend) are free
-2. CORS issues: Ensure Flask-CORS is installed and configured on the backend
-3. Database connection: Verify `DATABASE_URL` in `frontend/.env.local`
-4. Prisma client: Re-run `npx prisma generate` after schema changes
-5. Windows line endings: If shell scripts misbehave, prefer PowerShell commands
-
-### Backend Checks
-
-- Verify Flask is installed and the venv is active
-- Confirm the server runs on the expected port (`app.run(..., port=8000)`)
-
-### Frontend Checks (Windows-friendly)
-
-- Clean install if issues persist:
-
-  ```powershell
-  rd /s /q node_modules
-  npm install
-  ```
-
-- Regenerate Prisma client and push schema:
-
-  ```powershell
-  npx prisma generate
-  npx prisma db push
-  ```
-
-- Ensure `.env.local` exists and values are correct
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test both backend and frontend
-5. Submit a pull request
+---
 
 ## License
 
-This project is for educational/thesis purposes.
+This project is for educational / thesis purposes.
