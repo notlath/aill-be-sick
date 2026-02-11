@@ -1,5 +1,5 @@
-import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import Sidebar from "@/components/patient/layout/sidebar";
+import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
 import { redirect } from "next/navigation";
 import { ReactNode } from "react";
