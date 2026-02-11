@@ -48,6 +48,25 @@ export const getAllPatients = async () => {
   }
 };
 
+export const getAllUsers = async () => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        _count: {
+          select: { diagnoses: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: users };
+  } catch (error) {
+    console.error(`Error fetching all users from database: ${error}`);
+
+    return { error: `Error fetching all users from database: ${error}` };
+  }
+};
+
 export const getTotalPatientsCount = async () => {
   try {
     const count = await prisma.user.count({

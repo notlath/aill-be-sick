@@ -62,3 +62,38 @@ export interface PatientClusterData {
   patients: Patient[];
   centers: number[][];
 }
+
+// Types for surveillance / outbreak detection
+export interface SurveillanceAnomaly {
+  id: number;
+  disease: string;
+  created_at: string;
+  latitude: number;
+  longitude: number;
+  city: string | null;
+  region: string | null;
+  confidence: number;
+  uncertainty: number;
+  user_id: number;
+  user_name: string;
+  anomaly_score: number;
+}
+
+export interface OutbreakSummary {
+  outbreak_alert: boolean;
+  total_analyzed: number;
+  anomaly_count: number;
+  contamination: number;
+  disease_breakdown: Record<string, number>;
+  region_breakdown: Record<string, number>;
+  top_anomalies: SurveillanceAnomaly[];
+}
+
+export interface OutbreakFullResult {
+  anomalies: SurveillanceAnomaly[];
+  normal: SurveillanceAnomaly[];
+  total_analyzed: number;
+  anomaly_count: number;
+  outbreak_alert: boolean;
+  contamination: number;
+}
