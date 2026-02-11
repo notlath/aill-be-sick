@@ -1,0 +1,541 @@
+"""
+Configuration constants for the disease prediction system.
+Centralizes all thresholds and configuration values in one place.
+"""
+import os
+
+# --- Model Paths ---
+ENG_MODEL_PATH = "notlath/BioClinical-ModernBERT-base-Symptom2Disease_WITH-DROPOUT-42"
+FIL_MODEL_PATH = "notlath/RoBERTa-Tagalog-base-Symptom2Disease_WITH-DROPOUT-42"
+
+# --- Symptom Validation Thresholds ---
+# Configurable gating thresholds for validating symptom narratives
+# Reject very short/off-topic inputs and low-confidence/high-uncertainty predictions
+
+# Hard thresholds: reject if below/above these
+SYMPTOM_MIN_CONF = float(os.getenv("SYMPTOM_MIN_CONF", "0.50"))
+SYMPTOM_MAX_MI = float(os.getenv("SYMPTOM_MAX_MI", "0.10"))
+
+# Soft-accept band: allow follow-ups to proceed when signal exists but is below hard threshold
+SYMPTOM_SOFT_MIN_CONF = float(os.getenv("SYMPTOM_SOFT_MIN_CONF", "0.35"))
+SYMPTOM_SOFT_MAX_MI = float(os.getenv("SYMPTOM_SOFT_MAX_MI", "0.12"))
+
+# Require at least N words OR M characters before attempting a diagnosis
+SYMPTOM_MIN_WORDS = int(os.getenv("SYMPTOM_MIN_WORDS", "3"))
+SYMPTOM_MIN_CHARS = int(os.getenv("SYMPTOM_MIN_CHARS", "15"))
+
+# --- Diagnosis Confidence Thresholds ---
+# Very high confidence - skip follow-up questions entirely
+HIGH_CONFIDENCE_THRESHOLD = float(os.getenv("HIGH_CONFIDENCE_THRESHOLD", "0.90"))
+LOW_UNCERTAINTY_THRESHOLD = float(os.getenv("LOW_UNCERTAINTY_THRESHOLD", "0.01"))
+
+# Thesis-aligned thresholds for VALID predictions (per sensitivity analysis)
+# Predictions below these are considered unreliable and should be flagged
+VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.70"))  # Thesis: 70%
+VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.05"))  # Thesis: 5%
+
+# Low confidence - stop asking questions after MAX_QUESTIONS_THRESHOLD
+LOW_CONFIDENCE_THRESHOLD = float(os.getenv("LOW_CONFIDENCE_THRESHOLD", "0.65"))
+
+# --- Follow-up Question Limits ---
+MAX_QUESTIONS_THRESHOLD = int(os.getenv("MAX_QUESTIONS_THRESHOLD", "8"))
+EXHAUSTED_QUESTIONS_THRESHOLD = int(os.getenv("EXHAUSTED_QUESTIONS_THRESHOLD", "10"))
+
+# --- Triage Thresholds ---
+# Determine triage level based on confidence and uncertainty
+TRIAGE_HIGH_CONFIDENCE = float(os.getenv("TRIAGE_HIGH_CONFIDENCE", "0.90"))
+TRIAGE_LOW_UNCERTAINTY = float(os.getenv("TRIAGE_LOW_UNCERTAINTY", "0.03"))
+
+# --- Medical Keywords for Semantic Filtering ---
+# Basic health-related terms used to validate that input is medical in nature
+MEDICAL_KEYWORDS_EN = {
+    # Symptoms - General (from dataset analysis)
+    "fever",
+    "pain",
+    "ache",
+    "aches",
+    "chills",
+    "weak",
+    "weakness",
+    "sick",
+    "ill",
+    "hurt",
+    "sore",
+    "sores",
+    "headache",
+    "headaches",
+    "dizzy",
+    "dizziness",
+    "fatigue",
+    "fatigued",
+    "tired",
+    "exhausted",
+    "exhaustion",
+    "sweating",
+    "sweat",
+    "sweats",
+    "bleeding",
+    "swelling",
+    "infection",
+    "cold",
+    "painful",
+    # GI/Digestive symptoms
+    "nausea",
+    "nauseated",
+    "vomit",
+    "vomiting",
+    "vomited",
+    "diarrhea",
+    "diarrhoea",
+    "constipation",
+    "constipated",
+    "bloat",
+    "bloating",
+    "bloated",
+    "cramp",
+    "cramps",
+    "cramping",
+    "gas",
+    "indigestion",
+    "heartburn",
+    "reflux",
+    "appetite",
+    "nauseous",
+    "bowel",
+    "stool",
+    "stools",
+    # Respiratory symptoms
+    "cough",
+    "coughing",
+    "coughed",
+    "phlegm",
+    "mucus",
+    "sputum",
+    "breathing",
+    "breathe",
+    "breath",
+    "shortness",
+    "wheeze",
+    "wheezing",
+    "congestion",
+    "congested",
+    "runny",
+    "stuffy",
+    # Skin symptoms
+    "rash",
+    "rashes",
+    "itchy",
+    "itching",
+    "itch",
+    "blister",
+    "blisters",
+    "blistering",
+    "lesion",
+    "lesions",
+    "wound",
+    "wounds",
+    "pus",
+    "discharge",
+    "spots",
+    "bumps",
+    # Body parts
+    "head",
+    "eye",
+    "eyes",
+    "nose",
+    "throat",
+    "chest",
+    "stomach",
+    "abdomen",
+    "abdominal",
+    "belly",
+    "back",
+    "muscle",
+    "muscles",
+    "joint",
+    "joints",
+    "skin",
+    "ear",
+    "ears",
+    "mouth",
+    "body",
+    "face",
+    "neck",
+    "arms",
+    "legs",
+    "lung",
+    "lungs",
+    "heart",
+    # Medical/health terms
+    "symptom",
+    "symptoms",
+    "disease",
+    "diagnosis",
+    "treatment",
+    "medicine",
+    "medication",
+    "doctor",
+    "hospital",
+    "clinic",
+    "health",
+    "medical",
+    "feel",
+    "feeling",
+    "feels",
+    # Common descriptors
+    "severe",
+    "mild",
+    "constant",
+    "uncomfortable",
+    "discomfort",
+    "difficult",
+    "trouble",
+    "suffering",
+    "temperature",
+    "racing",
+    "rapid",
+}
+
+MEDICAL_KEYWORDS_TL = {
+    # Symptoms (Tagalog) - from dataset analysis
+    "lagnat",
+    "nilalagnat",
+    "nilagnat",
+    "ubo",
+    "inuubo",
+    "umuubo",
+    "sakit",
+    "masakit",
+    "sumasakit",
+    "pananakit",
+    "pains",
+    "pagdurugo",
+    "pantal",
+    "singaw",
+    "sipon",
+    "hilo",
+    "nahihilo",
+    "suka",
+    "nasusuka",
+    "pagsusuka",
+    "sumuka",
+    "pagod",
+    "napagod",
+    "kapaguran",
+    "nanghihina",
+    "mahina",
+    "panghihina",
+    "pamumula",
+    "pamamaga",
+    "namamaga",
+    "impeksyon",
+    "ginaw",
+    "giniginaw",
+    "panginginig",
+    "nanginginig",
+    # GI symptoms (Tagalog)
+    "pagtatae",
+    "nagtae",
+    "diarrhea",
+    "diarrhoea",
+    "constipation",
+    "tibi",
+    "pagtitibi",
+    "pag-tibi",
+    "pamamaga ng tiyan",
+    "pulikat",
+    "kabag",
+    "almoranas",
+    "gana",
+    "nawalan",
+    # Respiratory (Tagalog)
+    "plema",
+    "plemang",
+    "hirap",
+    "nahihirapan",
+    "huminga",
+    "paghinga",
+    "hininga",
+    "lalamunan",
+    "lalamunan",
+    # Skin symptoms (Tagalog)
+    "sugat",
+    "paltos",
+    "makati",
+    "pantal",
+    "pulang",
+    "pamumula",
+    "lumalabas",
+    "likido",
+    # Body parts (Tagalog)
+    "ulo",
+    "mata",
+    "dibdib",
+    "tiyan",
+    "puson",
+    "likod",
+    "katawan",
+    "balat",
+    "ilong",
+    "tainga",
+    "bibig",
+    "kalamnan",
+    "kasukasuan",
+    "mukha",
+    "leeg",
+    "braso",
+    "binti",
+    "puso",
+    "tibok",
+    # Medical/feeling terms (Tagalog)
+    "sintomas",
+    "gamot",
+    "doktor",
+    "ospital",
+    "klinika",
+    "kalusugan",
+    "medikal",
+    "pakiramdam",
+    "nararamdaman",
+    "ramdam",
+    "nakakaramdam",
+    "lunok",
+    "tulog",
+    "temperatura",
+    "meron",
+    "mayroon",
+    "nakakaabala",
+    "hindi komportable",
+    "sobrang",
+    "matinding",
+    "mataas",
+    "mabilis",
+    "pawis",
+    "pinagpapawisan",
+    "paminsang",
+    "patuloy",
+    "palaging",
+    "kumain",
+    "labis",
+    "aalala",
+    "nag-aalala",
+}
+
+# --- Neuro-Symbolic Verification: Clinical Concept Ontology ---
+# Maps raw terms (EN/TL) to standardized clinical concepts.
+# Used by VerificationLayer to detect symptoms/risk factors outside the 6 in-scope diseases.
+# Format: { "raw_term": "CONCEPT_ID" }
+CLINICAL_CONCEPTS = {
+    # Risk Factors - Environmental Exposure
+    "flood": "RISK_FLOOD_EXPOSURE",
+    "baha": "RISK_FLOOD_EXPOSURE",
+    "floodwater": "RISK_FLOOD_EXPOSURE",
+    "tubig baha": "RISK_FLOOD_EXPOSURE",
+    "lumusong": "RISK_FLOOD_EXPOSURE",
+    "rat": "RISK_RODENT_EXPOSURE",
+    "daga": "RISK_RODENT_EXPOSURE",
+    "rodent": "RISK_RODENT_EXPOSURE",
+    "mouse": "RISK_RODENT_EXPOSURE",
+    "mice": "RISK_RODENT_EXPOSURE",
+    "urine": "RISK_CONTAMINATED_WATER",
+    "ihi": "RISK_CONTAMINATED_WATER",
+    
+    # Distinctive Symptoms - Sensory Loss (COVID-19 indicative)
+    "loss of taste": "SX_AGEUSIA",
+    "lost taste": "SX_AGEUSIA",
+    "can't taste": "SX_AGEUSIA",
+    "no taste": "SX_AGEUSIA",
+    "lost my sense of taste": "SX_AGEUSIA",
+    "lost sense of taste": "SX_AGEUSIA",
+    "no sense of taste": "SX_AGEUSIA",
+    "walang panlasa": "SX_AGEUSIA",
+    "nawalan ng panlasa": "SX_AGEUSIA",
+    
+    "loss of smell": "SX_ANOSMIA",
+    "lost smell": "SX_ANOSMIA",
+    "can't smell": "SX_ANOSMIA",
+    "no smell": "SX_ANOSMIA",
+    "lost my sense of smell": "SX_ANOSMIA",
+    "lost sense of smell": "SX_ANOSMIA",
+    "no sense of smell": "SX_ANOSMIA",
+    "walang pang-amoy": "SX_ANOSMIA",
+    "nawalan ng pang-amoy": "SX_ANOSMIA",
+    
+    # Distinctive Symptoms - Hepatic (Leptospirosis/Hepatitis indicative)
+    "yellow skin": "SX_JAUNDICE",
+    "naninilaw": "SX_JAUNDICE",
+    "jaundice": "SX_JAUNDICE",
+    "yellowish": "SX_JAUNDICE",
+    "kulay tsaa": "SX_DARK_URINE",
+    "dark urine": "SX_DARK_URINE",
+    "tea-colored urine": "SX_DARK_URINE",
+    
+    # Distinctive Symptoms - Ocular (Leptospirosis indicative)
+    "red eyes": "SX_CONJUNCTIVAL_SUFFUSION",
+    "namumula ang mata": "SX_CONJUNCTIVAL_SUFFUSION",
+    "bloodshot eyes": "SX_CONJUNCTIVAL_SUFFUSION",
+
+    # Distinctive Symptoms - Diabetes indicative (Out of Scope)
+    # SX_POLYURIA (Frequent urination)
+    "umihi": "SX_POLYURIA",
+    "frequent urination": "SX_POLYURIA",
+    "urinate": "SX_POLYURIA",
+    "peeing": "SX_POLYURIA",
+    "ihi nang ihi": "SX_POLYURIA",
+    "madalas umihi": "SX_POLYURIA",
+    
+    # SX_POLYDIPSIA (Excessive thirst)
+    "uhaw": "SX_POLYDIPSIA",
+    "thirsty": "SX_POLYDIPSIA",
+    "thirst": "SX_POLYDIPSIA",
+    "dry mouth": "SX_POLYDIPSIA",
+    "tuyong bibig": "SX_POLYDIPSIA",
+    "tuyo ang lalamunan": "SX_POLYDIPSIA",
+    "tuyong lalamunan": "SX_POLYDIPSIA",
+    
+    # SX_POLYPHAGIA (Excessive hunger)
+    "gutom": "SX_POLYPHAGIA",
+    "hungry": "SX_POLYPHAGIA",
+    "hunger": "SX_POLYPHAGIA",
+    "kain nang kain": "SX_POLYPHAGIA",
+    "lagi akong gutom": "SX_POLYPHAGIA",
+    "madalas gutom": "SX_POLYPHAGIA",
+    
+    # SX_WEIGHT_LOSS (Unexplained weight loss)
+    "pumapayat": "SX_WEIGHT_LOSS",
+    "weight loss": "SX_WEIGHT_LOSS",
+    "losing weight": "SX_WEIGHT_LOSS",
+    "bumababa ang timbang": "SX_WEIGHT_LOSS",
+    
+    # SX_SLOW_HEALING (Slow healing wounds)
+    "ayaw gumaling": "SX_SLOW_HEALING",
+    "not healing": "SX_SLOW_HEALING",
+    "sugat na matagal gumaling": "SX_SLOW_HEALING",
+    "sugat": "SX_SLOW_HEALING", # Context sensitive, but often strong signal if persistent
+    
+    # SX_NEUROPATHY (Numbness/Tingling)
+    "manhid": "SX_NEUROPATHY",
+    "namamanhid": "SX_NEUROPATHY",
+    "numbness": "SX_NEUROPATHY",
+    "numb": "SX_NEUROPATHY",
+    "tusok-tusok": "SX_NEUROPATHY",
+    "tingling": "SX_NEUROPATHY",
+    "pins and needles": "SX_NEUROPATHY",
+    
+    # SX_BLURRED_VISION
+    "labo mata": "SX_BLURRED_VISION",
+    "malabo ang mata": "SX_BLURRED_VISION",
+    "blurred vision": "SX_BLURRED_VISION",
+    "paningin": "SX_BLURRED_VISION", # Context: "lumalabo na rin yung paningin"
+
+    # --- NEW: PH-Specific Red Flags (Per Thesis Requirements) ---
+
+    # F1. Dengue Confounders (Lepto, Malaria, Meningo)
+    # Leptospirosis - Calf Pain
+    "calf pain": "SX_CALF_PAIN",
+    "pain in calves": "SX_CALF_PAIN",
+    "sakit ng binti": "SX_CALF_PAIN",
+    "masakit ang binti": "SX_CALF_PAIN",
+    "ngalay ang binti": "SX_CALF_PAIN",
+    # Leptospirosis - Oliguria
+    "urine stopped": "SX_OLIGURIA",
+    "can't pee": "SX_OLIGURIA",
+    "hindi makaihi": "SX_OLIGURIA",
+    "walang ihi": "SX_OLIGURIA",
+    "konti ang ihi": "SX_OLIGURIA",
+    # Malaria - Rigors/Pallor
+    "shaking chills": "SX_RIGORS",
+    "violent shaking": "SX_RIGORS",
+    "nanginginig sa ginaw": "SX_RIGORS",
+    "pale": "SX_PALLOR",
+    "pallor": "SX_PALLOR",
+    "namumutla": "SX_PALLOR",
+    "maputla": "SX_PALLOR",
+    # Meningococcemia - Stiff Neck/Purpura
+    "stiff neck": "SX_NECK_STIFFNESS",
+    "neck stiffness": "SX_NECK_STIFFNESS",
+    "matigas ang leeg": "SX_NECK_STIFFNESS",
+    "purple spots": "SX_PURPURA",
+    "purple rash": "SX_PURPURA",
+    "pasa-pasa": "SX_PURPURA", # Bruise-like
+
+    # F2. Diarrhea Confounders (Cancer, Amoebiasis)
+    # Colorectal Cancer
+    "pencil thin stool": "SX_PENCIL_STOOL",
+    "thin stool": "SX_PENCIL_STOOL",
+    "duming parang lapis": "SX_PENCIL_STOOL",
+    "manipis na dumi": "SX_PENCIL_STOOL",
+    "urge to poop but nothing": "SX_TENESMUS",
+    "parang natatae pero wala": "SX_TENESMUS",
+    # Amoebiasis
+    "raspberry jelly": "SX_RASPBERRY_STOOL",
+    "bloody mucus": "SX_RASPBERRY_STOOL",
+    "jelly stool": "SX_RASPBERRY_STOOL",
+    "madugo at madulas": "SX_RASPBERRY_STOOL",
+
+    # F3. Measles Confounders (Kawasaki, Rubella)
+    # Kawasaki Disease
+    "strawberry tongue": "SX_STRAWBERRY_TONGUE",
+    "red tongue": "SX_STRAWBERRY_TONGUE",
+    "peeling skin": "SX_PEELING_SKIN",
+    "nagbabalat": "SX_PEELING_SKIN",
+    "peeling hands": "SX_PEELING_SKIN",
+    "fever for 5 days": "SX_PROLONGED_FEVER",
+    "matagal na lagnat": "SX_PROLONGED_FEVER",
+    # Rubella
+    "lump behind ear": "SX_POST_AURICULAR_LYMPHADENOPATHY",
+    "swollen behind ear": "SX_POST_AURICULAR_LYMPHADENOPATHY",
+    "bukol sa likod ng tenga": "SX_POST_AURICULAR_LYMPHADENOPATHY",
+
+    # F4. Pneumonia Confounders (TB, Heart Failure, Asthma)
+    # Tuberculosis
+    "coughing blood": "SX_HEMOPTYSIS",
+    "blood in phlegm": "SX_HEMOPTYSIS",
+    "umuubo ng dugo": "SX_HEMOPTYSIS",
+    "may dugo ang plema": "SX_HEMOPTYSIS",
+    "night sweats": "SX_NIGHT_SWEATS",
+    "sweating at night": "SX_NIGHT_SWEATS",
+    "pinapawisan sa gabi": "SX_NIGHT_SWEATS",
+    "cough for 2 weeks": "SX_CHRONIC_COUGH",
+    "tagal na ng ubo": "SX_CHRONIC_COUGH",
+    "2 linggo na ubo": "SX_CHRONIC_COUGH",
+    # Heart Failure
+    "can't lie flat": "SX_ORTHOPNEA",
+    "needs pillows to sleep": "SX_ORTHOPNEA",
+    "hindi makahiga": "SX_ORTHOPNEA",
+    "hirap huminga pag nakahiga": "SX_ORTHOPNEA",
+    "pink froth": "SX_PINK_FROTHY_SPUTUM",
+    "pink phlegm": "SX_PINK_FROTHY_SPUTUM",
+    "kulay rosas na plema": "SX_PINK_FROTHY_SPUTUM",
+    # Asthma
+    "wheezing": "SX_WHEEZING",
+    "whistling breath": "SX_WHEEZING",
+    "humuhuni": "SX_WHEEZING",
+    "huni": "SX_WHEEZING",
+}
+
+# Concepts that MUST be explained by the predicted disease ontology.
+# If these are found in input but NOT in the disease profile, flag OUT_OF_SCOPE.
+HIGH_VALUE_CONCEPTS = {
+    "RISK_FLOOD_EXPOSURE",
+    "RISK_RODENT_EXPOSURE", 
+    "RISK_CONTAMINATED_WATER",
+    "SX_AGEUSIA",
+    "SX_ANOSMIA",
+    "SX_JAUNDICE",
+    "SX_DARK_URINE",
+    "SX_CONJUNCTIVAL_SUFFUSION",
+    "SX_POLYURIA",
+    "SX_POLYDIPSIA",
+    "SX_POLYPHAGIA",
+    "SX_WEIGHT_LOSS",
+    "SX_SLOW_HEALING",
+    "SX_NEUROPATHY",
+    "SX_BLURRED_VISION",
+    # PH Red Flags
+    "SX_CALF_PAIN", "SX_OLIGURIA", "SX_RIGORS", "SX_PALLOR", "SX_NECK_STIFFNESS", "SX_PURPURA",
+    "SX_PENCIL_STOOL", "SX_TENESMUS", "SX_RASPBERRY_STOOL",
+    "SX_STRAWBERRY_TONGUE", "SX_PEELING_SKIN", "SX_PROLONGED_FEVER", "SX_POST_AURICULAR_LYMPHADENOPATHY",
+    "SX_HEMOPTYSIS", "SX_NIGHT_SWEATS", "SX_CHRONIC_COUGH", "SX_ORTHOPNEA", "SX_PINK_FROTHY_SPUTUM", "SX_WHEEZING",
+}
+
