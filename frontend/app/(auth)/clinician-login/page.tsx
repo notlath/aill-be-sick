@@ -2,12 +2,14 @@
 
 import { emailLogin, emailSignup } from "@/actions/email-auth";
 import {
-  EmailAuthSchema,
-  EmailAuthSchemaType,
+    EmailAuthSchema,
+    EmailAuthSchemaType,
 } from "@/schemas/EmailAuthSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
+
+import Link from "next/link";
 
 const ClinicianLoginPage = () => {
   const form = useForm<EmailAuthSchemaType>({
@@ -78,6 +80,14 @@ const ClinicianLoginPage = () => {
                 placeholder="Password"
                 {...form.register("password")}
               />
+              <div className="text-right">
+                <Link
+                  href="/clinician-forgot-password"
+                  className="link link-hover text-sm"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
             </div>
             <div className="flex gap-2">
               <button
