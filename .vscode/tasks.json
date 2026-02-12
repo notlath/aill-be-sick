@@ -35,7 +35,7 @@
       "label": "Run Backend",
       "type": "shell",
       "command": "${workspaceFolder}\\backend\\venv\\Scripts\\python.exe",
-      "args": ["app.py"],
+      "args": ["run.py"],
       "options": {
         "cwd": "${workspaceFolder}\\backend"
       },
