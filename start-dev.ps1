@@ -28,7 +28,7 @@ function Start-Backend {
     # Check if venv exists
     if (Test-Path "$PSScriptRoot\backend\venv\Scripts\activate.ps1") {
         Write-Host "Activating virtual environment and starting Flask server..." -ForegroundColor Yellow
-        Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; .\venv\Scripts\activate.ps1; python app.py"
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot\backend'; .\venv\Scripts\activate.ps1; python run.py"
     } else {
         Write-Host "Virtual environment not found at backend\venv\Scripts\activate.ps1" -ForegroundColor Red
         Write-Host "Please create a virtual environment first." -ForegroundColor Red

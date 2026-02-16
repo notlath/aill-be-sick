@@ -26,6 +26,24 @@ AI'll Be Sick is an AI-assisted symptom checker and clinician dashboard applicat
 - **Icons**: Lucide React
 - **Forms**: React Hook Form with Zod validation
 
+### Making a Pull Request
+
+ALWAYS follow this template for creating a pull request.
+
+```md
+## What does this PR do?
+
+- A brief description of the changes made in this PR
+
+## Files Changed
+
+- A list of the files that were changed in this PR
+
+## Testing Done
+
+- A description of the tests that were performed to verify the changes
+```
+
 ## Building and Running
 
 ### Prerequisites

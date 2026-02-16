@@ -109,6 +109,24 @@ For more detailed information about the backend, see the `backend/README.md` fil
 
 For more detailed information about the frontend, see the `frontend/README.md` file.
 
+### Making a Pull Request
+
+ALWAYS follow this template for creating a pull request.
+
+```md
+## What does this PR do?
+
+- A brief description of the changes made in this PR
+
+## Files Changed
+
+- A list of the files that were changed in this PR
+
+## Testing Done
+
+- A description of the tests that were performed to verify the changes
+```
+
 ### Seeding the database
 
 To seed the database with initial data, run the following command in the `frontend` directory:
