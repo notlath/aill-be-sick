@@ -367,8 +367,16 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                                 : ""
                             }`}
                           >
-                            <div className="swap-on">-</div>
-                            <div className="swap-off">+</div>
+                            <div
+                              className={`swap-on ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}
+                            >
+                              -
+                            </div>
+                            <div
+                              className={`swap-off ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}
+                            >
+                              +
+                            </div>
                           </span>
                         </div>
                         <div className="space-y-1.5">
@@ -500,8 +508,16 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                                 : ""
                             }`}
                           >
-                            <div className="swap-on">-</div>
-                            <div className="swap-off">+</div>
+                            <div
+                              className={`swap-on ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}
+                            >
+                              -
+                            </div>
+                            <div
+                              className={`swap-off ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}
+                            >
+                              +
+                            </div>
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -591,8 +607,16 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                                 : ""
                             }`}
                           >
-                            <div className="swap-on">-</div>
-                            <div className="swap-off">+</div>
+                            <div
+                              className={`swap-on ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}
+                            >
+                              -
+                            </div>
+                            <div
+                              className={`swap-off ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}
+                            >
+                              +
+                            </div>
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
