@@ -26,10 +26,12 @@ def fetch_patient_data(
     """
     # Get SQLAlchemy engine
     engine = get_db_engine(db_url)
-    
+
     # Execute query using SQLAlchemy connection
     with engine.connect() as conn:
-        result = conn.execute(text("""
+        result = conn.execute(
+            text(
+                """
             SELECT u.id, u.name, u.email, u.latitude, u.longitude, u.city, u.region, u.gender, u.age,
                          (
                              SELECT d.disease
@@ -44,11 +46,22 @@ def fetch_patient_data(
                 AND u.longitude IS NOT NULL
                 AND u.age IS NOT NULL
                 AND u.gender IS NOT NULL
-        """))
+            ORDER BY u.id ASC
+        """
+            )
+        )
         data = result.fetchall()
 
     if not data:
         return np.array([]), []
+
+    # Build deterministic one-hot vocabularies for categorical values
+    city_values = []
+    region_values = []
+    if include_city:
+        city_values = sorted({(row[5] or "UNKNOWN") for row in data})
+    if include_region:
+        region_values = sorted({(row[6] or "UNKNOWN") for row in data})
 
     # Encode data for clustering and store patient info
     encoded_data = []
@@ -76,9 +89,10 @@ def fetch_patient_data(
         age_normalized_raw = (age - 18) / (100 - 18)
         age_normalized = max(0.0, min(1.0, age_normalized_raw))
 
-        # For region/city, use hash or simple numeric encoding
-        city_encoded = hash(city or "") % 1000
-        region_encoded = hash(region or "") % 1000
+        city_value = city or "UNKNOWN"
+        region_value = region or "UNKNOWN"
+        city_one_hot = [1 if city_value == v else 0 for v in city_values]
+        region_one_hot = [1 if region_value == v else 0 for v in region_values]
 
         # Encode disease as one-hot over known diseases so k-means can consider it.
         # If disease is None or unknown, keep all zeros.
@@ -96,9 +110,9 @@ def fetch_patient_data(
         if include_gender:
             features.append(gender_encoded)
         if include_city:
-            features.append(city_encoded)
+            features.extend(city_one_hot)
         if include_region:
-            features.append(region_encoded)
+            features.extend(region_one_hot)
         if include_disease:
             features.extend(disease_one_hot)
 

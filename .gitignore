@@ -52,3 +52,4 @@ Thumbs.db
 
 # Prisma files
 frontend/lib/generated
+frontend/app/generated
