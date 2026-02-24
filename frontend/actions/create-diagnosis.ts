@@ -1,10 +1,10 @@
 "use server";
 
-import { CreateDiagnosisSchema } from "@/schemas/CreateDiagnosisSchema";
-import { actionClient } from "./client";
-import { getCurrentDbUser } from "@/utils/user";
 import prisma from "@/prisma/prisma";
+import { CreateDiagnosisSchema } from "@/schemas/CreateDiagnosisSchema";
+import { getCurrentDbUser } from "@/utils/user";
 import { revalidatePath } from "next/cache";
+import { actionClient } from "./client";
 
 export const createDiagnosis = actionClient
   .inputSchema(CreateDiagnosisSchema)
@@ -58,6 +58,7 @@ export const createDiagnosis = actionClient
           latitude: location.latitude,
           longitude: location.longitude,
           city: location.city,
+          province: location.province,
           region: location.region,
           explanation: {
             connect: {
