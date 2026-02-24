@@ -539,3 +539,11 @@ HIGH_VALUE_CONCEPTS = {
     "SX_HEMOPTYSIS", "SX_NIGHT_SWEATS", "SX_CHRONIC_COUGH", "SX_ORTHOPNEA", "SX_PINK_FROTHY_SPUTUM", "SX_WHEEZING",
 }
 
+# --- Fuzzy Matching Configuration ---
+# Length-tiered similarity thresholds to mitigate false positives.
+# Short words (e.g., "baha", "ihi") need near-exact match to prevent collisions.
+FUZZY_THRESHOLD_SHORT = 95   # terms ≤ 4 chars
+FUZZY_THRESHOLD_MEDIUM = 85  # terms 5–9 chars
+FUZZY_THRESHOLD_LONG = 80    # terms ≥ 10 chars
+FUZZY_MIN_TERM_LENGTH = 3    # skip fuzzy matching for terms shorter than this
+
