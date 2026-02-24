@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState, memo } from "react";
-import * as d3 from "d3";
-import {
-  useGeoData,
-  ViewState,
-  ViewLevel,
-  MapFeature,
-} from "@/hooks/use-geo-data";
-import { ChevronLeft, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  MapFeature,
+  useGeoData,
+  ViewLevel,
+  ViewState,
+} from "@/hooks/use-geo-data";
+import { useUserLocation } from "@/hooks/use-location";
 import { DiseaseMapData } from "@/utils/map-data";
+import * as d3 from "d3";
+import { ChevronLeft, Navigation, Search } from "lucide-react";
+import { memo, useEffect, useRef, useState } from "react";
 
 // Helper to determine next level in the flow
 const getNextLevel = (current: ViewLevel): ViewLevel | null => {
@@ -232,6 +233,14 @@ const PhilippinesMap = memo(
     const [highlightId, setHighlightId] = useState<number | null>(null);
     const [searchLoading, setSearchLoading] = useState(true);
 
+    // --- User Location State ---
+    const {
+      location: userLocation,
+      error: locationError,
+      loading: locationLoading,
+      requestLocation,
+    } = useUserLocation();
+
     // Use Custom Hook for Data Fetching
     const { geoData, loading, error } = useGeoData(viewState);
 
@@ -374,6 +383,52 @@ const PhilippinesMap = memo(
         }
       }
     };
+
+    // --- Auto-zoom on Location Detection ---
+    useEffect(() => {
+      if (userLocation && searchIndex.length > 0) {
+        // Try to find the barangay first, then city, then province
+        let match: SearchItem | undefined;
+        let searchQuery = "";
+
+        if (userLocation.barangay) {
+          // Sometimes nominatim gives us "Barangay X", sometimes just "X"
+          const bgy = userLocation.barangay.replace(/Barangay |Brgy\. /gi, "");
+          searchQuery = bgy;
+          match = searchIndex.find(
+            (item) =>
+              item.t === "barangay" &&
+              item.l.toLowerCase().includes(bgy.toLowerCase())
+          );
+        }
+
+        if (!match && userLocation.city) {
+          const city = userLocation.city.replace(/ City| Municipality/gi, "");
+          if (!searchQuery) searchQuery = city;
+          match = searchIndex.find(
+            (item) =>
+              item.t === "city" &&
+              item.l.toLowerCase().includes(city.toLowerCase())
+          );
+        }
+
+        if (!match && userLocation.province) {
+          const prov = userLocation.province.replace(/ Province/gi, "");
+          if (!searchQuery) searchQuery = prov;
+          match = searchIndex.find(
+            (item) =>
+              item.t === "province" &&
+              item.l.toLowerCase().includes(prov.toLowerCase())
+          );
+        }
+
+        if (match) {
+           handleSearchSelect(match);
+        } else {
+           console.log("Location detected but couldn't map to search index:", userLocation);
+        }
+      }
+    }, [userLocation, searchIndex]);
 
     // Persistent Ctrl+Scroll Prevention Listener
     useEffect(() => {
@@ -986,33 +1041,56 @@ const PhilippinesMap = memo(
             className="w-full h-[800px] overflow-hidden relative"
           >
             {/* Navigation / Header */}
-            <div className="absolute top-4 left-4 flex items-center justify-between pointer-events-none z-20">
+            <div className="absolute top-4 left-4 flex items-center justify-between w-[calc(100%-2rem)] z-20">
               <div className="flex items-center gap-2 text-sm pointer-events-auto">
                 {(history.length > 0 || zoomLevel === "city") && (
                   <button
                     onClick={handleBack}
-                    className="btn btn-sm btn-soft bg-white/80 backdrop-blur-sm"
+                    className="btn btn-sm btn-soft bg-white/80 backdrop-blur-sm shadow-sm"
                   >
                     <ChevronLeft className="size-3.5" /> Back
                   </button>
                 )}
-                <span className="font-semibold text-lg bg-white/80 backdrop-blur-sm px-2 py-1 rounded">
+                <span className="font-semibold text-lg bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded shadow-sm">
                   {viewState.name}
                 </span>
                 {history.length === 0 && zoomLevel === "region" && (
-                  <span className="badge badge-info text-xs">
+                  <span className="badge badge-info text-xs shadow-sm">
                     All Provinces
                   </span>
                 )}
                 {viewState.level === "province" && zoomLevel === "region" && (
-                  <span className="badge badge-success text-xs">
+                  <span className="badge badge-success text-xs shadow-sm">
                     Detailed View
                   </span>
                 )}
                 {zoomLevel === "city" && (
-                  <span className="badge badge-warning text-xs">
+                  <span className="badge badge-warning text-xs shadow-sm">
                     City View
                   </span>
+                )}
+              </div>
+              
+              <div className="pointer-events-auto">
+                <button
+                  onClick={requestLocation}
+                  disabled={locationLoading}
+                  className="btn btn-sm bg-white/90 hover:bg-white text-primary border-none shadow-md backdrop-blur-sm"
+                  title="Find my location"
+                >
+                  {locationLoading ? (
+                    <span className="loading loading-spinner loading-xs"></span>
+                  ) : (
+                    <Navigation className="size-4" />
+                  )}
+                  <span className="hidden sm:inline-block ml-1 text-xs font-semibold">
+                    Find My Location
+                  </span>
+                </button>
+                {locationError && (
+                  <div className="absolute top-10 right-0 bg-error/90 text-white text-[10px] px-2 py-1 rounded shadow mt-1 whitespace-nowrap">
+                    {locationError}
+                  </div>
                 )}
               </div>
             </div>

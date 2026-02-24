@@ -18,6 +18,7 @@ model User {
   updatedAt DateTime    @default(now()) @updatedAt
   role      Role        @default(PATIENT)
   city      String?
+  province  String?
   latitude  Float?
   longitude Float?
   region    String?
@@ -77,6 +78,7 @@ model Diagnosis {
   modelUsed   Model
   symptoms    String
   city        String?
+  province    String?
   latitude    Float?
   longitude   Float?
   region      String?

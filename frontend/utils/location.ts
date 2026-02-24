@@ -4,7 +4,9 @@ export type LocationData = {
   latitude: number;
   longitude: number;
   city?: string;
+  province?: string;
   region?: string;
+  barangay?: string; // finer location details
 };
 
 /**
@@ -17,7 +19,7 @@ export const getLocationDetails = async (
 ): Promise<{ success?: LocationData; error?: string }> => {
   try {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10`,
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
       {
         headers: {
           "User-Agent": "AIllBeSick/1.0", // Required by Nominatim
@@ -40,7 +42,12 @@ export const getLocationDetails = async (
           data.address?.town ||
           data.address?.village ||
           data.address?.municipality,
+        province: data.address?.state || data.address?.province,
         region: data.address?.region,
+        barangay:
+          data.address?.quarter ||
+          data.address?.suburb ||
+          data.address?.neighbourhood,
       },
     };
   } catch (error) {
@@ -75,7 +82,8 @@ export const getLocationFromIP = async (): Promise<{
         latitude: data.latitude,
         longitude: data.longitude,
         city: data.city,
-        region: data.region,
+        province: data.region, // Note: ipapi.co uses 'region' for state/province and 'region_code' for code
+        region: data.region_code,
       },
     };
   } catch (error) {

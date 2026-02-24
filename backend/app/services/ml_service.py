@@ -48,6 +48,12 @@ class MCDClassifierWithSHAP:
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
 
+        # Apply dynamic quantization to Linear layers for faster CPU inference and reduced memory usage
+        if str(self.device).startswith("cpu"):
+            self.model = torch.quantization.quantize_dynamic(
+                self.model, {torch.nn.Linear}, dtype=torch.qint8
+            )
+
         # CRITICAL FIX: Replace standard Dropout with ThreadSafeDropout
         # This allows per-request dropout control without global .train() state
         self._replace_dropout_layers()

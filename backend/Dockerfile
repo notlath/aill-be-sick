@@ -39,7 +39,7 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT:-10000}/')" || exit 1
 
 # Use Gunicorn with sensible production defaults
-# - 1 worker / 1 thread to keep memory low on free tiers
+# - 1 worker / 4 threads to handle concurrent requests efficiently
 # - 300s timeout for ML model inference
 # - max-requests for worker recycling to prevent memory leaks
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-10000} --workers 1 --threads 1 --timeout 300 --max-requests 100 --max-requests-jitter 10 --access-logfile - --error-logfile - app:app"]
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-10000} --workers 1 --threads 4 --timeout 300 --max-requests 100 --max-requests-jitter 10 --access-logfile - --error-logfile - \"app:create_app()\""]

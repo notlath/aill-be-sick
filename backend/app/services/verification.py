@@ -2,29 +2,82 @@
 import re
 import app.config as config
 from typing import Dict, Set, List, Optional
+from rapidfuzz import fuzz
+
+
+def _get_fuzzy_threshold(term: str) -> int:
+    """Return the similarity threshold based on term length."""
+    length = len(term)
+    if length <= 4:
+        return config.FUZZY_THRESHOLD_SHORT
+    elif length <= 9:
+        return config.FUZZY_THRESHOLD_MEDIUM
+    else:
+        return config.FUZZY_THRESHOLD_LONG
+
+
+def _fuzzy_match_term(term: str, text: str) -> bool:
+    """
+    Check if a dictionary term fuzzy-matches anywhere in the text using a
+    sliding window of n-grams. The window size equals the term length (in words)
+    so we compare apples-to-apples.
+    """
+    if len(term) < config.FUZZY_MIN_TERM_LENGTH:
+        return False
+
+    threshold = _get_fuzzy_threshold(term)
+    term_word_count = len(term.split())
+
+    # Split text into words and generate n-grams matching the term's word count
+    words = text.split()
+    if len(words) < term_word_count:
+        return False
+
+    for i in range(len(words) - term_word_count + 1):
+        window = " ".join(words[i : i + term_word_count])
+        score = fuzz.ratio(term, window)
+        if score >= threshold:
+            return True
+
+    return False
+
 
 def extract_clinical_concepts(text: str) -> Set[str]:
     """
     Extract clinical concepts from text using the CLINICAL_CONCEPTS dictionary.
     Returns a set of concept IDs (e.g., {'RISK_FLOOD_EXPOSURE', 'SX_JAUNDICE'}).
-    Uses regex word boundaries to avoid partial matches (e.g., 'ihi' in 'nanghihina').
+
+    Uses a two-phase approach:
+      Phase 1 (Exact): Regex word-boundary matching (deterministic, zero risk).
+      Phase 2 (Fuzzy): Length-tiered fuzzy matching for remaining terms to catch
+                       typos and Tagalog morphological variations.
     """
     if not text:
         return set()
         
     text_lower = text.lower()
     found_concepts = set()
+    matched_terms = set()  # Track which terms already matched exactly
     
-    # Check for each clinical concept term with word boundaries
-    # Optimization: Compile regexes if this is slow, but for now simple loop is fine
+    # --- Phase 1: Exact regex matching (unchanged from original) ---
     for term, concept_id in config.CLINICAL_CONCEPTS.items():
-        # Escape term for regex safety
         escaped_term = re.escape(term)
-        # Pattern: \bterm\b (whole word match)
         pattern = fr"\b{escaped_term}\b"
         
         if re.search(pattern, text_lower):
             found_concepts.add(concept_id)
+            matched_terms.add(term)
+    
+    # --- Phase 2: Fuzzy matching for unmatched terms ---
+    for term, concept_id in config.CLINICAL_CONCEPTS.items():
+        if term in matched_terms:
+            continue  # Already matched exactly
+        if concept_id in found_concepts:
+            continue  # Concept already found via another term
+
+        if _fuzzy_match_term(term, text_lower):
+            found_concepts.add(concept_id)
+            print(f"[FUZZY-MATCH] '{term}' -> {concept_id} (threshold={_get_fuzzy_threshold(term)}%)")
     
     return found_concepts
 

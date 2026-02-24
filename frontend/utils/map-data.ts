@@ -13,6 +13,7 @@ export type DiseaseMapData = {
   totalPatients: number;
   byCity: LocationCaseCount[];
   byRegion: LocationCaseCount[];
+  byProvince: LocationCaseCount[];
   byDisease: Record<string, LocationCaseCount[]>;
 };
 
@@ -44,6 +45,7 @@ export const getMapDiseaseData = async ({
       gender: { not: null },
       OR: [
         { city: { not: null } },
+        { province: { not: null } },
         { region: { not: null } },
       ],
     };
@@ -58,6 +60,7 @@ export const getMapDiseaseData = async ({
         select: {
           id: true,
           city: true,
+          province: true,
           region: true,
           diagnoses: {
             where: {
@@ -79,6 +82,7 @@ export const getMapDiseaseData = async ({
         select: {
           id: true,
           city: true,
+          province: true,
           region: true,
         },
       });
@@ -86,16 +90,23 @@ export const getMapDiseaseData = async ({
 
     // Aggregate by location
     const cityCount = new Map<string, number>();
+    const provinceCount = new Map<string, number>();
     const regionCount = new Map<string, number>();
     const diseaseLocationMap = new Map<string, Map<string, number>>();
 
     users.forEach((user) => {
       const city = user.city?.trim() || null;
+      const province = user.province?.trim() || null;
       const region = user.region?.trim() || null;
 
       // Track by city
       if (city) {
         cityCount.set(city, (cityCount.get(city) || 0) + 1);
+      }
+
+      // Track by province
+      if (province) {
+        provinceCount.set(province, (provinceCount.get(province) || 0) + 1);
       }
 
       // Track by region
@@ -105,7 +116,8 @@ export const getMapDiseaseData = async ({
 
       // Track by disease (for byDisease aggregation when filtering)
       if (diseaseEnum) {
-        const location = city || region || "Unknown";
+        // use the most granular location available
+        const location = city || province || region || "Unknown";
         if (!diseaseLocationMap.has(diseaseEnum)) {
           diseaseLocationMap.set(diseaseEnum, new Map());
         }
@@ -117,6 +129,13 @@ export const getMapDiseaseData = async ({
 
     // Convert to arrays
     const byCity: LocationCaseCount[] = Array.from(cityCount.entries())
+      .map(([location, count]) => ({
+        location,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    const byProvince: LocationCaseCount[] = Array.from(provinceCount.entries())
       .map(([location, count]) => ({
         location,
         count,
@@ -147,6 +166,7 @@ export const getMapDiseaseData = async ({
         totalPatients,
         byCity,
         byRegion,
+        byProvince,
         byDisease,
       },
     };
