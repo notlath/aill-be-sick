@@ -4,11 +4,9 @@ import { useEffect, useState } from "react";
 import {
   Sparkles,
   MessageSquare,
-  History,
-  MapPin,
-  Lightbulb,
+  History, Lightbulb,
   ChevronDown,
-  ChevronUp,
+  ChevronUp
 } from "lucide-react";
 
 const OnboardingModal = () => {
@@ -33,7 +31,7 @@ const OnboardingModal = () => {
     "A 102.1°F fever has been present for three days, coupled with a dry cough and a clear, runny nose. My eyes are red and sensitive to light. A rash of small, non-itchy red spots started behind my ears a few hours ago and is now advancing onto my forehead. I'm experiencing a general feeling of tiredness and aches throughout my body.";
 
   return (
-    <dialog className={`modal ${isOpen ? "modal-open" : ""}`}>
+    <dialog className={`onboarding-dialog modal ${isOpen ? "modal-open" : ""}`}>
       <div className="modal-box w-11/12 max-w-4xl">
         <form method="dialog">
           <button
