@@ -48,26 +48,40 @@ class MCDClassifierWithSHAP:
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
 
+        # Store a reference to the raw, non-quantized model for explanations (gradients required)
+        # Note: In Python, this is a reference. If we quantize self.model later,
+        # self.model will point to a NEW quantized object, while this stays as the original fp32 model.
+        self.explanation_model = self.model
+
         # Apply dynamic quantization to Linear layers for faster CPU inference and reduced memory usage
         if str(self.device).startswith("cpu"):
+            # quantize_dynamic creates a new model instance
             self.model = torch.quantization.quantize_dynamic(
                 self.model, {torch.nn.Linear}, dtype=torch.qint8
             )
 
         # CRITICAL FIX: Replace standard Dropout with ThreadSafeDropout
         # This allows per-request dropout control without global .train() state
-        self._replace_dropout_layers()
+        # Apply to BOTH models (inference and explanation)
+        self._replace_dropout_layers(self.model)
         
-        # Move model to device and strict eval mode
+        if self.explanation_model is not self.model:
+            self._replace_dropout_layers(self.explanation_model)
+        
+        # Move models to device and strict eval mode
         self.model.to(self.device)
         self.model.eval()
+        
+        # Explanation model also needs to be on device and in eval mode
+        self.explanation_model.to(self.device)
+        self.explanation_model.eval()
 
-    def _replace_dropout_layers(self):
+    def _replace_dropout_layers(self, model):
         """
         Recursively replace all torch.nn.Dropout layers with ThreadSafeDropout.
         Preserves the module structure but swaps the dropout logic.
         """
-        for name, module in self.model.named_modules():
+        for name, module in model.named_modules():
             for child_name, child in module.named_children():
                 if isinstance(child, torch.nn.Dropout):
                     # Create thread-safe replacement
@@ -176,7 +190,8 @@ class MCDClassifierWithSHAP:
         """
         Compute token-level attributions using Captum's GradientSHAP on embeddings.
         """
-        self.model.zero_grad()
+        # Use explanation_model (fp32) for gradients, as quantized models don't support backprop well
+        self.explanation_model.zero_grad()
 
         # Tokenize input
         inputs = self.tokenizer(
@@ -192,12 +207,12 @@ class MCDClassifierWithSHAP:
         )
 
         # 1️⃣ Get embeddings from the model
-        embeddings = self.model.get_input_embeddings()(inputs["input_ids"])
+        embeddings = self.explanation_model.get_input_embeddings()(inputs["input_ids"])
 
         # 2️⃣ Define a forward function that takes embeddings
         def forward_func(embeds):
             attention_mask = inputs["attention_mask"]
-            outputs = self.model(inputs_embeds=embeds, attention_mask=attention_mask)
+            outputs = self.explanation_model(inputs_embeds=embeds, attention_mask=attention_mask)
             probs = F.softmax(outputs.logits, dim=-1)
             return probs[:, predicted_class]
 

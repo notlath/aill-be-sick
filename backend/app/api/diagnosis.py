@@ -42,6 +42,7 @@ def _stop_response(reason, pred, confidence, uncertainty, probs,
     }
     if message:
         data["message"] = message
+        data["diagnosis"]["message"] = message
     if extra_fields:
         data["diagnosis"].update(extra_fields)
     return jsonify({"data": data}), 200
