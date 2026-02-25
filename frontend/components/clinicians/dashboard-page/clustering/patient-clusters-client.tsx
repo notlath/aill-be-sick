@@ -190,6 +190,15 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   };
 
   const handleVariableChange = (variable: keyof typeof selectedVariables) => {
+    // Count how many variables are currently selected
+    const selectedCount =
+      Object.values(selectedVariables).filter(Boolean).length;
+
+    // If trying to uncheck the last selected variable, prevent it
+    if (selectedVariables[variable] && selectedCount === 1) {
+      return; // Do nothing - prevent unchecking last variable
+    }
+
     setSelectedVariables((prev) => ({
       ...prev,
       [variable]: !prev[variable],
@@ -266,12 +275,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                   type="checkbox"
                   className="hidden"
                   checked={selectedVariables.age}
-                  onChange={() =>
-                    setSelectedVariables((prev) => ({
-                      ...prev,
-                      age: !prev.age,
-                    }))
-                  }
+                  onChange={() => handleVariableChange("age")}
                 />
                 <span>Age</span>
               </label>
@@ -282,12 +286,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                   type="checkbox"
                   className="hidden"
                   checked={selectedVariables.gender}
-                  onChange={() =>
-                    setSelectedVariables((prev) => ({
-                      ...prev,
-                      gender: !prev.gender,
-                    }))
-                  }
+                  onChange={() => handleVariableChange("gender")}
                 />
                 <span>Gender</span>
               </label>
@@ -298,13 +297,16 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                   type="checkbox"
                   className="hidden"
                   checked={selectedVariables.city}
-                  onChange={() =>
+                  onChange={() => {
+                    const selectedCount =
+                      Object.values(selectedVariables).filter(Boolean).length;
+                    if (selectedVariables.city && selectedCount === 1) return;
                     setSelectedVariables((prev) => ({
                       ...prev,
                       city: !prev.city,
                       region: false,
-                    }))
-                  }
+                    }));
+                  }}
                 />
                 <span>City</span>
               </label>
@@ -315,13 +317,16 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                   type="checkbox"
                   className="hidden"
                   checked={selectedVariables.region}
-                  onChange={() =>
+                  onChange={() => {
+                    const selectedCount =
+                      Object.values(selectedVariables).filter(Boolean).length;
+                    if (selectedVariables.region && selectedCount === 1) return;
                     setSelectedVariables((prev) => ({
                       ...prev,
                       region: !prev.region,
                       city: false,
-                    }))
-                  }
+                    }));
+                  }}
                 />
                 <span>Region</span>
               </label>
