@@ -50,6 +50,9 @@ Thumbs.db
 .env
 .env.local
 
+# Local planning artifacts
+.planning/
+
 # Prisma files
 frontend/lib/generated
 frontend/app/generated
