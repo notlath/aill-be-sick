@@ -413,7 +413,7 @@ def explainer(text: str, mean_probs=None):
         tokens = explanation_result["tokens"]
         attrs = explanation_result["attributions"]
 
-        words, word_attrs = aggregate_subword_attributions(tokens, attrs)
+        words, word_attrs = aggregate_subword_attributions(tokens, attrs, tokenizer=model.tokenizer)
         words = [clean_token(w) for w in words]
 
         # Ensure the returned structure is JSON serializable: convert arrays to lists
