@@ -2,16 +2,19 @@
 
 import { emailLogin, emailSignup } from "@/actions/email-auth";
 import {
-    EmailAuthSchema,
-    EmailAuthSchemaType,
+  EmailAuthSchema,
+  EmailAuthSchemaType,
 } from "@/schemas/EmailAuthSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const ClinicianLoginPage = () => {
+  const router = useRouter();
   const form = useForm<EmailAuthSchemaType>({
     defaultValues: {
       email: "",
@@ -23,9 +26,12 @@ const ClinicianLoginPage = () => {
     emailLogin,
     {
       onSuccess: ({ data }) => {
-        if (data.error) {
-          console.error(data.error);
+        if (data?.error) {
+          toast.error(data.error);
         }
+      },
+      onError: ({ error }) => {
+        toast.error("An unexpected error occurred during login.");
       },
     }
   );
@@ -33,9 +39,15 @@ const ClinicianLoginPage = () => {
     emailSignup,
     {
       onSuccess: ({ data }) => {
-        if (data.error) {
-          console.error(data.error);
+        if (data?.error) {
+          toast.error(data.error);
+        } else {
+          toast.success("Check your email to confirm your account.");
+          router.push("/clinician-login");
         }
+      },
+      onError: ({ error }) => {
+        toast.error("An unexpected error occurred during signup.");
       },
     }
   );

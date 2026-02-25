@@ -58,7 +58,6 @@ export const emailSignup = actionClient
     }
 
     revalidatePath("/", "layout");
-    redirect("/");
   });
 
 export const requestPasswordReset = actionClient
