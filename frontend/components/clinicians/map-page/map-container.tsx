@@ -286,6 +286,9 @@ export function MapContainer({
     }
 
     const provinceCounts: Record<string, number> = {};
+    const provinceTotals: Record<string, number> = {};
+    const cityTotals: Record<string, number> = {};
+    const barangayCounts: Record<string, number> = {};
     for (const patient of clusterData.patients) {
       if (patient.cluster !== selectedClusterId) continue;
       const normalizedProvince = normalizeLoc(patient.province);
@@ -294,6 +297,20 @@ export function MapContainer({
         provinceNameByAlias.get(normalizedProvince) ?? patient.province?.trim();
       if (!canonicalProvince) continue;
       provinceCounts[canonicalProvince] = (provinceCounts[canonicalProvince] || 0) + 1;
+      provinceTotals[canonicalProvince] = (provinceTotals[canonicalProvince] || 0) + 1;
+
+      const normalizedCity = normalizeLoc(patient.city);
+      if (!normalizedCity) continue;
+
+      const provinceCityKey = `${normalizeLoc(canonicalProvince)}||${normalizedCity}`;
+      cityTotals[provinceCityKey] = (cityTotals[provinceCityKey] || 0) + 1;
+
+      const normalizedBarangay = normalizeLoc(patient.barangay);
+      if (!normalizedBarangay) continue;
+
+      const provinceCityBarangayKey = `${provinceCityKey}||${normalizedBarangay}`;
+      barangayCounts[provinceCityBarangayKey] =
+        (barangayCounts[provinceCityBarangayKey] || 0) + 1;
     }
 
     const provinceToRegion: Record<string, string> = {};
@@ -307,6 +324,7 @@ export function MapContainer({
       projectedProvinceCountsByCluster.get(selectedClusterId) ?? {};
 
     const legendBins: MapHeatmapData["legendBins"] = [];
+    const provinceLegendBinsByProvince: MapHeatmapData["provinceLegendBinsByProvince"] = {};
     if (globalMax > 0) {
       const colorRamp = buildClusterRamp(clusterBaseColor, 5);
       const bucketSize = Math.ceil(globalMax / colorRamp.length);
@@ -320,16 +338,50 @@ export function MapContainer({
           color: colorRamp[index],
         });
       }
+
+      const provinceBarangayMax = new Map<string, number>();
+      for (const [key, count] of Object.entries(barangayCounts)) {
+        const [normalizedProvinceName] = key.split("||");
+        if (!normalizedProvinceName) continue;
+        const currentMax = provinceBarangayMax.get(normalizedProvinceName) ?? 0;
+        if (count > currentMax) {
+          provinceBarangayMax.set(normalizedProvinceName, count);
+        }
+      }
+
+      for (const [normalizedProvinceName, provinceMax] of provinceBarangayMax.entries()) {
+        if (provinceMax <= 0) {
+          provinceLegendBinsByProvince[normalizedProvinceName] = [];
+          continue;
+        }
+        const provinceBucketSize = Math.ceil(provinceMax / colorRamp.length);
+        const bins: MapHeatmapData["legendBins"] = [];
+        for (let index = 0; index < colorRamp.length; index += 1) {
+          const min = index * provinceBucketSize + 1;
+          const max = Math.min(provinceMax, (index + 1) * provinceBucketSize);
+          if (min > max) continue;
+          bins.push({
+            min,
+            max,
+            color: colorRamp[index],
+          });
+        }
+        provinceLegendBinsByProvince[normalizedProvinceName] = bins;
+      }
     }
 
     return {
       clusterBaseColor,
       provinceCounts,
       projectedProvinceCounts: selectedProjectedProvinceCounts,
+      provinceTotals,
+      cityTotals,
+      barangayCounts,
       regionTotals,
       provinceToRegion,
       globalMax,
       legendBins,
+      provinceLegendBinsByProvince,
       selectedClusterDisplay: selectedCluster,
     };
   }, [clusterData, selectedCluster, selectedTab, clusterOrder]);

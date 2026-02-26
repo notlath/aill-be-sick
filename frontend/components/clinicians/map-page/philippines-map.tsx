@@ -7,6 +7,7 @@ import { ChevronLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { MapHeatmapData } from "@/types";
+import provinces from "@/public/locations/provinces.json";
 
 
 // Helper to determine next level in the flow
@@ -33,9 +34,19 @@ type PhilippinesMapProps = {
   heatmapData?: MapHeatmapData;
 }
 
+type ProvinceRecord = {
+  psgc: string;
+  name: string;
+};
+
 const ZERO_CLUSTER_COLOR = "#d1d5db";
 const COUNTRY_MIN_ZOOM = 0.35;
 const ZOOM_STEP_MULTIPLIER = 0.45;
+
+const provinceRows = provinces as ProvinceRecord[];
+const provinceNameByPsgc = new Map(
+  provinceRows.map((province) => [province.psgc, province.name]),
+);
 
 const normalizeLoc = (value?: string | null): string => {
   if (!value) return "";
@@ -89,6 +100,58 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
     }
     return mapped;
   }, [heatmapData]);
+
+  const provinceTotals = useMemo(() => {
+    if (!heatmapData) return new Map<string, number>();
+    const mapped = new Map<string, number>();
+    for (const [provinceName, count] of Object.entries(heatmapData.provinceTotals)) {
+      mapped.set(normalizeLoc(provinceName), count);
+    }
+    return mapped;
+  }, [heatmapData]);
+
+  const cityTotals = useMemo(() => {
+    if (!heatmapData) return new Map<string, number>();
+    return new Map<string, number>(Object.entries(heatmapData.cityTotals));
+  }, [heatmapData]);
+
+  const barangayClusterCounts = useMemo(() => {
+    if (!heatmapData) return new Map<string, number>();
+    return new Map<string, number>(Object.entries(heatmapData.barangayCounts));
+  }, [heatmapData]);
+
+  const cityNameByPsgc = useMemo(() => {
+    const mapped = new Map<number, string>();
+    if (!geoData?.boundaries) return mapped;
+    for (const boundary of geoData.boundaries) {
+      const cityPsgc = boundary.properties.adm3_psgc;
+      const cityName = boundary.properties.adm3_en;
+      if (!cityPsgc || !cityName) continue;
+      mapped.set(cityPsgc, cityName);
+    }
+    return mapped;
+  }, [geoData?.boundaries]);
+
+  const currentProvinceName = useMemo(() => {
+    if (viewState.level !== "province") return null;
+    if (viewState.id) {
+      const fromPsgc = provinceNameByPsgc.get(viewState.id);
+      if (fromPsgc) return fromPsgc;
+    }
+    const fromFeature = geoData?.features?.[0]?.properties?.adm2_en;
+    if (fromFeature) return fromFeature;
+    return null;
+  }, [geoData?.features, viewState.id, viewState.level]);
+
+  const currentProvinceNormalized = useMemo(
+    () => normalizeLoc(currentProvinceName),
+    [currentProvinceName],
+  );
+
+  const activeProvinceLegendBins = useMemo(() => {
+    if (!heatmapData || !currentProvinceNormalized) return [];
+    return heatmapData.provinceLegendBinsByProvince[currentProvinceNormalized] ?? [];
+  }, [heatmapData, currentProvinceNormalized]);
 
   // --- Load Search Index ---
   useEffect(() => {
@@ -287,6 +350,19 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
 
       const getClusterCountForFeature = (feature: MapFeature): number => {
         if (selectedTab !== "cluster" || !heatmapData) return 0;
+
+        if (viewState.level === "province") {
+          if (!currentProvinceNormalized) return 0;
+          const cityName =
+            feature.properties.adm3_en ||
+            cityNameByPsgc.get(feature.properties.adm3_psgc) ||
+            "";
+          const barangayName = feature.properties.adm4_en || "";
+          if (!cityName || !barangayName) return 0;
+          const barangayKey = `${currentProvinceNormalized}||${normalizeLoc(cityName)}||${normalizeLoc(barangayName)}`;
+          return barangayClusterCounts.get(barangayKey) ?? 0;
+        }
+
         const provinceName = feature.properties.adm2_en || feature.properties.adm3_en;
         if (!provinceName) return 0;
         return projectedProvinceCounts.get(normalizeLoc(provinceName)) ?? 0;
@@ -295,13 +371,17 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
       const getFeatureFillColor = (feature: MapFeature): string => {
         if (selectedTab === "cluster" && heatmapData) {
           const count = getClusterCountForFeature(feature);
-          if (count <= 0 || heatmapData.globalMax <= 0) return ZERO_CLUSTER_COLOR;
+          const activeLegendBins =
+            viewState.level === "province"
+              ? activeProvinceLegendBins
+              : heatmapData.legendBins;
+          if (count <= 0 || activeLegendBins.length === 0) return ZERO_CLUSTER_COLOR;
 
-          const matchedBin = heatmapData.legendBins.find(
+          const matchedBin = activeLegendBins.find(
             (bin) => count >= bin.min && count <= bin.max,
           );
 
-          return matchedBin?.color ?? heatmapData.legendBins[heatmapData.legendBins.length - 1]?.color ?? ZERO_CLUSTER_COLOR;
+          return matchedBin?.color ?? activeLegendBins[activeLegendBins.length - 1]?.color ?? ZERO_CLUSTER_COLOR;
         }
 
         const name =
@@ -398,6 +478,30 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
         .on("mousemove", (event, d: any) => {
           const name = d.properties.adm4_en || d.properties.adm3_en || d.properties.adm2_en || d.properties.adm1_en || "Feature";
           if (selectedTab === "cluster" && heatmapData) {
+            if (viewState.level === "province") {
+              const provinceName = currentProvinceName || "Province";
+              const normalizedProvince = normalizeLoc(provinceName);
+              const cityName =
+                d.properties.adm3_en ||
+                cityNameByPsgc.get(d.properties.adm3_psgc) ||
+                "Unknown city";
+              const barangayName = d.properties.adm4_en || name;
+              const barangayKey = `${normalizedProvince}||${normalizeLoc(cityName)}||${normalizeLoc(barangayName)}`;
+              const cityKey = `${normalizedProvince}||${normalizeLoc(cityName)}`;
+              const barangayCount = barangayClusterCounts.get(barangayKey) ?? 0;
+              const cityTotal = cityTotals.get(cityKey) ?? 0;
+              const provinceTotal = provinceTotals.get(normalizedProvince) ?? 0;
+
+              tooltip
+                .style("display", "block")
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px")
+                .html(
+                  `${barangayName}: ${barangayCount}<br/>${cityName} total: ${cityTotal}<br/>${provinceName} total: ${provinceTotal}`,
+                );
+              return;
+            }
+
             const normalizedProvince = normalizeLoc(
               d.properties.adm2_en || d.properties.adm3_en || name,
             );
@@ -485,7 +589,23 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
       resizeObserver.disconnect();
       d3.selectAll(".map-tooltip").remove(); // Global cleanup of tooltips
     };
-  }, [geoData, viewState, containerRef, highlightId, selectedTab, heatmapData, projectedProvinceCounts, provinceClusterCounts]); // Depend on highlightId
+  }, [
+    geoData,
+    viewState,
+    containerRef,
+    highlightId,
+    selectedTab,
+    heatmapData,
+    projectedProvinceCounts,
+    provinceClusterCounts,
+    provinceTotals,
+    cityTotals,
+    barangayClusterCounts,
+    cityNameByPsgc,
+    currentProvinceName,
+    currentProvinceNormalized,
+    activeProvinceLegendBins,
+  ]); // Depend on highlightId
 
   // Handle Drill-down
   const handleFeatureClick = (feature: MapFeature) => {
@@ -620,7 +740,7 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
                   style={{ backgroundColor: heatmapData.clusterBaseColor }}
                 />
                 <p className="font-semibold">
-                  Cluster {heatmapData.selectedClusterDisplay} Legend
+                  Cluster {heatmapData.selectedClusterDisplay} {viewState.level === "province" ? "Province" : "Country"} Legend
                 </p>
               </div>
               <div className="space-y-1">
@@ -631,7 +751,10 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
                   />
                   <span>0</span>
                 </div>
-                {heatmapData.legendBins.map((bin) => (
+                {(viewState.level === "province"
+                  ? activeProvinceLegendBins
+                  : heatmapData.legendBins
+                ).map((bin) => (
                   <div key={`${bin.min}-${bin.max}`} className="flex items-center gap-2">
                     <span
                       className="inline-block h-3 w-5 rounded-sm border border-base-300"

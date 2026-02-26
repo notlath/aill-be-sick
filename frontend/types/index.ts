@@ -20,6 +20,7 @@ export interface Patient {
   longitude: number;
   city: string;
   province?: string | null;
+  barangay?: string | null;
   region: string;
   gender: "MALE" | "FEMALE" | "OTHER";
   age: number;
@@ -111,11 +112,19 @@ export type MapHeatmapData = {
   provinceCounts: Record<string, number>;
   // Region-projected province counts for heatmap fill intensity
   projectedProvinceCounts: Record<string, number>;
+  // Province totals for selected cluster
+  provinceTotals: Record<string, number>;
+  // Normalized "province||city" -> count
+  cityTotals: Record<string, number>;
+  // Normalized "province||city||barangay" -> count
+  barangayCounts: Record<string, number>;
   // Region totals for selected cluster (used in tooltip line 2)
   regionTotals: Record<string, number>;
   // Normalized province name -> region display label
   provinceToRegion: Record<string, string>;
   globalMax: number;
   legendBins: HeatmapLegendBin[];
+  // Province-specific legend bins keyed by normalized province name
+  provinceLegendBinsByProvince: Record<string, HeatmapLegendBin[]>;
   selectedClusterDisplay: string;
 };
