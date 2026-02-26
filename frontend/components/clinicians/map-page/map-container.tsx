@@ -47,6 +47,7 @@ export function MapContainer({
     undefined,
   );
   const [dataLoading, setDataLoading] = useState(true);
+  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
 
   // Filter States
   const [disease, setDisease] = useState<string>("All");
@@ -60,10 +61,13 @@ export function MapContainer({
 
       const params: any = {};
       if (disease !== "All") params.disease = disease;
+      if (selectedProvince) params.province = selectedProvince;
       if (startDate) params.startDate = new Date(startDate);
       if (endDate) params.endDate = new Date(endDate);
 
       const result = await getMapDiseaseData(params);
+
+      console.log({ result })
 
       if (result.success) {
         setDiseaseData(result.success);
@@ -74,7 +78,7 @@ export function MapContainer({
     }
 
     fetchMapData();
-  }, [selectedTab, disease, startDate, endDate]);
+  }, [selectedTab, disease, startDate, endDate, selectedProvince]);
 
   // Fetch clusters when k changes
   useEffect(() => {
@@ -153,8 +157,14 @@ export function MapContainer({
       </div>
 
       <div className="relative">
-        {dataLoading ? (
-          <div className="flex items-center justify-center h-[800px] bg-base-200 rounded-lg">
+        <PhilippinesMap
+          selectedTab={selectedTab}
+          selectedCluster={selectedCluster}
+          diseaseData={diseaseData}
+          onProvinceChange={setSelectedProvince}
+        />
+        {dataLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-base-200 rounded-lg z-10">
             <div className="flex flex-col items-center gap-4">
               <span className="loading loading-spinner loading-lg text-primary"></span>
               <p className="text-sm text-base-content/60">
@@ -162,12 +172,6 @@ export function MapContainer({
               </p>
             </div>
           </div>
-        ) : (
-          <PhilippinesMap
-            selectedTab={selectedTab}
-            selectedCluster={selectedCluster}
-            diseaseData={diseaseData}
-          />
         )}
       </div>
     </div>
