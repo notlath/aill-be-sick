@@ -26,6 +26,7 @@ export interface Patient {
   age: number;
   cluster: number;
   disease?: string | null;
+  diagnosed_at?: string | null;
 }
 
 export interface GenderDistribution {
