@@ -8,7 +8,7 @@ from datetime import datetime
 from app.utils.database import get_db_engine
 
 
-def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None):
+def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=None):
     """
     Fetch diagnosis data with temporal and spatial information.
     Uses DATABASE_URL environment variable if db_url not provided.
@@ -17,6 +17,7 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None):
         db_url: Database connection string (optional)
         start_date: Filter records after this date (inclusive, optional)
         end_date: Filter records before this date (inclusive, optional)
+        disease: Filter by disease name (optional)
     
     Returns: tuple of (encoded_data, diagnosis_info)
     """
@@ -32,6 +33,7 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None):
             COALESCE(d.latitude, u.latitude) as latitude,
             COALESCE(d.longitude, u.longitude) as longitude,
             COALESCE(d.city, u.city) as city,
+            COALESCE(d.province, u.province) as province,
             COALESCE(d.region, u.region) as region,
             d.confidence,
             d.uncertainty,
@@ -52,6 +54,10 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None):
     if end_date:
         query_str += ' AND d."createdAt" <= :end_date '
         params["end_date"] = end_date
+
+    if disease:
+        query_str += ' AND d.disease = :disease '
+        params["disease"] = disease
         
     query_str += ' ORDER BY d."createdAt" DESC'
     
@@ -81,6 +87,7 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None):
             latitude,
             longitude,
             city,
+            province,
             region,
             confidence,
             uncertainty,
@@ -114,6 +121,7 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None):
                 "latitude": latitude,
                 "longitude": longitude,
                 "city": city,
+                "province": province,
                 "region": region,
                 "confidence": confidence,
                 "uncertainty": uncertainty,
@@ -125,13 +133,14 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None):
     return np.array(encoded_data), diagnosis_info
 
 
-def detect_outbreaks(contamination=0.05, db_url=None):
+def detect_outbreaks(contamination=0.05, db_url=None, disease=None):
     """
     Run Isolation Forest to detect anomalous diagnosis patterns.
     
     Args:
         contamination: Expected proportion of outliers (default 0.05 = 5%)
         db_url: Database URL (optional, uses env var if not provided)
+        disease: Filter by disease name (optional)
     
     Returns: dict with:
         - anomalies: List of anomalous diagnosis records
@@ -141,7 +150,7 @@ def detect_outbreaks(contamination=0.05, db_url=None):
         - outbreak_alert: Boolean (True if anomaly count exceeds threshold)
     """
     # Fetch data
-    data, diagnosis_info = fetch_diagnosis_data(db_url)
+    data, diagnosis_info = fetch_diagnosis_data(db_url, disease=disease)
 
     if data.size == 0:
         return {
@@ -202,13 +211,13 @@ def detect_outbreaks(contamination=0.05, db_url=None):
     }
 
 
-def get_outbreak_summary(contamination=0.05, db_url=None):
+def get_outbreak_summary(contamination=0.05, db_url=None, disease=None):
     """
     Get a summary of outbreak detection suitable for dashboard display.
     
     Returns: dict with aggregated statistics
     """
-    result = detect_outbreaks(contamination, db_url)
+    result = detect_outbreaks(contamination, db_url, disease=disease)
 
     if result["total_analyzed"] == 0:
         return result

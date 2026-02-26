@@ -17,6 +17,7 @@ def surveillance_outbreaks():
     Query params:
       - contamination: Expected proportion of outliers (default: 0.05 = 5%)
       - summary: If 'true', return aggregated summary instead of full details
+      - disease: Filter by disease name (optional)
     Returns JSON with anomalies, statistics, and outbreak alert status.
     """
     try:
@@ -38,12 +39,15 @@ def surveillance_outbreaks():
         # Check if summary mode is requested
         summary_mode = request.args.get("summary", "false").lower() == "true"
 
+        # Optional disease filter
+        disease = request.args.get("disease", None)
+
         if summary_mode:
             # Return aggregated summary for dashboard
-            result = get_outbreak_summary(contamination=contamination)
+            result = get_outbreak_summary(contamination=contamination, disease=disease)
         else:
             # Return full details
-            result = detect_outbreaks(contamination=contamination)
+            result = detect_outbreaks(contamination=contamination, disease=disease)
 
         print(
             f"[SURVEILLANCE] Analyzed {result['total_analyzed']} diagnoses, found {result['anomaly_count']} anomalies (contamination={contamination})"

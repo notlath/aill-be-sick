@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -9,9 +10,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AnomalyHeatmapData,
   ClusterStatistics,
   MapHeatmapData,
+  OutbreakFullResult,
   PatientClusterData,
+  SurveillanceAnomaly,
 } from "@/types";
 import { buildClusterRamp, getClusterBaseColor } from "@/utils/cluster-colors";
 import { getMapDiseaseData } from "@/utils/map-data";
@@ -167,6 +171,13 @@ export function MapContainer({
   const [showAllRegions, setShowAllRegions] = useState(false);
   const [showAllCities, setShowAllCities] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+
+  // Anomaly States
+  const [anomalyDisease, setAnomalyDisease] = useState<string>(DISEASES[0]);
+  const [anomalyData, setAnomalyData] = useState<SurveillanceAnomaly[]>([]);
+  const [anomalyTotalAnalyzed, setAnomalyTotalAnalyzed] = useState(0);
+  const [anomalyOutbreakAlert, setAnomalyOutbreakAlert] = useState(false);
+  const [showAllAnomalyRegions, setShowAllAnomalyRegions] = useState(false);
 
   // Filter States
   const [disease, setDisease] = useState<string>("All");
@@ -503,10 +514,163 @@ export function MapContainer({
   }, [k, selectedTab]);
 
   useEffect(() => {
-    if (selectedTab === "anomaly") {
-      setDataLoading(false);
+    if (selectedTab !== "anomaly") return;
+
+    let cancelled = false;
+
+    async function fetchAnomalyData() {
+      try {
+        setDataLoading(true);
+        const res = await fetch(
+          `${BACKEND_URL}/api/surveillance/outbreaks?contamination=0.05`,
+        );
+        if (!res.ok) throw new Error("Failed to fetch anomaly data");
+
+        const data: OutbreakFullResult = await res.json();
+        if (cancelled) return;
+        setAnomalyData(data.anomalies);
+        setAnomalyTotalAnalyzed(data.total_analyzed);
+        setAnomalyOutbreakAlert(data.outbreak_alert);
+      } catch (err) {
+        console.error("Error fetching anomaly data:", err);
+      } finally {
+        if (!cancelled) setDataLoading(false);
+      }
     }
+
+    fetchAnomalyData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedTab]);
+
+  // ----- Anomaly Heatmap Data -----
+  const anomalyHeatmapData = useMemo<AnomalyHeatmapData | undefined>(() => {
+    if (selectedTab !== "anomaly" || anomalyData.length === 0) return undefined;
+
+    // Filter anomalies by selected disease
+    const filtered = anomalyData.filter(
+      (a) => a.disease === anomalyDisease,
+    );
+
+    // Aggregate anomaly counts by region
+    const regionCounts = new Map<string, number>();
+    // Also count per province directly
+    const provinceDirectCounts: Record<string, number> = {};
+    for (const anomaly of filtered) {
+      const anomalyRegion = normalizeLoc(anomaly.region);
+      if (anomalyRegion) {
+        const regionPsgc = regionPsgcByAlias.get(anomalyRegion);
+        if (regionPsgc) {
+          regionCounts.set(regionPsgc, (regionCounts.get(regionPsgc) || 0) + 1);
+        }
+      }
+
+      // Direct province counting
+      if (anomaly.province) {
+        const normalizedProvince = normalizeLoc(anomaly.province);
+        const canonicalProvince = provinceNameByAlias.get(normalizedProvince);
+        if (canonicalProvince) {
+          const key = normalizeLoc(canonicalProvince);
+          provinceDirectCounts[key] = (provinceDirectCounts[key] || 0) + 1;
+        }
+      }
+    }
+
+    // Project region counts to provinces (same pattern as clusters)
+    const provinceCounts: Record<string, number> = {};
+    const regionTotals: Record<string, number> = {};
+    const provinceToRegion: Record<string, string> = {};
+    let globalMax = 0;
+
+    for (const [provinceName, regionPsgc] of provinceNameToRegionPsgc) {
+      const count = regionCounts.get(regionPsgc) ?? 0;
+      provinceCounts[normalizeLoc(provinceName)] = count;
+      if (count > globalMax) globalMax = count;
+
+      const regionName = regionNameByPsgc.get(regionPsgc);
+      if (regionName) {
+        provinceToRegion[normalizeLoc(provinceName)] = regionName;
+        regionTotals[regionName] = (regionTotals[regionName] || 0);
+      }
+    }
+
+    // Compute actual region totals from the region counts
+    for (const [regionPsgc, count] of regionCounts.entries()) {
+      const regionName = regionNameByPsgc.get(regionPsgc);
+      if (regionName) {
+        regionTotals[regionName] = count;
+      }
+    }
+
+    // Pick color for this disease
+    const diseaseIndex = DISEASES.indexOf(anomalyDisease);
+    const diseaseBaseColor = getClusterBaseColor(
+      diseaseIndex >= 0 ? diseaseIndex : 0,
+    );
+
+    // Build legend bins
+    const legendBins: AnomalyHeatmapData["legendBins"] = [];
+    if (globalMax > 0) {
+      const colorRamp = buildClusterRamp(diseaseBaseColor, 5);
+      const bucketSize = Math.ceil(globalMax / colorRamp.length);
+      for (let index = 0; index < colorRamp.length; index += 1) {
+        const min = index * bucketSize + 1;
+        const max = Math.min(globalMax, (index + 1) * bucketSize);
+        if (min > max) continue;
+        legendBins.push({ min, max, color: colorRamp[index] });
+      }
+    }
+
+    return {
+      diseaseBaseColor,
+      provinceCounts,
+      provinceDirectCounts,
+      regionTotals,
+      provinceToRegion,
+      globalMax,
+      legendBins,
+      selectedDisease: anomalyDisease,
+    };
+  }, [anomalyData, anomalyDisease, selectedTab]);
+
+  // ----- Anomaly Summary -----
+  const anomalySummary = useMemo(() => {
+    if (selectedTab !== "anomaly" || anomalyData.length === 0 || !anomalyHeatmapData)
+      return null;
+
+    const filtered = anomalyData.filter((a) => a.disease === anomalyDisease);
+
+    // Top regions sorted by count
+    const topRegions = Object.entries(anomalyHeatmapData.regionTotals)
+      .filter(([, count]) => count > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    // Top 5 most anomalous cases (lowest anomaly_score = most anomalous)
+    const topCases = [...filtered]
+      .sort((a, b) => a.anomaly_score - b.anomaly_score)
+      .slice(0, 5);
+
+    const anomalyRate =
+      anomalyTotalAnalyzed > 0
+        ? ((filtered.length / anomalyTotalAnalyzed) * 100).toFixed(1)
+        : "0";
+
+    return {
+      diseaseCount: filtered.length,
+      totalAnalyzed: anomalyTotalAnalyzed,
+      outbreakAlert: anomalyOutbreakAlert,
+      anomalyRate,
+      topRegions,
+      topCases,
+      diseaseBaseColor: anomalyHeatmapData.diseaseBaseColor,
+    };
+  }, [anomalyData, anomalyDisease, selectedTab, anomalyHeatmapData, anomalyTotalAnalyzed, anomalyOutbreakAlert]);
+
+  useEffect(() => {
+    setShowAllAnomalyRegions(false);
+  }, [anomalyDisease, selectedTab]);
 
   return (
     <div className="space-y-4">
@@ -582,6 +746,26 @@ export function MapContainer({
           </>
         )}
 
+        {selectedTab === "anomaly" && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium whitespace-nowrap">
+              Disease:
+            </label>
+            <Select value={anomalyDisease} onValueChange={setAnomalyDisease}>
+              <SelectTrigger className="w-40 bg-white shadow-sm">
+                <SelectValue placeholder="Select disease" />
+              </SelectTrigger>
+              <SelectContent>
+                {DISEASES.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {selectedTab === "disease" && (
           <div className="flex items-center gap-4 border-l border-base-300 pl-4 w-full sm:w-auto">
             <div className="flex items-center gap-2">
@@ -611,6 +795,7 @@ export function MapContainer({
           selectedTab={selectedTab}
           selectedCluster={selectedCluster}
           heatmapData={heatmapData}
+          anomalyHeatmapData={anomalyHeatmapData}
         />
         {dataLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-base-200 rounded-lg z-10">
@@ -727,6 +912,141 @@ export function MapContainer({
                   </div>
                 ) : (
                   <p className="text-base-content/70">No city data</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedTab === "anomaly" && anomalySummary && (
+        <div className="card bg-base-100 border border-base-300">
+          <div className="card-body gap-4">
+            {anomalySummary.outbreakAlert && (
+              <div className="alert alert-warning text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 6a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 6zm0 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+                <span>Outbreak alert: anomaly count exceeds expected threshold across all diseases</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block h-3 w-3 rounded-full"
+                  style={{ backgroundColor: anomalySummary.diseaseBaseColor }}
+                />
+                <h3 className="card-title text-base">
+                  {anomalyDisease} Anomaly Overview
+                </h3>
+              </div>
+              <Link
+                href="/alerts"
+                className="btn btn-ghost btn-xs text-primary"
+              >
+                View full analysis →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 text-sm">
+              <div className="bg-base-200 rounded-box p-3">
+                <p className="text-base-content/70">Anomalies detected</p>
+                <p className="text-xl font-semibold">
+                  {anomalySummary.diseaseCount}
+                </p>
+                <p className="text-base-content/80 text-xs">
+                  for {anomalyDisease}
+                </p>
+              </div>
+
+              <div className="bg-base-200 rounded-box p-3">
+                <p className="text-base-content/70">Total analyzed</p>
+                <p className="text-xl font-semibold">
+                  {anomalySummary.totalAnalyzed}
+                </p>
+                <p className="text-base-content/80 text-xs">
+                  diagnosis records
+                </p>
+              </div>
+
+              <div className="bg-base-200 rounded-box p-3">
+                <p className="text-base-content/70">Anomaly rate</p>
+                <p className="text-xl font-semibold">
+                  {anomalySummary.anomalyRate}%
+                </p>
+                <p className="text-base-content/80 text-xs">
+                  of total for this disease
+                </p>
+              </div>
+
+              <div className="bg-base-200 rounded-box p-3">
+                <p className="text-base-content/70">Alert status</p>
+                <p className="font-semibold">
+                  {anomalySummary.outbreakAlert ? (
+                    <span className="text-warning">⚠️ Outbreak alert</span>
+                  ) : (
+                    <span className="text-success">✅ Normal</span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-base-200 rounded-box p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-semibold">Top Affected Regions</p>
+                  {anomalySummary.topRegions.length > 3 && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => setShowAllAnomalyRegions((prev) => !prev)}
+                    >
+                      {showAllAnomalyRegions ? "Show less" : "View all"}
+                    </button>
+                  )}
+                </div>
+                {anomalySummary.topRegions.length > 0 ? (
+                  <div className="space-y-1">
+                    {(showAllAnomalyRegions
+                      ? anomalySummary.topRegions
+                      : anomalySummary.topRegions.slice(0, 3)
+                    ).map(([region, count]) => (
+                      <p key={region}>
+                        {region} ({count})
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-base-content/70">No anomalies for this disease</p>
+                )}
+              </div>
+
+              <div className="bg-base-200 rounded-box p-3">
+                <p className="font-semibold mb-2">Most Anomalous Cases</p>
+                {anomalySummary.topCases.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="table table-xs">
+                      <thead>
+                        <tr>
+                          <th>Location</th>
+                          <th>Date</th>
+                          <th>Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {anomalySummary.topCases.map((c) => (
+                          <tr key={c.id}>
+                            <td>{c.city || c.province || c.region || "—"}</td>
+                            <td>{new Date(c.created_at).toLocaleDateString()}</td>
+                            <td className="font-mono">{c.anomaly_score.toFixed(3)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-base-content/70">No anomalies for this disease</p>
                 )}
               </div>
             </div>

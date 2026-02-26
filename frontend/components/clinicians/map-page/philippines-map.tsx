@@ -6,7 +6,7 @@ import { useGeoData, ViewState, ViewLevel, MapFeature } from "@/hooks/use-geo-da
 import { ChevronLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { MapHeatmapData } from "@/types";
+import { AnomalyHeatmapData, MapHeatmapData } from "@/types";
 import provinces from "@/public/locations/provinces.json";
 
 
@@ -32,6 +32,7 @@ type PhilippinesMapProps = {
   selectedDisease?: string;
   selectedCluster?: string;
   heatmapData?: MapHeatmapData;
+  anomalyHeatmapData?: AnomalyHeatmapData;
 }
 
 type ProvinceRecord = {
@@ -60,7 +61,7 @@ const normalizeLoc = (value?: string | null): string => {
     .replace(/\s+province$/i, "");
 };
 
-const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) => {
+const PhilippinesMap = memo(({ selectedTab, heatmapData, anomalyHeatmapData }: PhilippinesMapProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -393,6 +394,24 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
         return colorScale(name);
       };
 
+      const getAnomalyCountForFeature = (feature: MapFeature): number => {
+        if (selectedTab !== "anomaly" || !anomalyHeatmapData) return 0;
+        // Anomaly heatmap only at country level (province shapes)
+        const provinceName = feature.properties.adm2_en || feature.properties.adm3_en;
+        if (!provinceName) return 0;
+        return anomalyHeatmapData.provinceCounts[normalizeLoc(provinceName)] ?? 0;
+      };
+
+      const getAnomalyFillColor = (feature: MapFeature): string => {
+        if (!anomalyHeatmapData) return ZERO_CLUSTER_COLOR;
+        const count = getAnomalyCountForFeature(feature);
+        if (count <= 0 || anomalyHeatmapData.legendBins.length === 0) return ZERO_CLUSTER_COLOR;
+        const matchedBin = anomalyHeatmapData.legendBins.find(
+          (bin) => count >= bin.min && count <= bin.max,
+        );
+        return matchedBin?.color ?? anomalyHeatmapData.legendBins[anomalyHeatmapData.legendBins.length - 1]?.color ?? ZERO_CLUSTER_COLOR;
+      };
+
       // Create Group Hierarchy
       const g = svg.append("g");
 
@@ -435,7 +454,12 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
         .data(features)
         .join("path")
         .attr("d", pathGenerator as any)
-        .attr("fill", (d) => getFeatureFillColor(d))
+        .attr("fill", (d) => {
+          if (selectedTab === "anomaly" && anomalyHeatmapData) {
+            return getAnomalyFillColor(d);
+          }
+          return getFeatureFillColor(d);
+        })
         .attr("stroke", (d) => {
           // Check highlight for Feature Layer (Barangays usually)
           if (highlightId) {
@@ -477,6 +501,27 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
         })
         .on("mousemove", (event, d: any) => {
           const name = d.properties.adm4_en || d.properties.adm3_en || d.properties.adm2_en || d.properties.adm1_en || "Feature";
+          if (selectedTab === "anomaly" && anomalyHeatmapData) {
+            const provinceName =
+              d.properties.adm2_en || d.properties.adm3_en || name;
+            const normalizedProvince = normalizeLoc(provinceName);
+            const provinceCount =
+              anomalyHeatmapData.provinceDirectCounts[normalizedProvince] ?? 0;
+            const regionName =
+              anomalyHeatmapData.provinceToRegion[normalizedProvince] ?? "Region";
+            const regionTotal =
+              anomalyHeatmapData.regionTotals[regionName] ?? 0;
+
+            tooltip
+              .style("display", "block")
+              .style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY - 10) + "px")
+              .html(
+                `<strong>${name}</strong>: ${provinceCount} ${anomalyHeatmapData.selectedDisease} anomalies<br/>${regionName} total: ${regionTotal}`,
+              );
+            return;
+          }
+
           if (selectedTab === "cluster" && heatmapData) {
             if (viewState.level === "province") {
               const provinceName = currentProvinceName || "Province";
@@ -596,6 +641,7 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
     highlightId,
     selectedTab,
     heatmapData,
+    anomalyHeatmapData,
     projectedProvinceCounts,
     provinceClusterCounts,
     provinceTotals,
@@ -755,6 +801,38 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
                   ? activeProvinceLegendBins
                   : heatmapData.legendBins
                 ).map((bin) => (
+                  <div key={`${bin.min}-${bin.max}`} className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-3 w-5 rounded-sm border border-base-300"
+                      style={{ backgroundColor: bin.color }}
+                    />
+                    <span>{bin.min}-{bin.max}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedTab === "anomaly" && anomalyHeatmapData && (
+            <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded shadow text-xs z-10 min-w-48">
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className="inline-block h-3 w-3 rounded-full border border-base-300"
+                  style={{ backgroundColor: anomalyHeatmapData.diseaseBaseColor }}
+                />
+                <p className="font-semibold">
+                  {anomalyHeatmapData.selectedDisease} Anomaly Legend
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-3 w-5 rounded-sm border border-base-300"
+                    style={{ backgroundColor: ZERO_CLUSTER_COLOR }}
+                  />
+                  <span>0</span>
+                </div>
+                {anomalyHeatmapData.legendBins.map((bin) => (
                   <div key={`${bin.min}-${bin.max}`} className="flex items-center gap-2">
                     <span
                       className="inline-block h-3 w-5 rounded-sm border border-base-300"
