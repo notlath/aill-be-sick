@@ -355,7 +355,7 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData }: PhilippinesMapProps) 
           if (!currentProvinceNormalized) return 0;
           const cityName =
             feature.properties.adm3_en ||
-            cityNameByPsgc.get(feature.properties.adm3_psgc) ||
+            cityNameByPsgc.get(feature.properties.adm3_psgc || 0) ||
             "";
           const barangayName = feature.properties.adm4_en || "";
           if (!cityName || !barangayName) return 0;
