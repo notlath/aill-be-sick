@@ -39,7 +39,14 @@ def fetch_patient_data(
                              WHERE d."userId" = u.id
                              ORDER BY d."createdAt" DESC
                              LIMIT 1
-                         ) AS disease
+                         ) AS disease,
+                         (
+                             SELECT d."createdAt"
+                             FROM "Diagnosis" d
+                             WHERE d."userId" = u.id
+                             ORDER BY d."createdAt" DESC
+                             LIMIT 1
+                         ) AS diagnosed_at
             FROM "User" u
             WHERE u.role = 'PATIENT'
                 AND u.latitude IS NOT NULL
@@ -68,7 +75,7 @@ def fetch_patient_data(
     patient_info = []
 
     for row in data:
-        # row includes an extra last column 'disease' (may be None)
+        # row includes extra last columns 'disease' and 'diagnosed_at' (may be None)
         (
             user_id,
             name,
@@ -82,6 +89,7 @@ def fetch_patient_data(
             gender,
             age,
             disease,
+            diagnosed_at,
         ) = row
 
         # Encode gender: MALE=1, FEMALE=0, OTHER=0.5
@@ -135,6 +143,7 @@ def fetch_patient_data(
                 "gender": gender,
                 "age": age,
                 "disease": disease,
+                "diagnosed_at": diagnosed_at.isoformat() if diagnosed_at else None,
             }
         )
 
