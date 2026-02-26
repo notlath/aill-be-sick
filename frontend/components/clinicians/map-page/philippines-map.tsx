@@ -40,7 +40,7 @@ const PROVINCE_TO_REGION: Record<string, string> = {
   "NCR, Second District (Not a Province)": "NCR",
   "NCR, Third District (Not a Province)": "NCR",
   "NCR, Fourth District (Not a Province)": "NCR",
-  
+
   // CAR (Cordillera Administrative Region)
   "Abra": "Cordillera",
   "Apayao": "Cordillera",
@@ -50,18 +50,18 @@ const PROVINCE_TO_REGION: Record<string, string> = {
   "Mountain Province": "Cordillera",
   "Nueva Vizcaya": "Cordillera",
   "Quirino": "Cordillera",
-  
+
   // Region I (Ilocos)
   "Ilocos Norte": "Region I",
   "Ilocos Sur": "Region I",
   "La Union": "Region I",
   "Pangasinan": "Region I",
-  
+
   // Region II (Cagayan Valley)
   "Batanes": "Region II",
   "Cagayan": "Region II",
   "Isabela": "Region II",
-  
+
   // Region III (Central Luzon)
   "Aurora": "Region III",
   "Bataan": "Region III",
@@ -70,21 +70,21 @@ const PROVINCE_TO_REGION: Record<string, string> = {
   "Pampanga": "Region III",
   "Tarlac": "Region III",
   "Zambales": "Region III",
-  
+
   // Region IV-A (CALABARZON)
   "Batangas": "CALABARZON",
   "Cavite": "CALABARZON",
   "Laguna": "CALABARZON",
   "Quezon": "CALABARZON",
   "Rizal": "CALABARZON",
-  
+
   // Region IV-B (MIMAROPA)
   "Marinduque": "Region IV-B",
   "Occidental Mindoro": "Region IV-B",
   "Oriental Mindoro": "Region IV-B",
   "Palawan": "Region IV-B",
   "Romblon": "Region IV-B",
-  
+
   // Region V (Bicol)
   "Albay": "Region V",
   "Camarines Norte": "Region V",
@@ -92,7 +92,7 @@ const PROVINCE_TO_REGION: Record<string, string> = {
   "Catanduanes": "Region V",
   "Masbate": "Region V",
   "Sorsogon": "Region V",
-  
+
   // Region VI (Western Visayas)
   "Aklan": "Western Visayas",
   "Antique": "Western Visayas",
@@ -100,13 +100,13 @@ const PROVINCE_TO_REGION: Record<string, string> = {
   "Guimaras": "Western Visayas",
   "Iloilo": "Western Visayas",
   "Negros Occidental": "Western Visayas",
-  
+
   // Region VII (Central Visayas)
   "Bohol": "Central Visayas",
   "Cebu": "Central Visayas",
   "Negros Oriental": "Central Visayas",
   "Siquijor": "Central Visayas",
-  
+
   // Region VIII (Eastern Visayas)
   "Biliran": "Region VIII",
   "Eastern Samar": "Region VIII",
@@ -114,41 +114,41 @@ const PROVINCE_TO_REGION: Record<string, string> = {
   "Northern Samar": "Region VIII",
   "Samar": "Region VIII",
   "Southern Leyte": "Region VIII",
-  
+
   // Region IX (Zamboanga Peninsula)
   "Zamboanga del Norte": "Zamboanga Peninsula",
   "Zamboanga del Sur": "Zamboanga Peninsula",
   "Zamboanga Sibugay": "Zamboanga Peninsula",
   "City of Isabela (Not a Province)": "Zamboanga Peninsula",
-  
+
   // Region X (Northern Mindanao)
   "Bukidnon": "Northern Mindanao",
   "Camiguin": "Northern Mindanao",
   "Lanao del Norte": "Northern Mindanao",
   "Misamis Occidental": "Northern Mindanao",
   "Misamis Oriental": "Northern Mindanao",
-  
+
   // Region XI (Davao)
   "Davao de Oro": "Davao Region",
   "Davao del Norte": "Davao Region",
   "Davao del Sur": "Davao Region",
   "Davao Occidental": "Davao Region",
   "Davao Oriental": "Davao Region",
-  
+
   // Region XII (SOCCSKSARGEN)
   "Cotabato": "SOCCSKSARGEN",
   "Sarangani": "SOCCSKSARGEN",
   "South Cotabato": "SOCCSKSARGEN",
   "Sultan Kudarat": "SOCCSKSARGEN",
   "North Cotabato": "SOCCSKSARGEN",
-  
+
   // Region XIII (Caraga)
   "Agusan del Norte": "Region XIII",
   "Agusan del Sur": "Region XIII",
   "Dinagat Islands": "Region XIII",
   "Surigao del Norte": "Region XIII",
   "Surigao del Sur": "Region XIII",
-  
+
   // BARMM
   "Basilan": "BARMM",
   "Lanao del Sur": "BARMM",
@@ -203,10 +203,6 @@ const PhilippinesMap = memo(
     const [history, setHistory] = useState<ViewState[]>([]);
     const [zoomLevel, setZoomLevel] = useState<"region" | "city">("region");
     const [selectedRegionForCity, setSelectedRegionForCity] = useState<string | null>(null);
-
-    // --- Date Range State ---
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
 
     // Reset zoom level when returning to country view
     useEffect(() => {
@@ -423,9 +419,9 @@ const PhilippinesMap = memo(
         }
 
         if (match) {
-           handleSearchSelect(match);
+          handleSearchSelect(match);
         } else {
-           console.log("Location detected but couldn't map to search index:", userLocation);
+          console.log("Location detected but couldn't map to search index:", userLocation);
         }
       }
     }, [userLocation, searchIndex]);
@@ -530,43 +526,43 @@ const PhilippinesMap = memo(
         // Color Scale - Get patient count for a region
         const getRegionCount = (regionName: string): number => {
           if (!diseaseData) return 0;
-          
+
           // Normalize region name
           const searchRegion = regionName.toLowerCase().trim();
-          
+
           // Try to find matching region in the data
           const match = diseaseData.byRegion.find(r => {
             const dataRegion = r.location.toLowerCase().trim();
-            
+
             // 1. Direct exact match
             if (dataRegion === searchRegion) {
               return true;
             }
-            
+
             // 2. Check if both are in the same alias group
             for (const [key, aliases] of Object.entries(LOCATION_ALIASES)) {
               const lowerAliases = aliases.map(a => a.toLowerCase());
               const lowerKey = key.toLowerCase();
-              
+
               const dataInGroup = lowerAliases.includes(dataRegion) || lowerKey === dataRegion;
               const searchInGroup = lowerAliases.includes(searchRegion) || lowerKey === searchRegion;
-              
+
               // Both database region and search region match the same alias group
               if (dataInGroup && searchInGroup) {
                 return true;
               }
             }
-            
+
             return false;
           });
-          
+
           return match ? match.count : 0;
         };
 
         // Get patient count for a city
         const getCityCount = (cityName: string): number => {
           if (!diseaseData || !cityName) return 0;
-          
+
           const normalizeCityName = (name: string): string => {
             // Remove common city type suffixes and normalize
             return name
@@ -575,24 +571,24 @@ const PhilippinesMap = memo(
               .replace(/\s+(city|municipality|municipal|prov\.?|province)$/i, '')
               .trim();
           };
-          
+
           const searchCity = normalizeCityName(cityName);
-          
+
           // Try exact match first (normalized)
-          let match = diseaseData.byCity.find(c => 
+          let match = diseaseData.byCity.find(c =>
             normalizeCityName(c.location) === searchCity
           );
-          
+
           if (match) return match.count;
-          
+
           // Try partial match (contains or is contained)
           match = diseaseData.byCity.find(c => {
             const dbCity = normalizeCityName(c.location);
             return dbCity.includes(searchCity) || searchCity.includes(dbCity);
           });
-          
+
           if (match) return match.count;
-          
+
           return 0;
         };
 
@@ -660,7 +656,7 @@ const PhilippinesMap = memo(
           .attr("d", pathGenerator as any)
           .attr("fill", (d) => {
             if (!diseaseData) return colorScale(0);
-            
+
             // If in city zoom mode, color by city
             if (zoomLevel === "city") {
               // Try to get city from different property sources
@@ -668,13 +664,13 @@ const PhilippinesMap = memo(
               const adm3 = d.properties.adm3_en; // City
               const adm4 = d.properties.adm4_en; // Barangay or subdivision
               const adm1 = d.properties.adm1_en; // Region or municipality
-              
+
               // Build list of candidates to try for city matching
               const cityCandidates = [adm3, adm4, adm1].filter(Boolean);
-              
+
               let patientCount = 0;
               let matchedCity = null;
-              
+
               // Try each candidate
               for (const candidate of cityCandidates) {
                 if (candidate) {
@@ -686,7 +682,7 @@ const PhilippinesMap = memo(
                   }
                 }
               }
-              
+
               // If no city match found, fall back to region coloring for city view
               if (patientCount === 0 && adm2) {
                 const regionName = PROVINCE_TO_REGION[adm2];
@@ -695,7 +691,7 @@ const PhilippinesMap = memo(
                   matchedCity = regionName;
                 }
               }
-              
+
               // Debug first few features
               const globalWindow = window as any;
               if (!globalWindow.cityDebugLogged) {
@@ -711,19 +707,19 @@ const PhilippinesMap = memo(
                 });
                 globalWindow.cityDebugLogged = true;
               }
-              
+
               return colorScale(patientCount);
             }
-            
+
             // Otherwise color by region (region view)
             const provinceName = d.properties.adm2_en;
             if (!provinceName) return colorScale(0);
-            
+
             const regionName = PROVINCE_TO_REGION[provinceName];
             if (!regionName) {
               return colorScale(0);
             }
-            
+
             const patientCount = getRegionCount(regionName);
             return colorScale(patientCount);
           })
@@ -781,19 +777,19 @@ const PhilippinesMap = memo(
           })
           .on("mousemove", (event, d: any) => {
             let tooltipText = "";
-            
+
             if (zoomLevel === "city") {
               // City view - use same matching logic as fill
               const adm2 = d.properties.adm2_en;
               const adm3 = d.properties.adm3_en;
               const adm4 = d.properties.adm4_en;
               const adm1 = d.properties.adm1_en;
-              
+
               const cityCandidates = [adm3, adm4, adm1].filter(Boolean);
-              
+
               let displayName = adm2 || "Feature";
               let cityCount = 0;
-              
+
               // Try each candidate
               for (const candidate of cityCandidates) {
                 if (candidate) {
@@ -805,8 +801,8 @@ const PhilippinesMap = memo(
                   }
                 }
               }
-              
-              tooltipText = cityCount > 0 
+
+              tooltipText = cityCount > 0
                 ? `${displayName}: ${cityCount} patient${cityCount !== 1 ? 's' : ''}`
                 : displayName;
             } else {
@@ -819,13 +815,13 @@ const PhilippinesMap = memo(
                 provinceName ||
                 d.properties.adm1_en ||
                 "Feature";
-              
+
               const caseCount = regionName ? getRegionCount(regionName) : 0;
-              tooltipText = caseCount > 0 
-                ? `${displayName}: ${caseCount} patient${caseCount !== 1 ? 's' : ''} (${regionName})`
+              tooltipText = caseCount > 0
+                ? `${displayName}: ${regionName} (${caseCount} patient${caseCount !== 1 ? 's' : ''})`
                 : displayName;
             }
-            
+
             tooltip
               .style("display", "block")
               .style("left", event.pageX + 10 + "px")
@@ -907,7 +903,7 @@ const PhilippinesMap = memo(
     // Handle Drill-down
     const handleFeatureClick = (feature: MapFeature) => {
       const props = feature.properties;
-      
+
       // Clear highlight on manual click
       setHighlightId(null);
 
@@ -916,7 +912,7 @@ const PhilippinesMap = memo(
         const cityName = props.adm3_en || props.adm2_en;
         const provinceName = props.adm2_en;
         const regionName = provinceName ? PROVINCE_TO_REGION[provinceName] : undefined;
-        
+
         if (cityName && regionName) {
           setSelectedRegionForCity(regionName);
           setZoomLevel("city");
@@ -954,14 +950,14 @@ const PhilippinesMap = memo(
 
     const handleBack = () => {
       setHighlightId(null);
-      
+
       // If in city view, go back to region view
       if (zoomLevel === "city") {
         setZoomLevel("region");
         setSelectedRegionForCity(null);
         return;
       }
-      
+
       if (history.length === 0) return;
       const previousState = history[history.length - 1];
       setHistory((prev) => prev.slice(0, -1));
@@ -969,70 +965,47 @@ const PhilippinesMap = memo(
     };
 
     return (
-      <section className="space-y-4">
-        {/* Date Range Filters */}
-        <div className="flex items-center gap-4 bg-base-200 p-4 rounded-lg">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">From:</label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-40"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">To:</label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-40"
-            />
-          </div>
-        </div>
-
-        <div className="relative z-30">
-          <Search className="absolute z-10 top-1/2 -translate-y-1/2 left-4 text-muted size-3.5" />
-          <Input
-            placeholder={
-              searchLoading
-                ? "Loading search data..."
-                : "Search locations (e.g. Marikina, Quezon City)"
+      <section className="space-y-4">        <div className="relative z-30">
+        <Search className="absolute z-10 top-1/2 -translate-y-1/2 left-4 text-muted size-3.5" />
+        <Input
+          placeholder={
+            searchLoading
+              ? "Loading search data..."
+              : "Search locations (e.g. Marikina, Quezon City)"
+          }
+          className="pl-10"
+          disabled={searchLoading}
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setIsSearching(true);
+            if (e.target.value === "") {
+              setHighlightId(null);
             }
-            className="pl-10"
-            disabled={searchLoading}
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setIsSearching(true);
-              if (e.target.value === "") {
-                setHighlightId(null);
-              }
-            }}
-            onFocus={() => setIsSearching(true)}
-          />
+          }}
+          onFocus={() => setIsSearching(true)}
+        />
 
-          {/* Search Results Dropdown */}
-          {isSearching && searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
-              {searchResults.map((item) => {
-                return (
-                  <button
-                    key={`${item.t}-${item.i}`}
-                    className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex flex-col gap-0.5"
-                    onClick={() => handleSearchSelect(item)}
-                  >
-                    <span className="font-medium">{item.lbl || item.l}</span>
-                    <span className="text-xs text-muted capitalize">
-                      {item.t}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        {/* Search Results Dropdown */}
+        {isSearching && searchResults.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
+            {searchResults.map((item) => {
+              return (
+                <button
+                  key={`${item.t}-${item.i}`}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex flex-col gap-0.5"
+                  onClick={() => handleSearchSelect(item)}
+                >
+                  <span className="font-medium">{item.lbl || item.l}</span>
+                  <span className="text-xs text-muted capitalize">
+                    {item.t}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
         <Card className="group hover:border-primary/30">
           {/* Map Container */}
@@ -1070,7 +1043,7 @@ const PhilippinesMap = memo(
                   </span>
                 )}
               </div>
-              
+
               <div className="pointer-events-auto">
                 <button
                   onClick={requestLocation}
