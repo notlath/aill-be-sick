@@ -1,0 +1,524 @@
+[
+  {
+    "psgc": "1400100000",
+    "name": "Abra",
+    "regionPsgc": "1400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1600200000",
+    "name": "Agusan del Norte",
+    "regionPsgc": "1600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1600300000",
+    "name": "Agusan del Sur",
+    "regionPsgc": "1600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "600400000",
+    "name": "Aklan",
+    "regionPsgc": "600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "500500000",
+    "name": "Albay",
+    "regionPsgc": "500000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "600600000",
+    "name": "Antique",
+    "regionPsgc": "600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1408100000",
+    "name": "Apayao",
+    "regionPsgc": "1400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "307700000",
+    "name": "Aurora",
+    "regionPsgc": "300000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1900700000",
+    "name": "Basilan",
+    "regionPsgc": "1900000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "300800000",
+    "name": "Bataan",
+    "regionPsgc": "300000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "200900000",
+    "name": "Batanes",
+    "regionPsgc": "200000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "401000000",
+    "name": "Batangas",
+    "regionPsgc": "400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1401100000",
+    "name": "Benguet",
+    "regionPsgc": "1400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "807800000",
+    "name": "Biliran",
+    "regionPsgc": "800000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "701200000",
+    "name": "Bohol",
+    "regionPsgc": "700000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1001300000",
+    "name": "Bukidnon",
+    "regionPsgc": "1000000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "301400000",
+    "name": "Bulacan",
+    "regionPsgc": "300000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "201500000",
+    "name": "Cagayan",
+    "regionPsgc": "200000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "501600000",
+    "name": "Camarines Norte",
+    "regionPsgc": "500000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "501700000",
+    "name": "Camarines Sur",
+    "regionPsgc": "500000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1001800000",
+    "name": "Camiguin",
+    "regionPsgc": "1000000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "601900000",
+    "name": "Capiz",
+    "regionPsgc": "600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "502000000",
+    "name": "Catanduanes",
+    "regionPsgc": "500000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "402100000",
+    "name": "Cavite",
+    "regionPsgc": "400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "702200000",
+    "name": "Cebu",
+    "regionPsgc": "700000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "990100000",
+    "name": "City of Isabela (Not a Province)",
+    "regionPsgc": "900000000",
+    "geoLevel": null
+  },
+  {
+    "psgc": "1204700000",
+    "name": "Cotabato",
+    "regionPsgc": "1200000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1108200000",
+    "name": "Davao de Oro",
+    "regionPsgc": "1100000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1102300000",
+    "name": "Davao del Norte",
+    "regionPsgc": "1100000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1102400000",
+    "name": "Davao del Sur",
+    "regionPsgc": "1100000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1108600000",
+    "name": "Davao Occidental",
+    "regionPsgc": "1100000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1102500000",
+    "name": "Davao Oriental",
+    "regionPsgc": "1100000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1608500000",
+    "name": "Dinagat Islands",
+    "regionPsgc": "1600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "802600000",
+    "name": "Eastern Samar",
+    "regionPsgc": "800000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "607900000",
+    "name": "Guimaras",
+    "regionPsgc": "600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1402700000",
+    "name": "Ifugao",
+    "regionPsgc": "1400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "102800000",
+    "name": "Ilocos Norte",
+    "regionPsgc": "100000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "102900000",
+    "name": "Ilocos Sur",
+    "regionPsgc": "100000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "603000000",
+    "name": "Iloilo",
+    "regionPsgc": "600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "203100000",
+    "name": "Isabela",
+    "regionPsgc": "200000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1403200000",
+    "name": "Kalinga",
+    "regionPsgc": "1400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "103300000",
+    "name": "La Union",
+    "regionPsgc": "100000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "403400000",
+    "name": "Laguna",
+    "regionPsgc": "400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1003500000",
+    "name": "Lanao del Norte",
+    "regionPsgc": "1000000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1903600000",
+    "name": "Lanao del Sur",
+    "regionPsgc": "1900000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "803700000",
+    "name": "Leyte",
+    "regionPsgc": "800000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1908700000",
+    "name": "Maguindanao del Norte",
+    "regionPsgc": "1900000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1908800000",
+    "name": "Maguindanao del Sur",
+    "regionPsgc": "1900000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1704000000",
+    "name": "Marinduque",
+    "regionPsgc": "1700000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "504100000",
+    "name": "Masbate",
+    "regionPsgc": "500000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1004200000",
+    "name": "Misamis Occidental",
+    "regionPsgc": "1000000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1004300000",
+    "name": "Misamis Oriental",
+    "regionPsgc": "1000000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1404400000",
+    "name": "Mountain Province",
+    "regionPsgc": "1400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1303900000",
+    "name": "NCR, City of Manila, First District (Not a Province)",
+    "regionPsgc": "1300000000",
+    "geoLevel": "Dist"
+  },
+  {
+    "psgc": "1307600000",
+    "name": "NCR, Fourth District (Not a Province)",
+    "regionPsgc": "1300000000",
+    "geoLevel": "Dist"
+  },
+  {
+    "psgc": "1307400000",
+    "name": "NCR, Second District (Not a Province)",
+    "regionPsgc": "1300000000",
+    "geoLevel": "Dist"
+  },
+  {
+    "psgc": "1307500000",
+    "name": "NCR, Third District (Not a Province)",
+    "regionPsgc": "1300000000",
+    "geoLevel": "Dist"
+  },
+  {
+    "psgc": "604500000",
+    "name": "Negros Occidental",
+    "regionPsgc": "600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "704600000",
+    "name": "Negros Oriental",
+    "regionPsgc": "700000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "804800000",
+    "name": "Northern Samar",
+    "regionPsgc": "800000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "304900000",
+    "name": "Nueva Ecija",
+    "regionPsgc": "300000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "205000000",
+    "name": "Nueva Vizcaya",
+    "regionPsgc": "200000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1705100000",
+    "name": "Occidental Mindoro",
+    "regionPsgc": "1700000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1705200000",
+    "name": "Oriental Mindoro",
+    "regionPsgc": "1700000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1705300000",
+    "name": "Palawan",
+    "regionPsgc": "1700000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "305400000",
+    "name": "Pampanga",
+    "regionPsgc": "300000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "105500000",
+    "name": "Pangasinan",
+    "regionPsgc": "100000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "405600000",
+    "name": "Quezon",
+    "regionPsgc": "400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "205700000",
+    "name": "Quirino",
+    "regionPsgc": "200000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "405800000",
+    "name": "Rizal",
+    "regionPsgc": "400000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1705900000",
+    "name": "Romblon",
+    "regionPsgc": "1700000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "806000000",
+    "name": "Samar",
+    "regionPsgc": "800000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1208000000",
+    "name": "Sarangani",
+    "regionPsgc": "1200000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "706100000",
+    "name": "Siquijor",
+    "regionPsgc": "700000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "506200000",
+    "name": "Sorsogon",
+    "regionPsgc": "500000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1206300000",
+    "name": "South Cotabato",
+    "regionPsgc": "1200000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "806400000",
+    "name": "Southern Leyte",
+    "regionPsgc": "800000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1206500000",
+    "name": "Sultan Kudarat",
+    "regionPsgc": "1200000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1906600000",
+    "name": "Sulu",
+    "regionPsgc": "1900000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1606700000",
+    "name": "Surigao del Norte",
+    "regionPsgc": "1600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1606800000",
+    "name": "Surigao del Sur",
+    "regionPsgc": "1600000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "306900000",
+    "name": "Tarlac",
+    "regionPsgc": "300000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "1907000000",
+    "name": "Tawi-Tawi",
+    "regionPsgc": "1900000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "307100000",
+    "name": "Zambales",
+    "regionPsgc": "300000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "907200000",
+    "name": "Zamboanga del Norte",
+    "regionPsgc": "900000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "907300000",
+    "name": "Zamboanga del Sur",
+    "regionPsgc": "900000000",
+    "geoLevel": "Prov"
+  },
+  {
+    "psgc": "908300000",
+    "name": "Zamboanga Sibugay",
+    "regionPsgc": "900000000",
+    "geoLevel": "Prov"
+  }
+]
