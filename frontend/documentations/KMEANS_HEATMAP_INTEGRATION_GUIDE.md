@@ -468,3 +468,39 @@ By display group index (same ordering intent as dashboard themes):
 
 ### Fallback behavior
 If chroma processing fails, the utility falls back to a neutral grayscale ramp and logs a warning.
+
+---
+
+## 10) Province Drilldown (Barangay-Level Cluster Heatmap)
+
+### Goal
+When user drills from country to province, heatmap granularity shifts from province to barangay.
+
+### Contract additions
+- Backend patient payload includes `barangay`.
+- Frontend `Patient` type includes `barangay`.
+- `MapHeatmapData` adds:
+  - `provinceTotals`
+  - `cityTotals` (key: `normalize(province)||normalize(city)`)
+  - `barangayCounts` (key: `normalize(province)||normalize(city)||normalize(barangay)`)
+  - `provinceLegendBinsByProvince`
+
+### Data flow
+1. `map-container.tsx` keeps country-view region-projected counts unchanged.
+2. For selected cluster, it additionally aggregates:
+   - `provinceTotals`
+   - `cityTotals`
+   - `barangayCounts`
+3. It builds province-specific legend bins from max barangay count per province.
+4. `philippines-map.tsx` renders:
+   - country view: `projectedProvinceCounts` + `legendBins`
+   - province view: `barangayCounts` + `provinceLegendBinsByProvince[currentProvince]`
+
+### Tooltip semantics in province view
+- line 1: `<Barangay>: <barangayCount>`
+- line 2: `<City> total: <cityTotal>`
+- line 3: `<Province> total: <provinceTotal>`
+
+### Missing-barangay rule
+- Patients with missing `barangay` are excluded from barangay fill counts.
+- They still contribute to city/province totals when those fields exist.

@@ -32,7 +32,7 @@ def fetch_patient_data(
         result = conn.execute(
             text(
                 """
-            SELECT u.id, u.name, u.email, u.latitude, u.longitude, u.city, u.province, u.region, u.gender, u.age,
+            SELECT u.id, u.name, u.email, u.latitude, u.longitude, u.city, u.province, u.barangay, u.region, u.gender, u.age,
                          (
                              SELECT d.disease
                              FROM "Diagnosis" d
@@ -61,7 +61,7 @@ def fetch_patient_data(
     if include_city:
         city_values = sorted({(row[5] or "UNKNOWN") for row in data})
     if include_region:
-        region_values = sorted({(row[7] or "UNKNOWN") for row in data})
+        region_values = sorted({(row[8] or "UNKNOWN") for row in data})
 
     # Encode data for clustering and store patient info
     encoded_data = []
@@ -77,6 +77,7 @@ def fetch_patient_data(
             longitude,
             city,
             province,
+            barangay,
             region,
             gender,
             age,
@@ -129,6 +130,7 @@ def fetch_patient_data(
                 "longitude": longitude,
                 "city": city,
                 "province": province,
+                "barangay": barangay,
                 "region": region,
                 "gender": gender,
                 "age": age,
