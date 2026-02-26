@@ -594,7 +594,7 @@ const PhilippinesMap = memo(
 
         // Create quantile-based color scale
         const colorScale = d3.scaleThreshold<number, string>()
-          .domain([0, 5, 10, 25, 50, 100, 200, 500, 1000])
+          .domain([6, 11, 26, 51, 101, 201, 501, 1001])
           .range(HEATMAP_COLORS);
 
         // Create Group Hierarchy
