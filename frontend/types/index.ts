@@ -73,6 +73,7 @@ export interface SurveillanceAnomaly {
   latitude: number;
   longitude: number;
   city: string | null;
+  province: string | null;
   region: string | null;
   confidence: number;
   uncertainty: number;
@@ -127,4 +128,17 @@ export type MapHeatmapData = {
   // Province-specific legend bins keyed by normalized province name
   provinceLegendBinsByProvince: Record<string, HeatmapLegendBin[]>;
   selectedClusterDisplay: string;
+};
+
+export type AnomalyHeatmapData = {
+  diseaseBaseColor: string;
+  // Normalized province name -> anomaly count
+  provinceCounts: Record<string, number>;
+  // Region name -> total anomalies in that region
+  regionTotals: Record<string, number>;
+  // Normalized province name -> region display label
+  provinceToRegion: Record<string, string>;
+  globalMax: number;
+  legendBins: HeatmapLegendBin[];
+  selectedDisease: string;
 };
