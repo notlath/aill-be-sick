@@ -440,6 +440,66 @@ export function MapContainer({
       }
     }
 
+    // --- Interpretation sentence (mirrors cluster-overview-cards logic) ---
+    // Age descriptor
+    let ageDescriptor = "patients";
+    if (stat.avg_age >= 60) {
+      ageDescriptor = "predominantly older adults";
+    } else if (stat.avg_age >= 36) {
+      ageDescriptor = "predominantly middle-aged adults";
+    } else if (stat.avg_age >= 18) {
+      ageDescriptor = "predominantly young adults";
+    } else if (stat.avg_age >= 13) {
+      ageDescriptor = "predominantly adolescents";
+    } else {
+      ageDescriptor = "predominantly children";
+    }
+
+    // Region / city location
+    let regionLocation = "";
+    let regionPrefix = "from";
+    if (stat.top_cities && stat.top_cities.length === 1) {
+      regionLocation = stat.top_cities[0].city;
+      regionPrefix = "from";
+    } else if (stat.top_regions && stat.top_regions.length === 1) {
+      regionLocation = stat.top_regions[0].region;
+      regionPrefix = "from";
+    } else if (stat.top_regions && stat.top_regions.length >= 2) {
+      const topRegion = stat.top_regions[0];
+      const secondRegion = stat.top_regions[1];
+      const pctIncrease = (topRegion.count - secondRegion.count) / secondRegion.count;
+      if (pctIncrease >= 0.4) {
+        regionLocation = topRegion.region;
+        regionPrefix = "mostly from";
+      }
+    }
+
+    // Gender descriptor
+    let genderDescriptor = "";
+    let genderWord = "";
+    if (malePercent >= 60) {
+      genderDescriptor = "mostly";
+      genderWord = "male";
+    } else if (femalePercent >= 60) {
+      genderDescriptor = "mostly";
+      genderWord = "female";
+    }
+
+    // Dominant disease for interpretation
+    let interpretationDisease: string | null = null;
+    if (stat.disease_distribution) {
+      const entries = Object.entries(stat.disease_distribution).sort(
+        (a, b) => b[1].count - a[1].count,
+      );
+      if (entries.length === 1) {
+        interpretationDisease = entries[0][0];
+      } else if (entries.length > 1) {
+        const [top, second] = entries;
+        const gap = (top[1].count - second[1].count) / Math.max(1, second[1].count);
+        if (gap >= 0.4) interpretationDisease = top[0];
+      }
+    }
+
     return {
       displayCluster: selectedCluster,
       clusterBaseColor: heatmapData?.clusterBaseColor ?? getClusterBaseColor(selectedClusterIndex),
@@ -452,6 +512,15 @@ export function MapContainer({
       diseaseLabel,
       allRegions: stat.top_regions,
       allCities: stat.top_cities,
+      // Interpretation parts
+      interpretation: {
+        ageDescriptor,
+        regionLocation,
+        regionPrefix,
+        genderDescriptor,
+        genderWord,
+        interpretationDisease,
+      },
     };
   }, [clusterData, selectedCluster, selectedTab, clusterOrder, heatmapData]);
 
@@ -822,6 +891,29 @@ export function MapContainer({
               <h3 className="card-title text-base">
                 Cluster {selectedClusterSummary.displayCluster} Quick Profile
               </h3>
+            </div>
+
+            {/* Natural language interpretation */}
+            <div className="rounded-lg bg-base-200 px-4 py-3 text-sm text-base-content/80 leading-relaxed">
+              {(() => {
+                const { ageDescriptor, regionLocation, regionPrefix, genderDescriptor, genderWord, interpretationDisease } = selectedClusterSummary.interpretation;
+                return (
+                  <>
+                    <strong>{selectedClusterSummary.patientCount}</strong> patients
+                    {regionLocation && (
+                      <> {regionPrefix} <strong>{regionLocation}</strong></>
+                    )}
+                    , {ageDescriptor}
+                    {genderWord && (
+                      <>, {genderDescriptor} <strong>{genderWord}</strong></>
+                    )}
+                    {interpretationDisease && (
+                      <>, has mostly <strong>{interpretationDisease}</strong></>
+                    )}
+                    .
+                  </>
+                );
+              })()}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 text-sm">
