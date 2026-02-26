@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
-    "seed:diagnoses": "node scripts/seed-diagnoses.js"
+    "seed:diagnoses": "node scripts/seed-diagnoses.js",
+    "seed:users": "node scripts/seed-users.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
