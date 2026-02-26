@@ -21,15 +21,36 @@ interface SelectProps {
 function Select({ value, onValueChange, children }: SelectProps) {
   const [open, setOpen] = React.useState(false);
   const [labels, setLabels] = React.useState<Record<string, string>>({});
+  const selectRef = React.useRef<HTMLDivElement>(null);
+
   const registerItem = React.useCallback((val: string, label: string) => {
     setLabels((prev) => (prev[val] ? prev : { ...prev, [val]: label }));
   }, []);
+
   const setValue = (v: string) => onValueChange(v);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [open]);
+
   return (
     <SelectCtx.Provider
       value={{ value, setValue, open, setOpen, registerItem, labels }}
     >
-      <div className="dropdown">{children}</div>
+      <div className="dropdown relative" ref={selectRef}>
+        {children}
+      </div>
     </SelectCtx.Provider>
   );
 }
@@ -54,6 +75,7 @@ const SelectTrigger = React.forwardRef<
         className
       )}
       onClick={(e) => {
+        e.stopPropagation();
         onClick?.(e);
         ctx?.setOpen(!ctx.open);
       }}
@@ -91,7 +113,7 @@ const SelectContent = React.forwardRef<
     <ul
       ref={ref}
       className={cn(
-        "dropdown-content z-[1] menu mt-2 p-1.5 shadow-lg",
+        "absolute top-full left-0 z-50 menu mt-2 p-1.5 shadow-lg",
         "bg-white/95 backdrop-blur-xl",
         "border border-base-300/50",
         "rounded-[12px] w-full min-w-[200px]",
@@ -135,6 +157,7 @@ const SelectItem = React.forwardRef<HTMLLIElement, SelectItemProps>(
         ref={ref}
         className={cn(className)}
         onClick={(e) => {
+          e.stopPropagation();
           onClick?.(e);
           ctx?.setValue(value);
           ctx?.setOpen(false);
