@@ -1,0 +1,70 @@
+[
+  {
+    "psgc": "1900000000",
+    "name": "Bangsamoro Autonomous Region In Muslim Mindanao (BARMM)"
+  },
+  {
+    "psgc": "1400000000",
+    "name": "Cordillera Administrative Region (CAR)"
+  },
+  {
+    "psgc": "1700000000",
+    "name": "MIMAROPA Region"
+  },
+  {
+    "psgc": "1300000000",
+    "name": "National Capital Region (NCR)"
+  },
+  {
+    "psgc": "100000000",
+    "name": "Region I (Ilocos Region)"
+  },
+  {
+    "psgc": "200000000",
+    "name": "Region II (Cagayan Valley)"
+  },
+  {
+    "psgc": "300000000",
+    "name": "Region III (Central Luzon)"
+  },
+  {
+    "psgc": "400000000",
+    "name": "Region IV-A (CALABARZON)"
+  },
+  {
+    "psgc": "900000000",
+    "name": "Region IX (Zamboanga Peninsula)"
+  },
+  {
+    "psgc": "500000000",
+    "name": "Region V (Bicol Region)"
+  },
+  {
+    "psgc": "600000000",
+    "name": "Region VI (Western Visayas)"
+  },
+  {
+    "psgc": "700000000",
+    "name": "Region VII (Central Visayas)"
+  },
+  {
+    "psgc": "800000000",
+    "name": "Region VIII (Eastern Visayas)"
+  },
+  {
+    "psgc": "1000000000",
+    "name": "Region X (Northern Mindanao)"
+  },
+  {
+    "psgc": "1100000000",
+    "name": "Region XI (Davao Region)"
+  },
+  {
+    "psgc": "1200000000",
+    "name": "Region XII (SOCCSKSARGEN)"
+  },
+  {
+    "psgc": "1600000000",
+    "name": "Region XIII (Caraga)"
+  }
+]

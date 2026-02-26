@@ -86,6 +86,8 @@ async function seed() {
           latitude: u.latitude ?? null,
           longitude: u.longitude ?? null,
           city: u.city ?? null,
+          province: u.province ?? null,
+          barangay: u.barangay ?? null,
           region: u.region ?? null,
         },
       });
