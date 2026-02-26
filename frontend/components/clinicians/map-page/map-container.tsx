@@ -9,9 +9,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AnomalyHeatmapData,
   ClusterStatistics,
   MapHeatmapData,
+  OutbreakFullResult,
   PatientClusterData,
+  SurveillanceAnomaly,
 } from "@/types";
 import { buildClusterRamp, getClusterBaseColor } from "@/utils/cluster-colors";
 import { getMapDiseaseData } from "@/utils/map-data";
@@ -167,6 +170,10 @@ export function MapContainer({
   const [showAllRegions, setShowAllRegions] = useState(false);
   const [showAllCities, setShowAllCities] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+
+  // Anomaly States
+  const [anomalyDisease, setAnomalyDisease] = useState<string>(DISEASES[0]);
+  const [anomalyData, setAnomalyData] = useState<SurveillanceAnomaly[]>([]);
 
   // Filter States
   const [disease, setDisease] = useState<string>("All");
@@ -503,10 +510,109 @@ export function MapContainer({
   }, [k, selectedTab]);
 
   useEffect(() => {
-    if (selectedTab === "anomaly") {
-      setDataLoading(false);
+    if (selectedTab !== "anomaly") return;
+
+    let cancelled = false;
+
+    async function fetchAnomalyData() {
+      try {
+        setDataLoading(true);
+        const res = await fetch(
+          `${BACKEND_URL}/api/surveillance/outbreaks?contamination=0.05`,
+        );
+        if (!res.ok) throw new Error("Failed to fetch anomaly data");
+
+        const data: OutbreakFullResult = await res.json();
+        if (cancelled) return;
+        setAnomalyData(data.anomalies);
+      } catch (err) {
+        console.error("Error fetching anomaly data:", err);
+      } finally {
+        if (!cancelled) setDataLoading(false);
+      }
     }
+
+    fetchAnomalyData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedTab]);
+
+  // ----- Anomaly Heatmap Data -----
+  const anomalyHeatmapData = useMemo<AnomalyHeatmapData | undefined>(() => {
+    if (selectedTab !== "anomaly" || anomalyData.length === 0) return undefined;
+
+    // Filter anomalies by selected disease
+    const filtered = anomalyData.filter(
+      (a) => a.disease === anomalyDisease,
+    );
+
+    // Aggregate anomaly counts by region
+    const regionCounts = new Map<string, number>();
+    for (const anomaly of filtered) {
+      const anomalyRegion = normalizeLoc(anomaly.region);
+      if (!anomalyRegion) continue;
+      const regionPsgc = regionPsgcByAlias.get(anomalyRegion);
+      if (!regionPsgc) continue;
+      regionCounts.set(regionPsgc, (regionCounts.get(regionPsgc) || 0) + 1);
+    }
+
+    // Project region counts to provinces (same pattern as clusters)
+    const provinceCounts: Record<string, number> = {};
+    const regionTotals: Record<string, number> = {};
+    const provinceToRegion: Record<string, string> = {};
+    let globalMax = 0;
+
+    for (const [provinceName, regionPsgc] of provinceNameToRegionPsgc) {
+      const count = regionCounts.get(regionPsgc) ?? 0;
+      provinceCounts[normalizeLoc(provinceName)] = count;
+      if (count > globalMax) globalMax = count;
+
+      const regionName = regionNameByPsgc.get(regionPsgc);
+      if (regionName) {
+        provinceToRegion[normalizeLoc(provinceName)] = regionName;
+        regionTotals[regionName] = (regionTotals[regionName] || 0);
+      }
+    }
+
+    // Compute actual region totals from the region counts
+    for (const [regionPsgc, count] of regionCounts.entries()) {
+      const regionName = regionNameByPsgc.get(regionPsgc);
+      if (regionName) {
+        regionTotals[regionName] = count;
+      }
+    }
+
+    // Pick color for this disease
+    const diseaseIndex = DISEASES.indexOf(anomalyDisease);
+    const diseaseBaseColor = getClusterBaseColor(
+      diseaseIndex >= 0 ? diseaseIndex : 0,
+    );
+
+    // Build legend bins
+    const legendBins: AnomalyHeatmapData["legendBins"] = [];
+    if (globalMax > 0) {
+      const colorRamp = buildClusterRamp(diseaseBaseColor, 5);
+      const bucketSize = Math.ceil(globalMax / colorRamp.length);
+      for (let index = 0; index < colorRamp.length; index += 1) {
+        const min = index * bucketSize + 1;
+        const max = Math.min(globalMax, (index + 1) * bucketSize);
+        if (min > max) continue;
+        legendBins.push({ min, max, color: colorRamp[index] });
+      }
+    }
+
+    return {
+      diseaseBaseColor,
+      provinceCounts,
+      regionTotals,
+      provinceToRegion,
+      globalMax,
+      legendBins,
+      selectedDisease: anomalyDisease,
+    };
+  }, [anomalyData, anomalyDisease, selectedTab]);
 
   return (
     <div className="space-y-4">
@@ -582,6 +688,26 @@ export function MapContainer({
           </>
         )}
 
+        {selectedTab === "anomaly" && (
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium whitespace-nowrap">
+              Disease:
+            </label>
+            <Select value={anomalyDisease} onValueChange={setAnomalyDisease}>
+              <SelectTrigger className="w-40 bg-white shadow-sm">
+                <SelectValue placeholder="Select disease" />
+              </SelectTrigger>
+              <SelectContent>
+                {DISEASES.map((d) => (
+                  <SelectItem key={d} value={d}>
+                    {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {selectedTab === "disease" && (
           <div className="flex items-center gap-4 border-l border-base-300 pl-4 w-full sm:w-auto">
             <div className="flex items-center gap-2">
@@ -611,6 +737,7 @@ export function MapContainer({
           selectedTab={selectedTab}
           selectedCluster={selectedCluster}
           heatmapData={heatmapData}
+          anomalyHeatmapData={anomalyHeatmapData}
         />
         {dataLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-base-200 rounded-lg z-10">
