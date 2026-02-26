@@ -166,19 +166,21 @@ type PhilippinesMapProps = {
 };
 
 const HEATMAP_COLORS = [
-  "#ffffcc",
-  "#ffeda0",
-  "#fed976",
-  "#feb24c",
-  "#fd8d3c",
-  "#fc4e2a",
-  "#e31a1c",
-  "#bd0026",
-  "#800026",
+  "#f1f5f9", // Gray-100 for 0
+  "#ffffcc", // 1-5
+  "#ffeda0", // 6-10
+  "#fed976", // 11-25
+  "#feb24c", // 26-50
+  "#fd8d3c", // 51-100
+  "#fc4e2a", // 101-200
+  "#e31a1c", // 201-500
+  "#bd0026", // 501-1000
+  "#800026", // 1000+
 ];
 
 const HEATMAP_LABELS = [
-  "0-5",
+  "0",
+  "1-5",
   "6-10",
   "11-25",
   "26-50",
@@ -594,7 +596,7 @@ const PhilippinesMap = memo(
 
         // Create quantile-based color scale
         const colorScale = d3.scaleThreshold<number, string>()
-          .domain([6, 11, 26, 51, 101, 201, 501, 1001])
+          .domain([1, 6, 11, 26, 51, 101, 201, 501, 1001])
           .range(HEATMAP_COLORS);
 
         // Create Group Hierarchy
