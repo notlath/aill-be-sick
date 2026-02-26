@@ -505,8 +505,8 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData, anomalyHeatmapData }: P
             const provinceName =
               d.properties.adm2_en || d.properties.adm3_en || name;
             const normalizedProvince = normalizeLoc(provinceName);
-            const anomalyCount =
-              anomalyHeatmapData.provinceCounts[normalizedProvince] ?? 0;
+            const provinceCount =
+              anomalyHeatmapData.provinceDirectCounts[normalizedProvince] ?? 0;
             const regionName =
               anomalyHeatmapData.provinceToRegion[normalizedProvince] ?? "Region";
             const regionTotal =
@@ -517,7 +517,7 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData, anomalyHeatmapData }: P
               .style("left", (event.pageX + 10) + "px")
               .style("top", (event.pageY - 10) + "px")
               .html(
-                `<strong>${name}</strong><br/>${anomalyHeatmapData.selectedDisease} anomalies: ${anomalyCount}<br/>${regionName} total: ${regionTotal}`,
+                `<strong>${name}</strong>: ${provinceCount} ${anomalyHeatmapData.selectedDisease} anomalies<br/>${regionName} total: ${regionTotal}`,
               );
             return;
           }

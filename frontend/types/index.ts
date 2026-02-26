@@ -132,8 +132,10 @@ export type MapHeatmapData = {
 
 export type AnomalyHeatmapData = {
   diseaseBaseColor: string;
-  // Normalized province name -> anomaly count
+  // Normalized province name -> region-projected anomaly count (for fill)
   provinceCounts: Record<string, number>;
+  // Normalized province name -> actual anomaly count from province field (for tooltip)
+  provinceDirectCounts: Record<string, number>;
   // Region name -> total anomalies in that region
   regionTotals: Record<string, number>;
   // Normalized province name -> region display label
