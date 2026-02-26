@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
+import { AnomalyTimelineChart } from "@/components/clinicians/map-page/anomaly-timeline-chart";
 import {
   Select,
   SelectContent,
@@ -991,6 +992,12 @@ export function MapContainer({
                 </p>
               </div>
             </div>
+
+            <AnomalyTimelineChart
+              anomalyData={anomalyData}
+              selectedDisease={anomalyDisease}
+              diseaseBaseColor={anomalySummary.diseaseBaseColor}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="bg-base-200 rounded-box p-3">
