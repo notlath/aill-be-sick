@@ -19,6 +19,7 @@ export interface Patient {
   latitude: number;
   longitude: number;
   city: string;
+  province?: string | null;
   region: string;
   gender: "MALE" | "FEMALE" | "OTHER";
   age: number;
@@ -97,3 +98,24 @@ export interface OutbreakFullResult {
   outbreak_alert: boolean;
   contamination: number;
 }
+
+export type HeatmapLegendBin = {
+  min: number;
+  max: number;
+  color: string;
+};
+
+export type MapHeatmapData = {
+  clusterBaseColor: string;
+  // Province-level counts for selected cluster (used in tooltip line 1)
+  provinceCounts: Record<string, number>;
+  // Region-projected province counts for heatmap fill intensity
+  projectedProvinceCounts: Record<string, number>;
+  // Region totals for selected cluster (used in tooltip line 2)
+  regionTotals: Record<string, number>;
+  // Normalized province name -> region display label
+  provinceToRegion: Record<string, string>;
+  globalMax: number;
+  legendBins: HeatmapLegendBin[];
+  selectedClusterDisplay: string;
+};
