@@ -707,6 +707,7 @@ export function MapContainer({
   }, [anomalyData, anomalyDisease, selectedTab]);
 
   // ----- Anomaly Summary -----
+  const CONTAMINATION = 0.05; // matches the contamination param sent to the backend
   const anomalySummary = useMemo(() => {
     if (selectedTab !== "anomaly" || anomalyData.length === 0 || !anomalyHeatmapData)
       return null;
@@ -723,10 +724,79 @@ export function MapContainer({
       .sort((a, b) => a.anomaly_score - b.anomaly_score)
       .slice(0, 5);
 
-    const anomalyRate =
+    const anomalyRateNum =
       anomalyTotalAnalyzed > 0
-        ? ((filtered.length / anomalyTotalAnalyzed) * 100).toFixed(1)
-        : "0";
+        ? (filtered.length / anomalyTotalAnalyzed) * 100
+        : 0;
+    const anomalyRate = anomalyRateNum.toFixed(1);
+
+    // --- Interpretation signals ---
+
+    // 1. Severity — derived from contamination (0.05 = model's alarm ceiling)
+    //    > 2× contamination (10%) = high; 1×–2× (5–10%) = moderate; < 1× = low
+    let severityLabel: string;
+    if (anomalyRateNum > CONTAMINATION * 100 * 2) {
+      severityLabel = "high anomaly burden";
+    } else if (anomalyRateNum >= CONTAMINATION * 100) {
+      severityLabel = "moderate anomaly signal";
+    } else {
+      severityLabel = "low anomaly level";
+    }
+
+    // 2. Geographic focus — 40% dominance rule (same as cluster interpretation)
+    let geoFocus: string;
+    if (topRegions.length === 0) {
+      geoFocus = "no regional data available";
+    } else if (topRegions.length === 1) {
+      geoFocus = `concentrated in ${topRegions[0][0]}`;
+    } else {
+      const [top, second] = topRegions;
+      const dominance = (top[1] - second[1]) / Math.max(1, second[1]);
+      geoFocus =
+        dominance >= 0.4
+          ? `concentrated in ${top[0]}`
+          : "spread across multiple regions";
+    }
+
+    // 3. Recency — anchored to the WHO 21-day outbreak investigation window
+    //    ≤7 days = acute; 8–21 days = recent (within WHO window); >21 = none recent
+    let recencyStatement: string;
+    if (filtered.length > 0) {
+      const nowMs = Date.now();
+      const mostRecentMs = Math.max(
+        ...filtered.map((a) => new Date(a.created_at).getTime()),
+      );
+      const daysSince = (nowMs - mostRecentMs) / (1000 * 60 * 60 * 24);
+      const mostRecentDate = new Date(mostRecentMs).toLocaleDateString("en-PH", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      if (daysSince <= 7) {
+        recencyStatement = `active — latest case ${mostRecentDate}`;
+      } else if (daysSince <= 21) {
+        recencyStatement = `recent — latest case ${mostRecentDate} (within WHO 21-day window)`;
+      } else {
+        recencyStatement = `no recent cases — latest was ${mostRecentDate}`;
+      }
+    } else {
+      recencyStatement = "no cases detected";
+    }
+
+    // 4. Deviation — based on Isolation Forest scoring function midpoint
+    //    Score 0 = classification boundary; −0.15 = half of typical decision threshold range
+    //    ≤ −0.15 = deeply anomalous path lengths; > −0.15 = borderline
+    let deviationStatement: string;
+    if (filtered.length > 0) {
+      const meanScore =
+        filtered.reduce((sum, a) => sum + a.anomaly_score, 0) / filtered.length;
+      deviationStatement =
+        meanScore <= -0.15
+          ? "strong statistical deviation from expected patterns"
+          : "mild statistical deviation (borderline cases)";
+    } else {
+      deviationStatement = "insufficient data for deviation analysis";
+    }
 
     return {
       diseaseCount: filtered.length,
@@ -736,6 +806,13 @@ export function MapContainer({
       topRegions,
       topCases,
       diseaseBaseColor: anomalyHeatmapData.diseaseBaseColor,
+      // Interpretation
+      interpretation: {
+        severityLabel,
+        geoFocus,
+        recencyStatement,
+        deviationStatement,
+      },
     };
   }, [anomalyData, anomalyDisease, selectedTab, anomalyHeatmapData, anomalyTotalAnalyzed, anomalyOutbreakAlert]);
 
@@ -1054,6 +1131,25 @@ export function MapContainer({
               >
                 View full analysis →
               </Link>
+            </div>
+
+            {/* Natural language interpretation */}
+            <div className="rounded-lg bg-base-200 px-4 py-3 text-sm text-base-content/80 leading-relaxed space-y-1">
+              <p>
+                {anomalySummary.outbreakAlert && (
+                  <><strong>⚠️ Outbreak threshold exceeded.</strong>{" "}</>
+                )}
+                <strong>{anomalySummary.diseaseCount} anomalies</strong> detected for{" "}
+                <strong>{anomalyDisease}</strong>{" "}
+                ({anomalySummary.anomalyRate}% of {anomalySummary.totalAnalyzed} records),{" "}
+                {anomalySummary.interpretation.severityLabel},{" "}
+                {anomalySummary.interpretation.geoFocus}.
+              </p>
+              <p className="text-base-content/60 text-xs">
+                {anomalySummary.interpretation.deviationStatement.charAt(0).toUpperCase()}
+                {anomalySummary.interpretation.deviationStatement.slice(1)}.
+                {" "}Pattern {anomalySummary.interpretation.recencyStatement}.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 text-sm">
