@@ -20,6 +20,7 @@
     "@supabase/supabase-js": "^2.75.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-table": "^8.21.3",
+    "@types/chroma-js": "^3.1.2",
     "@types/topojson-client": "^3.1.5",
     "axios": "^1.12.2",
     "chroma-js": "^3.1.2",
