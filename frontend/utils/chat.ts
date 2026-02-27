@@ -2,26 +2,17 @@
 
 import prisma from "@/prisma/prisma";
 import { getCurrentDbUser } from "./user";
+import { cacheLife, cacheTag } from "next/cache";
 
-export const getChats = async (include?: { messages?: boolean }) => {
-  const { success: dbUser, error } = await getCurrentDbUser();
-
-  if (!dbUser) {
-    console.error(`Could not get user: ${error}`);
-
-    return { error: `Could not get user: ${error}` };
-  }
-
-  if (error) {
-    console.error(`Could not get user: ${error}`);
-
-    return { error: `Could not get user: ${error}` };
-  }
+export const getChats = async (userId: number, include?: { messages?: boolean }) => {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("chats", `chats-${userId}`);
 
   try {
     const chats = await prisma.chat.findMany({
       where: {
-        userId: dbUser.id,
+        userId: userId,
       },
       orderBy: {
         createdAt: "desc",
@@ -40,6 +31,10 @@ export const getChats = async (include?: { messages?: boolean }) => {
 };
 
 export const getChatById = async (chatId: string) => {
+  "use cache: private";
+  cacheLife("hours");
+  cacheTag("chat", `chat-${chatId}`);
+
   const { success: dbUser, error } = await getCurrentDbUser();
 
   if (!dbUser) {

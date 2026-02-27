@@ -1,8 +1,13 @@
 "use server";
 
 import prisma from "@/prisma/prisma";
+import { cacheLife, cacheTag } from "next/cache";
 
 export const getDiagnosisByChatId = async (chatId: string) => {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("diagnosis", `diagnosis-${chatId}`);
+
   try {
     const diagnosis = await prisma.diagnosis.findUnique({
       where: { chatId },

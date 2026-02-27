@@ -1,10 +1,10 @@
 "use server";
 
 import prisma from "@/prisma/prisma";
-import {ExplainDiagnosisSchema} from "@/schemas/ExplainDiagnosisSchema";
-import axios, {AxiosError} from "axios";
-import {revalidatePath} from "next/cache";
-import {actionClient} from "./client";
+import { ExplainDiagnosisSchema } from "@/schemas/ExplainDiagnosisSchema";
+import axios, { AxiosError } from "axios";
+import { revalidatePath } from "next/cache";
+import { actionClient } from "./client";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";

@@ -3,7 +3,7 @@
 import prisma from "@/prisma/prisma";
 import { DeleteChatSchema } from "@/schemas/DeleteChatSchema";
 import { getCurrentDbUser } from "@/utils/user";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 
 export const deleteChat = actionClient
@@ -43,6 +43,7 @@ export const deleteChat = actionClient
         },
       });
 
+      revalidateTag(`chats-${dbUser.id}`, 'max');
       revalidatePath("/history");
 
       return { success: "Chat deleted successfully" };
