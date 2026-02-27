@@ -52,17 +52,13 @@ const ClinicianLoginPage = () => {
     }
   );
 
-  const handleLogin = () => {
-    const formData = form.getValues();
-
+  const handleLogin = form.handleSubmit((formData) => {
     execLogin(formData);
-  };
+  });
 
-  const handleSignup = () => {
-    const formData = form.getValues();
-
+  const handleSignup = form.handleSubmit((formData) => {
     execSignup(formData);
-  };
+  });
 
   return (
     <main className="flex justify-center items-center h-screen">
@@ -74,7 +70,7 @@ const ClinicianLoginPage = () => {
               Login with your credentials as clinician
             </p>
           </div>
-          <div className="space-y-4 bg-base-200 p-4 card-border border-border card">
+          <form onSubmit={handleLogin} className="space-y-4 bg-base-200 p-4 card-border border-border card">
             <div className="space-y-1 text-left">
               <label className="label">Email</label>
               <input
@@ -83,6 +79,11 @@ const ClinicianLoginPage = () => {
                 placeholder="Email"
                 {...form.register("email")}
               />
+              {form.formState.errors.email && (
+                <span className="text-error text-sm">
+                  {form.formState.errors.email.message}
+                </span>
+              )}
             </div>
             <div className="space-y-1 text-left">
               <label className="label">Password</label>
@@ -92,6 +93,11 @@ const ClinicianLoginPage = () => {
                 placeholder="Password"
                 {...form.register("password")}
               />
+              {form.formState.errors.password && (
+                <span className="text-error text-sm">
+                  {form.formState.errors.password.message}
+                </span>
+              )}
               <div className="text-right">
                 <Link
                   href="/clinician-forgot-password"
@@ -103,8 +109,8 @@ const ClinicianLoginPage = () => {
             </div>
             <div className="flex gap-2">
               <button
+                type="submit"
                 disabled={isLoggingIn}
-                onClick={handleLogin}
                 className="flex-1 btn btn-primary"
               >
                 {isLoggingIn ? (
@@ -114,6 +120,7 @@ const ClinicianLoginPage = () => {
                 )}
               </button>
               <button
+                type="button"
                 onClick={handleSignup}
                 className="flex-1 border border-border btn"
                 disabled={isSigningUp}
@@ -125,7 +132,7 @@ const ClinicianLoginPage = () => {
                 )}
               </button>
             </div>
-          </div>
+          </form>
         </div>
       </section>
     </main>
