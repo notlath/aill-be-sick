@@ -4,6 +4,7 @@ import { CreateChatSchema } from "@/schemas/CreateChatSchema";
 import { actionClient } from "./client";
 import prisma from "@/prisma/prisma";
 import { getCurrentDbUser } from "@/utils/user";
+import { revalidateTag } from "next/cache";
 
 export const createChat = actionClient
   .inputSchema(CreateChatSchema)
@@ -36,6 +37,8 @@ export const createChat = actionClient
           userId: user.id,
         },
       });
+
+      revalidateTag(`chats-${user.id}`, 'max');
 
       return { success: { chatId, symptoms } };
     } catch (error) {

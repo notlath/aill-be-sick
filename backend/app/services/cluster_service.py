@@ -32,14 +32,21 @@ def fetch_patient_data(
         result = conn.execute(
             text(
                 """
-            SELECT u.id, u.name, u.email, u.latitude, u.longitude, u.city, u.region, u.gender, u.age,
+            SELECT u.id, u.name, u.email, u.latitude, u.longitude, u.city, u.province, u.barangay, u.region, u.gender, u.age,
                          (
                              SELECT d.disease
                              FROM "Diagnosis" d
                              WHERE d."userId" = u.id
                              ORDER BY d."createdAt" DESC
                              LIMIT 1
-                         ) AS disease
+                         ) AS disease,
+                         (
+                             SELECT d."createdAt"
+                             FROM "Diagnosis" d
+                             WHERE d."userId" = u.id
+                             ORDER BY d."createdAt" DESC
+                             LIMIT 1
+                         ) AS diagnosed_at
             FROM "User" u
             WHERE u.role = 'PATIENT'
                 AND u.latitude IS NOT NULL
@@ -61,14 +68,14 @@ def fetch_patient_data(
     if include_city:
         city_values = sorted({(row[5] or "UNKNOWN") for row in data})
     if include_region:
-        region_values = sorted({(row[6] or "UNKNOWN") for row in data})
+        region_values = sorted({(row[8] or "UNKNOWN") for row in data})
 
     # Encode data for clustering and store patient info
     encoded_data = []
     patient_info = []
 
     for row in data:
-        # row includes an extra last column 'disease' (may be None)
+        # row includes extra last columns 'disease' and 'diagnosed_at' (may be None)
         (
             user_id,
             name,
@@ -76,10 +83,13 @@ def fetch_patient_data(
             latitude,
             longitude,
             city,
+            province,
+            barangay,
             region,
             gender,
             age,
             disease,
+            diagnosed_at,
         ) = row
 
         # Encode gender: MALE=1, FEMALE=0, OTHER=0.5
@@ -127,10 +137,13 @@ def fetch_patient_data(
                 "latitude": latitude,
                 "longitude": longitude,
                 "city": city,
+                "province": province,
+                "barangay": barangay,
                 "region": region,
                 "gender": gender,
                 "age": age,
                 "disease": disease,
+                "diagnosed_at": diagnosed_at.isoformat() if diagnosed_at else None,
             }
         )
 

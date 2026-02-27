@@ -19,11 +19,14 @@ export interface Patient {
   latitude: number;
   longitude: number;
   city: string;
+  province?: string | null;
+  barangay?: string | null;
   region: string;
   gender: "MALE" | "FEMALE" | "OTHER";
   age: number;
   cluster: number;
   disease?: string | null;
+  diagnosed_at?: string | null;
 }
 
 export interface GenderDistribution {
@@ -71,6 +74,7 @@ export interface SurveillanceAnomaly {
   latitude: number;
   longitude: number;
   city: string | null;
+  province: string | null;
   region: string | null;
   confidence: number;
   uncertainty: number;
@@ -97,3 +101,47 @@ export interface OutbreakFullResult {
   outbreak_alert: boolean;
   contamination: number;
 }
+
+export type HeatmapLegendBin = {
+  min: number;
+  max: number;
+  color: string;
+};
+
+export type MapHeatmapData = {
+  clusterBaseColor: string;
+  // Province-level counts for selected cluster (used in tooltip line 1)
+  provinceCounts: Record<string, number>;
+  // Region-projected province counts for heatmap fill intensity
+  projectedProvinceCounts: Record<string, number>;
+  // Province totals for selected cluster
+  provinceTotals: Record<string, number>;
+  // Normalized "province||city" -> count
+  cityTotals: Record<string, number>;
+  // Normalized "province||city||barangay" -> count
+  barangayCounts: Record<string, number>;
+  // Region totals for selected cluster (used in tooltip line 2)
+  regionTotals: Record<string, number>;
+  // Normalized province name -> region display label
+  provinceToRegion: Record<string, string>;
+  globalMax: number;
+  legendBins: HeatmapLegendBin[];
+  // Province-specific legend bins keyed by normalized province name
+  provinceLegendBinsByProvince: Record<string, HeatmapLegendBin[]>;
+  selectedClusterDisplay: string;
+};
+
+export type AnomalyHeatmapData = {
+  diseaseBaseColor: string;
+  // Normalized province name -> region-projected anomaly count (for fill)
+  provinceCounts: Record<string, number>;
+  // Normalized province name -> actual anomaly count from province field (for tooltip)
+  provinceDirectCounts: Record<string, number>;
+  // Region name -> total anomalies in that region
+  regionTotals: Record<string, number>;
+  // Normalized province name -> region display label
+  provinceToRegion: Record<string, string>;
+  globalMax: number;
+  legendBins: HeatmapLegendBin[];
+  selectedDisease: string;
+};

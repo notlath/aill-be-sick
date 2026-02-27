@@ -2,23 +2,10 @@
 
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
-import { useEffect } from "react";
 
 const HomePage = () => {
   const supabase = createClient();
 
-  // Handle OAuth callback verification
-  useEffect(() => {
-    // Check if we have auth code in URL (means we're in a callback situation)
-    const url = new URL(window.location.href);
-    const code = url.searchParams.get("code");
-
-    if (code) {
-      console.log(
-        "[OAuth] Code detected in URL, Supabase should handle callback",
-      );
-    }
-  }, []);
 
   const handleSignIn = async () => {
     try {

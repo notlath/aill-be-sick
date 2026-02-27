@@ -43,6 +43,10 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Node
+node_modules/
+package-lock.json
+
 # Model files (if they're large, you might want to use Git LFS instead)
 # ml_models/
 
@@ -50,6 +54,15 @@ Thumbs.db
 .env
 .env.local
 
+# Local planning artifacts
+.planning/
+
 # Prisma files
 frontend/lib/generated
 frontend/app/generated
+
+.agent
+.agents
+.qwen
+.kilocode
+skills-lock.json

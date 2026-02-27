@@ -13,8 +13,7 @@ const Layout = async ({ children }: { children: ReactNode }) => {
   }
 
   if (error) {
-    // TODO: Error handling
-    return <div>Error: {JSON.stringify(error)}</div>;
+    throw new Error(typeof error === "string" ? error : JSON.stringify(error));
   }
 
   // Allow PATIENT and DEVELOPER roles to access patient views

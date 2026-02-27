@@ -7,21 +7,22 @@ import { runDiagnosis } from "@/actions/run-diagnosis";
 import { useUserLocation } from "@/hooks/use-location";
 import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import {
-    CreateChatSchema,
-    CreateChatSchemaType,
+  CreateChatSchema,
+  CreateChatSchemaType,
 } from "@/schemas/CreateChatSchema";
 import { Explanation as TempExplanation } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction, useOptimisticAction } from "next-safe-action/hooks";
 import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import CDSSSummary from "./cdss-summary";
+import dynamic from "next/dynamic";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
+const CDSSSummary = dynamic(() => import("./cdss-summary"));
 
 // Helpers to map backend strings to enum values expected by CreateMessageSchema
 const mapModelUsed = (
-  modelUsed?: string
+  modelUsed?: string,
 ): "BIOCLINICAL_MODERNBERT" | "ROBERTA_TAGALOG" => {
   if (!modelUsed) return "BIOCLINICAL_MODERNBERT";
   const lower = modelUsed.toLowerCase();
@@ -31,8 +32,14 @@ const mapModelUsed = (
 };
 
 const mapDisease = (
-  disease?: string
-): "DENGUE" | "PNEUMONIA" | "TYPHOID" | "DIARRHEA" | "MEASLES" | "INFLUENZA" => {
+  disease?: string,
+):
+  | "DENGUE"
+  | "PNEUMONIA"
+  | "TYPHOID"
+  | "DIARRHEA"
+  | "MEASLES"
+  | "INFLUENZA" => {
   switch ((disease || "").toLowerCase()) {
     case "dengue":
       return "DENGUE";
@@ -87,7 +94,7 @@ const ChatWindow = ({
   const [positiveSymptoms, setPositiveSymptoms] = useState<string[]>([]);
   const [confirmNeeded, setConfirmNeeded] = useState<boolean>(false);
   const [diagnosisMode, setDiagnosisMode] = useState<"adaptive" | "legacy">(
-    "adaptive"
+    "adaptive",
   );
 
   const lastAnswerRef = useRef<{
@@ -148,12 +155,18 @@ const ChatWindow = ({
             };
           }
 
-          if (reason === "SYMPTOMS_NOT_MATCHING" || reason === "OUT_OF_SCOPE") {
+          if (
+            reason === "SYMPTOMS_NOT_MATCHING" ||
+            reason === "OUT_OF_SCOPE" ||
+            diagnosis?.is_valid === false
+          ) {
             // Terminal but not a confident final prediction; do not show CDSS summary
             setIsFinalDiagnosis(false);
-            const outOfScopeMessage = reason === "OUT_OF_SCOPE" 
-              ? "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for a proper evaluation."
-              : "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover. We recommend consulting with a healthcare professional for a proper evaluation.";
+            const outOfScopeMessage =
+              diagnosis?.message ||
+              (reason === "OUT_OF_SCOPE"
+                ? "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for a proper evaluation."
+                : "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover. We recommend consulting with a healthcare professional for a proper evaluation.");
             createMessageExecute({
               chatId,
               content: outOfScopeMessage,
@@ -177,9 +190,9 @@ const ChatWindow = ({
               // Otherwise, avoid showing the disease/confidence to the patient to prevent alarm.
               const summary = impressive
                 ? `Final assessment: ${disease} (confidence ${(
-                    confidence * 100
-                  ).toFixed(1)}%)`
-                : `You may not be experiencing a disease that this system can process or your inputs are invalid.`;
+                  confidence * 100
+                ).toFixed(1)}%)`
+                : diagnosis.message || `Assessment complete: ${disease}`;
 
               // Log when confidence is good but below impressive threshold
               if (!impressive && (confidence ?? 0) >= 0.9) {
@@ -187,8 +200,8 @@ const ChatWindow = ({
                   `[LOG_DISCREPANCY] Valid diagnosis below impressive threshold | disease=${disease} | conf=${(
                     confidence * 100
                   ).toFixed(2)}% | MI=${(uncertainty * 100).toFixed(
-                    2
-                  )}% | showing_error_msg=YES`
+                    2,
+                  )}% | showing_error_msg=NO`,
                 );
               }
 
@@ -248,7 +261,7 @@ const ChatWindow = ({
       onSuccess: ({ data }) => {
         console.log(
           "[DEBUG BROWSER] onSuccess callback triggered, data:",
-          data
+          data,
         );
         if (data?.error) {
           let errorMessage = "";
@@ -292,7 +305,7 @@ const ChatWindow = ({
           });
           lastDiagnosisRef.current = {
             ...data.diagnosis,
-            symptoms: form.getValues("symptoms"),
+            symptoms: getCurrentSymptoms() || data.diagnosis.symptoms,
           };
 
           // Check if backend explicitly said to skip follow-up (very high confidence)
@@ -305,39 +318,41 @@ const ChatWindow = ({
             "[DEBUG] Chat Window - isConfident:",
             data.isConfident,
             "shouldSkipFollowup:",
-            shouldSkipFollowup
+            shouldSkipFollowup,
           );
           console.log(
             "[DEBUG] Chat Window - diagnosis object:",
-            data.diagnosis
+            data.diagnosis,
           );
           console.log(
             "[DEBUG] Chat Window - skip_followup value:",
-            (data.diagnosis as any)?.skip_followup
+            (data.diagnosis as any)?.skip_followup,
           );
           console.log(
             "[DEBUG] Chat Window - skip_followup type:",
-            typeof (data.diagnosis as any)?.skip_followup
+            typeof (data.diagnosis as any)?.skip_followup,
           );
 
           if (shouldSkipFollowup) {
             const skipReason = (data.diagnosis as any)?.skip_reason;
-            
+
             if (skipReason === "OUT_OF_SCOPE") {
-               // Verification failure - show error message instead of diagnosis
-               setIsFinalDiagnosis(false);
-               const verificationFailure = (data.diagnosis as any)?.verification_failure;
-               const errorMessage = verificationFailure?.message || 
-                 "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional.";
-               
-               createMessageExecute({
+              // Verification failure - show error message instead of diagnosis
+              setIsFinalDiagnosis(false);
+              const verificationFailure = (data.diagnosis as any)
+                ?.verification_failure;
+              const errorMessage =
+                verificationFailure?.message ||
+                "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional.";
+
+              createMessageExecute({
                 chatId,
                 content: errorMessage,
                 type: "ERROR",
                 role: "AI",
-               });
-               setCurrentQuestion(null);
-               return;
+              });
+              setCurrentQuestion(null);
+              return;
             }
 
             // Backend says diagnosis is very confident (≥95%), mark as final immediately
@@ -347,9 +362,10 @@ const ChatWindow = ({
             const impressive = (confidence ?? 0) >= 0.95;
             const summary = impressive
               ? `Final assessment: ${disease} (confidence ${(
-                  confidence * 100
-                ).toFixed(1)}%)`
-              : `Assessment complete: ${disease}`;
+                confidence * 100
+              ).toFixed(1)}%)`
+              : (data.diagnosis as any)?.message ||
+              `Assessment complete: ${disease}`;
 
             createMessageExecute({
               chatId,
@@ -400,7 +416,7 @@ const ChatWindow = ({
           }
         }
       },
-    }
+    },
   );
 
   const {
@@ -454,7 +470,7 @@ const ChatWindow = ({
   const handleQuestionAnswer = async (
     answer: "yes" | "no",
     symptom: string,
-    questionId: string
+    questionId: string,
   ) => {
     const updatedAsked = [...askedQuestions, questionId];
     setAskedQuestions(updatedAsked);
@@ -559,29 +575,27 @@ const ChatWindow = ({
             isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
             disabled={!!currentQuestion}
           />
-          <div className="flex justify-between items-center mt-2">
+          {/* <div className="flex justify-between items-center mt-2">
             <label className="label">
               <span className="label-text">Mode</span>
             </label>
             <div className="btn-group">
               <button
-                className={`btn btn-ghost ${
-                  diagnosisMode === "adaptive" ? "btn-active" : ""
-                }`}
+                className={`btn btn-ghost ${diagnosisMode === "adaptive" ? "btn-active" : ""
+                  }`}
                 onClick={() => setDiagnosisMode("adaptive")}
               >
                 Adaptive
               </button>
               <button
-                className={`btn btn-ghost ${
-                  diagnosisMode === "legacy" ? "btn-active" : ""
-                }`}
+                className={`btn btn-ghost ${diagnosisMode === "legacy" ? "btn-active" : ""
+                  }`}
                 onClick={() => setDiagnosisMode("legacy")}
               >
                 Legacy
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
       )}
       <dialog id="record_success_modal" className="modal">

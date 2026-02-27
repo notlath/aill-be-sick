@@ -1,10 +1,10 @@
 "use server";
 
 import prisma from "@/prisma/prisma";
-import {ExplainDiagnosisSchema} from "@/schemas/ExplainDiagnosisSchema";
-import axios, {AxiosError} from "axios";
-import {revalidatePath} from "next/cache";
-import {actionClient} from "./client";
+import { ExplainDiagnosisSchema } from "@/schemas/ExplainDiagnosisSchema";
+import axios, { AxiosError } from "axios";
+import { revalidatePath, updateTag } from "next/cache";
+import { actionClient } from "./client";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
@@ -102,6 +102,16 @@ export const explainDiagnosis = actionClient
           messageId: messageId,
         },
       });
+
+      const message = await prisma.message.findUnique({
+        where: { id: messageId },
+        select: { chatId: true },
+      });
+
+      if (message) {
+        updateTag(`messages-${message.chatId}`);
+        updateTag("messages");
+      }
 
       revalidatePath("/diagnosis/[chatId]", "page");
 

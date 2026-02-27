@@ -30,10 +30,9 @@ const ClinicianForgotPasswordPage = () => {
     },
   });
 
-  const handleReset = () => {
-    const formData = form.getValues();
+  const handleReset = form.handleSubmit((formData) => {
     execReset(formData);
-  };
+  });
 
   return (
     <main className="flex justify-center items-center h-screen">
@@ -51,7 +50,7 @@ const ClinicianForgotPasswordPage = () => {
                 <span>{successMessage}</span>
               </div>
             ) : (
-              <>
+              <form onSubmit={handleReset} className="space-y-4">
                 <div className="space-y-1 text-left">
                   <label className="label">Email</label>
                   <input
@@ -67,8 +66,8 @@ const ClinicianForgotPasswordPage = () => {
                   )}
                 </div>
                 <button
+                  type="submit"
                   disabled={isExecuting}
-                  onClick={handleReset}
                   className="btn btn-primary w-full mb-0"
                 >
                   {isExecuting ? (
@@ -77,9 +76,9 @@ const ClinicianForgotPasswordPage = () => {
                     "Send Reset Link"
                   )}
                 </button>
-              </>
+              </form>
             )}
-             <div className="text-center mt-4">
+            <div className="text-center mt-4">
               <Link href="/clinician-login" className="link link-hover text-sm">
                 Back to Login
               </Link>

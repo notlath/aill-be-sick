@@ -27,7 +27,7 @@ def clean_token(t):
     t = unicodedata.normalize("NFKC", t)
     return t.strip()
 
-def aggregate_subword_attributions(tokens, attributions):
+def aggregate_subword_attributions(tokens, attributions, tokenizer=None):
     """
     Merge subword tokens (e.g., Ġirrit + ating -> 'irritating')
     and sum their attributions to produce word-level importance.
@@ -35,36 +35,66 @@ def aggregate_subword_attributions(tokens, attributions):
     """
     words = []
     word_attrs = []
+    
+    current_tokens = []
     current_word = ""
     current_attr = 0.0
 
     for token, attr in zip(tokens, attributions):
-        if token in ["[CLS]", "[SEP]", "[PAD]"]:
+        if token in ["[CLS]", "[SEP]", "[PAD]", "<s>", "</s>", "<pad>", "<cls>", "<sep>"]:
             continue
 
-        if token.startswith("Ġ"):
-            if current_word:
-                words.append(current_word.strip())
+        # BPE and SentencePiece word-start markers
+        if token.startswith("Ġ") or token.startswith(" "):
+            if current_tokens or current_word:
+                if tokenizer is not None:
+                    ids = tokenizer.convert_tokens_to_ids(current_tokens)
+                    words.append(tokenizer.decode(ids, clean_up_tokenization_spaces=False).strip())
+                else:
+                    words.append(current_word.strip())
                 word_attrs.append(current_attr)
-            current_word = token.replace("Ġ", " ")
+            
+            if tokenizer is not None:
+                current_tokens = [token]
+            else:
+                current_word = token.replace("Ġ", " ").replace(" ", " ")
             current_attr = attr
 
         elif token.startswith("##"):
-            current_word += token[2:]
+            if tokenizer is not None:
+                current_tokens.append(token)
+            else:
+                current_word += token[2:]
             current_attr += attr
 
         else:
-            if current_word and current_word.endswith(" "):
-                words.append(current_word.strip())
+            if (tokenizer is None and current_word and current_word.endswith(" ")) or \
+               (tokenizer is not None and current_tokens and current_tokens[-1].endswith(" ")):
+                if tokenizer is not None:
+                    ids = tokenizer.convert_tokens_to_ids(current_tokens)
+                    words.append(tokenizer.decode(ids, clean_up_tokenization_spaces=False).strip())
+                else:
+                    words.append(current_word.strip())
                 word_attrs.append(current_attr)
-                current_word = token
+                
+                if tokenizer is not None:
+                    current_tokens = [token]
+                else:
+                    current_word = token
                 current_attr = attr
             else:
-                current_word += token
+                if tokenizer is not None:
+                    current_tokens.append(token)
+                else:
+                    current_word += token
                 current_attr += attr
 
-    if current_word:
-        words.append(current_word.strip())
+    if current_tokens or current_word:
+        if tokenizer is not None:
+            ids = tokenizer.convert_tokens_to_ids(current_tokens)
+            words.append(tokenizer.decode(ids, clean_up_tokenization_spaces=False).strip())
+        else:
+            words.append(current_word.strip())
         word_attrs.append(current_attr)
 
     return words, np.array(word_attrs)

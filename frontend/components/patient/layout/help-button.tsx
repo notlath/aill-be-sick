@@ -5,8 +5,7 @@ import { cn } from "@/utils/lib";
 
 const HelpButton = () => {
   const handleClick = () => {
-    localStorage.removeItem("hasSeenOnboarding");
-    window.location.reload();
+    (document.querySelector('.onboarding-dialog') as any).showModal();
   };
 
   return (
