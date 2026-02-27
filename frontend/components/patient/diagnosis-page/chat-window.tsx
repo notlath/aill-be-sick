@@ -305,7 +305,7 @@ const ChatWindow = ({
           });
           lastDiagnosisRef.current = {
             ...data.diagnosis,
-            symptoms: form.getValues("symptoms"),
+            symptoms: getCurrentSymptoms() || data.diagnosis.symptoms,
           };
 
           // Check if backend explicitly said to skip follow-up (very high confidence)

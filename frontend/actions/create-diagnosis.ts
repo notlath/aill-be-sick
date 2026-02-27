@@ -3,7 +3,7 @@
 import prisma from "@/prisma/prisma";
 import { CreateDiagnosisSchema } from "@/schemas/CreateDiagnosisSchema";
 import { getCurrentDbUser } from "@/utils/user";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { actionClient } from "./client";
 
 export const createDiagnosis = actionClient
@@ -77,6 +77,12 @@ export const createDiagnosis = actionClient
         where: { chatId },
       });
 
+      updateTag("messages");
+      updateTag(`messages-${chatId}`);
+      updateTag("diagnosis");
+      updateTag(`diagnosis-${chatId}`);
+      updateTag("chat");
+      updateTag(`chat-${chatId}`);
       revalidatePath("/diagnosis/[chatId]", "page");
 
       return { success: "Successfully recorded diagnosis" };
