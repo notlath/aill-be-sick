@@ -11,7 +11,7 @@
   --color-base-300: #e8e8ed;
   --color-base-content: #1d1d1f;
   --color-muted: #86868b;
-  --color-border: #d2d2d7;
+  --color-border: #e8e8ed;
   --color-primary: oklch(59% 0.145 163.225);
   --color-primary-content: oklch(97% 0.021 166.113);
   --color-secondary: oklch(71% 0.203 305.504);
@@ -40,7 +40,7 @@
 
 @theme inline {
   --color-muted: #86868b;
-  --color-border: #d2d2d7;
+  --color-border: #e8e8ed;
   --font-mono: var(--font-geist-mono);
 
   /* Apple-inspired elevation shadows */

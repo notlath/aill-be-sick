@@ -44,6 +44,7 @@ export const columns: ColumnDef<UserRow>[] = [
   {
     accessorKey: "gender",
     header: "Gender",
+    filterFn: "equalsString",
     cell: ({ row }) => {
       const gender = row.getValue("gender") as string | null;
       return <span>{gender || "—"}</span>;
@@ -84,6 +85,7 @@ export const columns: ColumnDef<UserRow>[] = [
   {
     accessorKey: "role",
     header: "Role",
+    filterFn: "equals",
     cell: ({ row }) => {
       const role = row.getValue("role") as string;
       const badgeClass =

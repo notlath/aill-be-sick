@@ -67,7 +67,7 @@ const SelectTrigger = React.forwardRef<
         "flex items-center gap-2 w-full justify-between",
         "px-4 py-2.5 rounded-[10px]",
         "bg-white/50 backdrop-blur-sm",
-        "border border-base-300/50",
+        "border border-border",
         "hover:bg-white/70 hover:border-base-300/70",
         "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40",
         "transition-all duration-200",
