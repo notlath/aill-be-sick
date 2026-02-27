@@ -43,6 +43,10 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Node
+node_modules/
+package-lock.json
+
 # Model files (if they're large, you might want to use Git LFS instead)
 # ml_models/
 
