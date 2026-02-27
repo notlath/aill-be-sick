@@ -13,42 +13,36 @@ const ChatPage = async ({
   searchParams: Promise<{ symptoms: string }>;
 }) => {
   const { chatId } = await params;
-  const { success: dbUser } = await getCurrentDbUser();
-  const { success: chat, error: chatError } = await getChatById(chatId);
+
+  const [
+    { success: dbUser },
+    { success: chat, error: chatError },
+    { success: messages, error: messagesError },
+    { success: diagnosis, error: diagnosisError },
+  ] = await Promise.all([
+    getCurrentDbUser(),
+    getChatById(chatId),
+    getMessagesByChatId(chatId, {
+      tempDiagnosis: true,
+      explanation: true,
+    }),
+    getDiagnosisByChatId(chatId),
+  ]);
 
   if (!chat) {
     return notFound();
   }
 
   if (chatError) {
-    // TODO: Error handling
-    return null;
+    throw new Error(typeof chatError === "string" ? chatError : "Failed to load chat");
   }
 
-  const { success: messages, error: messagesError } = await getMessagesByChatId(
-    chatId,
-    {
-      tempDiagnosis: true,
-      explanation: true,
-    }
-  );
-
-  if (!messages) {
-    // TODO: Error handling
-    return null;
+  if (!messages || messagesError) {
+    throw new Error(typeof messagesError === "string" ? messagesError : "Failed to load messages");
   }
-
-  if (messagesError) {
-    // TODO: Error handling
-    return null;
-  }
-
-  const { success: diagnosis, error: diagnosisError } =
-    await getDiagnosisByChatId(chatId);
 
   if (diagnosisError) {
-    // TODO: Error handling
-    return null;
+    throw new Error(typeof diagnosisError === "string" ? diagnosisError : "Failed to load diagnosis");
   }
 
   const { success: explanation, error: explanationError } = diagnosis
@@ -56,8 +50,7 @@ const ChatPage = async ({
     : { success: null, error: null };
 
   if (explanationError) {
-    // TODO: Error handling
-    return null;
+    throw new Error(typeof explanationError === "string" ? explanationError : "Failed to load explanation");
   }
 
   return (
