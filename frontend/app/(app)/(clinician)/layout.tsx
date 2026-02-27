@@ -1,24 +1,23 @@
 import Sidebar from "@/components/patient/layout/sidebar";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
-import { redirect } from "next/navigation";
+import { forbidden, unauthorized } from "next/navigation";
 import { ReactNode } from "react";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
   const { success: dbUser, error } = await getCurrentDbUser();
 
-  if (!dbUser) {
-    return redirect("/login");
+  if (error) {
+    throw new Error(typeof error === "string" ? error : JSON.stringify(error));
   }
 
-  if (error) {
-    // TODO: Error handling
-    return <div>Error: {JSON.stringify(error)}</div>;
+  if (!dbUser) {
+    unauthorized();
   }
 
   // Allow CLINICIAN and DEVELOPER roles to access clinician views
   if (dbUser.role !== "CLINICIAN" && dbUser.role !== ("DEVELOPER" as any)) {
-    return redirect("/diagnosis");
+    forbidden();
   }
 
   return (
