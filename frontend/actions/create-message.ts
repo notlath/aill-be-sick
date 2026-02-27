@@ -3,7 +3,7 @@
 import { CreateMessageSchema } from "@/schemas/CreateMessageSchema";
 import { actionClient } from "./client";
 import prisma from "@/prisma/prisma";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 
 export const createMessage = actionClient
   .inputSchema(CreateMessageSchema)
@@ -46,6 +46,8 @@ export const createMessage = actionClient
         });
       }
 
+      updateTag("messages");
+      updateTag(`messages-${chatId}`);
       revalidatePath("/diagnosis/[chatId]", "page");
 
       return { success: createdMessage };

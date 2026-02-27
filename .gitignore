@@ -59,4 +59,6 @@ frontend/app/generated
 
 .agent
 .agents
+.qwen
+.kilocode
 skills-lock.json
