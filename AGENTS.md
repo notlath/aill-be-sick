@@ -169,6 +169,7 @@ node scripts/seed-diagnoses.js
 - Zod schemas validate input data for server actions
 - TypeScript is used throughout the application
 - Tailwind CSS with DaisyUI for consistent styling
+- Shadcn components for reusable UI elements
 - Prisma is used with the Next.js workaround plugin for monorepo compatibility
 - Error handling follows a pattern with success/error return objects
 
