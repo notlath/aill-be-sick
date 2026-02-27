@@ -15,7 +15,6 @@ const CLUSTER_THEMES = [
     iconBg: "bg-gradient-to-br from-blue-500 to-blue-600",
     shadow: "shadow-blue-500/10",
     accentText: "text-blue-600",
-    hoverBorder: "hover:border-blue-300/50",
     border: "border-blue-200/60",
     accentBg: "bg-blue-500/10",
     badgeBg: "bg-blue-500/15 text-blue-700 border-blue-300/40",
@@ -25,7 +24,6 @@ const CLUSTER_THEMES = [
     iconBg: "bg-gradient-to-br from-emerald-500 to-emerald-600",
     shadow: "shadow-emerald-500/10",
     accentText: "text-emerald-600",
-    hoverBorder: "hover:border-emerald-300/50",
     border: "border-emerald-200/60",
     accentBg: "bg-emerald-500/10",
     badgeBg: "bg-emerald-500/15 text-emerald-700 border-emerald-300/40",
@@ -35,7 +33,6 @@ const CLUSTER_THEMES = [
     iconBg: "bg-gradient-to-br from-purple-500 to-purple-600",
     shadow: "shadow-purple-500/10",
     accentText: "text-purple-600",
-    hoverBorder: "hover:border-purple-300/50",
     border: "border-purple-200/60",
     accentBg: "bg-purple-500/10",
     badgeBg: "bg-purple-500/15 text-purple-700 border-purple-300/40",
@@ -45,7 +42,6 @@ const CLUSTER_THEMES = [
     iconBg: "bg-gradient-to-br from-orange-500 to-orange-600",
     shadow: "shadow-orange-500/10",
     accentText: "text-orange-600",
-    hoverBorder: "hover:border-orange-300/50",
     border: "border-orange-200/60",
     accentBg: "bg-orange-500/10",
     badgeBg: "bg-orange-500/15 text-orange-700 border-orange-300/40",
@@ -55,7 +51,6 @@ const CLUSTER_THEMES = [
     iconBg: "bg-gradient-to-br from-pink-500 to-pink-600",
     shadow: "shadow-pink-500/10",
     accentText: "text-pink-600",
-    hoverBorder: "hover:border-pink-300/50",
     border: "border-pink-200/60",
     accentBg: "bg-pink-500/10",
     badgeBg: "bg-pink-500/15 text-pink-700 border-pink-300/40",
@@ -65,7 +60,6 @@ const CLUSTER_THEMES = [
     iconBg: "bg-gradient-to-br from-indigo-500 to-indigo-600",
     shadow: "shadow-indigo-500/10",
     accentText: "text-indigo-600",
-    hoverBorder: "hover:border-indigo-300/50",
     border: "border-indigo-200/60",
     accentBg: "bg-indigo-500/10",
     badgeBg: "bg-indigo-500/15 text-indigo-700 border-indigo-300/40",
@@ -75,7 +69,6 @@ const CLUSTER_THEMES = [
     iconBg: "bg-gradient-to-br from-cyan-500 to-cyan-600",
     shadow: "shadow-cyan-500/10",
     accentText: "text-cyan-600",
-    hoverBorder: "hover:border-cyan-300/50",
     border: "border-cyan-200/60",
     accentBg: "bg-cyan-500/10",
     badgeBg: "bg-cyan-500/15 text-cyan-700 border-cyan-300/40",
@@ -85,7 +78,6 @@ const CLUSTER_THEMES = [
     iconBg: "bg-gradient-to-br from-rose-500 to-rose-600",
     shadow: "shadow-rose-500/10",
     accentText: "text-rose-600",
-    hoverBorder: "hover:border-rose-300/50",
     border: "border-rose-200/60",
     accentBg: "bg-rose-500/10",
     badgeBg: "bg-rose-500/15 text-rose-700 border-rose-300/40",
@@ -180,11 +172,11 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
         return (
           <Card
             key={stat.cluster_id}
-            className={`group relative overflow-hidden transition-all duration-500 ${theme.border} ${theme.hoverBorder} border-2 hover:shadow-lg`}
+            className={`group relative overflow-hidden transition-all duration-500 ${theme.border} border-2 `}
           >
             {/* Gradient Background Overlay */}
             <div
-              className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-60 transition-opacity duration-500 group-hover:opacity-100`}
+              className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-60 transition-opacity duration-500 `}
             />
 
             <CardHeader className="relative pb-4">
