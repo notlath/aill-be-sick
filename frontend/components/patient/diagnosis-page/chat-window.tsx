@@ -15,9 +15,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction, useOptimisticAction } from "next-safe-action/hooks";
 import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import CDSSSummary from "./cdss-summary";
+import dynamic from "next/dynamic";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
+const CDSSSummary = dynamic(() => import("./cdss-summary"));
 
 // Helpers to map backend strings to enum values expected by CreateMessageSchema
 const mapModelUsed = (
@@ -189,8 +190,8 @@ const ChatWindow = ({
               // Otherwise, avoid showing the disease/confidence to the patient to prevent alarm.
               const summary = impressive
                 ? `Final assessment: ${disease} (confidence ${(
-                    confidence * 100
-                  ).toFixed(1)}%)`
+                  confidence * 100
+                ).toFixed(1)}%)`
                 : diagnosis.message || `Assessment complete: ${disease}`;
 
               // Log when confidence is good but below impressive threshold
@@ -361,10 +362,10 @@ const ChatWindow = ({
             const impressive = (confidence ?? 0) >= 0.95;
             const summary = impressive
               ? `Final assessment: ${disease} (confidence ${(
-                  confidence * 100
-                ).toFixed(1)}%)`
+                confidence * 100
+              ).toFixed(1)}%)`
               : (data.diagnosis as any)?.message ||
-                `Assessment complete: ${disease}`;
+              `Assessment complete: ${disease}`;
 
             createMessageExecute({
               chatId,
@@ -574,29 +575,27 @@ const ChatWindow = ({
             isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
             disabled={!!currentQuestion}
           />
-          <div className="flex justify-between items-center mt-2">
+          {/* <div className="flex justify-between items-center mt-2">
             <label className="label">
               <span className="label-text">Mode</span>
             </label>
             <div className="btn-group">
               <button
-                className={`btn btn-ghost ${
-                  diagnosisMode === "adaptive" ? "btn-active" : ""
-                }`}
+                className={`btn btn-ghost ${diagnosisMode === "adaptive" ? "btn-active" : ""
+                  }`}
                 onClick={() => setDiagnosisMode("adaptive")}
               >
                 Adaptive
               </button>
               <button
-                className={`btn btn-ghost ${
-                  diagnosisMode === "legacy" ? "btn-active" : ""
-                }`}
+                className={`btn btn-ghost ${diagnosisMode === "legacy" ? "btn-active" : ""
+                  }`}
                 onClick={() => setDiagnosisMode("legacy")}
               >
                 Legacy
               </button>
             </div>
-          </div>
+          </div> */}
         </div>
       )}
       <dialog id="record_success_modal" className="modal">

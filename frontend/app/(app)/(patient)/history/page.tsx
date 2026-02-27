@@ -1,9 +1,16 @@
 import { Suspense } from "react";
 import DiagnosisLink from "@/components/patient/history-page/diagnosis-link";
 import { getChats } from "@/utils/chat";
+import { getCurrentDbUser } from "@/utils/user";
 
 async function ChatHistoryList() {
-  const { success: chats, error } = await getChats({ messages: true });
+  const { success: dbUser, error: userError } = await getCurrentDbUser();
+
+  if (userError || !dbUser) {
+    throw new Error(userError || "Failed to load user");
+  }
+
+  const { success: chats, error } = await getChats(dbUser.id, { messages: true });
 
   if (error || !chats) {
     // Let Next.js Error Boundary handle this error
