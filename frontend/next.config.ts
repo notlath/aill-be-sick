@@ -17,11 +17,11 @@ const nextConfig = {
     ],
   },
   experimental: {
-    useCache: true,
     serverActions: {
       bodySizeLimit: '5mb'
     }
   },
+  cacheComponents: true,
 };
 
 export default nextConfig;
