@@ -8,6 +8,9 @@ type SelectContextType = {
   setOpen: (o: boolean) => void;
   registerItem: (val: string, label: string) => void;
   labels: Record<string, string>;
+  showSearch?: boolean;
+  searchQuery?: string;
+  setSearchQuery?: (q: string) => void;
 };
 
 const SelectCtx = React.createContext<SelectContextType | null>(null);
@@ -16,11 +19,14 @@ interface SelectProps {
   value: string;
   onValueChange: (v: string) => void;
   children: React.ReactNode;
+  showSearch?: boolean;
+  className?: string;
 }
 
-function Select({ value, onValueChange, children }: SelectProps) {
+function Select({ value, onValueChange, children, showSearch = false, className }: SelectProps) {
   const [open, setOpen] = React.useState(false);
   const [labels, setLabels] = React.useState<Record<string, string>>({});
+  const [searchQuery, setSearchQuery] = React.useState("");
   const selectRef = React.useRef<HTMLDivElement>(null);
 
   const registerItem = React.useCallback((val: string, label: string) => {
@@ -46,9 +52,19 @@ function Select({ value, onValueChange, children }: SelectProps) {
 
   return (
     <SelectCtx.Provider
-      value={{ value, setValue, open, setOpen, registerItem, labels }}
+      value={{
+        value,
+        setValue,
+        open,
+        setOpen,
+        registerItem,
+        labels,
+        showSearch,
+        searchQuery,
+        setSearchQuery,
+      }}
     >
-      <div className="dropdown relative" ref={selectRef}>
+      <div className={cn("dropdown relative", className)} ref={selectRef}>
         {children}
       </div>
     </SelectCtx.Provider>
@@ -63,6 +79,7 @@ const SelectTrigger = React.forwardRef<
   return (
     <button
       ref={ref}
+      type="button"
       className={cn(
         "flex items-center gap-2 w-full justify-between",
         "px-4 py-2.5 rounded-[10px]",
@@ -124,7 +141,26 @@ const SelectContent = React.forwardRef<
       )}
       {...props}
     >
-      {children}
+      {ctx?.showSearch && (
+        <div className="px-2 pb-2 pt-1 sticky top-0 bg-white/95 backdrop-blur-xl z-10 border-b border-border/50 mb-1">
+          <input
+            className="w-full px-3 py-1.5 text-sm bg-base-200/50 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
+            placeholder="Search..."
+            value={ctx.searchQuery}
+            onChange={(e) => ctx.setSearchQuery?.(e.target.value)}
+            onClick={(e) => {
+              e.stopPropagation(); // prevent closing
+            }}
+          />
+        </div>
+      )}
+      <div className="max-h-[300px] overflow-y-auto overflow-x-hidden min-h-[40px] relative w-full scrollbar-none">
+        {React.Children.count(children) === 0 ? (
+          <div className="p-4 text-center text-sm text-base-content/50 italic">No options</div>
+        ) : (
+          children
+        )}
+      </div>
     </ul>
   );
 });
@@ -152,6 +188,14 @@ const SelectItem = React.forwardRef<HTMLLIElement, SelectItemProps>(
     }, [ctx, value, label]);
 
     const selected = ctx?.value === value;
+
+    // Filtering logic
+    if (ctx?.showSearch && ctx?.searchQuery) {
+      if (!label.toLowerCase().includes(ctx.searchQuery.toLowerCase())) {
+        return null; // hide if it doesn't match
+      }
+    }
+
     return (
       <li
         ref={ref}
