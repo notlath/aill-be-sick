@@ -3,6 +3,7 @@
 import prisma from "@/prisma/prisma";
 import { createClient } from "./supabase/server";
 import { cacheLife, cacheTag } from "next/cache";
+import { connection } from "next/server";
 
 export const getAuthUser = async () => {
   const supabase = await createClient();
@@ -22,6 +23,7 @@ export const getDbUserByAuthId = async (authId: string) => {
 };
 
 export const getCurrentDbUser = async () => {
+  await connection();
   const authUser = await getAuthUser();
 
   if (!authUser) {

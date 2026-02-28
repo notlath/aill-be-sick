@@ -3,7 +3,7 @@
 import { SidebarProvider } from "./sidebar-provider";
 import SidebarToggleButton from "./sidebar-toggle-button";
 import MainContentWrapper from "./main-content-wrapper";
-import { ReactNode, Children } from "react";
+import { ReactNode, Children, Suspense } from "react";
 
 type LayoutWrapperProps = {
   /**
@@ -26,9 +26,21 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
         <SidebarToggleButton />
         {/* Sidebar slot (may be null) */}
         {sidebar}
-        <MainContentWrapper>{main}</MainContentWrapper>
+        <Suspense fallback={<MainContentFallback>{main}</MainContentFallback>}>
+          <MainContentWrapper>{main}</MainContentWrapper>
+        </Suspense>
       </div>
     </SidebarProvider>
+  );
+};
+
+const MainContentFallback = ({ children }: { children: ReactNode }) => {
+  return (
+    <div className="flex-1 p-6 pl-20">
+      <div className="bg-base-100 shadow-sm rounded-3xl w-full h-[calc(100vh-3rem)] overflow-y-auto border border-border/50">
+        {children}
+      </div>
+    </div>
   );
 };
 

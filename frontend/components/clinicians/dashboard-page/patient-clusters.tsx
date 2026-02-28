@@ -12,16 +12,9 @@ import { Suspense } from "react";
 const DEFAULT_K = 8;
 
 const PatientClusters = async () => {
-  try {
-    const initialClusterData = await getPatientClusters(DEFAULT_K);
-    return (
-      <PatientClustersClient
-        initialData={initialClusterData}
-        initialK={DEFAULT_K}
-      />
-    );
-  } catch (error) {
-    console.error("Failed to fetch initial patient clusters:", error);
+  const initialClusterData = await getPatientClusters(DEFAULT_K);
+
+  if (!initialClusterData) {
     return (
       <Card className="col-span-2 border-red-200/50 bg-red-50/50">
         <CardHeader>
@@ -37,8 +30,15 @@ const PatientClusters = async () => {
           </CardDescription>
         </CardHeader>
       </Card>
-    );
+    )
   }
+
+  return (
+    <PatientClustersClient
+      initialData={initialClusterData}
+      initialK={DEFAULT_K}
+    />
+  );
 };
 
 const PatientClustersWrapper = () => {
