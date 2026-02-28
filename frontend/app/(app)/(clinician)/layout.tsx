@@ -2,9 +2,17 @@ import Sidebar from "@/components/patient/layout/sidebar";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
 import { forbidden, unauthorized } from "next/navigation";
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 
-const Layout = async ({ children }: { children: ReactNode }) => {
+const Layout = ({ children }: { children: ReactNode }) => {
+  return (
+    <Suspense fallback={<ClinicianLayoutSkeleton />}>
+      <ClinicianLayoutContent>{children}</ClinicianLayoutContent>
+    </Suspense>
+  );
+};
+
+const ClinicianLayoutContent = async ({ children }: { children: ReactNode }) => {
   const { success: dbUser, error } = await getCurrentDbUser();
 
   if (error) {
@@ -27,5 +35,15 @@ const Layout = async ({ children }: { children: ReactNode }) => {
     </LayoutWrapper>
   );
 };
+
+function ClinicianLayoutSkeleton() {
+  return (
+    <LayoutWrapper>
+      <div className="flex-1 p-6">
+        <div className="h-8 w-56 rounded bg-base-300 animate-pulse" />
+      </div>
+    </LayoutWrapper>
+  );
+}
 
 export default Layout;
