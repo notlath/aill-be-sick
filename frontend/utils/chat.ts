@@ -1,10 +1,9 @@
 "use server";
 
 import prisma from "@/prisma/prisma";
-import { getCurrentDbUser } from "./user";
 import { cacheLife, cacheTag } from "next/cache";
 
-export const getChats = async (userId: number, include?: { messages?: boolean }) => {
+export const getChats = async (userId: number, include?: { messages?: boolean; diagnosis?: boolean; tempDiagnoses?: boolean | object }) => {
   "use cache";
   cacheLife("hours");
   cacheTag("chats", `chats-${userId}`);
@@ -19,6 +18,8 @@ export const getChats = async (userId: number, include?: { messages?: boolean })
       },
       include: {
         messages: include?.messages,
+        diagnosis: include?.diagnosis,
+        tempDiagnoses: include?.tempDiagnoses,
       },
     });
 
@@ -31,23 +32,9 @@ export const getChats = async (userId: number, include?: { messages?: boolean })
 };
 
 export const getChatById = async (chatId: string) => {
-  "use cache: private";
+  "use cache";
   cacheLife("hours");
   cacheTag("chat", `chat-${chatId}`);
-
-  const { success: dbUser, error } = await getCurrentDbUser();
-
-  if (!dbUser) {
-    console.error(`Could not get user: ${error}`);
-
-    return { error: `Could not get user: ${error}` };
-  }
-
-  if (error) {
-    console.error(`Could not get user: ${error}`);
-
-    return { error: `Could not get user: ${error}` };
-  }
 
   try {
     const chat = await prisma.chat.findUnique({

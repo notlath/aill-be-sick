@@ -38,20 +38,22 @@ export const getDiagnosisByChatId = async (chatId: string) => {
 ### Caching with Runtime APIs (Cookies/Headers)
 
 By default, `'use cache'` cannot be used inside functions that read runtime data like `cookies()` or `headers()`. 
-If a utility function requires reading the current user session (e.g., getting the user ID from the database based on the authentication cookie), you must use `'use cache: private'`.
+Furthermore, if a utility function explicitly opts into dynamic rendering via Next.js 15+ changes (e.g. using `await connection()`), it will throw an error even if you use `'use cache: private'`. 
+
+Therefore, **always extract the request-time dependency (auth, session check) outside of the cached function**, and pass any required data as arguments to the cached function.
 
 ```typescript
 // frontend/utils/chat.ts
 import { cacheLife, cacheTag } from "next/cache";
-import { getCurrentDbUser } from "./user";
 
+// Correct: Pass dynamic values as arguments if needed, 
+// rather than fetching them dynamically inside the cached function.
 export const getChatById = async (chatId: string) => {
-  "use cache: private"; // Required because getCurrentDbUser reads cookies()
+  "use cache";
   cacheLife("hours");
   cacheTag("chat", `chat-${chatId}`);
 
-  const { success: dbUser, error } = await getCurrentDbUser();
-  
+  // Fetch from DB using arguments, avoiding cookies() or connection() checks inside
   // ... fetch and return chat ...
 };
 ```

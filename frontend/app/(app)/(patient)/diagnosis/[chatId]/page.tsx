@@ -25,13 +25,11 @@ const ChatSkeleton = () => {
   );
 };
 
-const ChatDataLoader = async ({ chatId, chat }: { chatId: string; chat: Chat }) => {
+const ChatDataLoader = async ({ chatId, chat, userRole }: { chatId: string; chat: Chat; userRole?: string }) => {
   const [
-    { success: dbUser },
     { success: messages, error: messagesError },
     { success: diagnosis, error: diagnosisError },
   ] = await Promise.all([
-    getCurrentDbUser(),
     getMessagesByChatId(chatId, {
       tempDiagnosis: true,
       explanation: true,
@@ -61,7 +59,7 @@ const ChatDataLoader = async ({ chatId, chat }: { chatId: string; chat: Chat }) 
       chatId={chatId}
       messages={messages}
       chat={chat}
-      userRole={dbUser?.role}
+      userRole={userRole}
     />
   );
 };
@@ -73,6 +71,13 @@ const ChatPage = async ({
   searchParams: Promise<{ symptoms: string }>;
 }) => {
   const { chatId } = await params;
+
+  // Enforce auth to preserve previous behavior and setup dynamic constraints
+  const { success: dbUser, error: authError } = await getCurrentDbUser();
+
+  if (authError || !dbUser) {
+    throw new Error(typeof authError === "string" ? authError : "Not authenticated");
+  }
 
   // We await ONLY the chat to confirm it exists and quickly get layout.
   // Other data is fetched in ChatDataLoader allowing page shell to stream in immediately.
@@ -89,7 +94,7 @@ const ChatPage = async ({
   return (
     <main className="relative flex flex-col items-center h-full w-full">
       <Suspense fallback={<ChatSkeleton />}>
-        <ChatDataLoader chatId={chatId} chat={chat} />
+        <ChatDataLoader chatId={chatId} chat={chat} userRole={dbUser.role} />
       </Suspense>
     </main>
   );
