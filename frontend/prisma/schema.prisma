@@ -18,13 +18,14 @@ model User {
   updatedAt DateTime    @default(now()) @updatedAt
   role      Role        @default(PATIENT)
   city      String?
-  province  String?
-  barangay  String?
   latitude  Float?
   longitude Float?
   region    String?
-  gender    Gender?
   age       Int?
+  gender    Gender?
+  province  String?
+  barangay  String?
+  birthday  DateTime?
   chats     Chat[]
   diagnoses Diagnosis[]
 }
@@ -49,9 +50,9 @@ model Message {
   createdAt     DateTime       @default(now())
   chatId        String
   type          MessageType    @default(SYMPTOMS)
+  explanation   Explanation?
   chat          Chat           @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   tempDiagnosis TempDiagnosis?
-  explanation   Explanation?
 }
 
 model TempDiagnosis {
@@ -79,11 +80,11 @@ model Diagnosis {
   modelUsed   Model
   symptoms    String
   city        String?
-  province    String?
-  barangay    String?
   latitude    Float?
   longitude   Float?
   region      String?
+  province    String?
+  barangay    String?
   chat        Chat         @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   explanation Explanation?
@@ -93,9 +94,9 @@ model Explanation {
   id          Int        @id @default(autoincrement())
   createdAt   DateTime   @default(now())
   diagnosisId Int?       @unique
-  messageId   Int?       @unique
   tokens      String[]
   importances Float[]
+  messageId   Int?       @unique
   diagnosis   Diagnosis? @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
   message     Message?   @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
@@ -130,10 +131,10 @@ enum Disease {
   DENGUE    @map("Dengue")
   PNEUMONIA @map("Pneumonia")
   TYPHOID   @map("Typhoid")
+  IMPETIGO  @map("Impetigo")
   DIARRHEA  @map("Diarrhea")
   MEASLES   @map("Measles")
   INFLUENZA @map("Influenza")
-  IMPETIGO  @map("Impetigo")
 }
 
 enum Model {

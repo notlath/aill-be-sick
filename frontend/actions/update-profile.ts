@@ -11,10 +11,10 @@ import { getAuthUser } from "@/utils/user";
 export const updateProfile = actionClient
   .inputSchema(UpdateProfileSchema)
   .action(async ({ parsedInput }) => {
-    const { name, region, province, city, barangay } = parsedInput;
-    
+    const { name, region, province, city, barangay, gender, birthday } = parsedInput;
+
     const authUser = await getAuthUser();
-    
+
     if (!authUser) {
       return { error: "Not authenticated" };
     }
@@ -28,11 +28,13 @@ export const updateProfile = actionClient
           province: province || null,
           city: city || null,
           barangay: barangay || null,
+          gender: gender || null,
+          birthday: birthday ? new Date(birthday) : null,
         },
       });
 
       revalidatePath("/", "layout");
-      
+
       return { success: true, user: updatedUser };
     } catch (error) {
       console.error(`Error updating profile: ${error}`);

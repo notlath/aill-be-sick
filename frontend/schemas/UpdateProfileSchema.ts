@@ -7,6 +7,8 @@ export const UpdateProfileSchema = z.object({
   province: z.string().optional(),
   city: z.string().optional(),
   barangay: z.string().optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional().nullable(),
+  birthday: z.string().optional().nullable(),
 });
 
 export type UpdateProfileSchemaType = z.infer<typeof UpdateProfileSchema>;

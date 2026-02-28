@@ -27,6 +27,8 @@ interface ProfileState {
   province: string | null;
   city: string | null;
   barangay: string | null;
+  gender: "MALE" | "FEMALE" | "OTHER" | null;
+  birthday: string | null;
 }
 
 interface ProfileFormProps {
@@ -50,6 +52,8 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
 
   const [name, setName] = useState(initialUser.name || "");
   const [avatar, setAvatar] = useState<string | null>(initialUser.avatar);
+  const [gender, setGender] = useState(initialUser.gender || "");
+  const [birthday, setBirthday] = useState(initialUser.birthday || "");
 
   // Convert PSGC codes to names for display (database may store either)
   const [selectedRegion, setSelectedRegion] = useState(() => {
@@ -176,8 +180,10 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
       province: selectedProvince || undefined,
       city: selectedCity || undefined,
       barangay: selectedBarangay || undefined,
+      gender: gender || undefined,
+      birthday: birthday || undefined,
     });
-  }, [executeUpdateProfile, selectedRegion, selectedProvince, selectedCity, selectedBarangay]);
+  }, [executeUpdateProfile, selectedRegion, selectedProvince, selectedCity, selectedBarangay, gender, birthday]);
 
   const handleAvatarUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -200,8 +206,10 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
       province: selectedProvince || undefined,
       city: selectedCity || undefined,
       barangay: selectedBarangay || undefined,
+      gender: gender || undefined,
+      birthday: birthday || undefined,
     });
-  }, [executeUpdateProfile, name, selectedRegion, selectedProvince, selectedCity, selectedBarangay]);
+  }, [executeUpdateProfile, name, selectedRegion, selectedProvince, selectedCity, selectedBarangay, gender, birthday]);
 
   return (
     <main className="space-y-10 mx-auto p-8 pt-12 max-w-4xl">
@@ -308,6 +316,38 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                 Managed by Google account
               </p>
             </div>
+
+            {/* Gender Field */}
+            <div className="space-y-2">
+              <label className="text-sm block font-medium text-base-content">
+                Gender
+              </label>
+              <Select className="w-full" value={gender} onValueChange={setGender}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MALE">Male</SelectItem>
+                  <SelectItem value="FEMALE">Female</SelectItem>
+                  <SelectItem value="OTHER">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Birthday Field */}
+            <div className="space-y-2">
+              <label className="text-sm block font-medium text-base-content">
+                Birthday
+              </label>
+              <Input
+                type="date"
+                value={birthday}
+                onChange={(e) => setBirthday(e.target.value)}
+                placeholder="Select birthday"
+                className="w-full"
+              />
+            </div>
+
             <div className="col-start-2 flex justify-end">
               <button
                 type="submit"

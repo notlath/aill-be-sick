@@ -18,6 +18,8 @@ export default async function ProfilePage() {
         province: dbUser.province || null,
         city: dbUser.city || null,
         barangay: dbUser.barangay || null,
+        gender: dbUser.gender || null,
+        birthday: dbUser.birthday ? dbUser.birthday.toISOString().split("T")[0] : null,
       }}
     />
   );
