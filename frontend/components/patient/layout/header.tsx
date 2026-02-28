@@ -51,14 +51,14 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
               "0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08)",
           }}
         >
-          {dbUser.role === ("DEVELOPER" as any) && (
+          {dbUser.role === "DEVELOPER" && (
             <li>
               <ViewSwitcherBtn isDeveloper={true} />
             </li>
           )}
           <li>
             <button
-              onClick={() => router.push("/profile")}
+              onClick={() => router.push(dbUser.role === "CLINICIAN" ? "/clinician-profile" : "/profile")}
               role="button"
               className="rounded-xl transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-200/80 active:scale-95 font-medium text-base-content/80 hover:text-base-content"
             >
