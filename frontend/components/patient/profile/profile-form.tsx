@@ -36,13 +36,15 @@ interface ProfileFormProps {
 }
 
 // Static JSX - extracted outside component to prevent recreation on each render
+// Using memo to prevent unnecessary re-renders
 const LockIcon = () => (
-  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
   </svg>
 );
 
-const gradientStyle = {
+// Static gradient style - defined once at module level
+const GRADIENT_STYLE = {
   backgroundImage: `url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')`,
 } as const;
 
@@ -52,7 +54,9 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
 
   const [name, setName] = useState(initialUser.name || "");
   const [avatar, setAvatar] = useState<string | null>(initialUser.avatar);
-  const [gender, setGender] = useState(initialUser.gender || "");
+  const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">(
+    initialUser.gender || ""
+  );
   const [birthday, setBirthday] = useState(initialUser.birthday || "");
 
   // Convert PSGC codes to names for display (database may store either)
@@ -91,27 +95,21 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
 
   // Reset dependent fields when parent changes (non-urgent updates wrapped in transition)
   useEffect(() => {
-    startTransition(() => {
-      if (!availableProvinces.some(p => p.name === selectedProvince)) {
-        setSelectedProvince("");
-      }
-    });
+    if (!availableProvinces.some(p => p.name === selectedProvince)) {
+      setSelectedProvince("");
+    }
   }, [selectedRegion, availableProvinces, selectedProvince]);
 
   useEffect(() => {
-    startTransition(() => {
-      if (!availableCities.some(c => c.name === selectedCity)) {
-        setSelectedCity("");
-      }
-    });
+    if (!availableCities.some(c => c.name === selectedCity)) {
+      setSelectedCity("");
+    }
   }, [selectedProvince, availableCities, selectedCity]);
 
   useEffect(() => {
-    startTransition(() => {
-      if (!availableBarangays.some(b => b.name === selectedBarangay)) {
-        setSelectedBarangay("");
-      }
-    });
+    if (!availableBarangays.some(b => b.name === selectedBarangay)) {
+      setSelectedBarangay("");
+    }
   }, [selectedCity, availableBarangays, selectedBarangay]);
 
   // Consolidated profile update action with unified success handler
@@ -211,22 +209,38 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
     });
   }, [executeUpdateProfile, name, selectedRegion, selectedProvince, selectedCity, selectedBarangay, gender, birthday]);
 
-  return (
-    <main className="space-y-10 mx-auto p-8 pt-12 max-w-4xl">
-      <div className="space-y-2">
-        <h1 className="mb-1 font-semibold text-base-content text-4xl tracking-tight">
-          Profile Settings
-        </h1>
-        <p className="text-muted text-lg">
-          Manage your personal information and preferences
-        </p>
-      </div>
+  // Memoized JSX for location dropdowns to prevent recreation
+  const regionOptions = useMemo(() => REGIONS.map((region) => (
+    <SelectItem key={region.psgc} value={region.name}>
+      {region.name}
+    </SelectItem>
+  )), []);
 
+  const provinceOptions = useMemo(() => availableProvinces.map((province) => (
+    <SelectItem key={province.psgc} value={province.name}>
+      {province.name}
+    </SelectItem>
+  )), [availableProvinces]);
+
+  const cityOptions = useMemo(() => availableCities.map((city) => (
+    <SelectItem key={city.psgc} value={city.name}>
+      {city.name}
+    </SelectItem>
+  )), [availableCities]);
+
+  const barangayOptions = useMemo(() => availableBarangays.map((barangay) => (
+    <SelectItem key={barangay.psgc} value={barangay.name}>
+      {barangay.name}
+    </SelectItem>
+  )), [availableBarangays]);
+
+  return (
+    <div className="space-y-10">
       {/* Profile Card */}
       <section className="bg-white/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden">
         {/* Header with gradient */}
         <div className="relative h-32 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20">
-          <div className="absolute inset-0 opacity-40" style={gradientStyle} />
+          <div className="absolute inset-0 opacity-40" style={GRADIENT_STYLE} />
         </div>
 
         <div className="relative px-8 pb-8">
@@ -245,7 +259,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                   <User className="w-16 h-16 text-muted" />
                 )}
               </div>
-              
+
               {/* Upload overlay */}
               <label
                 className={`absolute bottom-0 right-0 w-10 h-10 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center cursor-pointer shadow-md transition-all duration-200 ${isUploadingAvatar ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -265,7 +279,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                 />
               </label>
             </div>
-            
+
             {avatar && (
               <button
                 onClick={handleRemoveAvatar}
@@ -280,7 +294,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
           {/* Name and Email Section */}
           <form onSubmit={handleNameSubmit} className="grid gap-6 md:grid-cols-2">
             {/* Name Field */}
-            <div  className="space-y-2">
+            <div className="space-y-2">
               <label className="text-sm block font-medium text-base-content">
                 Name
               </label>
@@ -322,7 +336,11 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
               <label className="text-sm block font-medium text-base-content">
                 Gender
               </label>
-              <Select className="w-full" value={gender} onValueChange={setGender}>
+              <Select
+                className="w-full"
+                value={gender}
+                onValueChange={(value) => setGender(value as "MALE" | "FEMALE" | "OTHER")}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
@@ -388,11 +406,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                 <SelectValue placeholder="Select region" />
               </SelectTrigger>
               <SelectContent>
-                {REGIONS.map((region) => (
-                  <SelectItem key={region.psgc} value={region.name}>
-                    {region.name}
-                  </SelectItem>
-                ))}
+                {regionOptions}
               </SelectContent>
             </Select>
           </div>
@@ -407,11 +421,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                 <SelectValue placeholder={selectedRegion ? "Select province" : "Select region first"} />
               </SelectTrigger>
               <SelectContent>
-                {availableProvinces.map((province) => (
-                  <SelectItem key={province.psgc} value={province.name}>
-                    {province.name}
-                  </SelectItem>
-                ))}
+                {provinceOptions}
               </SelectContent>
             </Select>
           </div>
@@ -426,11 +436,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                 <SelectValue placeholder={selectedProvince ? "Select city/municipality" : "Select province first"} />
               </SelectTrigger>
               <SelectContent>
-                {availableCities.map((city) => (
-                  <SelectItem key={city.psgc} value={city.name}>
-                    {city.name}
-                  </SelectItem>
-                ))}
+                {cityOptions}
               </SelectContent>
             </Select>
           </div>
@@ -445,11 +451,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                 <SelectValue placeholder={selectedCity ? "Select barangay" : "Select city/municipality first"} />
               </SelectTrigger>
               <SelectContent>
-                {availableBarangays.map((barangay) => (
-                  <SelectItem key={barangay.psgc} value={barangay.name}>
-                    {barangay.name}
-                  </SelectItem>
-                ))}
+                {barangayOptions}
               </SelectContent>
             </Select>
           </div>
@@ -470,6 +472,6 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
           </div>
         </form>
       </section>
-    </main>
+    </div>
   );
 }

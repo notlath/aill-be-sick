@@ -1,7 +1,7 @@
 "use server";
 
 import * as z from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { actionClient } from "./client";
 import { UpdateProfileSchema } from "@/schemas/UpdateProfileSchema";
 import { createClient } from "@/utils/supabase/server";
@@ -33,6 +33,7 @@ export const updateProfile = actionClient
         },
       });
 
+      updateTag(`user-${authUser.id}`);
       revalidatePath("/", "layout");
 
       return { success: true, user: updatedUser };
@@ -108,6 +109,7 @@ export const uploadAvatar = actionClient
         },
       });
 
+      updateTag(`user-${authUser.id}`);
       revalidatePath("/", "layout");
       
       return { success: true, avatarUrl, user: updatedUser };
@@ -151,6 +153,7 @@ export const removeAvatar = actionClient.action(async () => {
       },
     });
 
+    updateTag(`user-${authUser.id}`);
     revalidatePath("/", "layout");
     
     return { success: true, user: updatedUser };

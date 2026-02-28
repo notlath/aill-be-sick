@@ -3,6 +3,7 @@ import SidebarToggle from "./sidebar-toggle";
 import ViewSwitcherBtn from "./view-switcher-btn";
 import Image from "next/image";
 import { User } from "@/lib/generated/prisma";
+import { useRouter } from "nextjs-toploader/app";
 
 type HeaderProps = {
   dbUser: User;
@@ -10,6 +11,8 @@ type HeaderProps = {
 };
 
 const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
+  const router = useRouter();
+
   return (
     <header className="flex justify-between items-center gap-3 mb-6 bg-base-300/40 p-1 rounded-xl -mx-1">
       <div className="dropdown">
@@ -55,6 +58,7 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
           )}
           <li>
             <button
+              onClick={() => router.push("/profile")}
               role="button"
               className="rounded-xl transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-200/80 active:scale-95 font-medium text-base-content/80 hover:text-base-content"
             >
