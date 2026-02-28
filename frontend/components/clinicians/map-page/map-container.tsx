@@ -823,7 +823,7 @@ export function MapContainer({
   return (
     <div className="space-y-4">
       {/* Filters Overlay */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-base-200 p-4 rounded-lg relative z-50">
+      <div className="flex flex-col sm:flex-row items-start gap-4 bg-base-200 p-4 rounded-lg relative z-50">
         {selectedTab === "disease" && (
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap">
@@ -847,29 +847,31 @@ export function MapContainer({
 
         {selectedTab === "cluster" && (
           <>
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap">
-                Groups:
-              </label>
-              <Input
-                type="number"
-                min={2}
-                max={25}
-                value={k}
-                onChange={(e) => {
-                  const nextK = Number(e.target.value);
-                  if (Number.isNaN(nextK)) return;
-                  setK(Math.min(25, Math.max(2, nextK)));
-                }}
-                className="w-24"
-              />
-              <span className="text-xs text-base-content/70 whitespace-nowrap">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium whitespace-nowrap">
+                  Groups:
+                </label>
+                <Input
+                  type="number"
+                  min={2}
+                  max={25}
+                  value={k}
+                  onChange={(e) => {
+                    const nextK = Number(e.target.value);
+                    if (Number.isNaN(nextK)) return;
+                    setK(Math.min(25, Math.max(2, nextK)));
+                  }}
+                  className="w-24"
+                />
+              </div>
+              <p className="text-xs text-base-content/70 whitespace-nowrap">
                 {loadingRecommendation
                   ? "Calculating recommendation..."
                   : recommendedK
                     ? `Recommended: ${recommendedK}`
                     : "Recommended: 2-25"}
-              </span>
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium whitespace-nowrap">
@@ -880,12 +882,12 @@ export function MapContainer({
                 onValueChange={setSelectedCluster}
               >
                 <SelectTrigger className="w-40 bg-white shadow-sm">
-                  <SelectValue placeholder="Select cluster" />
+                  <SelectValue placeholder="Select group" />
                 </SelectTrigger>
                 <SelectContent>
                   {clusterOptions.map((clusterId) => (
                     <SelectItem key={clusterId} value={clusterId}>
-                      Cluster {clusterId}
+                      Group {clusterId}
                     </SelectItem>
                   ))}
                 </SelectContent>

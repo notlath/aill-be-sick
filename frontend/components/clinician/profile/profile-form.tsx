@@ -253,7 +253,7 @@ export default function ClinicianProfileForm({ user: initialUser }: ProfileFormP
               </div>
             </div>
             <div className="flex justify-end pt-2">
-              <button type="submit" disabled={isUpdatingEmail || email === initialUser.email} className="btn btn-outline rounded-[10px] px-6">
+              <button type="submit" disabled={isUpdatingEmail || email === initialUser.email} className="btn rounded-[10px] px-6">
                 {isUpdatingEmail ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Update Email
               </button>
@@ -277,7 +277,7 @@ export default function ClinicianProfileForm({ user: initialUser }: ProfileFormP
               </div>
             </div>
             <div className="flex justify-end pt-2">
-              <button type="submit" disabled={isUpdatingPassword || password.length < 6} className="btn btn-outline rounded-[10px] px-6">
+              <button type="submit" disabled={isUpdatingPassword || password.length < 6} className="btn rounded-[10px] px-6">
                 {isUpdatingPassword ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Update Password
               </button>

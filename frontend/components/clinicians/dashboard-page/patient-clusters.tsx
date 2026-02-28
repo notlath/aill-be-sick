@@ -33,6 +33,8 @@ const PatientClusters = async () => {
     )
   }
 
+  console.log({ initialClusterData })
+
   return (
     <PatientClustersClient
       initialData={initialClusterData}
