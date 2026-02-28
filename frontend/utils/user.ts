@@ -2,12 +2,23 @@
 
 import prisma from "@/prisma/prisma";
 import { createClient } from "./supabase/server";
+import { cacheLife, cacheTag } from "next/cache";
 
 export const getAuthUser = async () => {
   const supabase = await createClient();
   const user = await supabase.auth.getUser();
 
   return user.data.user;
+};
+
+export const getDbUserByAuthId = async (authId: string) => {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(`user-${authId}`);
+  
+  return await prisma.user.findUnique({
+    where: { authId },
+  });
 };
 
 export const getCurrentDbUser = async () => {
@@ -18,9 +29,7 @@ export const getCurrentDbUser = async () => {
   }
 
   try {
-    const dbUser = await prisma.user.findUnique({
-      where: { authId: authUser.id },
-    });
+    const dbUser = await getDbUserByAuthId(authUser.id);
 
     if (!dbUser) {
       return { error: "No user found in the database", code: "USER_NOT_FOUND" };
