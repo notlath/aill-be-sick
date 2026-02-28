@@ -2,11 +2,11 @@ import AlertsClient from "@/components/clinicians/alerts-page/alerts-client";
 import { getOutbreakSummary } from "@/utils/surveillance";
 
 const AlertsPage = async () => {
-  try {
-    const initialData = await getOutbreakSummary();
-    return <AlertsClient initialData={initialData} />;
-  } catch (error) {
-    console.error("Failed to fetch outbreak data:", error);
+  const initialData = await getOutbreakSummary();
+
+  if (!initialData) {
+    console.error("Failed to fetch outbreak data");
+
     return (
       <main className="from-base-100 via-base-200/30 to-base-100 min-h-screen bg-gradient-to-br">
         <div className="px-8 pt-12 pb-8 md:px-16 lg:px-24">
@@ -52,6 +52,8 @@ const AlertsPage = async () => {
       </main>
     );
   }
+
+  return <AlertsClient initialData={initialData} />;
 };
 
 export default AlertsPage;
