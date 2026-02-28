@@ -3,7 +3,7 @@ import Sidebar from "@/components/patient/layout/sidebar";
 import OnboardingModal from "@/components/patient/onboarding/onboarding-modal";
 import { getCurrentDbUser } from "@/utils/user";
 import { redirect } from "next/navigation";
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
   const { success: dbUser, error } = await getCurrentDbUser();
@@ -23,11 +23,49 @@ const Layout = async ({ children }: { children: ReactNode }) => {
 
   return (
     <LayoutWrapper>
-      <Sidebar />
+      <Suspense fallback={<SidebarSkeleton />}>
+        <Sidebar dbUser={dbUser} />
+      </Suspense>
       <OnboardingModal />
       {children}
     </LayoutWrapper>
   );
 };
+
+function SidebarSkeleton() {
+  return (
+    <aside
+      className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/60 backdrop-blur-xl border-r border-border/50 w-64 opacity-100"
+      style={{
+        boxShadow: "0 0 0 1px rgb(0 0 0 / 0.02)",
+      }}
+    >
+      <div className="p-4 pt-6 w-64">
+        {/* Header with user avatar placeholder */}
+        <header className="flex justify-between items-center gap-3 mb-6 bg-base-300/40 p-1 rounded-xl -mx-1">
+          <div className="flex flex-1 items-center gap-3 p-2.5 rounded-2xl">
+            <div className="size-9 rounded-full animate-pulse bg-base-300" />
+            <div className="h-4 w-24 animate-pulse bg-base-300 rounded" />
+          </div>
+        </header>
+
+        {/* Navigation links */}
+        <nav className="flex flex-col gap-1.5 mt-10 mb-4">
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="h-10 animate-pulse bg-base-300/50 rounded-xl"
+            />
+          ))}
+        </nav>
+
+        {/* Bottom section with border */}
+        <div className="mt-auto pt-4 pb-4 border-t border-base-content/10">
+          <div className="h-8 animate-pulse bg-base-300 rounded" />
+        </div>
+      </div>
+    </aside>
+  );
+}
 
 export default Layout;

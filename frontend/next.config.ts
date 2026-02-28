@@ -9,11 +9,19 @@ const nextConfig = {
         hostname: "lh3.googleusercontent.com",
         port: "",
       },
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        port: "",
+      },
     ],
   },
   experimental: {
-    useCache: true
-  }
+    useCache: true,
+    serverActions: {
+      bodySizeLimit: '5mb'
+    }
+  },
 };
 
 export default nextConfig;

@@ -22,7 +22,7 @@ const Layout = async ({ children }: { children: ReactNode }) => {
 
   return (
     <LayoutWrapper>
-      <Sidebar />
+      <Sidebar dbUser={dbUser} />
       {children}
     </LayoutWrapper>
   );
