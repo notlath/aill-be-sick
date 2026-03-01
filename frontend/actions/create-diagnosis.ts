@@ -1,94 +1,125 @@
 "use server";
 
-import prisma from "@/prisma/prisma";
 import { CreateDiagnosisSchema } from "@/schemas/CreateDiagnosisSchema";
 import { getCurrentDbUser } from "@/utils/user";
-import { revalidatePath, updateTag } from "next/cache";
+import prisma from "@/prisma/prisma";
 import { actionClient } from "./client";
+import { revalidatePath, revalidateTag, updateTag } from "next/cache";
 
 export const createDiagnosis = actionClient
   .inputSchema(CreateDiagnosisSchema)
   .action(async ({ parsedInput }) => {
-    const {
-      confidence,
-      uncertainty,
-      modelUsed,
-      disease,
-      chatId,
-      symptoms,
-      location,
-      messageId,
-    } = parsedInput;
+    const { chatId, messageId, location } = parsedInput;
+
     const { success: dbUser, error } = await getCurrentDbUser();
-
+    
     if (!dbUser) {
-      console.error(`Error fetching user: ${error}`);
-
       return { error: `Error fetching user: ${error}` };
     }
 
-    if (error) {
-      console.error(`Error fetching user: ${error}`);
+    const chat = await prisma.chat.findFirst({
+      where: {
+        chatId,
+        userId: dbUser.id,
+      },
+      select: {
+        chatId: true,
+        hasDiagnosis: true,
+      },
+    });
 
-      return { error: `Error fetching user: ${error}` };
+    if (!chat) {
+      return { error: "Chat not found or unauthorized" };
     }
 
-    try {
-      const explanation = await prisma.explanation.findUnique({
-        where: { messageId },
-      });
+    if (chat.hasDiagnosis) {
+      return { error: "This diagnosis has already been recorded." };
+    }
 
-      if (!explanation) {
-        console.error(`Explanation not found for messageId: ${messageId}`);
+    const existingDiagnosis = await prisma.diagnosis.findUnique({
+      where: { chatId },
+      select: { id: true },
+    });
 
-        return {
-          error: `Explanation not found for messageId: ${messageId}`,
-        };
-      }
+    if (existingDiagnosis) {
+      return { error: "A diagnosis already exists for this chat." };
+    }
 
-      await prisma.diagnosis.create({
+    const latestDiagnosisMessage = await prisma.message.findFirst({
+      where: {
+        chatId,
+        role: "AI",
+        type: "DIAGNOSIS",
+      },
+      include: {
+        tempDiagnosis: true,
+        explanation: true,
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    });
+
+    if (!latestDiagnosisMessage) {
+      return { error: "No diagnosis message available to record." };
+    }
+
+    if (latestDiagnosisMessage.id !== messageId) {
+      return { error: "Only the latest diagnosis can be recorded." };
+    }
+
+    if (!latestDiagnosisMessage.tempDiagnosis) {
+      return { error: "Latest diagnosis is missing temporary diagnosis data." };
+    }
+
+    if (!latestDiagnosisMessage.explanation) {
+      return { error: "Latest diagnosis has no explanation yet." };
+    }
+
+    const tempDiagnosis = latestDiagnosisMessage.tempDiagnosis;
+
+    const createdDiagnosis = await prisma.$transaction(async (tx) => {
+      const diagnosis = await tx.diagnosis.create({
         data: {
-          confidence,
-          uncertainty,
-          modelUsed,
-          disease,
+          confidence: tempDiagnosis.confidence,
+          uncertainty: tempDiagnosis.uncertainty,
+          symptoms: tempDiagnosis.symptoms,
+          modelUsed: tempDiagnosis.modelUsed,
+          disease: tempDiagnosis.disease,
           chatId,
-          symptoms,
           userId: dbUser.id,
-          latitude: location.latitude,
-          longitude: location.longitude,
-          city: location.city,
-          province: location.province,
-          region: location.region,
-          explanation: {
-            connect: {
-              id: explanation.id,
-            },
-          },
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+          city: location?.city,
+          province: location?.province,
+          region: location?.region,
+          barangay: location?.barangay,
         },
       });
 
-      await prisma.chat.update({
-        where: { chatId },
-        data: { hasDiagnosis: true },
+      await tx.explanation.update({
+        where: { messageId: latestDiagnosisMessage.id },
+        data: { diagnosisId: diagnosis.id },
       });
 
-      await prisma.tempDiagnosis.deleteMany({
+      await tx.chat.update({
         where: { chatId },
+        data: {
+          hasDiagnosis: true,
+        },
       });
 
-      updateTag("messages");
-      updateTag(`messages-${chatId}`);
-      updateTag("diagnosis");
-      updateTag(`diagnosis-${chatId}`);
-      updateTag("chat");
-      updateTag(`chat-${chatId}`);
-      revalidatePath("/diagnosis/[chatId]", "page");
+      return diagnosis;
+    });
 
-      return { success: "Successfully recorded diagnosis" };
-    } catch (error) {
-      console.error(`Error creating diagnosis: ${error}`);
+    updateTag("messages");
+    updateTag(`messages-${chatId}`);
+    updateTag("diagnosis");
+    updateTag(`diagnosis-${chatId}`);
+    revalidateTag(`chats-${dbUser.id}`, "max");
+    revalidatePath("/diagnosis/[chatId]", "page");
+    revalidatePath("/history");
 
-      return { error: `Error creating diagnosis: ${error}` };
-    }
+    return {
+      success: "Successfully recorded diagnosis",
+      diagnosisId: createdDiagnosis.id,
+    };
   });

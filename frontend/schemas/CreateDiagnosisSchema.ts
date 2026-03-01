@@ -8,11 +8,14 @@ export const CreateDiagnosisSchema = z.object({
   disease: z.enum(["DENGUE", "PNEUMONIA", "TYPHOID", "DIARRHEA", "MEASLES", "INFLUENZA", "IMPETIGO"]),
   chatId: z.string().min(1, "Chat ID cannot be empty"),
   messageId: z.number().min(1, "Message ID cannot be empty"),
-  location: z.object({
-    latitude: z.number(),
-    longitude: z.number(),
-    city: z.string().optional(),
-    province: z.string().optional(),
-    region: z.string().optional(),
-  }),
+  location: z
+    .object({
+      latitude: z.number(),
+      longitude: z.number(),
+      city: z.string().optional(),
+      province: z.string().optional(),
+      region: z.string().optional(),
+      barangay: z.string().optional(),
+    })
+    .optional(),
 });

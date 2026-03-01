@@ -1,11 +1,15 @@
+"use client";
+
 import { useMemo } from "react";
 
 type InsightsModalProps = {
+  id: string;
   tokens?: string[];
   importances?: number[];
 };
 
 const normalize = (values: number[]): number[] => {
+  if (values.length === 0) return [];
   const min = Math.min(...values);
   const max = Math.max(...values);
 
@@ -13,25 +17,27 @@ const normalize = (values: number[]): number[] => {
 };
 
 const InsightsModal = ({
+  id,
   tokens = [],
   importances = [],
 }: InsightsModalProps) => {
   const normalizedImportances = useMemo(() => {
     return normalize(importances);
   }, [importances]);
+
   const linkedTokens = useMemo(() => {
     return tokens.map((token, idx) => ({
       token,
-      importance: normalizedImportances[idx],
+      importance: normalizedImportances[idx] ?? 0,
     }));
   }, [normalizedImportances, tokens]);
 
   return (
-    <dialog id="insights_modal" className="modal">
-      <div className="max-w-2xl modal-box">
+    <dialog id={id} className="modal">
+      <div className="modal-box max-w-2xl">
         <form method="dialog">
-          <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
-            ✕
+          <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
+            x
           </button>
         </form>
         <h3 className="font-bold text-lg">Diagnosis insights</h3>
@@ -40,37 +46,42 @@ const InsightsModal = ({
           indicate higher importance, and thus a stronger influence on the
           diagnosis.
         </p>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "6px",
-            alignItems: "center",
-            whiteSpace: "normal",
-          }}
-        >
-          {linkedTokens.map((t, i) => (
-            <span
-              key={t.token + t.importance}
-              style={{
-                backgroundColor: `rgba(255, 0, 0, ${t.importance})`, // red intensity
-                borderRadius: "4px",
-                padding: "2px 4px",
-                // remove horizontal-only spacing (we use gap on the container)
-                marginRight: 0,
-                marginBottom: "4px",
-                transition: "background-color 0.2s ease",
-                cursor: "default",
-                // allow long/unbroken tokens to break
-                overflowWrap: "anywhere",
-                wordBreak: "break-word",
-              }}
-              title={`Importance: ${importances[i].toFixed(4)}`}
-            >
-              {t.token}
-            </span>
-          ))}
-        </div>
+
+        {linkedTokens.length === 0 ? (
+          <div className="alert alert-warning">
+            <span>No explanation available for this diagnosis yet.</span>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "6px",
+              alignItems: "center",
+              whiteSpace: "normal",
+            }}
+          >
+            {linkedTokens.map((t, i) => (
+              <span
+                key={`${t.token}-${i}`}
+                style={{
+                  backgroundColor: `rgba(255, 0, 0, ${t.importance})`,
+                  borderRadius: "4px",
+                  padding: "2px 4px",
+                  marginRight: 0,
+                  marginBottom: "4px",
+                  transition: "background-color 0.2s ease",
+                  cursor: "default",
+                  overflowWrap: "anywhere",
+                  wordBreak: "break-word",
+                }}
+                title={`Importance: ${importances[i]?.toFixed(4) ?? "0.0000"}`}
+              >
+                {t.token}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </dialog>
   );

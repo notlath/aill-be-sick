@@ -1,17 +1,20 @@
 type ViewInsightsBtnProps = {
   disabled: boolean;
+  modalId: string;
 };
 
-const ViewInsightsBtn = ({ disabled }: ViewInsightsBtnProps) => {
+const ViewInsightsBtn = ({ disabled, modalId }: ViewInsightsBtnProps) => {
   const handleViewInsights = () => {
-    document.querySelector("#insights_modal" as any).showModal();
+    const modal = document.getElementById(modalId) as HTMLDialogElement | null;
+    modal?.showModal();
   };
 
   return (
-    <div className="flex gap-2 mt-4">
+    <div className="flex-1">
       <button
         disabled={disabled}
-        className="flex-1 border border-border btn"
+        type="button"
+        className="btn btn-outline w-full"
         onClick={handleViewInsights}
       >
         View insights
