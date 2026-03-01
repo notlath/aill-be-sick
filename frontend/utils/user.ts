@@ -60,6 +60,10 @@ export const getAllPatients = async () => {
 };
 
 export const getAllUsers = async () => {
+  "use cache";
+  cacheTag("users");
+  cacheLife("minutes");
+
   try {
     const users = await prisma.user.findMany({
       include: {

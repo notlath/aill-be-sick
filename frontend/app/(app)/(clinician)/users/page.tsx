@@ -1,14 +1,47 @@
+import { Suspense } from "react";
 import { columns } from "@/components/clinicians/users-page/columns";
 import { DataTable } from "@/components/clinicians/users-page/data-table";
 import { getAllUsers } from "@/utils/user";
 
-const UsersPage = async () => {
+function UsersTableSkeleton() {
+  return (
+    <div className="space-y-4">
+      {/* Search Bar Skeleton */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="skeleton h-10 w-full sm:w-72 rounded-lg" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="skeleton h-10 w-[160px] rounded-lg" />
+          <div className="skeleton h-10 w-[140px] rounded-lg" />
+          <div className="skeleton h-10 w-[140px] rounded-lg" />
+        </div>
+      </div>
+      {/* Table Skeleton */}
+      <div className="border border-border rounded-xl overflow-hidden">
+        <div className="h-12 border-b border-border bg-base-200/50" />
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-16 border-b border-border/50 px-6 py-4 flex items-center justify-between">
+            <div className="skeleton h-5 w-1/4" />
+            <div className="skeleton h-5 w-1/4" />
+            <div className="skeleton h-5 w-24" />
+            <div className="skeleton h-8 w-24 rounded" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+async function UsersTable() {
   const { success: users, error } = await getAllUsers();
 
   if (error) {
-    return <div>Error loading users: {error}</div>;
+    throw new Error(error);
   }
 
+  return <DataTable columns={columns} data={users || []} />;
+}
+
+const UsersPage = () => {
   return (
     <main className="from-base-100 via-base-200/30 to-base-100 min-h-screen bg-gradient-to-br">
       {/* Hero Header Section */}
@@ -29,7 +62,9 @@ const UsersPage = async () => {
       <div className="px-8 pb-16 md:px-16 lg:px-24">
         <div className="mx-auto max-w-[1600px] space-y-8">
           <div className="animate-slide-up" style={{ animationDelay: "200ms" }}>
-            <DataTable columns={columns} data={users || []} />
+            <Suspense fallback={<UsersTableSkeleton />}>
+              <UsersTable />
+            </Suspense>
           </div>
         </div>
       </div>
