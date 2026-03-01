@@ -123,7 +123,7 @@ const ClinicianLoginPage = () => {
               <button
                 type="submit"
                 disabled={isLoggingIn}
-                className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 shadow-sm font-medium"
+                className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium"
               >
                 {isLoggingIn ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -147,7 +147,7 @@ const ClinicianLoginPage = () => {
                 type="button"
                 onClick={handleSignup}
                 disabled={isSigningUp}
-                className="btn btn-outline border-border w-full rounded-xl flex items-center justify-center gap-2 h-12 shadow-sm font-medium bg-base-100 text-base-content"
+                className="btn btn-outline border-border w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium bg-base-100 text-base-content"
               >
                 {isSigningUp ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -169,13 +169,12 @@ const ClinicianLoginPage = () => {
       </section>
 
       {/* Right Column - Image */}
-      <section className="hidden lg:block lg:flex-1 relative bg-neutral-100">
+      <section className="hidden lg:block lg:flex-1 relative p-2">
         <img
           src="https://images.unsplash.com/photo-1584982751601-97dcc096659c?q=80&w=3272&auto=format&fit=crop"
           alt="Modern clinic interior"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="w-full h-full object-cover rounded-3xl"
         />
-        <div className="absolute inset-0 bg-primary/5 mix-blend-multiply" />
       </section>
     </main>
   );
