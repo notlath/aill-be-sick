@@ -1,11 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { completeOnboarding } from "@/actions/onboarding";
 import { Loader2 } from "lucide-react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { OnboardingSchema } from "@/schemas/OnboardingSchema";
 
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
@@ -16,16 +20,25 @@ import {
   getBarangaysByMunicipality,
 } from "@/constants/locations";
 
+type OnboardingFormValues = z.infer<typeof OnboardingSchema>;
+
 export default function OnboardingPage() {
   const router = useRouter();
 
-  const [birthday, setBirthday] = useState("");
-  const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">("");
+  const form = useForm<OnboardingFormValues>({
+    resolver: zodResolver(OnboardingSchema),
+    defaultValues: {
+      birthday: "",
+      region: "",
+      province: "",
+      city: "",
+      barangay: "",
+    },
+  });
 
-  const [selectedRegion, setSelectedRegion] = useState("");
-  const [selectedProvince, setSelectedProvince] = useState("");
-  const [selectedCity, setSelectedCity] = useState("");
-  const [selectedBarangay, setSelectedBarangay] = useState("");
+  const selectedRegion = form.watch("region");
+  const selectedProvince = form.watch("province");
+  const selectedCity = form.watch("city");
 
   const availableProvinces = useMemo(() => {
     return selectedRegion ? getProvincesByRegion(selectedRegion) : [];
@@ -40,22 +53,22 @@ export default function OnboardingPage() {
   }, [selectedCity]);
 
   // Handle cascaded resets
-  const handleRegionChange = (val: string) => {
-    setSelectedRegion(val);
-    setSelectedProvince("");
-    setSelectedCity("");
-    setSelectedBarangay("");
+  const handleRegionChange = (val: string, onChange: (val: string) => void) => {
+    onChange(val);
+    form.setValue("province", "");
+    form.setValue("city", "");
+    form.setValue("barangay", "");
   };
 
-  const handleProvinceChange = (val: string) => {
-    setSelectedProvince(val);
-    setSelectedCity("");
-    setSelectedBarangay("");
+  const handleProvinceChange = (val: string, onChange: (val: string) => void) => {
+    onChange(val);
+    form.setValue("city", "");
+    form.setValue("barangay", "");
   };
 
-  const handleCityChange = (val: string) => {
-    setSelectedCity(val);
-    setSelectedBarangay("");
+  const handleCityChange = (val: string, onChange: (val: string) => void) => {
+    onChange(val);
+    form.setValue("barangay", "");
   };
 
   const { execute: submitOnboarding, isExecuting } = useAction(completeOnboarding, {
@@ -72,21 +85,10 @@ export default function OnboardingPage() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!birthday || !gender || !selectedRegion || !selectedProvince || !selectedCity || !selectedBarangay) {
-      toast.error("Please fill in all the required fields.");
-      return;
-    }
-
+  const onSubmit = (data: OnboardingFormValues) => {
     submitOnboarding({
-      birthday,
-      gender: gender as "MALE" | "FEMALE" | "OTHER",
-      region: selectedRegion,
-      province: selectedProvince,
-      city: selectedCity,
-      barangay: selectedBarangay,
+      ...data,
+      gender: data.gender as "MALE" | "FEMALE" | "OTHER",
     });
   };
 
@@ -102,7 +104,7 @@ export default function OnboardingPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               {/* Birthday */}
               <div className="space-y-2 col-span-2 md:col-span-1">
@@ -111,11 +113,14 @@ export default function OnboardingPage() {
                 </label>
                 <Input
                   type="date"
-                  value={birthday}
-                  onChange={(e) => setBirthday(e.target.value)}
+                  {...form.register("birthday")}
                   className="w-full bg-base-100"
-                  required
                 />
+                {form.formState.errors.birthday && (
+                  <span className="text-error text-xs font-medium">
+                    {form.formState.errors.birthday.message}
+                  </span>
+                )}
               </div>
 
               {/* Gender */}
@@ -123,19 +128,27 @@ export default function OnboardingPage() {
                 <label className="text-sm font-medium text-base-content block">
                   Gender <span className="text-error">*</span>
                 </label>
-                <Select
-                  value={gender}
-                  onValueChange={(val) => setGender(val as any)}
-                >
-                  <SelectTrigger className="w-full bg-base-100">
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MALE">Male</SelectItem>
-                    <SelectItem value="FEMALE">Female</SelectItem>
-                    <SelectItem value="OTHER">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="gender"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full bg-base-100">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MALE">Male</SelectItem>
+                        <SelectItem value="FEMALE">Female</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.gender && (
+                  <span className="text-error text-xs font-medium">
+                    {form.formState.errors.gender.message}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -147,16 +160,27 @@ export default function OnboardingPage() {
                 <label className="text-sm font-medium text-base-content block">
                   Region <span className="text-error">*</span>
                 </label>
-                <Select value={selectedRegion} onValueChange={handleRegionChange} showSearch>
-                  <SelectTrigger className="w-full bg-base-100">
-                    <SelectValue placeholder="Select region" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {REGIONS.map((r) => (
-                      <SelectItem key={r.psgc} value={r.name}>{r.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="region"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={(val) => handleRegionChange(val, field.onChange)} showSearch>
+                      <SelectTrigger className="w-full bg-base-100">
+                        <SelectValue placeholder="Select region" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {REGIONS.map((r) => (
+                          <SelectItem key={r.psgc} value={r.name}>{r.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.region && (
+                  <span className="text-error text-xs font-medium">
+                    {form.formState.errors.region.message}
+                  </span>
+                )}
               </div>
 
               {/* Province */}
@@ -164,20 +188,31 @@ export default function OnboardingPage() {
                 <label className="text-sm font-medium text-base-content block">
                   Province <span className="text-error">*</span>
                 </label>
-                <Select
-                  value={selectedProvince}
-                  onValueChange={handleProvinceChange}
-                  showSearch
-                >
-                  <SelectTrigger className="w-full bg-base-100" disabled={!selectedRegion}>
-                    <SelectValue placeholder={selectedRegion ? "Select province" : "Select region"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableProvinces.map((p) => (
-                      <SelectItem key={p.psgc} value={p.name}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="province"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={(val) => handleProvinceChange(val, field.onChange)}
+                      showSearch
+                    >
+                      <SelectTrigger className="w-full bg-base-100" disabled={!selectedRegion}>
+                        <SelectValue placeholder={selectedRegion ? "Select province" : "Select region"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableProvinces.map((p) => (
+                          <SelectItem key={p.psgc} value={p.name}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.province && (
+                  <span className="text-error text-xs font-medium">
+                    {form.formState.errors.province.message}
+                  </span>
+                )}
               </div>
 
               {/* City */}
@@ -185,20 +220,31 @@ export default function OnboardingPage() {
                 <label className="text-sm font-medium text-base-content block">
                   City/Municipality <span className="text-error">*</span>
                 </label>
-                <Select
-                  value={selectedCity}
-                  onValueChange={handleCityChange}
-                  showSearch
-                >
-                  <SelectTrigger className="w-full bg-base-100" disabled={!selectedProvince}>
-                    <SelectValue placeholder={selectedProvince ? "Select city" : "Select province"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableCities.map((c) => (
-                      <SelectItem key={c.psgc} value={c.name}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="city"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={(val) => handleCityChange(val, field.onChange)}
+                      showSearch
+                    >
+                      <SelectTrigger className="w-full bg-base-100" disabled={!selectedProvince}>
+                        <SelectValue placeholder={selectedProvince ? "Select city" : "Select province"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCities.map((c) => (
+                          <SelectItem key={c.psgc} value={c.name}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.city && (
+                  <span className="text-error text-xs font-medium">
+                    {form.formState.errors.city.message}
+                  </span>
+                )}
               </div>
 
               {/* Barangay */}
@@ -206,20 +252,31 @@ export default function OnboardingPage() {
                 <label className="text-sm font-medium text-base-content block">
                   Barangay <span className="text-error">*</span>
                 </label>
-                <Select
-                  value={selectedBarangay}
-                  onValueChange={setSelectedBarangay}
-                  showSearch
-                >
-                  <SelectTrigger className="w-full bg-base-100" disabled={!selectedCity}>
-                    <SelectValue placeholder={selectedCity ? "Select brgy." : "Select city"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableBarangays.map((b) => (
-                      <SelectItem key={b.psgc} value={b.name}>{b.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="barangay"
+                  control={form.control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      showSearch
+                    >
+                      <SelectTrigger className="w-full bg-base-100" disabled={!selectedCity}>
+                        <SelectValue placeholder={selectedCity ? "Select brgy." : "Select city"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableBarangays.map((b) => (
+                          <SelectItem key={b.psgc} value={b.name}>{b.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.barangay && (
+                  <span className="text-error text-xs font-medium">
+                    {form.formState.errors.barangay.message}
+                  </span>
+                )}
               </div>
             </div>
 
