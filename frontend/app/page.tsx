@@ -28,11 +28,17 @@ const HomeContent = async () => {
   }
 
   if (dbUser.role === "PATIENT") {
+    if (!dbUser.isOnboarded) {
+      redirect("/onboarding");
+    }
     redirect("/diagnosis");
   }
 
   // For DEVELOPER role, redirect to patient view by default
   if (dbUser.role === ("DEVELOPER" as any)) {
+    if (!dbUser.isOnboarded) {
+      redirect("/onboarding");
+    }
     redirect("/diagnosis");
   }
 

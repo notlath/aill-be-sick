@@ -14,14 +14,15 @@ model User {
   name      String?
   authId    String?     @unique
   avatar    String?
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @default(now()) @updatedAt
-  role      Role        @default(PATIENT)
-  city      String?
-  latitude  Float?
-  longitude Float?
-  region    String?
-  age       Int?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now()) @updatedAt
+  role        Role        @default(PATIENT)
+  isOnboarded Boolean     @default(false)
+  city        String?
+  latitude    Float?
+  longitude   Float?
+  region      String?
+  age         Int?
   gender    Gender?
   province  String?
   barangay  String?
