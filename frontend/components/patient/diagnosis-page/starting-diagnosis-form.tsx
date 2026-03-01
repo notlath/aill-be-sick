@@ -23,6 +23,8 @@ const StartingDiagnosisForm = () => {
   const { execute, isExecuting } = useAction(createChat, {
     onSuccess: ({ data }) => {
       if (data.success) {
+        form.setValue('chatId', '');
+        form.setValue('symptoms', '');
         router.push(`/diagnosis/${data.success.chatId}`);
       } else if (data.error) {
         // TODO: Error handling
