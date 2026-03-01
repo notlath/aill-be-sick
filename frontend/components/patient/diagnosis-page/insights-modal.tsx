@@ -1,5 +1,6 @@
 "use client";
 
+import { XIcon } from "lucide-react";
 import { useMemo } from "react";
 
 type InsightsModalProps = {
@@ -37,11 +38,11 @@ const InsightsModal = ({
       <div className="modal-box max-w-2xl">
         <form method="dialog">
           <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
-            x
+            <XIcon className="size-4" />
           </button>
         </form>
-        <h3 className="font-bold text-lg">Diagnosis insights</h3>
-        <p className="py-4 text-muted">
+        <h3 className="font-bold text-xl">Diagnosis insights</h3>
+        <p className="py-4 text-muted text-sm">
           Here's a heatmap of your symptoms. Symptoms highlighted in deeper red
           indicate higher importance, and thus a stronger influence on the
           diagnosis.
@@ -76,6 +77,7 @@ const InsightsModal = ({
                   wordBreak: "break-word",
                 }}
                 title={`Importance: ${importances[i]?.toFixed(4) ?? "0.0000"}`}
+                className="text-base"
               >
                 {t.token}
               </span>

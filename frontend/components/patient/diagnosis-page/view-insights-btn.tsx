@@ -10,11 +10,11 @@ const ViewInsightsBtn = ({ disabled, modalId }: ViewInsightsBtnProps) => {
   };
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 shrink-0">
       <button
         disabled={disabled}
         type="button"
-        className="btn btn-outline w-full"
+        className="btn btn-outline border-border bg-base-200 w-full shrink-0"
         onClick={handleViewInsights}
       >
         View insights

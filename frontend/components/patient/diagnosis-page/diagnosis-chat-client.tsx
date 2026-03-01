@@ -8,21 +8,24 @@ import { ArrowUp, Loader2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "nextjs-toploader/app";
 import { useEffect, useMemo, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
 import InsightsModal from "./insights-modal";
 import ViewInsightsBtn from "./view-insights-btn";
+import { cn } from "@/utils/lib";
 
 type TempDiagnosis = {
   id: number;
   confidence: number;
   uncertainty: number;
   disease:
-    | "DENGUE"
-    | "PNEUMONIA"
-    | "TYPHOID"
-    | "DIARRHEA"
-    | "MEASLES"
-    | "INFLUENZA"
-    | "IMPETIGO";
+  | "DENGUE"
+  | "PNEUMONIA"
+  | "TYPHOID"
+  | "DIARRHEA"
+  | "MEASLES"
+  | "INFLUENZA"
+  | "IMPETIGO";
   createdAt: string;
   messageId: number;
   modelUsed: "BIOCLINICAL_MODERNBERT" | "ROBERTA_TAGALOG";
@@ -147,7 +150,7 @@ const DiagnosisChatClient = ({
   }, [isFinalized, latestDiagnosisMessageId]);
 
   return (
-    <section className="mx-auto p-4 md:p-8 w-full max-w-4xl min-h-[80vh]">
+    <section className="mx-auto p-4 md:p-8 w-full max-w-4xl flex-1 flex flex-col">
       <div className="space-y-4">
         {initialMessages.map((message) => {
           const isUser = message.role === "USER";
@@ -167,56 +170,65 @@ const DiagnosisChatClient = ({
               className={`chat ${isUser ? "chat-end" : "chat-start"}`}
             >
               <div
-                className={`chat-bubble whitespace-pre-wrap ${
-                  isUser ? "chat-bubble-primary" : "chat-bubble-neutral"
-                }`}
+                className={`chat-bubble ${isUser
+                  ? "chat-bubble-primary whitespace-pre-wrap"
+                  : "chat-bubble-muted prose prose-sm prose-invert max-w-none prose-p:leading-snug prose-p:my-1 prose-ul:my-1 prose-headings:my-2 prose-li:my-0"
+                  }`}
               >
-                {message.content}
+                {isUser ? (
+                  message.content
+                ) : (
+                  <ReactMarkdown remarkPlugins={[remarkBreaks]}>
+                    {message.content}
+                  </ReactMarkdown>
+                )}
               </div>
 
               {isDiagnosis && (
-                <div className="mt-3 w-full max-w-xl">
-                  <div className="flex gap-2">
-                    <button
-                      className="btn btn-success flex-1"
-                      disabled={!canRecord || isRecordingDiagnosis}
-                      onClick={() => {
-                        if (!message.tempDiagnosis) return;
-                        executeCreateDiagnosis({
-                          chatId,
-                          messageId: message.id,
-                          confidence: message.tempDiagnosis.confidence,
-                          uncertainty: message.tempDiagnosis.uncertainty,
-                          disease: message.tempDiagnosis.disease,
-                          modelUsed: message.tempDiagnosis.modelUsed,
-                          symptoms: message.tempDiagnosis.symptoms,
-                          location: location || undefined,
-                        });
-                      }}
-                    >
-                      {isRecordingDiagnosis && canRecord ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : null}
-                      Record diagnosis
-                    </button>
+                <div className="chat-footer mt-3 w-full max-w-xl">
+                  <div>
+                    <div className="flex gap-2 w-[382px]">
+                      <button
+                        className={cn("btn btn-primary text-base-100 flex-1", isRecordingDiagnosis || !canRecord && "text-muted cursor-not-allowed")}
+                        disabled={!canRecord || isRecordingDiagnosis}
+                        onClick={() => {
+                          if (!message.tempDiagnosis) return;
+                          executeCreateDiagnosis({
+                            chatId,
+                            messageId: message.id,
+                            confidence: message.tempDiagnosis.confidence,
+                            uncertainty: message.tempDiagnosis.uncertainty,
+                            disease: message.tempDiagnosis.disease,
+                            modelUsed: message.tempDiagnosis.modelUsed,
+                            symptoms: message.tempDiagnosis.symptoms,
+                            location: location || undefined,
+                          });
+                        }}
+                      >
+                        {isRecordingDiagnosis && canRecord ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : null}
+                        Record diagnosis
+                      </button>
 
-                    <ViewInsightsBtn
-                      disabled={!hasExplanation}
-                      modalId={modalId}
-                    />
+                      <ViewInsightsBtn
+                        disabled={!hasExplanation}
+                        modalId={modalId}
+                      />
+                    </div>
+                    {!isFinalized &&
+                      message.id !== latestRecordableMessageId &&
+                      message.tempDiagnosis ? (
+                      <p className="mt-2 text-xs opacity-70">
+                        Only the latest diagnosis can be recorded.
+                      </p>
+                    ) : null}
+                    {isFinalized ? (
+                      <p className="mt-2 text-xs opacity-70">
+                        This chat is finalized after recording.
+                      </p>
+                    ) : null}
                   </div>
-                  {!isFinalized &&
-                  message.id !== latestRecordableMessageId &&
-                  message.tempDiagnosis ? (
-                    <p className="mt-2 text-xs opacity-70">
-                      Only the latest diagnosis can be recorded.
-                    </p>
-                  ) : null}
-                  {isFinalized ? (
-                    <p className="mt-2 text-xs opacity-70">
-                      This chat is finalized after recording.
-                    </p>
-                  ) : null}
                   <InsightsModal
                     id={modalId}
                     tokens={message.explanation?.tokens}
@@ -236,7 +248,7 @@ const DiagnosisChatClient = ({
         ) : null}
       </div>
 
-      <div className="bottom-0 sticky mt-8 pt-4 bg-base-200/70 backdrop-blur">
+      <div className="bottom-0 sticky mt-auto bg-base-200/70 rounded-box">
         <div className="flex items-start gap-2 border border-base-300 rounded-box p-2">
           <textarea
             className="textarea flex-1 h-16 min-h-16 resize-none"
