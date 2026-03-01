@@ -10,6 +10,9 @@ import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
 import { useState } from "react";
 import Link from "next/link";
+import { ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 const ClinicianResetPasswordPage = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -24,10 +27,13 @@ const ClinicianResetPasswordPage = () => {
   const { execute: execUpdate, isExecuting } = useAction(updatePassword, {
     onSuccess: ({ data }) => {
       if (data?.error) {
-        console.error(data.error);
+        toast.error(data.error);
       } else {
         setSuccessMessage("Password updated successfully.");
       }
+    },
+    onError: ({ error }) => {
+      toast.error("An unexpected error occurred. Please try again.");
     },
   });
 
@@ -36,68 +42,105 @@ const ClinicianResetPasswordPage = () => {
   });
 
   return (
-    <main className="flex justify-center items-center h-screen">
-      <section className="space-y-4 text-center max-w-md w-full">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h1 className="font-bold text-3xl">Reset Password</h1>
-            <p className="text-muted">Enter your new password.</p>
+    <main className="flex min-h-screen bg-base-200">
+      {/* Left Column - Auth Form */}
+      <section className="flex-1 flex flex-col justify-center px-8 sm:px-16 md:px-24 lg:px-32">
+        <div className="w-full max-w-md mx-auto space-y-8">
+          <div className="space-y-3 text-center lg:text-left">
+            <h1 className="text-6xl font-bold tracking-tight">AI'll Be Sick</h1>
+            <p className="text-muted text-lg">
+              Clinician Portal - Reset Password
+            </p>
           </div>
-          <div className="space-y-4 bg-base-200 p-4 card-border border-border card">
-            {successMessage ? (
-              <div className="space-y-4">
-                <div className="alert alert-success">
-                  <span>{successMessage}</span>
-                </div>
-                <Link href="/clinician-login" className="btn btn-primary w-full">
-                  Go to Login
-                </Link>
+
+          {successMessage ? (
+            <div className="bg-base-100 p-8 rounded-2xl border border-border space-y-6 text-center shadow-sm">
+              <div className="mx-auto w-12 h-12 bg-success/10 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="h-6 w-6 text-success" />
               </div>
-            ) : (
-              <form onSubmit={handleUpdate} className="space-y-4">
-                <div className="space-y-1 text-left">
-                  <label className="label">New Password</label>
-                  <input
-                    type="password"
-                    className="outline-none input w-full"
-                    placeholder="New Password"
-                    {...form.register("password")}
-                  />
-                  {form.formState.errors.password && (
-                    <span className="text-error text-sm">
-                      {form.formState.errors.password.message}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-1 text-left">
-                  <label className="label">Confirm Password</label>
-                  <input
-                    type="password"
-                    className="outline-none input w-full"
-                    placeholder="Confirm Password"
-                    {...form.register("confirmPassword")}
-                  />
-                  {form.formState.errors.confirmPassword && (
-                    <span className="text-error text-sm">
-                      {form.formState.errors.confirmPassword.message}
-                    </span>
-                  )}
-                </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-base-content">Password Updated</h3>
+                <p className="text-muted text-sm">{successMessage}</p>
+              </div>
+              <Link
+                href="/clinician-login"
+                className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 shadow-sm font-medium"
+              >
+                Go to Login
+              </Link>
+            </div>
+          ) : (
+            <form onSubmit={handleUpdate} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="password">
+                  New Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  className="h-12"
+                  placeholder="••••••••"
+                  {...form.register("password")}
+                />
+                {form.formState.errors.password && (
+                  <span className="text-error text-xs font-medium">
+                    {form.formState.errors.password.message}
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="confirmPassword">
+                  Confirm Password
+                </label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  className="h-12"
+                  placeholder="••••••••"
+                  {...form.register("confirmPassword")}
+                />
+                {form.formState.errors.confirmPassword && (
+                  <span className="text-error text-xs font-medium">
+                    {form.formState.errors.confirmPassword.message}
+                  </span>
+                )}
+              </div>
+
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={isExecuting}
-                  className="btn btn-primary w-full"
+                  className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 shadow-sm font-medium"
                 >
                   {isExecuting ? (
-                    <span className="loading loading-spinner"></span>
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     "Update Password"
                   )}
                 </button>
-              </form>
-            )}
-          </div>
+              </div>
+
+              <div className="text-center pt-4">
+                <Link
+                  href="/clinician-login"
+                  className="text-primary text-sm font-medium inline-flex items-center gap-2 hover:underline transition-all cursor-pointer"
+                >
+                  <ArrowLeft className="h-4 w-4" /> Back to Login
+                </Link>
+              </div>
+            </form>
+          )}
         </div>
+      </section>
+
+      {/* Right Column - Image */}
+      <section className="hidden lg:block lg:flex-1 relative p-2">
+        <img
+          src="https://images.unsplash.com/photo-1584982751601-97dcc096659c?q=80&w=3272&auto=format&fit=crop"
+          alt="Modern clinic interior"
+          className="w-full h-full object-cover rounded-3xl"
+        />
       </section>
     </main>
   );

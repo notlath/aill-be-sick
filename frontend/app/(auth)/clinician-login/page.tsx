@@ -9,9 +9,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
 
 const ClinicianLoginPage = () => {
   const router = useRouter();
@@ -61,79 +63,118 @@ const ClinicianLoginPage = () => {
   });
 
   return (
-    <main className="flex justify-center items-center h-screen">
-      <section className="space-y-4 text-center">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <h1 className="font-bold text-5xl">AI'll Be Sick</h1>
-            <p className="text-muted">
-              Login with your credentials as clinician
+    <main className="flex min-h-screen bg-base-200">
+      {/* Left Column - Auth Form */}
+      <section className="flex-1 flex flex-col justify-center px-8 sm:px-16 md:px-24 lg:px-32">
+        <div className="w-full max-w-md mx-auto space-y-8">
+          <div className="space-y-3 text-center lg:text-left">
+            <h1 className="text-6xl font-bold tracking-tight">AI'll Be Sick</h1>
+            <p className="text-muted text-lg">
+              Clinician Portal Access
             </p>
           </div>
-          <form onSubmit={handleLogin} className="space-y-4 bg-base-200 p-4 card-border border-border card">
-            <div className="space-y-1 text-left">
-              <label className="label">Email</label>
-              <input
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="email">
+                Email address
+              </label>
+              <Input
+                id="email"
                 type="email"
-                className="outline-none input"
-                placeholder="Email"
+                className="h-12"
+                placeholder="doctor@hospital.com"
                 {...form.register("email")}
               />
               {form.formState.errors.email && (
-                <span className="text-error text-sm">
+                <span className="text-error text-xs font-medium">
                   {form.formState.errors.email.message}
                 </span>
               )}
             </div>
-            <div className="space-y-1 text-left">
-              <label className="label">Password</label>
-              <input
-                type="password"
-                className="outline-none input"
-                placeholder="Password"
-                {...form.register("password")}
-              />
-              {form.formState.errors.password && (
-                <span className="text-error text-sm">
-                  {form.formState.errors.password.message}
-                </span>
-              )}
-              <div className="text-right">
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="password">
+                  Password
+                </label>
                 <Link
                   href="/clinician-forgot-password"
-                  className="link link-hover text-sm"
+                  className="text-xs font-medium text-primary hover:underline transition-all cursor-pointer"
                 >
                   Forgot Password?
                 </Link>
               </div>
+              <Input
+                id="password"
+                type="password"
+                className="h-12"
+                placeholder="••••••••"
+                {...form.register("password")}
+              />
+              {form.formState.errors.password && (
+                <span className="text-error text-xs font-medium">
+                  {form.formState.errors.password.message}
+                </span>
+              )}
             </div>
-            <div className="flex gap-2">
+
+            <div className="flex flex-col gap-3 pt-2">
               <button
                 type="submit"
                 disabled={isLoggingIn}
-                className="flex-1 btn btn-primary"
+                className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium"
               >
                 {isLoggingIn ? (
-                  <span className="loading loading-spinner"></span>
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  "Log in"
+                  <>
+                    Sign In <ArrowRight className="h-4 w-4" />
+                  </>
                 )}
               </button>
+
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-base-200/50 px-2 text-muted-foreground bg-base-100">Or</span>
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={handleSignup}
-                className="flex-1 border border-border btn"
                 disabled={isSigningUp}
+                className="btn btn-outline border-border w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium bg-base-100 text-base-content"
               >
                 {isSigningUp ? (
-                  <span className="loading loading-spinner"></span>
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  "Sign up"
+                  "Create clinician account"
                 )}
               </button>
             </div>
+
+            <p className="text-center text-sm text-muted pt-4">
+              Not a clinician? Click{" "}
+              <Link href="/login" className="text-primary font-medium hover:underline transition-all cursor-pointer">
+                here
+              </Link>{" "}
+              to log in as a patient
+            </p>
           </form>
         </div>
+      </section>
+
+      {/* Right Column - Image */}
+      <section className="hidden lg:block lg:flex-1 relative p-2">
+        <img
+          src="https://images.unsplash.com/photo-1584982751601-97dcc096659c?q=80&w=3272&auto=format&fit=crop"
+          alt="Modern clinic interior"
+          className="w-full h-full object-cover rounded-3xl"
+        />
       </section>
     </main>
   );
