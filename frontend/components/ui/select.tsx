@@ -64,7 +64,7 @@ function Select({ value, onValueChange, children, showSearch = false, className 
         setSearchQuery,
       }}
     >
-      <div className={cn("dropdown relative", className)} ref={selectRef}>
+      <div className={cn("dropdown w-full relative", className)} ref={selectRef}>
         {children}
       </div>
     </SelectCtx.Provider>

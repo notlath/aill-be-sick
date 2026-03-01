@@ -29,6 +29,10 @@ const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
     return redirect("/dashboard");
   }
 
+  if (!dbUser.isOnboarded) {
+    return redirect("/onboarding");
+  }
+
   return (
     <LayoutWrapper>
       <Sidebar dbUser={dbUser} />
