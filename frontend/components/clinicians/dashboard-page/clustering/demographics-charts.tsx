@@ -1,11 +1,11 @@
 "use client";
 import React from "react";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { BarChart3, PieChart, Users, Activity } from "lucide-react";
 import type { ClusterStatistics, Patient } from "@/types";
@@ -237,30 +237,30 @@ const DemographicsCharts: React.FC<DemographicsChartsProps> = ({
 
                   {/* Visual bar */}
                   <div className="flex h-10 rounded-[10px] overflow-hidden border border-base-300/50 shadow-sm">
-                    {malePercent > 0 && (
+                    {malePercent > 0 ? (
                       <div
                         className="bg-blue-500 flex items-center justify-center text-xs font-semibold text-white transition-all duration-500"
                         style={{ width: `${malePercent}%` }}
                       >
                         {malePercent > 12 && `${Math.round(malePercent)}%`}
                       </div>
-                    )}
-                    {femalePercent > 0 && (
+                    ) : null}
+                    {femalePercent > 0 ? (
                       <div
                         className="bg-pink-500 flex items-center justify-center text-xs font-semibold text-white transition-all duration-500"
                         style={{ width: `${femalePercent}%` }}
                       >
                         {femalePercent > 12 && `${Math.round(femalePercent)}%`}
                       </div>
-                    )}
-                    {otherPercent > 0 && (
+                    ) : null}
+                    {otherPercent > 0 ? (
                       <div
                         className="bg-gray-400 flex items-center justify-center text-xs font-semibold text-white transition-all duration-500"
                         style={{ width: `${otherPercent}%` }}
                       >
                         {otherPercent > 12 && `${Math.round(otherPercent)}%`}
                       </div>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Legend */}
@@ -289,7 +289,7 @@ const DemographicsCharts: React.FC<DemographicsChartsProps> = ({
                         </span>
                       </span>
                     </div>
-                    {stat.gender_distribution.OTHER > 0 && (
+                    {stat.gender_distribution.OTHER > 0 ? (
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 rounded-[6px] bg-gray-400 shadow-sm"></div>
                         <span className="font-medium text-base-content/80">
@@ -299,7 +299,7 @@ const DemographicsCharts: React.FC<DemographicsChartsProps> = ({
                           </span>
                         </span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               );

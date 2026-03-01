@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Activity, AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import ClusterOverviewCards from "./cluster-overview-cards";
 import type { PatientClusterData } from "@/types";
 import { Input } from "@/components/ui/input";
@@ -380,10 +380,10 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
         </div>
       </div>
 
-      {loading && (
+      {loading ? (
         <div className="flex w-full flex-col gap-4">
           <div className="flex items-center justify-center gap-3">
-            <Activity className="text-primary size-8 animate-spin" />
+            <Loader2 className="text-primary size-8 animate-spin" />
             <p className="text-muted-foreground text-sm font-medium">
               Recalculating clusters...
             </p>
@@ -391,20 +391,20 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
           {/* Skeletons mirroring cluster overview cards layout */}
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[0, 1, 2, 3].map((index) => (
-              <Card key={index} className="border-muted bg-muted/40 h-130">
+              <Card key={index} className="border-border h-[520px]">
                 <CardHeader className="space-y-3">
                   <div className="skeleton h-6 w-20" />
                   <div className="skeleton h-20 w-full" />
-                  <div className="skeleton h-3 w-30" />
-                  <div className="skeleton h-3 w-25" />
+                  <div className="skeleton h-3 w-32" />
+                  <div className="skeleton h-3 w-24" />
                 </CardHeader>
               </Card>
             ))}
           </div>
         </div>
-      )}
+      ) : null}
 
-      {!loading && (error || !clusterData) && (
+      {!loading && (error || !clusterData) ? (
         <Card className="col-span-2 border-red-200/50 bg-red-50/50">
           <CardHeader className="py-20 text-center">
             <div className="mx-auto w-fit rounded-[12px] bg-red-100 p-3">
@@ -418,13 +418,13 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
             </CardDescription>
           </CardHeader>
         </Card>
-      )}
+      ) : null}
 
-      {!loading && !error && clusterData && (
+      {!loading && !error && clusterData ? (
         <div className="space-y-6">
           <ClusterOverviewCards statistics={clusterData.cluster_statistics} />
         </div>
-      )}
+      ) : null}
 
       {modalRoot ? createPortal(confirmModal, modalRoot) : null}
     </div>
