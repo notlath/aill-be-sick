@@ -55,6 +55,7 @@ const ChatDataLoader = async ({ chatId, chat, userRole }: { chatId: string; chat
 
   return (
     <ChatWindow
+      key={chatId}
       dbExplanation={explanation ?? null}
       chatId={chatId}
       messages={messages}

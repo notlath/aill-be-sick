@@ -7,15 +7,15 @@ import { runDiagnosis } from "@/actions/run-diagnosis";
 import { useUserLocation } from "@/hooks/use-location";
 import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import {
-  CreateChatSchema,
-  CreateChatSchemaType,
+    CreateChatSchema,
+    CreateChatSchemaType,
 } from "@/schemas/CreateChatSchema";
 import { Explanation as TempExplanation } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction, useOptimisticAction } from "next-safe-action/hooks";
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import dynamic from "next/dynamic";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
@@ -96,6 +96,10 @@ const ChatWindow = ({
   const [diagnosisMode, setDiagnosisMode] = useState<"adaptive" | "legacy">(
     "adaptive",
   );
+
+  const prevChatIdRef = useRef<string>(chatId);
+  const explanationRequestedRef = useRef<Set<string>>(new Set());
+  const diagnosisRequestedRef = useRef<Set<string>>(new Set());
 
   const lastAnswerRef = useRef<{
     answer: "yes" | "no";
@@ -439,18 +443,22 @@ const ChatWindow = ({
           setConfirmNeeded(false);
           setIsFinalDiagnosis(false);
 
-          runDiagnosisExecute({
-            chatId,
-            symptoms: created.content,
-            skipMessage: true,
-          });
+          if (!diagnosisRequestedRef.current.has(created.id)) {
+            diagnosisRequestedRef.current.add(created.id);
+            runDiagnosisExecute({
+              chatId,
+              symptoms: created.content,
+              skipMessage: true,
+            });
+          }
         }
 
         if (created.type === "DIAGNOSIS") {
           const symptomsText = lastDiagnosisRef.current?.symptoms;
           const meanProbs = lastDiagnosisRef.current?.mean_probs;
 
-          if (meanProbs && Array.isArray(meanProbs)) {
+          if (meanProbs && Array.isArray(meanProbs) && !explanationRequestedRef.current.has(created.id)) {
+            explanationRequestedRef.current.add(created.id);
             getExplanations({
               symptoms: symptomsText,
               meanProbs,
@@ -533,6 +541,28 @@ const ChatWindow = ({
   useEffect(() => {
     requestLocation();
   }, [requestLocation]);
+
+  useEffect(() => {
+    if (prevChatIdRef.current !== chatId) {
+      form.reset({
+        chatId,
+        symptoms: "",
+      });
+      setCurrentQuestion(null);
+      setAskedQuestions([]);
+      setPositiveSymptoms([]);
+      setConfirmNeeded(false);
+      setCurrentDiagnosis(null);
+      setIsFinalDiagnosis(false);
+      setDiagnosisMode("adaptive");
+      lastAnswerRef.current = null;
+      lastDiagnosisRef.current = null;
+      hasRunInitialDiagnosis.current = false;
+      explanationRequestedRef.current = new Set();
+      diagnosisRequestedRef.current = new Set();
+      prevChatIdRef.current = chatId;
+    }
+  }, [chatId, form]);
 
   useEffect(() => {
     if (messages.length === 1 && !hasRunInitialDiagnosis.current) {
