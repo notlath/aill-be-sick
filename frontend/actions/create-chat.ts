@@ -1,10 +1,10 @@
 "use server";
 
-import { CreateChatSchema } from "@/schemas/CreateChatSchema";
-import { actionClient } from "./client";
 import prisma from "@/prisma/prisma";
+import { CreateChatSchema } from "@/schemas/CreateChatSchema";
 import { getCurrentDbUser } from "@/utils/user";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { actionClient } from "./client";
 
 export const createChat = actionClient
   .inputSchema(CreateChatSchema)
@@ -39,6 +39,7 @@ export const createChat = actionClient
       });
 
       revalidateTag(`chats-${user.id}`, 'max');
+      revalidatePath("/history");
 
       return { success: { chatId, symptoms } };
     } catch (error) {

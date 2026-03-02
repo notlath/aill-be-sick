@@ -1,9 +1,9 @@
 "use server";
 
-import { CreateMessageSchema } from "@/schemas/CreateMessageSchema";
-import { actionClient } from "./client";
 import prisma from "@/prisma/prisma";
+import { CreateMessageSchema } from "@/schemas/CreateMessageSchema";
 import { revalidatePath, updateTag } from "next/cache";
+import { actionClient } from "./client";
 
 export const createMessage = actionClient
   .inputSchema(CreateMessageSchema)
@@ -48,7 +48,8 @@ export const createMessage = actionClient
 
       updateTag("messages");
       updateTag(`messages-${chatId}`);
-      revalidatePath("/diagnosis/[chatId]", "page");
+      revalidatePath("/history");
+      revalidatePath("/diagnosis/[chatId]");
 
       return { success: createdMessage };
     } catch (error) {
