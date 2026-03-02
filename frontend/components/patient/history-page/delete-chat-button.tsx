@@ -30,6 +30,8 @@ const DeleteChatButton = ({ chatId }: DeleteChatButtonProps) => {
         return;
       }
 
+      setIsDeleting(false);
+      setIsConfirmOpen(false);
       setErrorMessage(null);
       router.refresh();
     },
