@@ -1,11 +1,11 @@
-import Markdown from "react-markdown";
-import ChatBubble from "./chat-bubble";
 import { Message, TempDiagnosis } from "@/lib/generated/prisma";
-import remarkBreaks from "remark-breaks";
-import { forwardRef } from "react";
-import { LocationData } from "@/utils/location";
-import QuestionBubble from "./question-bubble";
 import { Explanation } from "@/types";
+import { LocationData } from "@/utils/location";
+import { forwardRef } from "react";
+import Markdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
+import ChatBubble from "./chat-bubble";
+import QuestionBubble from "./question-bubble";
 
 type ChatContainerProps = {
   messages: (Message & {
@@ -54,7 +54,7 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
       <section className="flex flex-col flex-1 space-x-auto space-y-2 py-8 w-full max-w-[768px]">
         {messages.map((message, idx) => (
           <ChatBubble
-            key={message.id + message.content}
+            key={message.id ? `${message.id}-${idx}` : `msg-${idx}`}
             messagesLength={messages.length}
             idx={idx}
             chatHasDiagnosis={hasDiagnosis}
