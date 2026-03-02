@@ -30,10 +30,28 @@ function Select({ value, onValueChange, children, showSearch = false, className 
   const selectRef = React.useRef<HTMLDivElement>(null);
 
   const registerItem = React.useCallback((val: string, label: string) => {
-    setLabels((prev) => (prev[val] ? prev : { ...prev, [val]: label }));
+    setLabels((prev) => {
+      if (prev[val] === label) return prev;
+      return { ...prev, [val]: label };
+    });
   }, []);
 
-  const setValue = (v: string) => onValueChange(v);
+  const setValue = React.useCallback((v: string) => onValueChange(v), [onValueChange]);
+
+  const contextValue = React.useMemo(
+    () => ({
+      value,
+      setValue,
+      open,
+      setOpen,
+      registerItem,
+      labels,
+      showSearch,
+      searchQuery,
+      setSearchQuery,
+    }),
+    [value, setValue, open, registerItem, labels, showSearch, searchQuery]
+  );
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -51,19 +69,7 @@ function Select({ value, onValueChange, children, showSearch = false, className 
   }, [open]);
 
   return (
-    <SelectCtx.Provider
-      value={{
-        value,
-        setValue,
-        open,
-        setOpen,
-        registerItem,
-        labels,
-        showSearch,
-        searchQuery,
-        setSearchQuery,
-      }}
-    >
+    <SelectCtx.Provider value={contextValue}>
       <div className={cn("dropdown w-full relative", className)} ref={selectRef}>
         {children}
       </div>
@@ -173,6 +179,7 @@ interface SelectItemProps extends React.LiHTMLAttributes<HTMLLIElement> {
 const SelectItem = React.forwardRef<HTMLLIElement, SelectItemProps>(
   ({ className, value, children, onClick, ...props }, ref) => {
     const ctx = React.useContext(SelectCtx);
+    const registerItem = ctx?.registerItem;
     // Capture label text
     const label = React.useMemo(() => {
       if (typeof children === "string") return children;
@@ -184,8 +191,8 @@ const SelectItem = React.forwardRef<HTMLLIElement, SelectItemProps>(
     }, [children, value]);
 
     React.useEffect(() => {
-      if (label) ctx?.registerItem(value, label);
-    }, [ctx, value, label]);
+      if (label) registerItem?.(value, label);
+    }, [registerItem, value, label]);
 
     const selected = ctx?.value === value;
 
