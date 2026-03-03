@@ -17,7 +17,8 @@ export const completeOnboarding = actionClient
     }
 
     try {
-      const { birthday, gender, region, province, city, barangay } = parsedInput;
+      const { birthday, gender, region, province, district, city, barangay } =
+        parsedInput;
 
       await prisma.user.update({
         where: { authId: authUser.id },
@@ -26,6 +27,7 @@ export const completeOnboarding = actionClient
           gender,
           region,
           province,
+          ...(district && { district }), // Only include district if provided
           city,
           barangay,
           isOnboarded: true,
