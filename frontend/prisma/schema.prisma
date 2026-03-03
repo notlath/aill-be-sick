@@ -25,6 +25,7 @@ model User {
   age         Int?
   gender    Gender?
   province  String?
+  district  String?
   barangay  String?
   birthday  DateTime?
   chats     Chat[]

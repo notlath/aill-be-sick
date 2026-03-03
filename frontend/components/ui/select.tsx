@@ -23,7 +23,13 @@ interface SelectProps {
   className?: string;
 }
 
-function Select({ value, onValueChange, children, showSearch = false, className }: SelectProps) {
+function Select({
+  value,
+  onValueChange,
+  children,
+  showSearch = false,
+  className,
+}: SelectProps) {
   const [open, setOpen] = React.useState(false);
   const [labels, setLabels] = React.useState<Record<string, string>>({});
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -36,7 +42,10 @@ function Select({ value, onValueChange, children, showSearch = false, className 
     });
   }, []);
 
-  const setValue = React.useCallback((v: string) => onValueChange(v), [onValueChange]);
+  const setValue = React.useCallback(
+    (v: string) => onValueChange(v),
+    [onValueChange],
+  );
 
   const contextValue = React.useMemo(
     () => ({
@@ -50,12 +59,15 @@ function Select({ value, onValueChange, children, showSearch = false, className 
       searchQuery,
       setSearchQuery,
     }),
-    [value, setValue, open, registerItem, labels, showSearch, searchQuery]
+    [value, setValue, open, registerItem, labels, showSearch, searchQuery],
   );
 
   React.useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
+      if (
+        selectRef.current &&
+        !selectRef.current.contains(event.target as Node)
+      ) {
         setOpen(false);
       }
     }
@@ -70,7 +82,10 @@ function Select({ value, onValueChange, children, showSearch = false, className 
 
   return (
     <SelectCtx.Provider value={contextValue}>
-      <div className={cn("dropdown w-full relative", className)} ref={selectRef}>
+      <div
+        className={cn("dropdown w-full relative", className)}
+        ref={selectRef}
+      >
         {children}
       </div>
     </SelectCtx.Provider>
@@ -94,8 +109,8 @@ const SelectTrigger = React.forwardRef<
         "hover:bg-white/70 hover:border-base-300/70",
         "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40",
         "transition-all duration-200",
-        "text-sm font-medium text-base-content",
-        className
+        "text-sm  text-base-content",
+        className,
       )}
       onClick={(e) => {
         e.stopPropagation();
@@ -111,7 +126,7 @@ const SelectTrigger = React.forwardRef<
         xmlns="http://www.w3.org/2000/svg"
         className={cn(
           "h-4 w-4 text-muted transition-transform duration-200",
-          ctx?.open && "rotate-180"
+          ctx?.open && "rotate-180",
         )}
         viewBox="0 0 24 24"
         fill="none"
@@ -143,7 +158,7 @@ const SelectContent = React.forwardRef<
         "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2",
         "duration-200",
         !ctx?.open && "hidden",
-        className
+        className,
       )}
       {...props}
     >
@@ -162,7 +177,9 @@ const SelectContent = React.forwardRef<
       )}
       <div className="max-h-[300px] overflow-y-auto overflow-x-hidden min-h-[40px] relative w-full scrollbar-none">
         {React.Children.count(children) === 0 ? (
-          <div className="p-4 text-center text-sm text-base-content/50 italic">No options</div>
+          <div className="p-4 text-center text-sm text-base-content/50 italic">
+            No options
+          </div>
         ) : (
           children
         )}
@@ -174,10 +191,11 @@ SelectContent.displayName = "SelectContent";
 
 interface SelectItemProps extends React.LiHTMLAttributes<HTMLLIElement> {
   value: string;
+  searchText?: string;
 }
 
 const SelectItem = React.forwardRef<HTMLLIElement, SelectItemProps>(
-  ({ className, value, children, onClick, ...props }, ref) => {
+  ({ className, value, searchText, children, onClick, ...props }, ref) => {
     const ctx = React.useContext(SelectCtx);
     const registerItem = ctx?.registerItem;
     // Capture label text
@@ -185,10 +203,14 @@ const SelectItem = React.forwardRef<HTMLLIElement, SelectItemProps>(
       if (typeof children === "string") return children;
       return (
         React.Children.map(children, (c: any) =>
-          typeof c === "string" ? c : null
+          typeof c === "string" ? c : null,
         )?.join(" ") || String(value)
       );
     }, [children, value]);
+
+    const searchableLabel = React.useMemo(() => {
+      return (searchText ?? label).toLowerCase();
+    }, [searchText, label]);
 
     React.useEffect(() => {
       if (label) registerItem?.(value, label);
@@ -198,7 +220,7 @@ const SelectItem = React.forwardRef<HTMLLIElement, SelectItemProps>(
 
     // Filtering logic
     if (ctx?.showSearch && ctx?.searchQuery) {
-      if (!label.toLowerCase().includes(ctx.searchQuery.toLowerCase())) {
+      if (!searchableLabel.includes(ctx.searchQuery.toLowerCase())) {
         return null; // hide if it doesn't match
       }
     }
@@ -218,17 +240,17 @@ const SelectItem = React.forwardRef<HTMLLIElement, SelectItemProps>(
         <a
           className={cn(
             "px-3 py-2 rounded-[8px]",
-            "text-sm font-medium",
+            "text-sm ",
             "transition-all duration-150",
             "hover:bg-primary/10 hover:text-primary",
-            selected && "bg-primary/15 text-primary font-semibold"
+            selected && "bg-primary/15 text-primary font-semibold",
           )}
         >
           {children}
         </a>
       </li>
     );
-  }
+  },
 );
 SelectItem.displayName = "SelectItem";
 
@@ -245,7 +267,7 @@ const SelectValue = React.forwardRef<HTMLSpanElement, SelectValueProps>(
         {label || placeholder}
       </span>
     );
-  }
+  },
 );
 SelectValue.displayName = "SelectValue";
 
