@@ -129,7 +129,7 @@ export function DataTable<TData, TValue>({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={currentSortLabel} onValueChange={handleSortChange}>
+          <Select className="w-auto" value={currentSortLabel} onValueChange={handleSortChange}>
             <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
@@ -142,7 +142,7 @@ export function DataTable<TData, TValue>({
             </SelectContent>
           </Select>
 
-          <Select
+          <Select className="w-auto"
             value={(table.getColumn("diagnosis")?.getFilterValue() as string) ?? ""}
             onValueChange={(value) => {
               table.getColumn("diagnosis")?.setFilterValue(value || undefined);
