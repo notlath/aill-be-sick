@@ -66,3 +66,4 @@ frontend/app/generated
 .qwen
 .kilocode
 skills-lock.json
+notebooks/
