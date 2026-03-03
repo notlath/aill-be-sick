@@ -28,10 +28,12 @@ type SearchItem = {
 };
 
 type PhilippinesMapProps = {
-  selectedTab?: "disease" | "cluster" | "anomaly";
+  selectedTab?: "disease" | "cluster" | "anomaly" | "illness-cluster";
   selectedDisease?: string;
   selectedCluster?: string;
+  selectedIllnessCluster?: string;
   heatmapData?: MapHeatmapData;
+  illnessHeatmapData?: MapHeatmapData;
   anomalyHeatmapData?: AnomalyHeatmapData;
 }
 
@@ -61,7 +63,7 @@ const normalizeLoc = (value?: string | null): string => {
     .replace(/\s+province$/i, "");
 };
 
-const PhilippinesMap = memo(({ selectedTab, heatmapData, anomalyHeatmapData }: PhilippinesMapProps) => {
+const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData, illnessHeatmapData, anomalyHeatmapData }: PhilippinesMapProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -153,6 +155,49 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData, anomalyHeatmapData }: P
     if (!heatmapData || !currentProvinceNormalized) return [];
     return heatmapData.provinceLegendBinsByProvince[currentProvinceNormalized] ?? [];
   }, [heatmapData, currentProvinceNormalized]);
+
+  // ----- Illness Cluster Data Memos -----
+  const illnessProjectedProvinceCounts = useMemo(() => {
+    if (!illnessHeatmapData) return new Map<string, number>();
+    const mapped = new Map<string, number>();
+    for (const [provinceName, count] of Object.entries(illnessHeatmapData.projectedProvinceCounts)) {
+      mapped.set(normalizeLoc(provinceName), count);
+    }
+    return mapped;
+  }, [illnessHeatmapData]);
+
+  const illnessProvinceCounts = useMemo(() => {
+    if (!illnessHeatmapData) return new Map<string, number>();
+    const mapped = new Map<string, number>();
+    for (const [provinceName, count] of Object.entries(illnessHeatmapData.provinceCounts)) {
+      mapped.set(normalizeLoc(provinceName), count);
+    }
+    return mapped;
+  }, [illnessHeatmapData]);
+
+  const illnessProvinceTotals = useMemo(() => {
+    if (!illnessHeatmapData) return new Map<string, number>();
+    const mapped = new Map<string, number>();
+    for (const [provinceName, count] of Object.entries(illnessHeatmapData.provinceTotals)) {
+      mapped.set(normalizeLoc(provinceName), count);
+    }
+    return mapped;
+  }, [illnessHeatmapData]);
+
+  const illnessCityTotals = useMemo(() => {
+    if (!illnessHeatmapData) return new Map<string, number>();
+    return new Map<string, number>(Object.entries(illnessHeatmapData.cityTotals));
+  }, [illnessHeatmapData]);
+
+  const illnessBarangayCounts = useMemo(() => {
+    if (!illnessHeatmapData) return new Map<string, number>();
+    return new Map<string, number>(Object.entries(illnessHeatmapData.barangayCounts));
+  }, [illnessHeatmapData]);
+
+  const illnessActiveProvinceLegendBins = useMemo(() => {
+    if (!illnessHeatmapData || !currentProvinceNormalized) return [];
+    return illnessHeatmapData.provinceLegendBinsByProvince[currentProvinceNormalized] ?? [];
+  }, [illnessHeatmapData, currentProvinceNormalized]);
 
   // --- Load Search Index ---
   useEffect(() => {
@@ -369,6 +414,26 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData, anomalyHeatmapData }: P
         return projectedProvinceCounts.get(normalizeLoc(provinceName)) ?? 0;
       };
 
+      const getIllnessClusterCountForFeature = (feature: MapFeature): number => {
+        if (selectedTab !== "illness-cluster" || !illnessHeatmapData) return 0;
+
+        if (viewState.level === "province") {
+          if (!currentProvinceNormalized) return 0;
+          const cityName =
+            feature.properties.adm3_en ||
+            cityNameByPsgc.get(feature.properties.adm3_psgc || 0) ||
+            "";
+          const barangayName = feature.properties.adm4_en || "";
+          if (!cityName || !barangayName) return 0;
+          const barangayKey = `${currentProvinceNormalized}||${normalizeLoc(cityName)}||${normalizeLoc(barangayName)}`;
+          return illnessBarangayCounts.get(barangayKey) ?? 0;
+        }
+
+        const provinceName = feature.properties.adm2_en || feature.properties.adm3_en;
+        if (!provinceName) return 0;
+        return illnessProjectedProvinceCounts.get(normalizeLoc(provinceName)) ?? 0;
+      };
+
       const getFeatureFillColor = (feature: MapFeature): string => {
         if (selectedTab === "cluster" && heatmapData) {
           const count = getClusterCountForFeature(feature);
@@ -376,6 +441,21 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData, anomalyHeatmapData }: P
             viewState.level === "province"
               ? activeProvinceLegendBins
               : heatmapData.legendBins;
+          if (count <= 0 || activeLegendBins.length === 0) return ZERO_CLUSTER_COLOR;
+
+          const matchedBin = activeLegendBins.find(
+            (bin) => count >= bin.min && count <= bin.max,
+          );
+
+          return matchedBin?.color ?? activeLegendBins[activeLegendBins.length - 1]?.color ?? ZERO_CLUSTER_COLOR;
+        }
+
+        if (selectedTab === "illness-cluster" && illnessHeatmapData) {
+          const count = getIllnessClusterCountForFeature(feature);
+          const activeLegendBins =
+            viewState.level === "province"
+              ? illnessActiveProvinceLegendBins
+              : illnessHeatmapData.legendBins;
           if (count <= 0 || activeLegendBins.length === 0) return ZERO_CLUSTER_COLOR;
 
           const matchedBin = activeLegendBins.find(
@@ -554,6 +634,47 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData, anomalyHeatmapData }: P
             const regionName =
               heatmapData.provinceToRegion[normalizedProvince] ?? "Region";
             const regionTotal = heatmapData.regionTotals[regionName] ?? 0;
+
+            tooltip
+              .style("display", "block")
+              .style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY - 10) + "px")
+              .html(`${name}: ${provinceCount}<br/>${regionName} total: ${regionTotal}`);
+            return;
+          }
+
+          if (selectedTab === "illness-cluster" && illnessHeatmapData) {
+            if (viewState.level === "province") {
+              const provinceName = currentProvinceName || "Province";
+              const normalizedProvince = normalizeLoc(provinceName);
+              const cityName =
+                d.properties.adm3_en ||
+                cityNameByPsgc.get(d.properties.adm3_psgc) ||
+                "Unknown city";
+              const barangayName = d.properties.adm4_en || name;
+              const barangayKey = `${normalizedProvince}||${normalizeLoc(cityName)}||${normalizeLoc(barangayName)}`;
+              const cityKey = `${normalizedProvince}||${normalizeLoc(cityName)}`;
+              const barangayCount = illnessBarangayCounts.get(barangayKey) ?? 0;
+              const cityTotal = illnessCityTotals.get(cityKey) ?? 0;
+              const provinceTotal = illnessProvinceTotals.get(normalizedProvince) ?? 0;
+
+              tooltip
+                .style("display", "block")
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px")
+                .html(
+                  `${barangayName}: ${barangayCount}<br/>${cityName} total: ${cityTotal}<br/>${provinceName} total: ${provinceTotal}`,
+                );
+              return;
+            }
+
+            const normalizedProvince = normalizeLoc(
+              d.properties.adm2_en || d.properties.adm3_en || name,
+            );
+            const provinceCount = illnessProvinceCounts.get(normalizedProvince) ?? 0;
+            const regionName =
+              illnessHeatmapData.provinceToRegion[normalizedProvince] ?? "Region";
+            const regionTotal = illnessHeatmapData.regionTotals[regionName] ?? 0;
 
             tooltip
               .style("display", "block")
@@ -800,6 +921,41 @@ const PhilippinesMap = memo(({ selectedTab, heatmapData, anomalyHeatmapData }: P
                 {(viewState.level === "province"
                   ? activeProvinceLegendBins
                   : heatmapData.legendBins
+                ).map((bin) => (
+                  <div key={`${bin.min}-${bin.max}`} className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-3 w-5 rounded-sm border border-base-300"
+                      style={{ backgroundColor: bin.color }}
+                    />
+                    <span>{bin.min}-{bin.max}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {selectedTab === "illness-cluster" && illnessHeatmapData && (
+            <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded shadow text-xs z-10 min-w-48">
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className="inline-block h-3 w-3 rounded-full border border-base-300"
+                  style={{ backgroundColor: illnessHeatmapData.clusterBaseColor }}
+                />
+                <p className="font-semibold">
+                  Cluster {illnessHeatmapData.selectedClusterDisplay} {viewState.level === "province" ? "Province" : "Country"} Legend
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-3 w-5 rounded-sm border border-base-300"
+                    style={{ backgroundColor: ZERO_CLUSTER_COLOR }}
+                  />
+                  <span>0</span>
+                </div>
+                {(viewState.level === "province"
+                  ? illnessActiveProvinceLegendBins
+                  : illnessHeatmapData.legendBins
                 ).map((bin) => (
                   <div key={`${bin.min}-${bin.max}`} className="flex items-center gap-2">
                     <span

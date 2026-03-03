@@ -14,6 +14,8 @@ import {
 import {
   AnomalyHeatmapData,
   ClusterStatistics,
+  IllnessClusterData,
+  IllnessClusterStatistics,
   MapHeatmapData,
   OutbreakFullResult,
   PatientClusterData,
@@ -54,8 +56,9 @@ const DISEASES = [
 ];
 
 type MapContainerProps = {
-  selectedTab: "disease" | "cluster" | "anomaly";
+  selectedTab: "disease" | "cluster" | "anomaly" | "illness-cluster";
   clusters?: PatientClusterData;
+  illnessClusters?: IllnessClusterData;
   initialK?: number;
 };
 
@@ -157,6 +160,7 @@ for (const province of provinceRows) {
 export function MapContainer({
   selectedTab,
   clusters = undefined,
+  illnessClusters = undefined,
   initialK = 4,
 }: MapContainerProps) {
   const [clusterData, setClusterData] = useState<PatientClusterData | undefined>(
@@ -173,6 +177,21 @@ export function MapContainer({
   const [showAllRegions, setShowAllRegions] = useState(false);
   const [showAllCities, setShowAllCities] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+
+  // Illness Cluster States
+  const [illnessClusterData, setIllnessClusterData] = useState<IllnessClusterData | undefined>(
+    illnessClusters,
+  );
+  const [selectedIllnessCluster, setSelectedIllnessCluster] = useState<string>("1");
+  const [illnessK, setIllnessK] = useState(initialK);
+  const [illnessRecommendedK, setIllnessRecommendedK] = useState<number | null>(null);
+  const [illnessLoadingRecommendation, setIllnessLoadingRecommendation] = useState(false);
+  const [illnessHasAutoAppliedRecommendation, setIllnessHasAutoAppliedRecommendation] =
+    useState(false);
+  const [illnessClusterOptions, setIllnessClusterOptions] = useState<string[]>([]);
+  const [illnessClusterOrder, setIllnessClusterOrder] = useState<number[]>([]);
+  const [showAllIllnessRegions, setShowAllIllnessRegions] = useState(false);
+  const [showAllIllnessCities, setShowAllIllnessCities] = useState(false);
 
   // Anomaly States
   const [anomalyDisease, setAnomalyDisease] = useState<string>(DISEASES[0]);
@@ -196,6 +215,21 @@ export function MapContainer({
     setClusterOrder(getDashboardClusterOrder(clusters.cluster_statistics));
     setSelectedCluster(options[0] ?? "1");
   }, [clusters]);
+
+  useEffect(() => {
+    if (!illnessClusters) return;
+    const options = Array.from({ length: illnessClusters.n_clusters }, (_, index) =>
+      String(index + 1),
+    );
+    setIllnessClusterData(illnessClusters);
+    setIllnessClusterOptions(options);
+    // Sort by count descending for illness clusters
+    const illnessOrder = [...illnessClusters.cluster_statistics]
+      .sort((a, b) => b.count - a.count)
+      .map((stat) => stat.cluster_id);
+    setIllnessClusterOrder(illnessOrder);
+    setSelectedIllnessCluster(options[0] ?? "1");
+  }, [illnessClusters]);
 
   useEffect(() => {
     if (selectedTab !== "cluster") return;
@@ -243,9 +277,66 @@ export function MapContainer({
   }, [selectedTab, hasAutoAppliedRecommendation]);
 
   useEffect(() => {
+    if (selectedTab !== "illness-cluster") return;
+
+    let cancelled = false;
+
+    async function fetchIllnessRecommendedK() {
+      try {
+        setIllnessLoadingRecommendation(true);
+        const params = new URLSearchParams({
+          range: "2-25",
+          age: "true",
+          gender: "true",
+          city: "true",
+          region: "false",
+          time: "false",
+        });
+        const res = await fetch(
+          `${BACKEND_URL}/api/illness-clusters/silhouette?${params.toString()}`,
+        );
+
+        if (!res.ok) throw new Error("Failed to fetch illness silhouette analysis");
+
+        const data = await res.json();
+        const bestK =
+          typeof data?.best?.k === "number" ? Number(data.best.k) : null;
+
+        if (cancelled) return;
+
+        if (bestK) {
+          const clampedK = Math.min(25, Math.max(2, bestK));
+          setIllnessRecommendedK(clampedK);
+          if (!illnessHasAutoAppliedRecommendation) {
+            setIllnessK(clampedK);
+            setIllnessHasAutoAppliedRecommendation(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching illness recommended k:", error);
+      } finally {
+        if (!cancelled) {
+          setIllnessLoadingRecommendation(false);
+        }
+      }
+    }
+
+    fetchIllnessRecommendedK();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedTab, illnessHasAutoAppliedRecommendation]);
+
+  useEffect(() => {
     setShowAllRegions(false);
     setShowAllCities(false);
   }, [selectedCluster, selectedTab]);
+
+  useEffect(() => {
+    setShowAllIllnessRegions(false);
+    setShowAllIllnessCities(false);
+  }, [selectedIllnessCluster, selectedTab]);
 
   const heatmapData = useMemo<MapHeatmapData | undefined>(() => {
     if (!clusterData || selectedTab !== "cluster") return undefined;
@@ -398,6 +489,159 @@ export function MapContainer({
       selectedClusterDisplay: selectedCluster,
     };
   }, [clusterData, selectedCluster, selectedTab, clusterOrder]);
+
+  // ----- Illness Cluster Heatmap Data -----
+  const illnessHeatmapData = useMemo<MapHeatmapData | undefined>(() => {
+    if (!illnessClusterData || selectedTab !== "illness-cluster") return undefined;
+
+    const regionCountsByCluster = new Map<number, Map<string, number>>();
+
+    for (const illness of illnessClusterData.illnesses) {
+      const clusterId = illness.cluster;
+      const illnessRegion = normalizeLoc(illness.region);
+      if (!illnessRegion) continue;
+
+      const regionPsgc = regionPsgcByAlias.get(illnessRegion);
+      if (!regionPsgc) continue;
+
+      const regionCounts = regionCountsByCluster.get(clusterId) ?? new Map();
+      regionCounts.set(regionPsgc, (regionCounts.get(regionPsgc) || 0) + 1);
+      regionCountsByCluster.set(clusterId, regionCounts);
+    }
+
+    const projectedProvinceCountsByCluster = new Map<number, Record<string, number>>();
+    let globalMax = 0;
+
+    for (let clusterId = 0; clusterId < illnessClusterData.n_clusters; clusterId += 1) {
+      const regionCounts = regionCountsByCluster.get(clusterId) ?? new Map();
+      const projectedProvinceCounts: Record<string, number> = {};
+
+      for (const [provinceName, regionPsgc] of provinceNameToRegionPsgc) {
+        const count = regionCounts.get(regionPsgc) ?? 0;
+        projectedProvinceCounts[provinceName] = count;
+        if (count > globalMax) {
+          globalMax = count;
+        }
+      }
+
+      projectedProvinceCountsByCluster.set(clusterId, projectedProvinceCounts);
+    }
+
+    const selectedClusterIndex = Math.max(0, Number(selectedIllnessCluster) - 1);
+    const selectedClusterId =
+      illnessClusterOrder[selectedClusterIndex] ?? selectedClusterIndex;
+    const clusterBaseColor = getClusterBaseColor(selectedClusterIndex);
+
+    const selectedRegionCountsByPsgc =
+      regionCountsByCluster.get(selectedClusterId) ?? new Map<string, number>();
+
+    const regionTotals: Record<string, number> = {};
+    for (const [regionPsgc, count] of selectedRegionCountsByPsgc.entries()) {
+      const regionName = regionNameByPsgc.get(regionPsgc);
+      if (!regionName) continue;
+      regionTotals[regionName] = count;
+    }
+
+    const provinceCounts: Record<string, number> = {};
+    const provinceTotals: Record<string, number> = {};
+    const cityTotals: Record<string, number> = {};
+    const barangayCounts: Record<string, number> = {};
+    for (const illness of illnessClusterData.illnesses) {
+      if (illness.cluster !== selectedClusterId) continue;
+      const normalizedProvince = normalizeLoc(illness.province);
+      if (!normalizedProvince) continue;
+      const canonicalProvince =
+        provinceNameByAlias.get(normalizedProvince) ?? illness.province?.trim();
+      if (!canonicalProvince) continue;
+      provinceCounts[canonicalProvince] = (provinceCounts[canonicalProvince] || 0) + 1;
+      provinceTotals[canonicalProvince] = (provinceTotals[canonicalProvince] || 0) + 1;
+
+      const normalizedCity = normalizeLoc(illness.city);
+      if (!normalizedCity) continue;
+
+      const provinceCityKey = `${normalizeLoc(canonicalProvince)}||${normalizedCity}`;
+      cityTotals[provinceCityKey] = (cityTotals[provinceCityKey] || 0) + 1;
+
+      const normalizedBarangay = normalizeLoc(illness.barangay);
+      if (!normalizedBarangay) continue;
+
+      const provinceCityBarangayKey = `${provinceCityKey}||${normalizedBarangay}`;
+      barangayCounts[provinceCityBarangayKey] =
+        (barangayCounts[provinceCityBarangayKey] || 0) + 1;
+    }
+
+    const provinceToRegion: Record<string, string> = {};
+    for (const [provinceName, regionPsgc] of provinceNameToRegionPsgc.entries()) {
+      const regionName = regionNameByPsgc.get(regionPsgc);
+      if (!regionName) continue;
+      provinceToRegion[normalizeLoc(provinceName)] = regionName;
+    }
+
+    const selectedProjectedProvinceCounts =
+      projectedProvinceCountsByCluster.get(selectedClusterId) ?? {};
+
+    const legendBins: MapHeatmapData["legendBins"] = [];
+    const provinceLegendBinsByProvince: MapHeatmapData["provinceLegendBinsByProvince"] = {};
+    if (globalMax > 0) {
+      const colorRamp = buildClusterRamp(clusterBaseColor, 5);
+      const bucketSize = Math.ceil(globalMax / colorRamp.length);
+      for (let index = 0; index < colorRamp.length; index += 1) {
+        const min = index * bucketSize + 1;
+        const max = Math.min(globalMax, (index + 1) * bucketSize);
+        if (min > max) continue;
+        legendBins.push({
+          min,
+          max,
+          color: colorRamp[index],
+        });
+      }
+
+      const provinceBarangayMax = new Map<string, number>();
+      for (const [key, count] of Object.entries(barangayCounts)) {
+        const [normalizedProvinceName] = key.split("||");
+        if (!normalizedProvinceName) continue;
+        const currentMax = provinceBarangayMax.get(normalizedProvinceName) ?? 0;
+        if (count > currentMax) {
+          provinceBarangayMax.set(normalizedProvinceName, count);
+        }
+      }
+
+      for (const [normalizedProvinceName, provinceMax] of provinceBarangayMax.entries()) {
+        if (provinceMax <= 0) {
+          provinceLegendBinsByProvince[normalizedProvinceName] = [];
+          continue;
+        }
+        const provinceBucketSize = Math.ceil(provinceMax / colorRamp.length);
+        const bins: MapHeatmapData["legendBins"] = [];
+        for (let index = 0; index < colorRamp.length; index += 1) {
+          const min = index * provinceBucketSize + 1;
+          const max = Math.min(provinceMax, (index + 1) * provinceBucketSize);
+          if (min > max) continue;
+          bins.push({
+            min,
+            max,
+            color: colorRamp[index],
+          });
+        }
+        provinceLegendBinsByProvince[normalizedProvinceName] = bins;
+      }
+    }
+
+    return {
+      clusterBaseColor,
+      provinceCounts,
+      projectedProvinceCounts: selectedProjectedProvinceCounts,
+      provinceTotals,
+      cityTotals,
+      barangayCounts,
+      regionTotals,
+      provinceToRegion,
+      globalMax,
+      legendBins,
+      provinceLegendBinsByProvince,
+      selectedClusterDisplay: selectedIllnessCluster,
+    };
+  }, [illnessClusterData, selectedIllnessCluster, selectedTab, illnessClusterOrder]);
 
   const selectedClusterSummary = useMemo(() => {
     if (!clusterData || selectedTab !== "cluster") return null;
@@ -583,6 +827,53 @@ export function MapContainer({
 
     fetchClusters();
   }, [k, selectedTab]);
+
+  // Fetch illness clusters when k changes
+  useEffect(() => {
+    if (selectedTab !== "illness-cluster") return;
+
+    async function fetchIllnessClusters() {
+      try {
+        setDataLoading(true);
+        const params = new URLSearchParams({
+          n_clusters: String(illnessK),
+          age: "true",
+          gender: "true",
+          city: "true",
+          region: "false",
+          time: "false",
+        });
+        const res = await fetch(
+          `${BACKEND_URL}/api/illness-clusters?${params.toString()}`,
+        );
+
+        if (!res.ok) throw new Error("Failed to fetch illness clusters");
+
+        const data: IllnessClusterData = await res.json();
+        const nClusters = data.n_clusters || illnessK;
+        const newOptions = Array.from({ length: nClusters }, (_, i) =>
+          String(i + 1),
+        );
+
+        setIllnessClusterData(data);
+        setIllnessClusterOptions(newOptions);
+        const illnessOrder = [...data.cluster_statistics]
+          .sort((a, b) => b.count - a.count)
+          .map((stat) => stat.cluster_id);
+        setIllnessClusterOrder(illnessOrder);
+
+        if (!newOptions.includes(selectedIllnessCluster)) {
+          setSelectedIllnessCluster(newOptions[0] ?? "1");
+        }
+      } catch (err) {
+        console.error("Error fetching illness clusters:", err);
+      } finally {
+        setDataLoading(false);
+      }
+    }
+
+    fetchIllnessClusters();
+  }, [illnessK, selectedTab]);
 
   useEffect(() => {
     if (selectedTab !== "anomaly") return;
@@ -816,6 +1107,127 @@ export function MapContainer({
     };
   }, [anomalyData, anomalyDisease, selectedTab, anomalyHeatmapData, anomalyTotalAnalyzed, anomalyOutbreakAlert]);
 
+  // ----- Illness Cluster Summary -----
+  const selectedIllnessClusterSummary = useMemo(() => {
+    if (!illnessClusterData || selectedTab !== "illness-cluster") return null;
+
+    const selectedClusterIndex = Math.max(0, Number(selectedIllnessCluster) - 1);
+    const selectedClusterId =
+      illnessClusterOrder[selectedClusterIndex] ?? selectedClusterIndex;
+    const stat = illnessClusterData.cluster_statistics.find(
+      (item) => item.cluster_id === selectedClusterId,
+    );
+
+    if (!stat) return null;
+
+    const totalGender =
+      stat.gender_distribution.MALE +
+      stat.gender_distribution.FEMALE +
+      stat.gender_distribution.OTHER;
+    const malePercent =
+      totalGender > 0
+        ? Math.round((stat.gender_distribution.MALE / totalGender) * 100)
+        : 0;
+    const femalePercent =
+      totalGender > 0
+        ? Math.round((stat.gender_distribution.FEMALE / totalGender) * 100)
+        : 0;
+
+    let diseaseLabel = "Mixed disease profile";
+    if (stat.disease_distribution) {
+      const entries = Object.entries(stat.disease_distribution).sort(
+        (a, b) => b[1].count - a[1].count,
+      );
+      if (entries.length === 1) {
+        diseaseLabel = `${entries[0][0]} (${entries[0][1].percent}%)`;
+      } else if (entries.length > 1) {
+        const [top, second] = entries;
+        const gap = (top[1].count - second[1].count) / Math.max(1, second[1].count);
+        if (gap >= 0.4) {
+          diseaseLabel = `${top[0]} (${top[1].percent}%)`;
+        }
+      }
+    }
+
+    // --- Interpretation sentence ---
+    let ageDescriptor = "patients";
+    if (stat.avg_patient_age >= 60) {
+      ageDescriptor = "predominantly older adults";
+    } else if (stat.avg_patient_age >= 36) {
+      ageDescriptor = "predominantly middle-aged adults";
+    } else if (stat.avg_patient_age >= 18) {
+      ageDescriptor = "predominantly young adults";
+    } else if (stat.avg_patient_age >= 13) {
+      ageDescriptor = "predominantly adolescents";
+    } else {
+      ageDescriptor = "predominantly children";
+    }
+
+    let regionLocation = "";
+    let regionPrefix = "from";
+    if (stat.top_cities && stat.top_cities.length === 1) {
+      regionLocation = stat.top_cities[0].city;
+      regionPrefix = "from";
+    } else if (stat.top_regions && stat.top_regions.length === 1) {
+      regionLocation = stat.top_regions[0].region;
+      regionPrefix = "from";
+    } else if (stat.top_regions && stat.top_regions.length >= 2) {
+      const topRegion = stat.top_regions[0];
+      const secondRegion = stat.top_regions[1];
+      const pctIncrease = (topRegion.count - secondRegion.count) / secondRegion.count;
+      if (pctIncrease >= 0.4) {
+        regionLocation = topRegion.region;
+        regionPrefix = "mostly from";
+      }
+    }
+
+    let genderDescriptor = "";
+    let genderWord = "";
+    if (malePercent >= 60) {
+      genderDescriptor = "mostly";
+      genderWord = "male";
+    } else if (femalePercent >= 60) {
+      genderDescriptor = "mostly";
+      genderWord = "female";
+    }
+
+    let interpretationDisease: string | null = null;
+    if (stat.disease_distribution) {
+      const entries = Object.entries(stat.disease_distribution).sort(
+        (a, b) => b[1].count - a[1].count,
+      );
+      if (entries.length === 1) {
+        interpretationDisease = entries[0][0];
+      } else if (entries.length > 1) {
+        const [top, second] = entries;
+        const gap = (top[1].count - second[1].count) / Math.max(1, second[1].count);
+        if (gap >= 0.4) interpretationDisease = top[0];
+      }
+    }
+
+    return {
+      displayCluster: selectedIllnessCluster,
+      clusterBaseColor: illnessHeatmapData?.clusterBaseColor ?? getClusterBaseColor(selectedClusterIndex),
+      diagnosisCount: stat.count,
+      avgAge: stat.avg_patient_age,
+      minAge: stat.min_patient_age,
+      maxAge: stat.max_patient_age,
+      malePercent,
+      femalePercent,
+      diseaseLabel,
+      allRegions: stat.top_regions,
+      allCities: stat.top_cities,
+      interpretation: {
+        ageDescriptor,
+        regionLocation,
+        regionPrefix,
+        genderDescriptor,
+        genderWord,
+        interpretationDisease,
+      },
+    };
+  }, [illnessClusterData, selectedIllnessCluster, selectedTab, illnessClusterOrder, illnessHeatmapData]);
+
   useEffect(() => {
     setShowAllAnomalyRegions(false);
   }, [anomalyDisease, selectedTab]);
@@ -896,6 +1308,57 @@ export function MapContainer({
           </>
         )}
 
+        {selectedTab === "illness-cluster" && (
+          <>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium whitespace-nowrap">
+                  Groups:
+                </label>
+                <Input
+                  type="number"
+                  min={2}
+                  max={25}
+                  value={illnessK}
+                  onChange={(e) => {
+                    const nextK = Number(e.target.value);
+                    if (Number.isNaN(nextK)) return;
+                    setIllnessK(Math.min(25, Math.max(2, nextK)));
+                  }}
+                  className="w-24"
+                />
+              </div>
+              <p className="text-xs text-base-content/70 whitespace-nowrap">
+                {illnessLoadingRecommendation
+                  ? "Calculating recommendation..."
+                  : illnessRecommendedK
+                    ? `Recommended: ${illnessRecommendedK}`
+                    : "Recommended: 2-25"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium whitespace-nowrap">
+                Cluster:
+              </label>
+              <Select
+                value={selectedIllnessCluster}
+                onValueChange={setSelectedIllnessCluster}
+              >
+                <SelectTrigger className="w-40 bg-white shadow-sm">
+                  <SelectValue placeholder="Select group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {illnessClusterOptions.map((clusterId) => (
+                    <SelectItem key={clusterId} value={clusterId}>
+                      Group {clusterId}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
+
         {selectedTab === "anomaly" && (
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium whitespace-nowrap">
@@ -944,7 +1407,9 @@ export function MapContainer({
         <PhilippinesMap
           selectedTab={selectedTab}
           selectedCluster={selectedCluster}
+          selectedIllnessCluster={selectedIllnessCluster}
           heatmapData={heatmapData}
+          illnessHeatmapData={illnessHeatmapData}
           anomalyHeatmapData={anomalyHeatmapData}
         />
         {dataLoading && (
@@ -1090,6 +1555,139 @@ export function MapContainer({
                     {(showAllCities
                       ? selectedClusterSummary.allCities
                       : selectedClusterSummary.allCities.slice(0, 2)
+                    ).map((city) => (
+                      <p key={city.city}>
+                        {city.city} ({city.count})
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-base-content/70">No city data</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedTab === "illness-cluster" && selectedIllnessClusterSummary && (
+        <div className="card bg-base-100 border border-base-300">
+          <div className="card-body gap-4">
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-3 rounded-full"
+                style={{ backgroundColor: selectedIllnessClusterSummary.clusterBaseColor }}
+              />
+              <h3 className="card-title text-base">
+                Cluster {selectedIllnessClusterSummary.displayCluster} Quick Profile
+              </h3>
+            </div>
+
+            {/* Natural language interpretation */}
+            <div className="rounded-lg bg-base-200 px-4 py-3 text-sm text-base-content/80 leading-relaxed">
+              {(() => {
+                const { ageDescriptor, regionLocation, regionPrefix, genderDescriptor, genderWord, interpretationDisease } = selectedIllnessClusterSummary.interpretation;
+                return (
+                  <>
+                    <strong>{selectedIllnessClusterSummary.diagnosisCount}</strong> diagnoses
+                    {regionLocation && (
+                      <> {regionPrefix} <strong>{regionLocation}</strong></>
+                    )}
+                    , {ageDescriptor}
+                    {genderWord && (
+                      <>, {genderDescriptor} <strong>{genderWord}</strong></>
+                    )}
+                    {interpretationDisease && (
+                      <>, primarily <strong>{interpretationDisease}</strong></>
+                    )}
+                    .
+                  </>
+                );
+              })()}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 text-sm">
+              <div className="bg-base-200 rounded-box p-3">
+                <p className="text-base-content/70">Diagnoses</p>
+                <p className="text-xl font-semibold">
+                  {selectedIllnessClusterSummary.diagnosisCount}
+                </p>
+              </div>
+
+              <div className="bg-base-200 rounded-box p-3">
+                <p className="text-base-content/70">Age profile</p>
+                <p className="font-semibold">
+                  {selectedIllnessClusterSummary.avgAge} yrs avg
+                </p>
+                <p className="text-base-content/80 text-xs">
+                  Range: {selectedIllnessClusterSummary.minAge}-{selectedIllnessClusterSummary.maxAge}
+                </p>
+              </div>
+
+              <div className="bg-base-200 rounded-box p-3">
+                <p className="text-base-content/70">Gender split</p>
+                <p className="font-semibold">
+                  {selectedIllnessClusterSummary.malePercent}% male
+                </p>
+                <p className="text-base-content/80 text-xs">
+                  {selectedIllnessClusterSummary.femalePercent}% female
+                </p>
+              </div>
+
+              <div className="bg-base-200 rounded-box p-3">
+                <p className="text-base-content/70">Dominant disease signal</p>
+                <p className="font-semibold">{selectedIllnessClusterSummary.diseaseLabel}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-base-200 rounded-box p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-semibold">Top Regions</p>
+                  {selectedIllnessClusterSummary.allRegions.length > 2 && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => setShowAllIllnessRegions((prev) => !prev)}
+                    >
+                      {showAllIllnessRegions ? "Show less" : "View all"}
+                    </button>
+                  )}
+                </div>
+                {selectedIllnessClusterSummary.allRegions.length > 0 ? (
+                  <div className="space-y-1">
+                    {(showAllIllnessRegions
+                      ? selectedIllnessClusterSummary.allRegions
+                      : selectedIllnessClusterSummary.allRegions.slice(0, 2)
+                    ).map((region) => (
+                      <p key={region.region}>
+                        {region.region} ({region.count})
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-base-content/70">No region data</p>
+                )}
+              </div>
+
+              <div className="bg-base-200 rounded-box p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-semibold">Top Cities</p>
+                  {selectedIllnessClusterSummary.allCities.length > 2 && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs"
+                      onClick={() => setShowAllIllnessCities((prev) => !prev)}
+                    >
+                      {showAllIllnessCities ? "Show less" : "View all"}
+                    </button>
+                  )}
+                </div>
+                {selectedIllnessClusterSummary.allCities.length > 0 ? (
+                  <div className="space-y-1">
+                    {(showAllIllnessCities
+                      ? selectedIllnessClusterSummary.allCities
+                      : selectedIllnessClusterSummary.allCities.slice(0, 2)
                     ).map((city) => (
                       <p key={city.city}>
                         {city.city} ({city.count})
