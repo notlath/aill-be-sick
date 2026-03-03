@@ -24,12 +24,13 @@ export function DatePicker({
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
     value ? new Date(value) : undefined,
   );
+  const [today, setToday] = React.useState<Date | undefined>(undefined);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  const today = React.useMemo(() => {
+  React.useEffect(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    return now;
+    setToday(now);
   }, []);
 
   React.useEffect(() => {
@@ -72,7 +73,7 @@ export function DatePicker({
   }, [isOpen]);
 
   const handleSelect = (date: Date | undefined) => {
-    if (!date) return;
+    if (!date || !today) return;
 
     const nextDate = new Date(date);
     nextDate.setHours(0, 0, 0, 0);
@@ -106,7 +107,7 @@ export function DatePicker({
         {selectedDate ? format(selectedDate, "MMM d, yyyy") : "Pick a date"}
       </button>
 
-      {isOpen && (
+      {isOpen && today && (
         <div className="absolute top-full left-0 z-50 mt-2 w-full min-w-70">
           <div className="card bg-base-100 border border-base-300 shadow-lg">
             <div className="card-body p-3">
