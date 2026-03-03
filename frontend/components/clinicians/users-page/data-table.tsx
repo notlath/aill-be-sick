@@ -131,7 +131,7 @@ export function DataTable<TData, TValue>({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={currentSortLabel} onValueChange={handleSortChange}>
+          <Select className="w-auto" value={currentSortLabel} onValueChange={handleSortChange}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
@@ -144,7 +144,7 @@ export function DataTable<TData, TValue>({
             </SelectContent>
           </Select>
 
-          <Select
+          <Select className="w-auto" 
             value={(table.getColumn("role")?.getFilterValue() as string) ?? ""}
             onValueChange={(value) => {
               table.getColumn("role")?.setFilterValue(value || undefined);
@@ -162,7 +162,7 @@ export function DataTable<TData, TValue>({
             </SelectContent>
           </Select>
 
-          <Select
+          <Select className="w-auto" 
             value={(table.getColumn("gender")?.getFilterValue() as string) ?? ""}
             onValueChange={(value) => {
               table.getColumn("gender")?.setFilterValue(value || undefined);
@@ -232,7 +232,7 @@ export function DataTable<TData, TValue>({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 whitespace-nowrap">
           <span className="text-sm text-muted">Rows per page:</span>
-          <Select
+          <Select className="w-auto" 
             value={String(pagination.pageSize)}
             onValueChange={(value) => {
               table.setPageSize(Number(value));
