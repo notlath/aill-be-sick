@@ -27,7 +27,7 @@ export const completeOnboarding = actionClient
           gender,
           region,
           province,
-          ...(district && { district }), // Only include district if provided
+          ...(district && { district }),
           city,
           barangay,
           isOnboarded: true,
