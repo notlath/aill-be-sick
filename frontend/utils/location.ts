@@ -5,6 +5,7 @@ export type LocationData = {
   longitude: number;
   city?: string;
   province?: string;
+  district?: string; // for NCR and other admin divisions
   region?: string;
   barangay?: string; // finer location details
 };
@@ -15,7 +16,7 @@ export type LocationData = {
  */
 export const getLocationDetails = async (
   latitude: number,
-  longitude: number
+  longitude: number,
 ): Promise<{ success?: LocationData; error?: string }> => {
   try {
     const response = await fetch(
@@ -24,7 +25,7 @@ export const getLocationDetails = async (
         headers: {
           "User-Agent": "AIllBeSick/1.0", // Required by Nominatim
         },
-      }
+      },
     );
 
     if (!response.ok) {
@@ -43,6 +44,7 @@ export const getLocationDetails = async (
           data.address?.village ||
           data.address?.municipality,
         province: data.address?.state || data.address?.province,
+        district: data.address?.district, // Extract district from Nominatim
         region: data.address?.region,
         barangay:
           data.address?.quarter ||
