@@ -39,7 +39,7 @@ export const createChat = actionClient
       });
 
       updateTag(`chats-${user.id}`);
-      revalidatePath("/history");
+      revalidatePath("/history", "page");
 
       return { success: { chatId, symptoms } };
     } catch (error) {

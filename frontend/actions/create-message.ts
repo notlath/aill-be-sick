@@ -48,8 +48,8 @@ export const createMessage = actionClient
 
       updateTag("messages");
       updateTag(`messages-${chatId}`);
-      revalidatePath("/history");
-      revalidatePath("/diagnosis/[chatId]");
+      revalidatePath("/history", "page");
+      revalidatePath("/diagnosis/[chatId]", "page");
 
       return { success: createdMessage };
     } catch (error) {

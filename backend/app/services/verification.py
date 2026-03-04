@@ -8,7 +8,7 @@ from rapidfuzz import fuzz
 def _get_fuzzy_threshold(term: str) -> int:
     """Return the similarity threshold based on term length."""
     length = len(term)
-    if length <= 4:
+    if length <= 5:
         return config.FUZZY_THRESHOLD_SHORT
     elif length <= 9:
         return config.FUZZY_THRESHOLD_MEDIUM
@@ -33,8 +33,13 @@ def _fuzzy_match_term(term: str, text: str) -> bool:
     if len(words) < term_word_count:
         return False
 
+    import string    
+
     for i in range(len(words) - term_word_count + 1):
         window = " ".join(words[i : i + term_word_count])
+        # Strip punctuation from window string, except spaces
+        window = window.translate(str.maketrans('', '', string.punctuation))
+
         score = fuzz.ratio(term, window)
         if score >= threshold:
             return True
