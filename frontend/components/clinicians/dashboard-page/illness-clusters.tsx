@@ -1,5 +1,5 @@
-import { getPatientClusters } from "@/utils/cluster";
-import PatientClustersClient from "./clustering/patient-clusters-client";
+import { getIllnessClusters } from "@/utils/cluster";
+import IllnessClustersClient from "./clustering/illness-clusters-client";
 import {
   Card,
   CardDescription,
@@ -9,10 +9,10 @@ import {
 import { AlertCircle, Loader2 } from "lucide-react";
 import { Suspense } from "react";
 
-const DEFAULT_K = 8;
+const DEFAULT_K = 4;
 
-const PatientClusters = async () => {
-  const initialClusterData = await getPatientClusters(DEFAULT_K);
+const IllnessClusters = async () => {
+  const initialClusterData = await getIllnessClusters(DEFAULT_K);
 
   if (!initialClusterData) {
     return (
@@ -22,11 +22,10 @@ const PatientClusters = async () => {
             <div className="rounded-[12px] bg-red-100 p-3">
               <AlertCircle className="size-6" />
             </div>
-            <span>Error Loading Patient Clusters</span>
+            <span>Error Loading Illness Clusters</span>
           </CardTitle>
           <CardDescription className="ml-[60px] text-red-600">
-            Could not connect to the clustering service. Please ensure it is
-            running and try again.
+            Could not connect to the illness clustering service. Please ensure it is running and try again.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -34,14 +33,14 @@ const PatientClusters = async () => {
   }
 
   return (
-    <PatientClustersClient
+    <IllnessClustersClient
       initialData={initialClusterData}
       initialK={DEFAULT_K}
     />
   );
 };
 
-const PatientClustersSkeleton = () => {
+const IllnessClustersSkeleton = () => {
   return (
     <div className="space-y-6">
       <div className="card card-body bg-base-100 border-base-300 border">
@@ -71,7 +70,7 @@ const PatientClustersSkeleton = () => {
         <div className="flex items-center justify-center gap-3">
           <Loader2 className="text-primary size-8 animate-spin" />
           <p className="text-muted-foreground text-sm font-medium">
-            Loading Patient Clusters...
+            Loading Illness Clusters...
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -91,12 +90,12 @@ const PatientClustersSkeleton = () => {
   );
 };
 
-const PatientClustersWrapper = () => {
+const IllnessClustersWrapper = () => {
   return (
-    <Suspense fallback={<PatientClustersSkeleton />}>
-      <PatientClusters />
+    <Suspense fallback={<IllnessClustersSkeleton />}>
+      <IllnessClusters />
     </Suspense>
   );
 };
 
-export default PatientClustersWrapper;
+export default IllnessClustersWrapper;

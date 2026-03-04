@@ -98,7 +98,22 @@ export default function OnboardingPage() {
       onSuccess: ({ data }) => {
         if (data?.success) {
           toast.success("Onboarding completed!");
-          router.push("/diagnosis");
+
+          let redirectPath = "/diagnosis";
+
+          if (data.success.role === "CLINICIAN") {
+            redirectPath = "/dashboard";
+          } else if (data.success.role === "DEVELOPER") {
+            // For developers, check their saved view preference
+            const savedView = localStorage.getItem("developerView") as
+              | "PATIENT"
+              | "CLINICIAN"
+              | null;
+            redirectPath =
+              savedView === "CLINICIAN" ? "/dashboard" : "/diagnosis";
+          }
+
+          router.push(redirectPath);
         } else if (data?.error) {
           toast.error(data.error);
         }

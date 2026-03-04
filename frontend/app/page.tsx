@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getCurrentDbUser } from "@/utils/user";
 import { redirect } from "next/navigation";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
+import DeveloperRedirect from "@/components/shared/developer-redirect";
 
 const HomeContent = async () => {
   const { success: dbUser, error, code } = await getCurrentDbUser();
@@ -34,12 +35,12 @@ const HomeContent = async () => {
     redirect("/diagnosis");
   }
 
-  // For DEVELOPER role, redirect to patient view by default
+  // For DEVELOPER role, use client-side redirect to check localStorage preference
   if (dbUser.role === ("DEVELOPER" as any)) {
     if (!dbUser.isOnboarded) {
       redirect("/onboarding");
     }
-    redirect("/diagnosis");
+    return <DeveloperRedirect />;
   }
 
   return null;

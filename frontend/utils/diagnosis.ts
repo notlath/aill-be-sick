@@ -53,12 +53,15 @@ export const getAllDiagnoses = async ({
       const diagnoses = await prisma.diagnosis.findMany({
         skip,
         take,
+        include: { user: true },
       });
 
       return { success: diagnoses };
     }
 
-    const diagnoses = await prisma.diagnosis.findMany();
+    const diagnoses = await prisma.diagnosis.findMany({
+      include: { user: true },
+    });
 
     return { success: diagnoses };
   } catch (error) {

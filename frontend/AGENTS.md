@@ -402,7 +402,7 @@ When creating new sidebar navigation items:
 
 ### Card Components
 
-When creating new card-based UI elements, follow the established design patterns seen in components like `@/components/clinicians/dashboard-page/clustering/diseases-charts.tsx`.
+When creating new card-based UI elements, follow the established design patterns seen in components like `@/components/clinicians/dashboard-page/clustering/illness-cluster-overview-cards.tsx`.
 
 - **ALWAYS** use the `<Card>`, `<CardHeader>`, `<CardTitle>`, `<CardDescription>`, and `<CardContent>` components from `@/components/ui/card`.
 - For prominent header sections, use a `flex` layout with a decorative icon container next to the title.
@@ -412,7 +412,7 @@ When creating new card-based UI elements, follow the established design patterns
 
 ### Tabbed Interfaces
 
-For tabbed navigation, use the components from `@/components/ui/tabs` as demonstrated in `@/components/clinicians/dashboard-page/patient-clusters.tsx`.
+For tabbed navigation, use the components from `@/components/ui/tabs` as demonstrated in `@/components/clinicians/dashboard-page/illness-clusters.tsx`.
 
 - **ALWAYS** use the `<Tabs>`, `<TabsList>`, `<TabsTrigger>`, and `<TabsContent>` components.
 - To create a full-width set of tabs, apply a `grid` layout to the `<TabsList>` element (e.g., `className="grid w-full grid-cols-4 h-auto"`).
