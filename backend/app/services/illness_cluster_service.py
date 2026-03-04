@@ -12,6 +12,8 @@ def fetch_diagnosis_data(
     include_age=True,
     include_gender=True,
     include_city=True,
+    include_province=False,
+    include_barangay=False,
     include_region=True,
     include_time=False,
 ):
@@ -63,10 +65,16 @@ def fetch_diagnosis_data(
     # Build deterministic one-hot vocabularies for categorical values
     disease_values = sorted({(row[1] or "UNKNOWN") for row in data})
     city_values = []
+    province_values = []
+    barangay_values = []
     region_values = []
     
     if include_city:
         city_values = sorted({(row[4] or "UNKNOWN") for row in data})
+    if include_province:
+        province_values = sorted({(row[5] or "UNKNOWN") for row in data})
+    if include_barangay:
+        barangay_values = sorted({(row[6] or "UNKNOWN") for row in data})
     if include_region:
         region_values = sorted({(row[7] or "UNKNOWN") for row in data})
 
@@ -104,10 +112,15 @@ def fetch_diagnosis_data(
         # One-hot encode disease
         disease_one_hot = [1 if disease == d else 0 for d in disease_values]
 
-        # One-hot encode city and region
+        # One-hot encode city, province, barangay, and region
         city_value = city or "UNKNOWN"
+        province_value = province or "UNKNOWN"
+        barangay_value = barangay or "UNKNOWN"
         region_value = region or "UNKNOWN"
+        
         city_one_hot = [1 if city_value == v else 0 for v in city_values]
+        province_one_hot = [1 if province_value == v else 0 for v in province_values]
+        barangay_one_hot = [1 if barangay_value == v else 0 for v in barangay_values]
         region_one_hot = [1 if region_value == v else 0 for v in region_values]
 
         # Time-based features (month of diagnosis for seasonal patterns)
@@ -132,6 +145,10 @@ def fetch_diagnosis_data(
             features.append(gender_encoded)
         if include_city:
             features.extend(city_one_hot)
+        if include_province:
+            features.extend(province_one_hot)
+        if include_barangay:
+            features.extend(barangay_one_hot)
         if include_region:
             features.extend(region_one_hot)
         if include_time and time_features:
@@ -208,7 +225,9 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
                     "max_patient_age": 0,
                     "gender_distribution": {"MALE": 0, "FEMALE": 0, "OTHER": 0},
                     "top_regions": [],
+                    "top_provinces": [],
                     "top_cities": [],
+                    "top_barangays": [],
                     "temporal_distribution": {},
                 }
             )
@@ -240,12 +259,16 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
         for p in cluster_illnesses:
             gender_dist[p["patient_gender"]] = gender_dist.get(p["patient_gender"], 0) + 1
 
-        # Top regions and cities
+        # Top regions, provinces, cities, barangays
         regions = [p["region"] for p in cluster_illnesses if p["region"]]
+        provinces = [p["province"] for p in cluster_illnesses if p["province"]]
         cities = [p["city"] for p in cluster_illnesses if p["city"]]
+        barangays = [p["barangay"] for p in cluster_illnesses if p["barangay"]]
 
         top_regions = Counter(regions).most_common()
+        top_provinces = Counter(provinces).most_common()
         top_cities = Counter(cities).most_common()
+        top_barangays = Counter(barangays).most_common()
 
         # Temporal distribution (month-wise)
         temporal_dist = {}
@@ -268,7 +291,9 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
                 "max_patient_age": max_age,
                 "gender_distribution": gender_dist,
                 "top_regions": [{"region": r, "count": c} for r, c in top_regions],
+                "top_provinces": [{"province": p, "count": c} for p, c in top_provinces],
                 "top_cities": [{"city": c, "count": cnt} for c, cnt in top_cities],
+                "top_barangays": [{"barangay": b, "count": c} for b, c in top_barangays],
                 "temporal_distribution": temporal_dist,
             }
         )

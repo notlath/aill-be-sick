@@ -45,6 +45,16 @@ export interface CityCount {
   count: number;
 }
 
+export interface ProvinceCount {
+  province: string;
+  count: number;
+}
+
+export interface BarangayCount {
+  barangay: string;
+  count: number;
+}
+
 export interface ClusterStatistics {
   cluster_id: number;
   count: number;
@@ -177,7 +187,9 @@ export interface IllnessClusterStatistics {
   max_patient_age: number;
   gender_distribution: GenderDistribution;
   top_regions: RegionCount[];
+  top_provinces?: ProvinceCount[];
   top_cities: CityCount[];
+  top_barangays?: BarangayCount[];
   temporal_distribution?: Record<string, number>;
 }
 

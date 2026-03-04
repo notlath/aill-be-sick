@@ -190,6 +190,15 @@ export function MapContainer({
   const [illnessClusterOrder, setIllnessClusterOrder] = useState<number[]>([]);
   const [showAllIllnessRegions, setShowAllIllnessRegions] = useState(false);
   const [showAllIllnessCities, setShowAllIllnessCities] = useState(false);
+  const [illnessSelectedVariables, setIllnessSelectedVariables] = useState({
+    age: true,
+    gender: true,
+    barangay: false,
+    city: true,
+    province: false,
+    region: false,
+    time: false,
+  });
 
   // Anomaly States
   const [anomalyDisease, setAnomalyDisease] = useState<string>(DISEASES[0]);
@@ -202,6 +211,31 @@ export function MapContainer({
   const [disease, setDisease] = useState<string>("All");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const handleIllnessVariableChange = (variable: keyof typeof illnessSelectedVariables) => {
+    const selectedCount =
+      Object.values(illnessSelectedVariables).filter(Boolean).length;
+
+    if (illnessSelectedVariables[variable] && selectedCount === 1) {
+      return; // Don't allow unchecking the last variable
+    }
+
+    // Update variables - barangay, city, province, and region are mutually exclusive
+    if (["barangay", "city", "province", "region"].includes(variable)) {
+      setIllnessSelectedVariables((prev) => ({
+        ...prev,
+        barangay: variable === "barangay" ? !prev.barangay : false,
+        city: variable === "city" ? !prev.city : false,
+        province: variable === "province" ? !prev.province : false,
+        region: variable === "region" ? !prev.region : false,
+      }));
+    } else {
+      setIllnessSelectedVariables((prev) => ({
+        ...prev,
+        [variable]: !prev[variable],
+      }));
+    }
+  };
 
   useEffect(() => {
     if (!clusters) return;
@@ -284,11 +318,13 @@ export function MapContainer({
         setIllnessLoadingRecommendation(true);
         const params = new URLSearchParams({
           range: "2-25",
-          age: "true",
-          gender: "true",
-          city: "true",
-          region: "false",
-          time: "false",
+          age: String(illnessSelectedVariables.age),
+          gender: String(illnessSelectedVariables.gender),
+          barangay: String(illnessSelectedVariables.barangay),
+          city: String(illnessSelectedVariables.city),
+          province: String(illnessSelectedVariables.province),
+          region: String(illnessSelectedVariables.region),
+          time: String(illnessSelectedVariables.time),
         });
         const res = await fetch(
           `${BACKEND_URL}/api/illness-clusters/silhouette?${params.toString()}`,
@@ -324,7 +360,7 @@ export function MapContainer({
     return () => {
       cancelled = true;
     };
-  }, [selectedTab, illnessHasAutoAppliedRecommendation]);
+  }, [selectedTab, illnessHasAutoAppliedRecommendation, illnessSelectedVariables]);
 
   useEffect(() => {
     setShowAllRegions(false);
@@ -700,9 +736,11 @@ export function MapContainer({
     // Region / city location
     let regionLocation = "";
     let regionPrefix = "from";
-    if (stat.top_cities && stat.top_cities.length === 1) {
+    let hasMultipleCities = false;
+    if (stat.top_cities && stat.top_cities.length >= 1) {
       regionLocation = stat.top_cities[0].city;
       regionPrefix = "from";
+      hasMultipleCities = stat.top_cities.length > 1;
     } else if (stat.top_regions && stat.top_regions.length === 1) {
       regionLocation = stat.top_regions[0].region;
       regionPrefix = "from";
@@ -762,6 +800,7 @@ export function MapContainer({
         genderDescriptor,
         genderWord,
         interpretationDisease,
+        hasMultipleCities,
       },
     };
   }, [clusterData, selectedCluster, selectedTab, clusterOrder, heatmapData]);
@@ -835,11 +874,13 @@ export function MapContainer({
         setDataLoading(true);
         const params = new URLSearchParams({
           n_clusters: String(illnessK),
-          age: "true",
-          gender: "true",
-          city: "true",
-          region: "false",
-          time: "false",
+          age: String(illnessSelectedVariables.age),
+          gender: String(illnessSelectedVariables.gender),
+          barangay: String(illnessSelectedVariables.barangay),
+          city: String(illnessSelectedVariables.city),
+          province: String(illnessSelectedVariables.province),
+          region: String(illnessSelectedVariables.region),
+          time: String(illnessSelectedVariables.time),
         });
         const res = await fetch(
           `${BACKEND_URL}/api/illness-clusters?${params.toString()}`,
@@ -871,7 +912,7 @@ export function MapContainer({
     }
 
     fetchIllnessClusters();
-  }, [illnessK, selectedTab]);
+  }, [illnessK, selectedTab, illnessSelectedVariables]);
 
   useEffect(() => {
     if (selectedTab !== "anomaly") return;
@@ -1161,22 +1202,59 @@ export function MapContainer({
       ageDescriptor = "predominantly children";
     }
 
+    // Region, Province, City, or Barangay - respect selected variables
     let regionLocation = "";
     let regionPrefix = "from";
-    if (stat.top_cities && stat.top_cities.length === 1) {
+    let hasMultipleCities = false;
+
+    // Determine which geographic variable to show based on selection
+    const showBarangay = illnessSelectedVariables.barangay;
+    const showCity = illnessSelectedVariables.city;
+    const showProvince = illnessSelectedVariables.province;
+    const showRegion = illnessSelectedVariables.region;
+
+    // Priority: Barangay > City > Province > Region
+    if (showBarangay && stat.top_barangays && stat.top_barangays.length >= 1) {
+      regionLocation = stat.top_barangays[0].barangay;
+      regionPrefix = "from";
+      hasMultipleCities = stat.top_barangays.length > 1;
+    } else if (showCity && stat.top_cities && stat.top_cities.length >= 1) {
+      // Show top city even if there are multiple
       regionLocation = stat.top_cities[0].city;
       regionPrefix = "from";
-    } else if (stat.top_regions && stat.top_regions.length === 1) {
+      hasMultipleCities = stat.top_cities.length > 1;
+    } else if (showProvince && stat.top_provinces && stat.top_provinces.length === 1) {
+      regionLocation = stat.top_provinces[0].province;
+      regionPrefix = "from";
+    } else if (showProvince && stat.top_provinces && stat.top_provinces.length >= 2) {
+      const topProvince = stat.top_provinces[0];
+      const secondProvince = stat.top_provinces[1];
+      const percentageIncrease =
+        (topProvince.count - secondProvince.count) /
+        secondProvince.count;
+
+      if (percentageIncrease >= 0.4) {
+        regionLocation = topProvince.province;
+        regionPrefix = "mostly from";
+      }
+    } else if (showRegion && stat.top_regions && stat.top_regions.length === 1) {
+      // Only one region, display "from {region}"
       regionLocation = stat.top_regions[0].region;
       regionPrefix = "from";
-    } else if (stat.top_regions && stat.top_regions.length >= 2) {
+    } else if (showRegion && stat.top_regions && stat.top_regions.length >= 2) {
+      // Two or more regions - check if top region is dominant
       const topRegion = stat.top_regions[0];
       const secondRegion = stat.top_regions[1];
-      const pctIncrease = (topRegion.count - secondRegion.count) / secondRegion.count;
-      if (pctIncrease >= 0.4) {
+      const percentageIncrease =
+        (topRegion.count - secondRegion.count) /
+        secondRegion.count;
+
+      if (percentageIncrease >= 0.4) {
+        // Top region is 40% higher, display "mostly from {region}"
         regionLocation = topRegion.region;
         regionPrefix = "mostly from";
       }
+      // Otherwise, don't mention region at all
     }
 
     let genderDescriptor = "";
@@ -1222,6 +1300,7 @@ export function MapContainer({
         genderDescriptor,
         genderWord,
         interpretationDisease,
+        hasMultipleCities,
       },
     };
   }, [illnessClusterData, selectedIllnessCluster, selectedTab, illnessClusterOrder, illnessHeatmapData]);
@@ -1307,54 +1386,132 @@ export function MapContainer({
         )}
 
         {selectedTab === "illness-cluster" && (
-          <>
-            <div className="space-y-1">
+          <div className="space-y-2">
+            {/* Variable Selection */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.age ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include patient age in clustering"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.age}
+                  onChange={() => handleIllnessVariableChange("age")}
+                />
+                <span>Age</span>
+              </label>
+              <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.gender ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include patient gender in clustering"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.gender}
+                  onChange={() => handleIllnessVariableChange("gender")}
+                />
+                <span>Gender</span>
+              </label>
+              <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.barangay ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include barangay in clustering (mutually exclusive with Region, Province, City)"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.barangay}
+                  onChange={() => handleIllnessVariableChange("barangay")}
+                />
+                <span>Barangay</span>
+              </label>
+              <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.city ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include city in clustering (mutually exclusive with Region, Province, Barangay)"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.city}
+                  onChange={() => handleIllnessVariableChange("city")}
+                />
+                <span>City</span>
+              </label>
+              <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.province ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include province in clustering (mutually exclusive with Region, City, Barangay)"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.province}
+                  onChange={() => handleIllnessVariableChange("province")}
+                />
+                <span>Province</span>
+              </label>
+              <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.region ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include region in clustering (mutually exclusive with Province, City, Barangay)"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.region}
+                  onChange={() => handleIllnessVariableChange("region")}
+                />
+                <span>Region</span>
+              </label>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium whitespace-nowrap">
+                    Groups:
+                  </label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={25}
+                    value={illnessK}
+                    onChange={(e) => {
+                      const nextK = Number(e.target.value);
+                      if (Number.isNaN(nextK)) return;
+                      setIllnessK(Math.min(25, Math.max(2, nextK)));
+                    }}
+                    className="w-24"
+                  />
+                </div>
+                <p className="text-xs text-base-content/70 whitespace-nowrap">
+                  {illnessLoadingRecommendation
+                    ? "Calculating recommendation..."
+                    : illnessRecommendedK
+                      ? `Recommended: ${illnessRecommendedK}`
+                      : "Recommended: 2-25"}
+                </p>
+              </div>
+
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium whitespace-nowrap">
-                  Groups:
+                  Cluster:
                 </label>
-                <Input
-                  type="number"
-                  min={2}
-                  max={25}
-                  value={illnessK}
-                  onChange={(e) => {
-                    const nextK = Number(e.target.value);
-                    if (Number.isNaN(nextK)) return;
-                    setIllnessK(Math.min(25, Math.max(2, nextK)));
-                  }}
-                  className="w-24"
-                />
+                <Select
+                  value={selectedIllnessCluster}
+                  onValueChange={setSelectedIllnessCluster}
+                >
+                  <SelectTrigger className="w-40 bg-white shadow-sm">
+                    <SelectValue placeholder="Select group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {illnessClusterOptions.map((clusterId) => (
+                      <SelectItem key={clusterId} value={clusterId}>
+                        Group {clusterId}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <p className="text-xs text-base-content/70 whitespace-nowrap">
-                {illnessLoadingRecommendation
-                  ? "Calculating recommendation..."
-                  : illnessRecommendedK
-                    ? `Recommended: ${illnessRecommendedK}`
-                    : "Recommended: 2-25"}
-              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap">
-                Cluster:
-              </label>
-              <Select
-                value={selectedIllnessCluster}
-                onValueChange={setSelectedIllnessCluster}
-              >
-                <SelectTrigger className="w-40 bg-white shadow-sm">
-                  <SelectValue placeholder="Select group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {illnessClusterOptions.map((clusterId) => (
-                    <SelectItem key={clusterId} value={clusterId}>
-                      Group {clusterId}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </>
+          </div>
         )}
 
         {selectedTab === "anomaly" && (
@@ -1438,19 +1595,23 @@ export function MapContainer({
             {/* Natural language interpretation */}
             <div className="rounded-lg bg-base-200 px-4 py-3 text-sm text-base-content/80 leading-relaxed">
               {(() => {
-                const { ageDescriptor, regionLocation, regionPrefix, genderDescriptor, genderWord, interpretationDisease } = selectedClusterSummary.interpretation;
+                const { ageDescriptor, regionLocation, regionPrefix, genderDescriptor, genderWord, interpretationDisease, hasMultipleCities } = selectedClusterSummary.interpretation;
                 return (
                   <>
                     <strong>{selectedClusterSummary.patientCount}</strong> patients
                     {regionLocation && (
-                      <> {regionPrefix} <strong>{regionLocation}</strong></>
+                      <>
+                        {" "}
+                        {hasMultipleCities ? "primarily" : regionPrefix}{" "}
+                        <strong>{regionLocation}</strong>
+                      </>
                     )}
                     , {ageDescriptor}
                     {genderWord && (
                       <>, {genderDescriptor} <strong>{genderWord}</strong></>
                     )}
                     {interpretationDisease && (
-                      <>, has mostly <strong>{interpretationDisease}</strong></>
+                      <>, primarily <strong>{interpretationDisease}</strong></>
                     )}
                     .
                   </>
@@ -1584,12 +1745,16 @@ export function MapContainer({
             {/* Natural language interpretation */}
             <div className="rounded-lg bg-base-200 px-4 py-3 text-sm text-base-content/80 leading-relaxed">
               {(() => {
-                const { ageDescriptor, regionLocation, regionPrefix, genderDescriptor, genderWord, interpretationDisease } = selectedIllnessClusterSummary.interpretation;
+                const { ageDescriptor, regionLocation, regionPrefix, genderDescriptor, genderWord, interpretationDisease, hasMultipleCities } = selectedIllnessClusterSummary.interpretation;
                 return (
                   <>
                     <strong>{selectedIllnessClusterSummary.diagnosisCount}</strong> diagnoses
                     {regionLocation && (
-                      <> {regionPrefix} <strong>{regionLocation}</strong></>
+                      <>
+                        {" "}
+                        {hasMultipleCities ? "primarily" : regionPrefix}{" "}
+                        <strong>{regionLocation}</strong>
+                      </>
                     )}
                     , {ageDescriptor}
                     {genderWord && (
@@ -1836,7 +2001,7 @@ export function MapContainer({
                     <table className="table table-xs">
                       <thead>
                         <tr>
-                          <th>Location</th>
+                          <th>Location</th>flex flex-col sm:flex-row items-start gap-4 bg-base-200 p-4 rounded-lg relative z-50
                           <th>Date</th>
                           <th>Score</th>
                         </tr>

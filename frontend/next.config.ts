@@ -19,7 +19,8 @@ const nextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '5mb'
-    }
+    },
+    authInterrupts: true,
   },
   cacheComponents: true,
 };

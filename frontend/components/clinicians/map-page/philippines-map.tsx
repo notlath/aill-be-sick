@@ -772,6 +772,15 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
     currentProvinceName,
     currentProvinceNormalized,
     activeProvinceLegendBins,
+    // Illness cluster dependencies
+    illnessHeatmapData,
+    illnessProjectedProvinceCounts,
+    illnessProvinceCounts,
+    illnessProvinceTotals,
+    illnessCityTotals,
+    illnessBarangayCounts,
+    illnessActiveProvinceLegendBins,
+    selectedIllnessCluster,
   ]); // Depend on highlightId
 
   // Handle Drill-down
