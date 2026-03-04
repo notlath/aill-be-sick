@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { AnomalyTimelineChart } from "@/components/clinicians/map-page/anomaly-timeline-chart";
 import { ClusterTimelineChart } from "@/components/clinicians/map-page/cluster-timeline-chart";
+import { IllnessClusterTimelineChart } from "@/components/clinicians/map-page/illness-cluster-timeline-chart";
 import {
   Select,
   SelectContent,
@@ -1802,6 +1803,18 @@ export function MapContainer({
                 <p className="font-semibold">{selectedIllnessClusterSummary.diseaseLabel}</p>
               </div>
             </div>
+
+            {illnessClusterData && selectedIllnessClusterSummary && (
+              <IllnessClusterTimelineChart
+                illnesses={illnessClusterData.illnesses}
+                nClusters={illnessClusterData.n_clusters}
+                selectedCluster={
+                  illnessClusterOrder[Math.max(0, Number(selectedIllnessCluster) - 1)] ??
+                  Math.max(0, Number(selectedIllnessCluster) - 1)
+                }
+                clusterColorIndex={Math.max(0, Number(selectedIllnessCluster) - 1)}
+              />
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="bg-base-200 rounded-box p-3">
