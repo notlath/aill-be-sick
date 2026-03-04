@@ -7,6 +7,10 @@ import type { IllnessClusterStatistics } from "@/types";
 
 interface IllnessClusterOverviewCardsProps {
   statistics: IllnessClusterStatistics[];
+  selectedVariables?: {
+    city: boolean;
+    region: boolean;
+  };
 }
 
 const CLUSTER_THEMES = [
@@ -86,6 +90,7 @@ const CLUSTER_THEMES = [
 
 const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = ({
   statistics,
+  selectedVariables = { city: true, region: false },
 }) => {
   const [expandedClusters, setExpandedClusters] = React.useState<
     Record<string, boolean>
@@ -180,23 +185,27 @@ const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = 
                             ageDescriptor = "predominantly children";
                           }
 
-                          // Region or City
+                          // Region or City - respect selected variables
                           let regionLocation = "";
                           let regionPrefix = "from";
+                          let hasMultipleCities = false;
 
-                          if (stat.top_cities && stat.top_cities.length === 1) {
+                          // Determine which geographic variable to show based on selection
+                          const showCity = selectedVariables.city;
+                          const showRegion = selectedVariables.region;
+
+                          // Priority: City (if enabled) > Region (if enabled)
+                          if (showCity && stat.top_cities && stat.top_cities.length >= 1) {
+                            // Show top city even if there are multiple
                             regionLocation = stat.top_cities[0].city;
                             regionPrefix = "from";
-                          } else if (
-                            stat.top_regions &&
-                            stat.top_regions.length === 1
-                          ) {
+                            hasMultipleCities = stat.top_cities.length > 1;
+                          } else if (showRegion && stat.top_regions && stat.top_regions.length === 1) {
+                            // Only one region, display "from {region}"
                             regionLocation = stat.top_regions[0].region;
                             regionPrefix = "from";
-                          } else if (
-                            stat.top_regions &&
-                            stat.top_regions.length >= 2
-                          ) {
+                          } else if (showRegion && stat.top_regions && stat.top_regions.length >= 2) {
+                            // Two or more regions - check if top region is dominant
                             const topRegion = stat.top_regions[0];
                             const secondRegion = stat.top_regions[1];
                             const percentageIncrease =
@@ -204,9 +213,11 @@ const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = 
                               secondRegion.count;
 
                             if (percentageIncrease >= 0.4) {
+                              // Top region is 40% higher, display "mostly from {region}"
                               regionLocation = topRegion.region;
                               regionPrefix = "mostly from";
                             }
+                            // Otherwise, don't mention region at all
                           }
 
                           // Gender descriptor
@@ -226,7 +237,7 @@ const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = 
                               {regionLocation ? (
                                 <>
                                   {" "}
-                                  {regionPrefix}{" "}
+                                  {hasMultipleCities ? "primarily" : regionPrefix}{" "}
                                   <strong>{regionLocation}</strong>
                                 </>
                               ) : null}

@@ -41,8 +41,8 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   });
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
-  const isInitialRender = useRef(true);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const clusterDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   const BACKEND_URL =
@@ -94,9 +94,9 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
 
   // Auto-apply recommended k when it becomes available
   useEffect(() => {
-    if (isInitialRender.current && recommendedK) {
-      isInitialRender.current = false;
+    if (recommendedK) {
       setK(recommendedK);
+      setKInput(String(recommendedK));
     }
   }, [recommendedK]);
 
@@ -104,13 +104,23 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
     setIsMounted(true);
   }, []);
 
-  // Load kmeans cluster data when k changes
+  // Load kmeans cluster data when k or selectedVariables changes (debounced)
   useEffect(() => {
-    if (isInitialRender.current) {
-      return;
+    // Clear any pending cluster fetch
+    if (clusterDebounceTimerRef.current) {
+      clearTimeout(clusterDebounceTimerRef.current);
     }
 
-    fetchClusterData(k);
+    // Debounce cluster fetch by 200ms to prevent rapid API calls
+    clusterDebounceTimerRef.current = setTimeout(() => {
+      fetchClusterData(k);
+    }, 200);
+
+    return () => {
+      if (clusterDebounceTimerRef.current) {
+        clearTimeout(clusterDebounceTimerRef.current);
+      }
+    };
   }, [k, selectedVariables, BACKEND_URL]);
 
   const clampK = (val: number) => {
@@ -195,6 +205,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
       return;
     }
 
+    // Update variables immediately - clustering will auto-apply with debouncing
     setSelectedVariables((prev) => ({
       ...prev,
       [variable]: !prev[variable],
@@ -413,7 +424,10 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
 
       {!loading && !error && clusterData ? (
         <div className="space-y-6">
-          <IllnessClusterOverviewCards statistics={clusterData.cluster_statistics} />
+          <IllnessClusterOverviewCards
+            statistics={clusterData.cluster_statistics}
+            selectedVariables={selectedVariables}
+          />
         </div>
       ) : null}
 
