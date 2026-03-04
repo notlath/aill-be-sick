@@ -47,8 +47,8 @@ export const deleteChat = actionClient
       updateTag(`chat-${chat.chatId}`);
       updateTag(`messages-${chat.chatId}`);
       updateTag(`diagnosis-${chat.chatId}`);
-      revalidatePath("/history");
-      revalidatePath(`/diagnosis/${chat.chatId}`);
+      revalidatePath("/history", "page");
+      revalidatePath(`/diagnosis/${chat.chatId}`, "page");
 
       return { success: "Chat deleted successfully" };
     } catch (deleteError) {

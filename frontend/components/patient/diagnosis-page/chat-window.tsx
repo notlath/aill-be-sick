@@ -124,6 +124,7 @@ const ChatWindow = ({
     top_diseases?: any[];
     cdss?: any;
     model_used?: string;
+    mean_probs?: any[];
   } | null>(null);
   const [isFinalDiagnosis, setIsFinalDiagnosis] = useState<boolean>(false);
 
@@ -142,6 +143,7 @@ const ChatWindow = ({
               top_diseases,
               cdss,
               model_used,
+              mean_probs,
             } = diagnosis;
             setCurrentDiagnosis({
               disease,
@@ -150,6 +152,7 @@ const ChatWindow = ({
               top_diseases,
               cdss,
               model_used,
+              mean_probs,
             });
             // Persist current full symptoms for later explanations
             lastDiagnosisRef.current = {
@@ -297,6 +300,7 @@ const ChatWindow = ({
             top_diseases,
             cdss,
             model_used,
+            mean_probs,
           } = data.diagnosis as any;
 
           setCurrentDiagnosis({
@@ -306,6 +310,7 @@ const ChatWindow = ({
             top_diseases,
             cdss,
             model_used,
+            mean_probs,
           });
           lastDiagnosisRef.current = {
             ...data.diagnosis,
@@ -396,6 +401,7 @@ const ChatWindow = ({
               symptoms: getCurrentSymptoms(),
               top_diseases: top_diseases || [],
               mode: diagnosisMode,
+              current_probs: mean_probs || undefined,
             });
           } else {
             // Confident but not high enough to skip entirely - ask confirmation question
@@ -411,6 +417,7 @@ const ChatWindow = ({
                 top_diseases: top_diseases || [],
                 force: true,
                 mode: diagnosisMode,
+                current_probs: mean_probs || undefined,
               });
             } else {
               setCurrentQuestion(null);
@@ -532,6 +539,8 @@ const ChatWindow = ({
       last_answer: answer,
       last_question_id: questionId,
       last_question_text: currentQuestion?.question,
+      // Round-trip Bayesian-updated probability distribution
+      current_probs: currentDiagnosis?.mean_probs || undefined,
     });
   };
 
