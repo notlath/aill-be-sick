@@ -48,10 +48,6 @@ export const getAllDiagnoses = async ({
   skip?: number;
   take?: number;
 }) => {
-  "use cache";
-  cacheLife("minutes");
-  cacheTag("healthcare-reports");
-  
   try {
     if (skip || take) {
       const diagnoses = await prisma.diagnosis.findMany({
