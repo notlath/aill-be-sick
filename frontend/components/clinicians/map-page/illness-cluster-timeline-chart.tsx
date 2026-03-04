@@ -167,57 +167,59 @@ export function IllnessClusterTimelineChart({
           </SelectContent>
         </Select>
       </div>
-      <ResponsiveContainer width="100%" height={220}>
-        <AreaChart
-          data={chartData}
-          margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
-        >
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={clusterColor} stopOpacity={0.8} />
-              <stop offset="95%" stopColor={clusterColor} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-          <XAxis
-            dataKey="label"
-            tick={{ fontSize: 11, fill: "#6b7280" }}
-            tickLine={false}
-            axisLine={{ stroke: "#d1d5db" }}
-          />
-          <YAxis
-            allowDecimals={false}
-            tick={{ fontSize: 11, fill: "#6b7280" }}
-            tickLine={false}
-            axisLine={{ stroke: "#d1d5db" }}
-          />
-          <Tooltip
-            content={({ active, payload, label }) => {
-              if (!active || !payload || !payload.length) return null;
-              const data = payload[0].payload as TimeBucket;
-              return (
-                <div className="bg-white border border-base-300 rounded shadow-sm px-3 py-2 text-xs">
-                  <p className="font-semibold mb-1">
-                    {granularity === "week"
-                      ? `${data.periodStart} – ${data.periodEnd}`
-                      : label}
-                  </p>
-                  <p>
-                    {data.count} illness{data.count === 1 ? "" : "es"}
-                  </p>
-                </div>
-              );
-            }}
-          />
-          <Area
-            type="monotone"
-            dataKey="count"
-            stroke={clusterColor}
-            fillOpacity={1}
-            fill={`url(#${gradientId})`}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+      <div className="w-full h-[220px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={chartData}
+            margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
+          >
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={clusterColor} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={clusterColor} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--heroui-default-200))" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+              tickLine={false}
+              axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+            />
+            <YAxis
+              allowDecimals={false}
+              tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+              tickLine={false}
+              axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+            />
+            <Tooltip
+              content={({ active, payload, label }) => {
+                if (!active || !payload || !payload.length) return null;
+                const data = payload[0].payload as TimeBucket;
+                return (
+                  <div className="bg-white border border-base-300 rounded shadow-sm px-3 py-2 text-xs">
+                    <p className="font-semibold mb-1">
+                      {granularity === "week"
+                        ? `${data.periodStart} – ${data.periodEnd}`
+                        : label}
+                    </p>
+                    <p>
+                      {data.count} illness{data.count === 1 ? "" : "es"}
+                    </p>
+                  </div>
+                );
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="count"
+              stroke={clusterColor}
+              fillOpacity={1}
+              fill={`url(#${gradientId})`}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
