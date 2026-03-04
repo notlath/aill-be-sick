@@ -1,7 +1,8 @@
 "use client";
 
+import { User } from "@/lib/generated/prisma";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, ExternalLink } from "lucide-react";
 
 export type DiagnosisRow = {
   id: number;
@@ -9,8 +10,9 @@ export type DiagnosisRow = {
   confidence: number;
   uncertainty: number;
   symptoms: string;
-  modelUsed: string;
+  userId: number;
   createdAt: Date;
+  user?: User;
 };
 
 export const columns: ColumnDef<DiagnosisRow>[] = [
@@ -77,8 +79,19 @@ export const columns: ColumnDef<DiagnosisRow>[] = [
     },
   },
   {
-    accessorKey: "modelUsed",
-    header: "Model",
+    accessorKey: "userId",
+    header: "Patient ID",
+    cell: ({ row, table }) => {
+      const userId = row.getValue("userId") as number;
+      return (
+        <button
+          onClick={() => (table.options.meta as any)?.openPatientModal?.(row.original.user)}
+          className="font-medium text-primary hover:underline"
+        >
+          {userId}
+        </button>
+      );
+    },
   },
   {
     accessorKey: "createdAt",
@@ -96,6 +109,22 @@ export const columns: ColumnDef<DiagnosisRow>[] = [
     cell: ({ row }) => {
       const date = new Date(row.getValue("createdAt"));
       return <span>{date.toLocaleDateString()}</span>;
+    },
+  },
+  {
+    id: "actions",
+    cell: ({ row, table }) => {
+      return (
+        <div className="flex items-center justify-end z-10 relative">
+          <button
+            onClick={() => (table.options.meta as any)?.openDiagnosisModal?.(row.original)}
+            className="btn btn-ghost btn-sm tooltip"
+            data-tip="View Details"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </button>
+        </div>
+      );
     },
   },
 ];
