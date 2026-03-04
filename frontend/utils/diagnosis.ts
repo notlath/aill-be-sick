@@ -48,17 +48,24 @@ export const getAllDiagnoses = async ({
   skip?: number;
   take?: number;
 }) => {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("healthcare-reports");
+  
   try {
     if (skip || take) {
       const diagnoses = await prisma.diagnosis.findMany({
         skip,
         take,
+        include: { user: true },
       });
 
       return { success: diagnoses };
     }
 
-    const diagnoses = await prisma.diagnosis.findMany();
+    const diagnoses = await prisma.diagnosis.findMany({
+      include: { user: true },
+    });
 
     return { success: diagnoses };
   } catch (error) {
