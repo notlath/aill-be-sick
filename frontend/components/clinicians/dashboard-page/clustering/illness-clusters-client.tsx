@@ -323,7 +323,8 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                 />
                 <span>Region</span>
               </label>
-              <label
+              {/* TODO: Re-enable time (seasonal) toggle when temporal analysis is ready */}
+              {/* <label
                 className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary btn-soft" : ""}`}
               >
                 <input
@@ -333,7 +334,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                   onChange={() => handleVariableChange("time")}
                 />
                 <span>Time (seasonal)</span>
-              </label>
+              </label> */}
             </div>
 
             {/* Groups */}

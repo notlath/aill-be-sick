@@ -615,8 +615,8 @@ const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = 
                 </div>
               ) : null}
 
-              {/* Temporal Distribution - if available */}
-              {stat.temporal_distribution &&
+              {/* TODO: Re-enable temporal distribution when time (seasonal) toggle is active */}
+              {/* {stat.temporal_distribution &&
                 Object.keys(stat.temporal_distribution).length > 0 && (
                   <div>
                     <div className="mb-3 flex items-center gap-2">
@@ -640,7 +640,7 @@ const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = 
                         ))}
                     </div>
                   </div>
-                )}
+                )} */}
             </CardContent>
           </Card>
         );
