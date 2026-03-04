@@ -7,8 +7,9 @@ import traceback
 from flask import Blueprint, request, jsonify, session, current_app
 
 import app.config as config
-from app.services.ml_service import classifier, explainer
+from app.services.ml_service import classifier, explainer, CORRECT_ID2LABEL
 from app.utils import _count_words, _build_cdss_payload, detect_language_heuristic
+from app.utils.scoring import bayesian_evidence_update, lookup_question_metadata
 from app.evidence_keywords import EVIDENCE_KEYWORDS
 
 diagnosis_bp = Blueprint("diagnosis", __name__)
@@ -258,8 +259,11 @@ def new_case():
             "uncertainty": float(uncertainty),
             "top_diseases": top_diseases,
             "mean_probs": mean_probs,
+            "base_probs": mean_probs,       # Frozen initial NLP classification
+            "current_probs": mean_probs,     # Updated by Bayesian evidence
             "symptoms_text": symptoms,
             "lang": lang_detected,
+            "model_used": model_used if 'model_used' in dir() else "BioClinical ModernBERT",
             "start_time": time.time(),
         }
 
@@ -359,6 +363,7 @@ def follow_up_question():
                     "uncertainty": data.get("uncertainty"),
                     "top_diseases": data.get("top_diseases", []),
                     "mean_probs": data.get("mean_probs", []),
+                    "current_probs": data.get("current_probs", data.get("mean_probs", [])),
                     "symptoms_text": data.get("symptoms", ""),
                     "lang": None,
                     "start_time": time.time(),
@@ -430,98 +435,92 @@ def follow_up_question():
         except Exception:
             pass
 
-        # Re-run classifier with updated symptoms whenever we have sufficient evidence.
-        # If caller didn't provide enough text, fall back to prior diagnosis context to continue Q&A.
-        try:
-            too_short = (
-                _count_words(symptoms_text) < config.SYMPTOM_MIN_WORDS
-                and len(symptoms_text) < config.SYMPTOM_MIN_CHARS
+        # ── HYBRID SCORING: Bayesian Evidence Update ──
+        # Instead of re-running the NLP classifier with appended boilerplate text
+        # (which causes distributional shift and confidence drop), we use the
+        # initial classification result as the base and apply Bayesian evidence
+        # updates from follow-up Yes/No answers.
+        
+        # Get the question bank for question metadata lookup
+        QUESTION_BANK_EN = current_app.config["QUESTION_BANK_EN"]
+        QUESTION_BANK_TL = current_app.config["QUESTION_BANK_TL"]
+        
+        # Retrieve current probability distribution
+        # PREFER request-body current_probs (reliable) over session (Flask cookie sessions
+        # are not reliably round-tripped through Next.js server actions)
+        current_probs_raw = data.get("current_probs") or session_data.get("current_probs") or session_data.get("mean_probs")
+        
+        if current_probs_raw is None or not prior_disease:
+            return (
+                jsonify(
+                    {
+                        "error": "SESSION_EXPIRED",
+                        "message": "Session state missing. Please start a new diagnosis.",
+                        "code": "SESSION_EXPIRED",
+                    }
+                ),
+                440,
             )
-
-            if not too_short:
-                (
-                    pred,
-                    confidence,
-                    uncertainty,
-                    probs,
-                    model_used,
-                    top_diseases,
-                    mean_probs,
-                ) = classifier(symptoms_text)
+        
+        # Flatten if nested [[...]]
+        import numpy as np
+        current_probs = np.array(current_probs_raw).flatten()
+        
+        # Apply Bayesian update if there's a new answer to process
+        if last_answer and last_question_id:
+            # Look up question metadata from the appropriate question bank
+            session_lang = session_data.get("lang")
+            qb = QUESTION_BANK_TL if session_lang in ["tl", "fil"] else QUESTION_BANK_EN
+            q_meta = lookup_question_metadata(last_question_id, qb)
+            
+            if q_meta:
+                update_result = bayesian_evidence_update(
+                    current_probs=current_probs,
+                    answer=str(last_answer).lower(),
+                    question_weight=q_meta["weight"],
+                    target_disease_idx=q_meta["disease_idx"],
+                    disease_labels=CORRECT_ID2LABEL,
+                )
+                
+                # Update session with new probabilities
+                current_probs = np.array(update_result["probs"])
+                pred = update_result["predicted_label"]
+                confidence = update_result["confidence"]
+                uncertainty = update_result["uncertainty"]
+                top_diseases = update_result["top_diseases"]
+                probs = update_result["probs_formatted"]
+                model_used = session_data.get("model_used", "BioClinical ModernBERT")
+                mean_probs = update_result["probs"]
+                
+                # Persist updated state back to session
+                diag = session.get("diagnosis", {})
+                diag["current_probs"] = update_result["probs"]
+                diag["confidence"] = confidence
+                diag["uncertainty"] = uncertainty
+                diag["disease"] = pred
+                diag["top_diseases"] = top_diseases
+                session["diagnosis"] = diag
+                
+                print(f"[FOLLOW-UP] Bayesian update: {q_meta['disease']} q={last_question_id} ans={last_answer} -> conf={confidence:.3f}, MI={uncertainty:.4f}")
             else:
-                # Fallback path: skip classifier if no new symptom text; use prior context
-                print(
-                    f"[FOLLOW-UP] Fallback: skipping reclassify (symptoms too short: words={_count_words(symptoms_text)}, chars={len(symptoms_text)})"
-                )
-
-                if not prior_disease or not isinstance(prior_top_diseases, list):
-                    return (
-                        jsonify(
-                            {
-                                "error": "INSUFFICIENT_SYMPTOM_EVIDENCE",
-                                "message": "No new symptom details provided and prior diagnosis context missing. Please resend the cumulative symptoms string or include prior diagnosis fields.",
-                                "details": {
-                                    "min_words": config.SYMPTOM_MIN_WORDS,
-                                    "min_chars": config.SYMPTOM_MIN_CHARS,
-                                },
-                            }
-                        ),
-                        422,
-                    )
-
+                # Question not found in bank; use prior state as-is
+                print(f"[FOLLOW-UP] Question {last_question_id} not found in question bank, using prior state")
                 pred = prior_disease
-                confidence = (
-                    float(prior_confidence) if prior_confidence is not None else 0.0
-                )
-                uncertainty = (
-                    float(prior_uncertainty) if prior_uncertainty is not None else 1.0
-                )
+                confidence = float(prior_confidence) if prior_confidence is not None else 0.0
+                uncertainty = float(prior_uncertainty) if prior_uncertainty is not None else 1.0
                 top_diseases = prior_top_diseases
-                # Derive simple probs list from provided top_diseases
-                try:
-                    probs = [
-                        f"{d.get('disease')}: {(float(d.get('probability', 0.0))*100):.2f}%"
-                        for d in top_diseases
-                    ]
-                except Exception:
-                    probs = []
-                model_used = "(skipped reclassify)"
-                mean_probs = []
-        except Exception as e:
-            err = str(e)
-            # Map known classifier validation errors to user-friendly HTTP codes
-            if "INSUFFICIENT_SYMPTOM_EVIDENCE:" in err:
-                reason = err.split("INSUFFICIENT_SYMPTOM_EVIDENCE:")[-1].strip()
-                return (
-                    jsonify(
-                        {
-                            "error": "INSUFFICIENT_SYMPTOM_EVIDENCE",
-                            "message": "Please add a bit more detail to your symptoms (e.g., duration, severity, other symptoms).",
-                            "details": {"reason": reason},
-                        }
-                    ),
-                    422,
-                )
-            if "UNSUPPORTED_LANGUAGE:" in err:
-                lang = err.split("UNSUPPORTED_LANGUAGE:")[-1].strip()
-                return (
-                    jsonify(
-                        {
-                            "error": "UNSUPPORTED_LANGUAGE",
-                            "message": f"Sorry, the detected language '{lang}' is not supported. Please use English or Tagalog/Filipino.",
-                            "detected_language": lang,
-                        }
-                    ),
-                    400,
-                )
-            print(f"ERROR in follow_up_question: {err}")
-            payload = {
-                "error": "Classifier error",
-                "message": f"An internal error occurred: {err}",
-            }
-            if current_app.debug:
-                payload["details"] = err
-            return jsonify(payload), 500
+                probs = [f"{d.get('disease')}: {(float(d.get('probability', 0.0))*100):.2f}%" for d in top_diseases]
+                model_used = session_data.get("model_used", "(prior state)")
+                mean_probs = current_probs.tolist()
+        else:
+            # First follow-up call (no answer yet), use session state directly
+            pred = prior_disease
+            confidence = float(prior_confidence) if prior_confidence is not None else 0.0
+            uncertainty = float(prior_uncertainty) if prior_uncertainty is not None else 1.0
+            top_diseases = prior_top_diseases
+            probs = [f"{d.get('disease')}: {(float(d.get('probability', 0.0))*100):.2f}%" for d in top_diseases]
+            model_used = session_data.get("model_used", "BioClinical ModernBERT")
+            mean_probs = current_probs.tolist()
 
         # Neuro-Symbolic Verification (Catch Out-of-Scope even in follow-up)
         # This prevents confidence drift from accepting invalid diseases

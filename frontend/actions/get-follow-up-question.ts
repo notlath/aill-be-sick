@@ -1,8 +1,8 @@
 "use server";
 
-import axios, {AxiosError} from "axios";
+import axios, { AxiosError } from "axios";
 import * as z from "zod";
-import {actionClient} from "./client";
+import { actionClient } from "./client";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
@@ -27,6 +27,8 @@ const FollowUpSchema = z.object({
   last_answer: z.enum(["yes", "no"]).optional(),
   last_question_id: z.string().optional(),
   last_question_text: z.string().optional(),
+  // Bayesian evidence state: updated probability distribution
+  current_probs: z.array(z.any()).optional(),
 });
 
 export const getFollowUpQuestion = actionClient
@@ -43,6 +45,7 @@ export const getFollowUpQuestion = actionClient
       last_answer,
       last_question_id,
       last_question_text,
+      current_probs,
     } = parsedInput;
 
     try {
@@ -59,6 +62,8 @@ export const getFollowUpQuestion = actionClient
         last_answer,
         last_question_id,
         last_question_text,
+        // Bayesian evidence state: round-trip the updated probability distribution
+        current_probs: current_probs || undefined,
       };
 
       // DEBUG: Log what we're sending

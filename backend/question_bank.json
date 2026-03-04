@@ -2,55 +2,55 @@
   "Dengue": [
     {
       "id": "dengue_q1",
-      "question": "Are you experiencing pain or discomfort anywhere in your body?",
-      "positive_symptom": "I am experiencing pain or discomfort in my body",
-      "negative_symptom": "I am not experiencing significant pain or discomfort",
+      "question": "Do you have an extremely high fever, feeling like you are burning up?",
+      "positive_symptom": "I have an extremely high fever and feel like I am burning up",
+      "negative_symptom": "I don't have a severe high fever",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "dengue_q2",
-      "question": "Do you have a high fever or elevated body temperature?",
-      "positive_symptom": "I have a high fever or elevated body temperature",
-      "negative_symptom": "I don't have a high fever",
-      "weight": 0.93,
+      "question": "Are you experiencing severe muscle and joint pain that makes your whole body ache?",
+      "positive_symptom": "I have severe generalized muscle and body aches",
+      "negative_symptom": "I don't have severe body aches",
+      "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "dengue_q3",
-      "question": "Are you experiencing severe joint pain or muscle aches?",
-      "positive_symptom": "I have severe joint pain or muscle aches",
-      "negative_symptom": "I don't have severe joint pain or muscle aches",
-      "weight": 0.92,
+      "question": "Do you feel a deep, intense pain right behind your eyes, especially when you move them?",
+      "positive_symptom": "I have severe pain behind my eyes",
+      "negative_symptom": "I don't have pain behind my eyes",
+      "weight": 0.94,
       "category": "primary"
     },
     {
       "id": "dengue_q4",
-      "question": "Have you noticed any skin redness or inflammation?",
-      "positive_symptom": "I have noticed skin redness or inflammation",
-      "negative_symptom": "I haven't noticed any skin redness or inflammation",
-      "weight": 0.91,
+      "question": "Have you noticed any unusual mild bleeding, such as bleeding gums or a sudden nosebleed?",
+      "positive_symptom": "I have noticed mild bleeding like a nosebleed or bleeding gums",
+      "negative_symptom": "I haven't had any unusual bleeding",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "dengue_q5",
-      "question": "Do you have a rash or red spots on your skin?",
-      "positive_symptom": "I have a rash or red spots on my skin",
-      "negative_symptom": "I don't have a rash or red spots on my skin",
-      "weight": 0.9,
+      "question": "Has a rash of tiny red dots or speckles appeared on your skin?",
+      "positive_symptom": "I have a rash of tiny red spots on my skin",
+      "negative_symptom": "I don't have a rash or red spots",
+      "weight": 0.92,
       "category": "primary"
     },
     {
       "id": "dengue_q6",
-      "question": "Do you feel unusually tired, fatigued, or weak?",
-      "positive_symptom": "I feel unusually tired, fatigued, or weak",
-      "negative_symptom": "I don't feel unusually tired or fatigued",
+      "question": "Do you have a severe, pounding, or splitting headache?",
+      "positive_symptom": "I have a severe, pounding headache",
+      "negative_symptom": "I don't have a severe headache",
       "weight": 0.89,
       "category": "secondary"
     },
     {
       "id": "dengue_q7",
-      "question": "Have you experienced nausea or vomiting?",
+      "question": "Have you been feeling nauseous or have you vomited?",
       "positive_symptom": "I have experienced nausea or vomiting",
       "negative_symptom": "I haven't experienced nausea or vomiting",
       "weight": 0.88,
@@ -58,271 +58,271 @@
     },
     {
       "id": "dengue_q8",
-      "question": "Are you experiencing chills or feeling unusually cold?",
-      "positive_symptom": "I am experiencing chills or feeling unusually cold",
-      "negative_symptom": "I am not experiencing chills",
+      "question": "Do you feel overwhelmingly exhausted or entirely wiped out of energy?",
+      "positive_symptom": "I feel overwhelmingly exhausted and weak",
+      "negative_symptom": "I don't feel unusually exhausted",
       "weight": 0.87,
       "category": "secondary"
     },
     {
       "id": "dengue_q9",
-      "question": "Have you lost your appetite or noticed reduced food intake?",
-      "positive_symptom": "I have lost my appetite or noticed reduced food intake",
-      "negative_symptom": "I haven't lost my appetite",
+      "question": "Are your joints feeling stiff and sore when you try to move?",
+      "positive_symptom": "My joints are stiff and sore",
+      "negative_symptom": "My joints feel fine",
       "weight": 0.86,
       "category": "secondary"
     },
     {
       "id": "dengue_q10",
-      "question": "Do you have itching or irritation on your skin?",
-      "positive_symptom": "I have itching or irritation on my skin",
-      "negative_symptom": "I don't have itching or irritation on my skin",
-      "weight": 0.85,
-      "category": "secondary"
+      "question": "Are you experiencing these symptoms completely without a cough or runny nose?",
+      "positive_symptom": "I do not have a cough or runny nose",
+      "negative_symptom": "I actually do have a cough or runny nose",
+      "weight": 0.9,
+      "category": "primary"
     }
   ],
   "Pneumonia": [
     {
       "id": "pneumonia_q1",
-      "question": "Are you coughing up mucus, phlegm, or thick sputum?",
-      "positive_symptom": "I am coughing up mucus, phlegm, or thick sputum",
-      "negative_symptom": "I am not coughing up mucus or phlegm",
+      "question": "Are you coughing up thick, wet phlegm that looks yellow, green, or rusty colored?",
+      "positive_symptom": "I have a wet cough bringing up thick or colored phlegm",
+      "negative_symptom": "My cough is mostly dry or I don't have one",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "pneumonia_q2",
-      "question": "Do you have a persistent cough?",
-      "positive_symptom": "I have a persistent cough",
-      "negative_symptom": "I don't have a persistent cough",
-      "weight": 0.93,
+      "question": "Do you feel a sharp, stabbing pain in your chest or ribs when you take a deep breath or cough?",
+      "positive_symptom": "I have sharp chest pain when breathing deeply or coughing",
+      "negative_symptom": "I don't have sharp chest pain when breathing",
+      "weight": 0.94,
       "category": "primary"
     },
     {
       "id": "pneumonia_q3",
-      "question": "Are you experiencing shortness of breath, difficulty breathing, or rapid breathing?",
-      "positive_symptom": "I am experiencing shortness of breath, difficulty breathing, or rapid breathing",
-      "negative_symptom": "I am not experiencing shortness of breath or difficulty breathing",
-      "weight": 0.92,
+      "question": "Are you feeling unusually short of breath, or finding it hard to catch your breath even with light activity?",
+      "positive_symptom": "I am experiencing shortness of breath or difficulty breathing",
+      "negative_symptom": "I am breathing normally and can catch my breath",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "pneumonia_q4",
-      "question": "Have you been sweating excessively or experiencing heavy perspiration?",
-      "positive_symptom": "I have been sweating excessively or experiencing heavy perspiration",
-      "negative_symptom": "I haven't been sweating excessively",
-      "weight": 0.91,
+      "question": "Do you have a persistent fever accompanied by shivering, sweating, or teeth-chattering chills?",
+      "positive_symptom": "I have a fever with sweating and shivering chills",
+      "negative_symptom": "I don't have a persistent fever or chills",
+      "weight": 0.92,
       "category": "primary"
     },
     {
       "id": "pneumonia_q5",
-      "question": "Do you feel unusually tired, fatigued, or weak?",
-      "positive_symptom": "I feel unusually tired, fatigued, or weak",
-      "negative_symptom": "I don't feel unusually tired or fatigued",
+      "question": "Are you experiencing these severe chest and breathing symptoms completely without a runny nose or sniffles?",
+      "positive_symptom": "I do not have a runny nose or sniffles",
+      "negative_symptom": "I actually do have a runny nose",
       "weight": 0.9,
       "category": "primary"
     },
     {
       "id": "pneumonia_q6",
-      "question": "Are you experiencing shaking chills or feeling unusually cold?",
-      "positive_symptom": "I am experiencing shaking chills or feeling unusually cold",
-      "negative_symptom": "I am not experiencing chills",
-      "weight": 0.89,
-      "category": "secondary"
-    },
-    {
-      "id": "pneumonia_q7",
-      "question": "Do you have a high fever or elevated body temperature?",
-      "positive_symptom": "I have a high fever or elevated body temperature",
-      "negative_symptom": "I don't have a high fever",
+      "question": "Do you feel extremely weak, wiped out, or lack the energy to do basic things?",
+      "positive_symptom": "I feel extremely weak and have no energy",
+      "negative_symptom": "I don't feel unusually tired or weak",
       "weight": 0.88,
       "category": "secondary"
     },
     {
-      "id": "pneumonia_q8",
-      "question": "Are you experiencing any chest pain or discomfort when breathing or coughing?",
-      "positive_symptom": "I am experiencing chest pain or discomfort when breathing or coughing",
-      "negative_symptom": "I am not experiencing chest pain when breathing or coughing",
+      "id": "pneumonia_q7",
+      "question": "Are you experiencing general body aches or muscle pain alongside your cough?",
+      "positive_symptom": "My body and muscles are aching",
+      "negative_symptom": "I don't have general muscle aches",
       "weight": 0.87,
       "category": "secondary"
     },
     {
-      "id": "pneumonia_q9",
-      "question": "Do you feel confused, disoriented, or have difficulty concentrating?",
-      "positive_symptom": "I feel confused, disoriented, or have difficulty concentrating",
-      "negative_symptom": "I don't feel confused or have difficulty concentrating",
+      "id": "pneumonia_q8",
+      "question": "Have you been feeling nauseous or sick to your stomach recently?",
+      "positive_symptom": "I feel nauseous or have been vomiting",
+      "negative_symptom": "My stomach feels fine",
       "weight": 0.86,
       "category": "secondary"
     },
     {
-      "id": "pneumonia_q10",
-      "question": "Have you noticed any changes in your breathing patterns or lung function?",
-      "positive_symptom": "I have noticed changes in my breathing patterns or lung function",
-      "negative_symptom": "I haven't noticed any changes in my breathing patterns",
+      "id": "pneumonia_q9",
+      "question": "Do you have a dull or persistent headache?",
+      "positive_symptom": "I have a persistent headache",
+      "negative_symptom": "I don't have a headache",
       "weight": 0.85,
+      "category": "secondary"
+    },
+    {
+      "id": "pneumonia_q10",
+      "question": "Does your breathing get significantly worse or do you start panting specifically when you lie down?",
+      "positive_symptom": "My breathing gets worse and I pant when I lie down",
+      "negative_symptom": "Lying down doesn't make my breathing worse",
+      "weight": 0.89,
       "category": "secondary"
     }
   ],
   "Typhoid": [
     {
       "id": "typhoid_q1",
-      "question": "Are you experiencing persistent abdominal (belly/stomach) pain or discomfort?",
-      "positive_symptom": "I have persistent abdominal pain or discomfort",
-      "negative_symptom": "I don't have persistent abdominal pain or discomfort",
+      "question": "Has your fever been lasting for many days and getting progressively worse or higher over time?",
+      "positive_symptom": "I have a prolonged fever that keeps getting higher over the past week",
+      "negative_symptom": "My fever just started or hasn't lasted for many days",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "typhoid_q2",
-      "question": "Have you had alternating constipation and diarrhea?",
-      "positive_symptom": "I have alternating constipation and diarrhea",
-      "negative_symptom": "I don't have alternating constipation and diarrhea",
-      "weight": 0.93,
+      "question": "Is your stomach tender to the touch and cramping?",
+      "positive_symptom": "My stomach is tender and cramping",
+      "negative_symptom": "I don't have stomach tenderness or cramps",
+      "weight": 0.94,
       "category": "primary"
     },
     {
       "id": "typhoid_q3",
-      "question": "Do you have a high fever, especially at night?",
-      "positive_symptom": "I have a high fever, especially at night",
-      "negative_symptom": "I don't have a high fever, especially at night",
-      "weight": 0.92,
+      "question": "Have you been unable to pass stool (constipated) for days, or are you now having loose watery stools?",
+      "positive_symptom": "I am experiencing severe constipation or diarrhea",
+      "negative_symptom": "My bowel movements are normal",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "typhoid_q4",
-      "question": "Are you experiencing chills along with your fever?",
-      "positive_symptom": "I am experiencing chills along with my fever",
-      "negative_symptom": "I am not experiencing chills along with my fever",
-      "weight": 0.91,
+      "question": "Have you noticed any faint pink or rose-colored spots appearing on your chest or stomach?",
+      "positive_symptom": "I have small pink or red spots on my stomach or chest",
+      "negative_symptom": "I don't have any spots or rash",
+      "weight": 0.92,
       "category": "primary"
     },
     {
       "id": "typhoid_q5",
-      "question": "Have you felt nauseous or vomited recently?",
-      "positive_symptom": "I have felt nauseous or vomited recently",
-      "negative_symptom": "I haven't felt nauseous or vomited recently",
+      "question": "Does your pulse or heartbeat feel unusually slow, even though you have a high fever?",
+      "positive_symptom": "My pulse feels unusually slow despite the fever",
+      "negative_symptom": "My heart rate feels normal or fast",
       "weight": 0.9,
-      "category": "primary"
-    },
-    {
-      "id": "typhoid_q6",
-      "question": "Have you lost your appetite or noticed significant weight loss?",
-      "positive_symptom": "I have lost my appetite or noticed significant weight loss",
-      "negative_symptom": "I haven't lost my appetite or noticed significant weight loss",
-      "weight": 0.89,
       "category": "secondary"
     },
     {
-      "id": "typhoid_q7",
-      "question": "Do you feel unusually fatigued or weak?",
-      "positive_symptom": "I feel unusually fatigued or weak",
-      "negative_symptom": "I don't feel unusually fatigued or weak",
+      "id": "typhoid_q6",
+      "question": "Do you have a constant, dull ache localized in the front of your head?",
+      "positive_symptom": "I have a constant frontal headache",
+      "negative_symptom": "I don't have a constant frontal headache",
       "weight": 0.88,
       "category": "secondary"
     },
     {
-      "id": "typhoid_q8",
-      "question": "Are you having trouble staying hydrated?",
-      "positive_symptom": "I am having trouble staying hydrated",
-      "negative_symptom": "I am not having trouble staying hydrated",
+      "id": "typhoid_q7",
+      "question": "Have you completely lost your appetite and felt entirely drained of energy?",
+      "positive_symptom": "I have completely lost my appetite and feel exhausted",
+      "negative_symptom": "I still have an appetite and normal energy",
       "weight": 0.87,
       "category": "secondary"
     },
     {
-      "id": "typhoid_q9",
-      "question": "Have you had headaches along with your other symptoms?",
-      "positive_symptom": "I have had headaches along with my other symptoms",
-      "negative_symptom": "I haven't had headaches along with my other symptoms",
+      "id": "typhoid_q8",
+      "question": "Have you been feeling confused, disoriented, or like your mind is unusually foggy?",
+      "positive_symptom": "I feel confused, disoriented, or foggy",
+      "negative_symptom": "I am thinking clearly and not confused",
       "weight": 0.86,
       "category": "secondary"
     },
     {
+      "id": "typhoid_q9",
+      "question": "Did these symptoms come on slowly and build up over several days, rather than hitting you suddenly overnight?",
+      "positive_symptom": "My symptoms started slowly and got worse over many days",
+      "negative_symptom": "My symptoms hit me very suddenly",
+      "weight": 0.91,
+      "category": "primary"
+    },
+    {
       "id": "typhoid_q10",
-      "question": "Are you having trouble sleeping due to your symptoms?",
-      "positive_symptom": "I am having trouble sleeping due to my symptoms",
-      "negative_symptom": "I am not having trouble sleeping due to my symptoms",
-      "weight": 0.85,
-      "category": "secondary"
+      "question": "Are you experiencing these fever and stomach symptoms completely without a severe cough or breathing problems?",
+      "positive_symptom": "I do not have a severe cough or breathing problems",
+      "negative_symptom": "I actually do have a cough and breathing problems",
+      "weight": 0.9,
+      "category": "primary"
     }
   ],
   "Diarrhea": [
     {
       "id": "diarrhea_q1",
-      "question": "Do you pass watery or loose stools frequently?",
-      "positive_symptom": "I pass watery or loose stools frequently",
-      "negative_symptom": "My stool frequency and consistency are normal",
+      "question": "Did your symptoms start suddenly, with you passing watery or loose stools several times a day?",
+      "positive_symptom": "My symptoms started suddenly with frequent watery stools",
+      "negative_symptom": "My bowel movements are normal and didn't change suddenly",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "diarrhea_q2",
-      "question": "Have you noticed any blood in your stool?",
-      "positive_symptom": "I have noticed blood in my stool",
+      "question": "Are you experiencing severe, twisting stomach cramps or sharp pain in your gut?",
+      "positive_symptom": "I am experiencing severe abdominal cramping and twisting pain in my gut",
+      "negative_symptom": "I don't have severe stomach cramps",
+      "weight": 0.95,
+      "category": "primary"
+    },
+    {
+      "id": "diarrhea_q3",
+      "question": "Are you showing signs of dehydration, like extreme thirst, a very dry mouth, feeling dizzy when standing, or urinating less than usual?",
+      "positive_symptom": "I feel very thirsty, have a dry mouth, and signs of dehydration like low urine output",
+      "negative_symptom": "I don't feel unusually thirsty or dehydrated",
+      "weight": 0.94,
+      "category": "primary"
+    },
+    {
+      "id": "diarrhea_q4",
+      "question": "Have you noticed any blood or red streaks in your stool?",
+      "positive_symptom": "I have noticed blood or red streaks in my stool",
       "negative_symptom": "I haven't noticed any blood in my stool",
       "weight": 0.93,
       "category": "primary"
     },
     {
-      "id": "diarrhea_q3",
-      "question": "Are you experiencing stomach pain or abdominal cramps?",
-      "positive_symptom": "I am experiencing stomach pain or abdominal cramps",
-      "negative_symptom": "I don't have severe stomach pain",
+      "id": "diarrhea_q5",
+      "question": "Are you experiencing these stomach issues completely without a cough, runny nose, or difficulty breathing?",
+      "positive_symptom": "I do not have a cough, runny nose, or any respiratory symptoms",
+      "negative_symptom": "I actually do have a cough or runny nose",
       "weight": 0.92,
       "category": "primary"
     },
     {
-      "id": "diarrhea_q4",
-      "question": "Do you feel thirsty, have a dry mouth, or feel dehydrated?",
-      "positive_symptom": "I feel thirsty, have a dry mouth, or feel dehydrated",
-      "negative_symptom": "I don't feel unusually thirsty or dehydrated",
+      "id": "diarrhea_q6",
+      "question": "Can you confirm that you DO NOT have a high fever that has been lasting and getting worse for over a week?",
+      "positive_symptom": "I do not have a prolonged fever that has been lasting for days",
+      "negative_symptom": "I actually do have a fever that has been getting worse for days",
       "weight": 0.91,
       "category": "primary"
     },
     {
-      "id": "diarrhea_q5",
-      "question": "Do you have a fever?",
-      "positive_symptom": "I have a fever",
-      "negative_symptom": "I don't have a fever",
-      "weight": 0.90,
-      "category": "primary"
-    },
-    {
-      "id": "diarrhea_q6",
-      "question": "Are you experiencing nausea or vomiting?",
-      "positive_symptom": "I am experiencing nausea or vomiting",
-      "negative_symptom": "I am not experiencing nausea or vomiting",
-      "weight": 0.89,
-      "category": "secondary"
-    },
-    {
       "id": "diarrhea_q7",
-      "question": "Have you noticed mucus or slime in your stool?",
-      "positive_symptom": "I have noticed mucus or slime in my stool",
-      "negative_symptom": "I haven't noticed mucus in my stool",
+      "question": "Have you been feeling nauseous, queasy, or unable to keep food down without throwing up?",
+      "positive_symptom": "I feel nauseous and have been vomiting",
+      "negative_symptom": "I am not experiencing nausea or vomiting",
       "weight": 0.88,
       "category": "secondary"
     },
     {
       "id": "diarrhea_q8",
-      "question": "Do you feel an urgent need to use the bathroom, even if little comes out?",
-      "positive_symptom": "I feel an urgent need to use the bathroom often",
-      "negative_symptom": "I don't feel unusual urgency",
+      "question": "Do you feel entirely drained and extremely weak, likely from the fluid loss?",
+      "positive_symptom": "I feel totally drained and extremely weak",
+      "negative_symptom": "I don't feel unusually weak",
       "weight": 0.87,
       "category": "secondary"
     },
     {
       "id": "diarrhea_q9",
-      "question": "Do you feel unusually weak or tired?",
-      "positive_symptom": "I feel unusually weak or tired",
-      "negative_symptom": "I don't feel unusually weak",
+      "question": "If you have a fever, is it relatively mild rather than an extremely high temperature?",
+      "positive_symptom": "I only have a mild fever or feel slightly warm",
+      "negative_symptom": "I have an extremely high fever",
       "weight": 0.86,
       "category": "secondary"
     },
     {
       "id": "diarrhea_q10",
-      "question": "Have you lost your appetite?",
-      "positive_symptom": "I have lost my appetite",
-      "negative_symptom": "I haven't lost my appetite",
+      "question": "Do your bowel movements come with a sudden, uncontrollable urge or in severe waves?",
+      "positive_symptom": "I get sudden, uncontrollable urges to use the bathroom",
+      "negative_symptom": "I don't feel sudden or uncontrollable urges",
       "weight": 0.85,
       "category": "secondary"
     }
@@ -330,71 +330,71 @@
   "Measles": [
     {
       "id": "measles_q1",
-      "question": "Do you have a rash, and did it start on your face?",
-      "positive_symptom": "I have a rash that started on my face",
-      "negative_symptom": "I don't have a rash",
+      "question": "Do you have a red, blotchy rash that started on your face, hairline, or behind your ears and is spreading downwards to your neck and body?",
+      "positive_symptom": "I have a rash that started on my head or face and is spreading downwards",
+      "negative_symptom": "I don't have a rash spreading down from my face",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "measles_q2",
-      "question": "Do you have a high fever?",
-      "positive_symptom": "I have a high fever",
-      "negative_symptom": "I don't have a high fever",
-      "weight": 0.93,
+      "question": "Are you experiencing a high fever along with a persistent, dry, hacking cough?",
+      "positive_symptom": "I have a high fever and a persistent hacking cough",
+      "negative_symptom": "I don't have a high fever with a cough",
+      "weight": 0.94,
       "category": "primary"
     },
     {
       "id": "measles_q3",
-      "question": "Do you have a dry cough?",
-      "positive_symptom": "I have a dry cough",
-      "negative_symptom": "I don't have a cough",
-      "weight": 0.92,
+      "question": "Are your eyes extremely red, watery, sore, and highly sensitive to light?",
+      "positive_symptom": "My eyes are very red, watery, and sensitive to light",
+      "negative_symptom": "My eyes are not red or sensitive to light",
+      "weight": 0.93,
       "category": "primary"
     },
     {
       "id": "measles_q4",
-      "question": "Do you have a runny nose?",
-      "positive_symptom": "I have a runny nose",
-      "negative_symptom": "I don't have a runny nose",
-      "weight": 0.91,
+      "question": "Did your fever, cough, and runny nose start a few days BEFORE the skin rash appeared?",
+      "positive_symptom": "My fever and cough started before the rash appeared",
+      "negative_symptom": "The symptoms didn't happen in that order",
+      "weight": 0.92,
       "category": "primary"
     },
     {
       "id": "measles_q5",
-      "question": "Are your eyes red, watery, or inflamed?",
-      "positive_symptom": "My eyes are red, watery, or inflamed",
-      "negative_symptom": "My eyes are normal",
-      "weight": 0.90,
+      "question": "Do you have a constant runny nose or sniffles?",
+      "positive_symptom": "I have a constant runny nose",
+      "negative_symptom": "I don't have a runny nose",
+      "weight": 0.9,
       "category": "primary"
     },
     {
       "id": "measles_q6",
-      "question": "Have you noticed tiny white spots relative to the inside of your mouth?",
-      "positive_symptom": "I have noticed tiny white spots inside my mouth",
+      "question": "Have you noticed any tiny white spots, resembling grains of salt, on the inside of your cheeks?",
+      "positive_symptom": "I have noticed tiny white spots inside my mouth on my cheeks",
       "negative_symptom": "I haven't noticed white spots in my mouth",
       "weight": 0.89,
       "category": "secondary"
     },
     {
       "id": "measles_q7",
-      "question": "Are your eyes sensitive to light?",
-      "positive_symptom": "My eyes are sensitive to light",
-      "negative_symptom": "My eyes are not sensitive to light",
-      "weight": 0.88,
-      "category": "secondary"
+      "question": "Are you experiencing these symptoms completely without any unusual bleeding or severe, deep bone pain?",
+      "positive_symptom": "I do not have any bleeding or severe deep bone pain",
+      "negative_symptom": "I actually do have bleeding or severe bone pain",
+      "weight": 0.91,
+      "category": "primary"
     },
     {
       "id": "measles_q8",
-      "question": "Do you have muscle pain or body aches?",
-      "positive_symptom": "I have muscle pain or body aches",
-      "negative_symptom": "I don't have muscle pain",
+      "question": "Do you feel completely exhausted, wiped out, or unusually fatigued?",
+      "positive_symptom": "I feel completely exhausted and wiped out",
+      "negative_symptom": "I don't feel unusually fatigued",
       "weight": 0.87,
       "category": "secondary"
     },
     {
       "id": "measles_q9",
-      "question": "Do you have a sore throat?",
+      "question": "Do you have a scratchy or sore throat?",
       "positive_symptom": "I have a sore throat",
       "negative_symptom": "I don't have a sore throat",
       "weight": 0.86,
@@ -402,9 +402,9 @@
     },
     {
       "id": "measles_q10",
-      "question": "Do you feel generally tired or fatigued?",
-      "positive_symptom": "I feel generally tired or fatigued",
-      "negative_symptom": "I don't feel unusually tired",
+      "question": "Have you had any mild diarrhea or loose stools recently?",
+      "positive_symptom": "I have had some mild diarrhea",
+      "negative_symptom": "I haven't had any diarrhea",
       "weight": 0.85,
       "category": "secondary"
     }
@@ -412,83 +412,83 @@
   "Influenza": [
     {
       "id": "influenza_q1",
-      "question": "Did your fever or symptoms start very suddenly?",
-      "positive_symptom": "My symptoms started very suddenly with a fever",
-      "negative_symptom": "My symptoms started gradually",
+      "question": "Did your symptoms, like a fever and chills, hit you very suddenly rather than building up slowly?",
+      "positive_symptom": "My symptoms and fever hit me very suddenly",
+      "negative_symptom": "My symptoms started gradually over many days",
       "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "influenza_q2",
-      "question": "Do you have severe muscle or body aches?",
-      "positive_symptom": "I have severe muscle or body aches",
-      "negative_symptom": "I don't have severe body aches",
-      "weight": 0.93,
+      "question": "Do you have a persistent, dry, or hacking cough?",
+      "positive_symptom": "I have a dry, hacking cough",
+      "negative_symptom": "I don't have a cough",
+      "weight": 0.95,
       "category": "primary"
     },
     {
       "id": "influenza_q3",
-      "question": "Do you have chills or sweats?",
-      "positive_symptom": "I have chills or sweats",
-      "negative_symptom": "I don't have chills",
-      "weight": 0.92,
+      "question": "Are you experiencing sore muscles or body aches all over?",
+      "positive_symptom": "I have sore muscles and body aches all over",
+      "negative_symptom": "I don't have severe body aches",
+      "weight": 0.94,
       "category": "primary"
     },
     {
       "id": "influenza_q4",
-      "question": "Do you have a dry, persistent cough?",
-      "positive_symptom": "I have a dry, persistent cough",
-      "negative_symptom": "I don't have a persistent cough",
-      "weight": 0.91,
+      "question": "Do you feel completely exhausted, tired, or wiped out of energy?",
+      "positive_symptom": "I feel completely exhausted and wiped out",
+      "negative_symptom": "I don't feel unusually tired",
+      "weight": 0.89,
       "category": "primary"
     },
     {
       "id": "influenza_q5",
-      "question": "Do you feel extremely tired or exhausted?",
-      "positive_symptom": "I feel extremely tired or exhausted",
-      "negative_symptom": "I don't feel extremely tired",
-      "weight": 0.90,
-      "category": "primary"
-    },
-    {
-      "id": "influenza_q6",
-      "question": "Do you have a headache?",
-      "positive_symptom": "I have a headache",
+      "question": "Do you have a pounding or lingering headache?",
+      "positive_symptom": "I have a pounding headache",
       "negative_symptom": "I don't have a headache",
-      "weight": 0.89,
-      "category": "secondary"
-    },
-    {
-      "id": "influenza_q7",
-      "question": "Do you have a sore throat?",
-      "positive_symptom": "I have a sore throat",
-      "negative_symptom": "I don't have a sore throat",
       "weight": 0.88,
       "category": "secondary"
     },
     {
-      "id": "influenza_q8",
-      "question": "Do you have a runny or stuffy nose?",
-      "positive_symptom": "I have a runny or stuffy nose",
-      "negative_symptom": "I don't have a runny or stuffy nose",
+      "id": "influenza_q6",
+      "question": "Is your throat scratchy, or does it hurt to swallow?",
+      "positive_symptom": "I have a sore or scratchy throat",
+      "negative_symptom": "I don't have a sore throat",
       "weight": 0.87,
       "category": "secondary"
     },
     {
-      "id": "influenza_q9",
-      "question": "Do you have pain behind your eyes or sensitivity to light?",
-      "positive_symptom": "I have pain behind my eyes or sensitivity to light",
-      "negative_symptom": "I don't have eye pain",
+      "id": "influenza_q7",
+      "question": "Do you have a runny nose, stuffy nose, or constant sniffles?",
+      "positive_symptom": "I have a runny or stuffy nose",
+      "negative_symptom": "I don't have a runny or stuffy nose",
       "weight": 0.86,
       "category": "secondary"
     },
     {
+      "id": "influenza_q8",
+      "question": "Are you experiencing these symptoms completely without a skin rash or deep pain behind your eyes?",
+      "positive_symptom": "I do not have a skin rash or pain behind my eyes",
+      "negative_symptom": "I actually do have a rash or pain behind my eyes",
+      "weight": 0.92,
+      "category": "primary"
+    },
+    {
+      "id": "influenza_q9",
+      "question": "Is your cough mostly dry, meaning you are not coughing up thick, colored phlegm?",
+      "positive_symptom": "My cough is dry and I am not coughing up colored phlegm",
+      "negative_symptom": "I am coughing up thick, colored phlegm",
+      "weight": 0.92,
+      "category": "primary"
+    },
+    {
       "id": "influenza_q10",
-      "question": "Have you experienced vomiting or diarrhea?",
-      "positive_symptom": "I have experienced vomiting or diarrhea",
-      "negative_symptom": "I haven't experienced vomiting or diarrhea",
-      "weight": 0.85,
-      "category": "secondary"
+      "question": "Is your breathing completely fine, meaning you don't have sharp chest pain when you breathe in?",
+      "positive_symptom": "My breathing is fine and I don't have sharp chest pain",
+      "negative_symptom": "I do have chest pain or trouble breathing",
+      "weight": 0.9,
+      "category": "primary"
     }
   ]
 }
