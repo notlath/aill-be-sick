@@ -193,7 +193,9 @@ export function MapContainer({
   const [illnessSelectedVariables, setIllnessSelectedVariables] = useState({
     age: true,
     gender: true,
+    barangay: false,
     city: true,
+    province: false,
     region: false,
     time: false,
   });
@@ -218,18 +220,14 @@ export function MapContainer({
       return; // Don't allow unchecking the last variable
     }
 
-    // Update variables - city and region are mutually exclusive
-    if (variable === "city") {
+    // Update variables - barangay, city, province, and region are mutually exclusive
+    if (["barangay", "city", "province", "region"].includes(variable)) {
       setIllnessSelectedVariables((prev) => ({
         ...prev,
-        city: !prev.city,
-        region: false,
-      }));
-    } else if (variable === "region") {
-      setIllnessSelectedVariables((prev) => ({
-        ...prev,
-        region: !prev.region,
-        city: false,
+        barangay: variable === "barangay" ? !prev.barangay : false,
+        city: variable === "city" ? !prev.city : false,
+        province: variable === "province" ? !prev.province : false,
+        region: variable === "region" ? !prev.region : false,
       }));
     } else {
       setIllnessSelectedVariables((prev) => ({
@@ -322,7 +320,9 @@ export function MapContainer({
           range: "2-25",
           age: String(illnessSelectedVariables.age),
           gender: String(illnessSelectedVariables.gender),
+          barangay: String(illnessSelectedVariables.barangay),
           city: String(illnessSelectedVariables.city),
+          province: String(illnessSelectedVariables.province),
           region: String(illnessSelectedVariables.region),
           time: String(illnessSelectedVariables.time),
         });
@@ -736,9 +736,11 @@ export function MapContainer({
     // Region / city location
     let regionLocation = "";
     let regionPrefix = "from";
-    if (stat.top_cities && stat.top_cities.length === 1) {
+    let hasMultipleCities = false;
+    if (stat.top_cities && stat.top_cities.length >= 1) {
       regionLocation = stat.top_cities[0].city;
       regionPrefix = "from";
+      hasMultipleCities = stat.top_cities.length > 1;
     } else if (stat.top_regions && stat.top_regions.length === 1) {
       regionLocation = stat.top_regions[0].region;
       regionPrefix = "from";
@@ -798,6 +800,7 @@ export function MapContainer({
         genderDescriptor,
         genderWord,
         interpretationDisease,
+        hasMultipleCities,
       },
     };
   }, [clusterData, selectedCluster, selectedTab, clusterOrder, heatmapData]);
@@ -873,7 +876,9 @@ export function MapContainer({
           n_clusters: String(illnessK),
           age: String(illnessSelectedVariables.age),
           gender: String(illnessSelectedVariables.gender),
+          barangay: String(illnessSelectedVariables.barangay),
           city: String(illnessSelectedVariables.city),
+          province: String(illnessSelectedVariables.province),
           region: String(illnessSelectedVariables.region),
           time: String(illnessSelectedVariables.time),
         });
@@ -1197,22 +1202,59 @@ export function MapContainer({
       ageDescriptor = "predominantly children";
     }
 
+    // Region, Province, City, or Barangay - respect selected variables
     let regionLocation = "";
     let regionPrefix = "from";
-    if (stat.top_cities && stat.top_cities.length === 1) {
+    let hasMultipleCities = false;
+
+    // Determine which geographic variable to show based on selection
+    const showBarangay = illnessSelectedVariables.barangay;
+    const showCity = illnessSelectedVariables.city;
+    const showProvince = illnessSelectedVariables.province;
+    const showRegion = illnessSelectedVariables.region;
+
+    // Priority: Barangay > City > Province > Region
+    if (showBarangay && stat.top_barangays && stat.top_barangays.length >= 1) {
+      regionLocation = stat.top_barangays[0].barangay;
+      regionPrefix = "from";
+      hasMultipleCities = stat.top_barangays.length > 1;
+    } else if (showCity && stat.top_cities && stat.top_cities.length >= 1) {
+      // Show top city even if there are multiple
       regionLocation = stat.top_cities[0].city;
       regionPrefix = "from";
-    } else if (stat.top_regions && stat.top_regions.length === 1) {
+      hasMultipleCities = stat.top_cities.length > 1;
+    } else if (showProvince && stat.top_provinces && stat.top_provinces.length === 1) {
+      regionLocation = stat.top_provinces[0].province;
+      regionPrefix = "from";
+    } else if (showProvince && stat.top_provinces && stat.top_provinces.length >= 2) {
+      const topProvince = stat.top_provinces[0];
+      const secondProvince = stat.top_provinces[1];
+      const percentageIncrease =
+        (topProvince.count - secondProvince.count) /
+        secondProvince.count;
+
+      if (percentageIncrease >= 0.4) {
+        regionLocation = topProvince.province;
+        regionPrefix = "mostly from";
+      }
+    } else if (showRegion && stat.top_regions && stat.top_regions.length === 1) {
+      // Only one region, display "from {region}"
       regionLocation = stat.top_regions[0].region;
       regionPrefix = "from";
-    } else if (stat.top_regions && stat.top_regions.length >= 2) {
+    } else if (showRegion && stat.top_regions && stat.top_regions.length >= 2) {
+      // Two or more regions - check if top region is dominant
       const topRegion = stat.top_regions[0];
       const secondRegion = stat.top_regions[1];
-      const pctIncrease = (topRegion.count - secondRegion.count) / secondRegion.count;
-      if (pctIncrease >= 0.4) {
+      const percentageIncrease =
+        (topRegion.count - secondRegion.count) /
+        secondRegion.count;
+
+      if (percentageIncrease >= 0.4) {
+        // Top region is 40% higher, display "mostly from {region}"
         regionLocation = topRegion.region;
         regionPrefix = "mostly from";
       }
+      // Otherwise, don't mention region at all
     }
 
     let genderDescriptor = "";
@@ -1258,6 +1300,7 @@ export function MapContainer({
         genderDescriptor,
         genderWord,
         interpretationDisease,
+        hasMultipleCities,
       },
     };
   }, [illnessClusterData, selectedIllnessCluster, selectedTab, illnessClusterOrder, illnessHeatmapData]);
@@ -1371,8 +1414,20 @@ export function MapContainer({
                 <span>Gender</span>
               </label>
               <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.barangay ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include barangay in clustering (mutually exclusive with Region, Province, City)"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.barangay}
+                  onChange={() => handleIllnessVariableChange("barangay")}
+                />
+                <span>Barangay</span>
+              </label>
+              <label
                 className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.city ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
-                title="Include city in clustering (mutually exclusive with Region)"
+                title="Include city in clustering (mutually exclusive with Region, Province, Barangay)"
               >
                 <input
                   type="checkbox"
@@ -1383,8 +1438,20 @@ export function MapContainer({
                 <span>City</span>
               </label>
               <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.province ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include province in clustering (mutually exclusive with Region, City, Barangay)"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.province}
+                  onChange={() => handleIllnessVariableChange("province")}
+                />
+                <span>Province</span>
+              </label>
+              <label
                 className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.region ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
-                title="Include region in clustering (mutually exclusive with City)"
+                title="Include region in clustering (mutually exclusive with Province, City, Barangay)"
               >
                 <input
                   type="checkbox"
@@ -1528,19 +1595,23 @@ export function MapContainer({
             {/* Natural language interpretation */}
             <div className="rounded-lg bg-base-200 px-4 py-3 text-sm text-base-content/80 leading-relaxed">
               {(() => {
-                const { ageDescriptor, regionLocation, regionPrefix, genderDescriptor, genderWord, interpretationDisease } = selectedClusterSummary.interpretation;
+                const { ageDescriptor, regionLocation, regionPrefix, genderDescriptor, genderWord, interpretationDisease, hasMultipleCities } = selectedClusterSummary.interpretation;
                 return (
                   <>
                     <strong>{selectedClusterSummary.patientCount}</strong> patients
                     {regionLocation && (
-                      <> {regionPrefix} <strong>{regionLocation}</strong></>
+                      <>
+                        {" "}
+                        {hasMultipleCities ? "primarily" : regionPrefix}{" "}
+                        <strong>{regionLocation}</strong>
+                      </>
                     )}
                     , {ageDescriptor}
                     {genderWord && (
                       <>, {genderDescriptor} <strong>{genderWord}</strong></>
                     )}
                     {interpretationDisease && (
-                      <>, has mostly <strong>{interpretationDisease}</strong></>
+                      <>, primarily <strong>{interpretationDisease}</strong></>
                     )}
                     .
                   </>
@@ -1674,12 +1745,16 @@ export function MapContainer({
             {/* Natural language interpretation */}
             <div className="rounded-lg bg-base-200 px-4 py-3 text-sm text-base-content/80 leading-relaxed">
               {(() => {
-                const { ageDescriptor, regionLocation, regionPrefix, genderDescriptor, genderWord, interpretationDisease } = selectedIllnessClusterSummary.interpretation;
+                const { ageDescriptor, regionLocation, regionPrefix, genderDescriptor, genderWord, interpretationDisease, hasMultipleCities } = selectedIllnessClusterSummary.interpretation;
                 return (
                   <>
                     <strong>{selectedIllnessClusterSummary.diagnosisCount}</strong> diagnoses
                     {regionLocation && (
-                      <> {regionPrefix} <strong>{regionLocation}</strong></>
+                      <>
+                        {" "}
+                        {hasMultipleCities ? "primarily" : regionPrefix}{" "}
+                        <strong>{regionLocation}</strong>
+                      </>
                     )}
                     , {ageDescriptor}
                     {genderWord && (
