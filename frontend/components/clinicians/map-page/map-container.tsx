@@ -23,9 +23,15 @@ import {
 import { buildClusterRamp, getClusterBaseColor } from "@/utils/cluster-colors";
 import { getMapDiseaseData } from "@/utils/map-data";
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import provinces from "@/public/locations/provinces.json";
 import regions from "@/public/locations/regions.json";
 import PhilippinesMap from "./philippines-map";
+
+const PatientsModal = dynamic(
+  () => import("./patients-modal"),
+  { ssr: false }
+);
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
@@ -181,6 +187,7 @@ export function MapContainer({
   const [illnessClusterData, setIllnessClusterData] = useState<IllnessClusterData | undefined>(
     illnessClusters,
   );
+  const [isPatientsModalOpen, setIsPatientsModalOpen] = useState(false);
   const [selectedIllnessCluster, setSelectedIllnessCluster] = useState<string>("1");
   const [illnessK, setIllnessK] = useState(initialK);
   const [illnessRecommendedK, setIllnessRecommendedK] = useState<number | null>(null);
@@ -1310,6 +1317,16 @@ export function MapContainer({
     setShowAllAnomalyRegions(false);
   }, [anomalyDisease, selectedTab]);
 
+  const selectedIllnessClusterPatients = useMemo(() => {
+    if (!illnessClusterData || selectedTab !== "illness-cluster") return [];
+    const selectedClusterIndex = Math.max(0, Number(selectedIllnessCluster) - 1);
+    const selectedClusterId =
+      illnessClusterOrder[selectedClusterIndex] ?? selectedClusterIndex;
+    return illnessClusterData.illnesses.filter(
+      (illness) => illness.cluster === selectedClusterId
+    );
+  }, [illnessClusterData, selectedIllnessCluster, illnessClusterOrder, selectedTab]);
+
   return (
     <div className="space-y-4">
       {/* Filters Overlay */}
@@ -1733,14 +1750,23 @@ export function MapContainer({
       {selectedTab === "illness-cluster" && selectedIllnessClusterSummary && (
         <div className="card bg-base-100 border border-base-300">
           <div className="card-body gap-4">
-            <div className="flex items-center gap-2">
-              <span
-                className="inline-block h-3 w-3 rounded-full"
-                style={{ backgroundColor: selectedIllnessClusterSummary.clusterBaseColor }}
-              />
-              <h3 className="card-title text-base">
-                Cluster {selectedIllnessClusterSummary.displayCluster} Quick Profile
-              </h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span
+                  className="inline-block h-3 w-3 rounded-full"
+                  style={{ backgroundColor: selectedIllnessClusterSummary.clusterBaseColor }}
+                />
+                <h3 className="card-title text-base">
+                  Cluster {selectedIllnessClusterSummary.displayCluster} Quick Profile
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline border-border"
+                onClick={() => setIsPatientsModalOpen(true)}
+              >
+                View patients
+              </button>
             </div>
 
             {/* Natural language interpretation */}
@@ -2037,6 +2063,15 @@ export function MapContainer({
             </div>
           </div>
         </div>
+      )}
+
+      {selectedTab === "illness-cluster" && (
+        <PatientsModal
+          isOpen={isPatientsModalOpen}
+          onClose={() => setIsPatientsModalOpen(false)}
+          patients={selectedIllnessClusterPatients}
+          clusterDisplay={selectedIllnessClusterSummary?.displayCluster || selectedIllnessCluster}
+        />
       )}
     </div>
   );
