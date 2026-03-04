@@ -57,9 +57,10 @@ export const createDiagnosis = actionClient
           userId: dbUser.id,
           latitude: location.latitude,
           longitude: location.longitude,
-          city: location.city,
-          province: location.province,
-          region: location.region,
+          city: dbUser.city,
+          province: dbUser.province,
+          region: dbUser.region,
+          barangay: dbUser.barangay,
           explanation: {
             connect: {
               id: explanation.id,

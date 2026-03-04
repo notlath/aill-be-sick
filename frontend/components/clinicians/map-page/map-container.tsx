@@ -190,6 +190,13 @@ export function MapContainer({
   const [illnessClusterOrder, setIllnessClusterOrder] = useState<number[]>([]);
   const [showAllIllnessRegions, setShowAllIllnessRegions] = useState(false);
   const [showAllIllnessCities, setShowAllIllnessCities] = useState(false);
+  const [illnessSelectedVariables, setIllnessSelectedVariables] = useState({
+    age: true,
+    gender: true,
+    city: true,
+    region: false,
+    time: false,
+  });
 
   // Anomaly States
   const [anomalyDisease, setAnomalyDisease] = useState<string>(DISEASES[0]);
@@ -202,6 +209,35 @@ export function MapContainer({
   const [disease, setDisease] = useState<string>("All");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  const handleIllnessVariableChange = (variable: keyof typeof illnessSelectedVariables) => {
+    const selectedCount =
+      Object.values(illnessSelectedVariables).filter(Boolean).length;
+
+    if (illnessSelectedVariables[variable] && selectedCount === 1) {
+      return; // Don't allow unchecking the last variable
+    }
+
+    // Update variables - city and region are mutually exclusive
+    if (variable === "city") {
+      setIllnessSelectedVariables((prev) => ({
+        ...prev,
+        city: !prev.city,
+        region: false,
+      }));
+    } else if (variable === "region") {
+      setIllnessSelectedVariables((prev) => ({
+        ...prev,
+        region: !prev.region,
+        city: false,
+      }));
+    } else {
+      setIllnessSelectedVariables((prev) => ({
+        ...prev,
+        [variable]: !prev[variable],
+      }));
+    }
+  };
 
   useEffect(() => {
     if (!clusters) return;
@@ -284,11 +320,11 @@ export function MapContainer({
         setIllnessLoadingRecommendation(true);
         const params = new URLSearchParams({
           range: "2-25",
-          age: "true",
-          gender: "true",
-          city: "true",
-          region: "false",
-          time: "false",
+          age: String(illnessSelectedVariables.age),
+          gender: String(illnessSelectedVariables.gender),
+          city: String(illnessSelectedVariables.city),
+          region: String(illnessSelectedVariables.region),
+          time: String(illnessSelectedVariables.time),
         });
         const res = await fetch(
           `${BACKEND_URL}/api/illness-clusters/silhouette?${params.toString()}`,
@@ -324,7 +360,7 @@ export function MapContainer({
     return () => {
       cancelled = true;
     };
-  }, [selectedTab, illnessHasAutoAppliedRecommendation]);
+  }, [selectedTab, illnessHasAutoAppliedRecommendation, illnessSelectedVariables]);
 
   useEffect(() => {
     setShowAllRegions(false);
@@ -835,11 +871,11 @@ export function MapContainer({
         setDataLoading(true);
         const params = new URLSearchParams({
           n_clusters: String(illnessK),
-          age: "true",
-          gender: "true",
-          city: "true",
-          region: "false",
-          time: "false",
+          age: String(illnessSelectedVariables.age),
+          gender: String(illnessSelectedVariables.gender),
+          city: String(illnessSelectedVariables.city),
+          region: String(illnessSelectedVariables.region),
+          time: String(illnessSelectedVariables.time),
         });
         const res = await fetch(
           `${BACKEND_URL}/api/illness-clusters?${params.toString()}`,
@@ -871,7 +907,7 @@ export function MapContainer({
     }
 
     fetchIllnessClusters();
-  }, [illnessK, selectedTab]);
+  }, [illnessK, selectedTab, illnessSelectedVariables]);
 
   useEffect(() => {
     if (selectedTab !== "anomaly") return;
@@ -1307,54 +1343,108 @@ export function MapContainer({
         )}
 
         {selectedTab === "illness-cluster" && (
-          <>
-            <div className="space-y-1">
+          <div className="space-y-2">
+            {/* Variable Selection */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.age ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include patient age in clustering"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.age}
+                  onChange={() => handleIllnessVariableChange("age")}
+                />
+                <span>Age</span>
+              </label>
+              <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.gender ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include patient gender in clustering"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.gender}
+                  onChange={() => handleIllnessVariableChange("gender")}
+                />
+                <span>Gender</span>
+              </label>
+              <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.city ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include city in clustering (mutually exclusive with Region)"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.city}
+                  onChange={() => handleIllnessVariableChange("city")}
+                />
+                <span>City</span>
+              </label>
+              <label
+                className={`btn btn-xs border border-primary/10 cursor-pointer font-normal ${illnessSelectedVariables.region ? "btn-primary btn-soft" : "btn-outline border border-border"}`}
+                title="Include region in clustering (mutually exclusive with City)"
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={illnessSelectedVariables.region}
+                  onChange={() => handleIllnessVariableChange("region")}
+                />
+                <span>Region</span>
+              </label>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium whitespace-nowrap">
+                    Groups:
+                  </label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={25}
+                    value={illnessK}
+                    onChange={(e) => {
+                      const nextK = Number(e.target.value);
+                      if (Number.isNaN(nextK)) return;
+                      setIllnessK(Math.min(25, Math.max(2, nextK)));
+                    }}
+                    className="w-24"
+                  />
+                </div>
+                <p className="text-xs text-base-content/70 whitespace-nowrap">
+                  {illnessLoadingRecommendation
+                    ? "Calculating recommendation..."
+                    : illnessRecommendedK
+                      ? `Recommended: ${illnessRecommendedK}`
+                      : "Recommended: 2-25"}
+                </p>
+              </div>
+
               <div className="flex items-center gap-2">
                 <label className="text-sm font-medium whitespace-nowrap">
-                  Groups:
+                  Cluster:
                 </label>
-                <Input
-                  type="number"
-                  min={2}
-                  max={25}
-                  value={illnessK}
-                  onChange={(e) => {
-                    const nextK = Number(e.target.value);
-                    if (Number.isNaN(nextK)) return;
-                    setIllnessK(Math.min(25, Math.max(2, nextK)));
-                  }}
-                  className="w-24"
-                />
+                <Select
+                  value={selectedIllnessCluster}
+                  onValueChange={setSelectedIllnessCluster}
+                >
+                  <SelectTrigger className="w-40 bg-white shadow-sm">
+                    <SelectValue placeholder="Select group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {illnessClusterOptions.map((clusterId) => (
+                      <SelectItem key={clusterId} value={clusterId}>
+                        Group {clusterId}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <p className="text-xs text-base-content/70 whitespace-nowrap">
-                {illnessLoadingRecommendation
-                  ? "Calculating recommendation..."
-                  : illnessRecommendedK
-                    ? `Recommended: ${illnessRecommendedK}`
-                    : "Recommended: 2-25"}
-              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium whitespace-nowrap">
-                Cluster:
-              </label>
-              <Select
-                value={selectedIllnessCluster}
-                onValueChange={setSelectedIllnessCluster}
-              >
-                <SelectTrigger className="w-40 bg-white shadow-sm">
-                  <SelectValue placeholder="Select group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {illnessClusterOptions.map((clusterId) => (
-                    <SelectItem key={clusterId} value={clusterId}>
-                      Group {clusterId}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </>
+          </div>
         )}
 
         {selectedTab === "anomaly" && (
@@ -1836,7 +1926,7 @@ export function MapContainer({
                     <table className="table table-xs">
                       <thead>
                         <tr>
-                          <th>Location</th>
+                          <th>Location</th>flex flex-col sm:flex-row items-start gap-4 bg-base-200 p-4 rounded-lg relative z-50
                           <th>Date</th>
                           <th>Score</th>
                         </tr>
