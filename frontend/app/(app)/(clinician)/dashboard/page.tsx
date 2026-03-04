@@ -1,4 +1,3 @@
-import PatientClusters from "@/components/clinicians/dashboard-page/patient-clusters";
 import IllnessClusters from "@/components/clinicians/dashboard-page/illness-clusters";
 
 const ClinicianHomePage = () => {
@@ -18,14 +17,8 @@ const ClinicianHomePage = () => {
       {/* Main Content */}
       <div className="px-8 pb-16 md:px-16 lg:px-24">
         <div className="mx-auto max-w-[1600px] space-y-8">
-          {/* Patient Clusters - Full Width Premium Card */}
-          <section className="animate-slide-up space-y-4" style={{ animationDelay: "200ms" }}>
-            <h2 className="text-2xl font-semibold">Patient Clusters</h2>
-            <PatientClusters />
-          </section>
-
           {/* Illness Clusters - Full Width Premium Card */}
-          <section className="animate-slide-up space-y-4" style={{ animationDelay: "400ms" }}>
+          <section className="animate-slide-up space-y-4" style={{ animationDelay: "200ms" }}>
             <h2 className="text-2xl font-semibold">Illness Patterns</h2>
             <IllnessClusters />
           </section>

@@ -14,12 +14,10 @@ import {
 import {
   AnomalyHeatmapData,
   ClusterStatistics,
-  IllnessClusterData,
-  IllnessClusterStatistics,
-  MapHeatmapData,
+  IllnessClusterData, MapHeatmapData,
   OutbreakFullResult,
   PatientClusterData,
-  SurveillanceAnomaly,
+  SurveillanceAnomaly
 } from "@/types";
 import { buildClusterRamp, getClusterBaseColor } from "@/utils/cluster-colors";
 import { getMapDiseaseData } from "@/utils/map-data";
@@ -241,7 +239,7 @@ export function MapContainer({
         setLoadingRecommendation(true);
         const params = buildClusterQueryParams({ range: "2-25" });
         const res = await fetch(
-          `${BACKEND_URL}/api/patient-clusters/silhouette?${params.toString()}`,
+          `${BACKEND_URL}/api/illness-clusters/silhouette?${params.toString()}`,
         );
 
         if (!res.ok) throw new Error("Failed to fetch silhouette analysis");
@@ -800,7 +798,7 @@ export function MapContainer({
         setDataLoading(true);
         const params = buildClusterQueryParams({ n_clusters: String(k) });
         const res = await fetch(
-          `${BACKEND_URL}/api/patient-clusters?${params.toString()}`,
+          `${BACKEND_URL}/api/illness-clusters?${params.toString()}`,
         );
 
         if (!res.ok) throw new Error("Failed to fetch clusters");
