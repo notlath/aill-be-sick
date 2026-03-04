@@ -20,7 +20,7 @@ export const completeOnboarding = actionClient
       const { birthday, gender, region, province, district, city, barangay } =
         parsedInput;
 
-      await prisma.user.update({
+      const updatedUser = await prisma.user.update({
         where: { authId: authUser.id },
         data: {
           birthday: new Date(birthday),
@@ -35,7 +35,7 @@ export const completeOnboarding = actionClient
       });
 
       revalidatePath("/", "layout");
-      return { success: true };
+      return { success: { role: updatedUser.role } };
     } catch (error) {
       console.error("[completeOnboarding] Error updating user:", error);
       return { error: "Failed to complete onboarding. Please try again." };
