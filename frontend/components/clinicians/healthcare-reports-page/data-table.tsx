@@ -121,191 +121,192 @@ export function DataTable<TData, TValue>({
   }, [sorting]);
 
   return (
-    <div className="space-y-4">
-      {/* Search and Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:w-72 mt-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/60 z-10 pointer-events-none" />
-          <Input
-            type="text"
-            placeholder="Search reports..."
-            value={globalFilter ?? ""}
-            onChange={(e) => {
-              setGlobalFilter(e.target.value);
-              table.setPageIndex(0);
-            }}
-            className="pl-10"
-          />
-          {globalFilter && (
-            <button
-              onClick={() => {
-                setGlobalFilter("");
+    <>
+      <div className="space-y-4">
+        {/* Search and Filters */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:w-72 mt-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/60 z-10 pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Search reports..."
+              value={globalFilter ?? ""}
+              onChange={(e) => {
+                setGlobalFilter(e.target.value);
                 table.setPageIndex(0);
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/60 hover:text-base-content z-10"
-              type="button"
+              className="pl-10"
+            />
+            {globalFilter && (
+              <button
+                onClick={() => {
+                  setGlobalFilter("");
+                  table.setPageIndex(0);
+                }}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/60 hover:text-base-content z-10"
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              className="w-auto"
+              value={currentSortLabel}
+              onValueChange={handleSortChange}
             >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Sort by..." />
+              </SelectTrigger>
+              <SelectContent>
+                {sortOptions.map((option) => (
+                  <SelectItem key={option.label} value={option.label}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              className="w-auto"
+              value={(table.getColumn("disease")?.getFilterValue() as string) ?? ""}
+              onValueChange={(value) => {
+                table.getColumn("disease")?.setFilterValue(value || undefined);
+                table.setPageIndex(0);
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Diseases" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Diseases</SelectItem>
+                {uniqueDiseases.map((disease) => (
+                  <SelectItem key={disease} value={disease}>
+                    {disease}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Select
-            className="w-auto"
-            value={currentSortLabel}
-            onValueChange={handleSortChange}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by..." />
-            </SelectTrigger>
-            <SelectContent>
-              {sortOptions.map((option) => (
-                <SelectItem key={option.label} value={option.label}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select
-            className="w-auto"
-            value={(table.getColumn("disease")?.getFilterValue() as string) ?? ""}
-            onValueChange={(value) => {
-              table.getColumn("disease")?.setFilterValue(value || undefined);
-              table.setPageIndex(0);
-            }}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Diseases" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Diseases</SelectItem>
-              {uniqueDiseases.map((disease) => (
-                <SelectItem key={disease} value={disease}>
-                  {disease}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Data Table */}
-      <div className="bg-base-100 border border-border rounded-xl mx-auto overflow-hidden">
-        <div className="overflow-x-hidden w-full">
-          <table className="table w-full whitespace-nowrap lg:whitespace-normal">
-            <thead>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="text-left first:pl-6 last:pr-6 whitespace-nowrap">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-base-200/50 transition-colors"
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="first:pl-6 last:pr-6 py-4">
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </td>
+        {/* Data Table */}
+        <div className="bg-base-100 border border-border rounded-xl mx-auto overflow-hidden">
+          <div className="overflow-x-hidden w-full">
+            <table className="table w-full whitespace-nowrap lg:whitespace-normal">
+              <thead>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th key={header.id} className="text-left first:pl-6 last:pr-6 whitespace-nowrap">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                      </th>
                     ))}
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={columns.length} className="h-24 text-center">
-                    {globalFilter || columnFilters.length > 0
-                      ? "No results match your filters."
-                      : "No results."}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                ))}
+              </thead>
+              <tbody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className="hover:bg-base-200/50 transition-colors"
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id} className="first:pl-6 last:pr-6 py-4">
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={columns.length} className="h-24 text-center">
+                      {globalFilter || columnFilters.length > 0
+                        ? "No results match your filters."
+                        : "No results."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between py-2">
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            <span className="text-sm text-base-content/60">Rows per page:</span>
+            <Select
+              value={String(pagination.pageSize)}
+              onValueChange={(value) => {
+                table.setPageSize(Number(value));
+                table.setPageIndex(0);
+              }}
+            >
+              <SelectTrigger className="w-[80px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-base-content/60">
+              {table.getFilteredRowModel().rows.length > 0
+                ? `${pagination.pageIndex * pagination.pageSize + 1} - ${Math.min(
+                  (pagination.pageIndex + 1) * pagination.pageSize,
+                  table.getFilteredRowModel().rows.length
+                )} of ${table.getFilteredRowModel().rows.length}`
+                : "0 of 0"}
+            </span>
+            <button
+              className="btn btn-sm"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+            >
+              First
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+            >
+              Last
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* Pagination Controls */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between py-2">
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <span className="text-sm text-base-content/60">Rows per page:</span>
-          <Select
-            value={String(pagination.pageSize)}
-            onValueChange={(value) => {
-              table.setPageSize(Number(value));
-              table.setPageIndex(0);
-            }}
-          >
-            <SelectTrigger className="w-[80px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {pageSizeOptions.map((size) => (
-                <SelectItem key={size} value={String(size)}>
-                  {size}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-base-content/60">
-            {table.getFilteredRowModel().rows.length > 0
-              ? `${pagination.pageIndex * pagination.pageSize + 1} - ${Math.min(
-                (pagination.pageIndex + 1) * pagination.pageSize,
-                table.getFilteredRowModel().rows.length
-              )} of ${table.getFilteredRowModel().rows.length}`
-              : "0 of 0"}
-          </span>
-          <button
-            className="btn btn-sm"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            First
-          </button>
-          <button
-            className="btn btn-sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </button>
-          <button
-            className="btn btn-sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </button>
-          <button
-            className="btn btn-sm"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            Last
-          </button>
-        </div>
-      </div>
-
       {/* Details Modal */}
       <dialog
         id="diagnosis_modal"
@@ -422,6 +423,6 @@ export function DataTable<TData, TValue>({
           <button>close</button>
         </form>
       </dialog>
-    </div>
+    </>
   );
 }
