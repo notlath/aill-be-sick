@@ -32,7 +32,7 @@ async function main() {
   const results = [];
   for (let k = minK; k <= maxK; k++) {
     try {
-      const url = `${baseUrl}/api/patient-clusters?n_clusters=${k}`;
+      const url = `${baseUrl}/api/illness-clusters?n_clusters=${k}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
