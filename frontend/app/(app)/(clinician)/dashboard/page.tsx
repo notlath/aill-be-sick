@@ -18,8 +18,16 @@ const ClinicianHomePage = () => {
       <div className="px-8 pb-16 md:px-16 lg:px-24">
         <div className="mx-auto max-w-[1600px] space-y-8">
           {/* Illness Clusters - Full Width Premium Card */}
-          <section className="animate-slide-up space-y-4" style={{ animationDelay: "200ms" }}>
-            <h2 className="text-2xl font-semibold">Illness Patterns</h2>
+          <section
+            className="animate-slide-up space-y-4"
+            style={{ animationDelay: "200ms" }}
+          >
+            <div>
+              <h2 className="text-2xl font-semibold mb-1">Illness Patterns</h2>
+              <p className="text-base-content/70 max-w-3xl text-sm">
+                View patient diagnosis groups based on the variables you select.
+              </p>
+            </div>
             <IllnessClusters />
           </section>
         </div>
