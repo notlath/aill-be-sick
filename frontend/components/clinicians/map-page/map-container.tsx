@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
-import { AnomalyTimelineChart } from "@/components/clinicians/map-page/anomaly-timeline-chart";
 import { ClusterTimelineChart } from "@/components/clinicians/map-page/cluster-timeline-chart";
 import { IllnessClusterTimelineChart } from "@/components/clinicians/map-page/illness-cluster-timeline-chart";
+import { AnomalyTimelineChart } from "@/components/clinicians/map-page/anomaly-timeline-chart";
 import {
   Select,
   SelectContent,
@@ -967,6 +967,11 @@ export function MapContainer({
     const regionCounts = new Map<string, number>();
     // Also count per province directly
     const provinceDirectCounts: Record<string, number> = {};
+    // Barangay, city, and province-level counts for drill-down
+    const barangayCounts: Record<string, number> = {};
+    const cityTotals: Record<string, number> = {};
+    const provinceTotals: Record<string, number> = {};
+
     for (const anomaly of filtered) {
       const anomalyRegion = normalizeLoc(anomaly.region);
       if (anomalyRegion) {
@@ -983,6 +988,22 @@ export function MapContainer({
         if (canonicalProvince) {
           const key = normalizeLoc(canonicalProvince);
           provinceDirectCounts[key] = (provinceDirectCounts[key] || 0) + 1;
+          provinceTotals[key] = (provinceTotals[key] || 0) + 1;
+
+          // City-level counting
+          const normalizedCity = normalizeLoc(anomaly.city);
+          if (normalizedCity) {
+            const provinceCityKey = `${normalizeLoc(canonicalProvince)}||${normalizedCity}`;
+            cityTotals[provinceCityKey] = (cityTotals[provinceCityKey] || 0) + 1;
+
+            // Barangay-level counting
+            const normalizedBarangay = normalizeLoc(anomaly.barangay);
+            if (normalizedBarangay) {
+              const provinceCityBarangayKey = `${provinceCityKey}||${normalizedBarangay}`;
+              barangayCounts[provinceCityBarangayKey] =
+                (barangayCounts[provinceCityBarangayKey] || 0) + 1;
+            }
+          }
         }
       }
     }
@@ -1021,6 +1042,7 @@ export function MapContainer({
 
     // Build legend bins
     const legendBins: AnomalyHeatmapData["legendBins"] = [];
+    const provinceLegendBinsByProvince: AnomalyHeatmapData["provinceLegendBinsByProvince"] = {};
     if (globalMax > 0) {
       const colorRamp = buildClusterRamp(diseaseBaseColor, 5);
       const bucketSize = Math.ceil(globalMax / colorRamp.length);
@@ -1030,16 +1052,47 @@ export function MapContainer({
         if (min > max) continue;
         legendBins.push({ min, max, color: colorRamp[index] });
       }
+
+      // Build province-specific legend bins from barangay counts
+      const provinceBarangayMax = new Map<string, number>();
+      for (const [key, count] of Object.entries(barangayCounts)) {
+        const [normalizedProvinceName] = key.split("||");
+        if (!normalizedProvinceName) continue;
+        const currentMax = provinceBarangayMax.get(normalizedProvinceName) ?? 0;
+        if (count > currentMax) {
+          provinceBarangayMax.set(normalizedProvinceName, count);
+        }
+      }
+
+      for (const [normalizedProvinceName, provinceMax] of provinceBarangayMax.entries()) {
+        if (provinceMax <= 0) {
+          provinceLegendBinsByProvince[normalizedProvinceName] = [];
+          continue;
+        }
+        const provinceBucketSize = Math.ceil(provinceMax / colorRamp.length);
+        const bins: AnomalyHeatmapData["legendBins"] = [];
+        for (let index = 0; index < colorRamp.length; index += 1) {
+          const min = index * provinceBucketSize + 1;
+          const max = Math.min(provinceMax, (index + 1) * provinceBucketSize);
+          if (min > max) continue;
+          bins.push({ min, max, color: colorRamp[index] });
+        }
+        provinceLegendBinsByProvince[normalizedProvinceName] = bins;
+      }
     }
 
     return {
       diseaseBaseColor,
       provinceCounts,
       provinceDirectCounts,
+      barangayCounts,
+      cityTotals,
+      provinceTotals,
       regionTotals,
       provinceToRegion,
       globalMax,
       legendBins,
+      provinceLegendBinsByProvince,
       selectedDisease: anomalyDisease,
     };
   }, [anomalyData, anomalyDisease, selectedTab]);
@@ -1996,12 +2049,13 @@ export function MapContainer({
                 </p>
               </div>
             </div>
-
-            <AnomalyTimelineChart
-              anomalyData={anomalyData}
-              selectedDisease={anomalyDisease}
-              diseaseBaseColor={anomalySummary.diseaseBaseColor}
-            />
+            {anomalySummary && (
+              <AnomalyTimelineChart
+                anomalies={anomalyData.filter((a) => a.disease === anomalyDisease)}
+                disease={anomalyDisease}
+                diseaseColor={anomalySummary.diseaseBaseColor}
+              />
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div className="bg-base-200 rounded-box p-3">
@@ -2040,7 +2094,7 @@ export function MapContainer({
                     <table className="table table-xs">
                       <thead>
                         <tr>
-                          <th>Location</th>flex flex-col sm:flex-row items-start gap-4 bg-base-200 p-4 rounded-lg relative z-50
+                          <th>Location</th>
                           <th>Date</th>
                           <th>Score</th>
                         </tr>
