@@ -145,3 +145,46 @@ export type AnomalyHeatmapData = {
   legendBins: HeatmapLegendBin[];
   selectedDisease: string;
 };
+
+// Types for illness clustering data
+export interface IllnessRecord {
+  id: number;
+  disease: string;
+  confidence: number;
+  uncertainty: number;
+  city: string | null;
+  province: string | null;
+  barangay: string | null;
+  region: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  diagnosed_at: string | null;
+  patient_id: number;
+  patient_name: string | null;
+  patient_email: string | null;
+  patient_age: number;
+  patient_gender: "MALE" | "FEMALE" | "OTHER";
+  cluster: number;
+}
+
+export interface IllnessClusterStatistics {
+  cluster_id: number;
+  count: number;
+  disease_distribution: Record<string, { count: number; percent: number }>;
+  top_diseases: { disease: string; count: number }[];
+  avg_patient_age: number;
+  min_patient_age: number;
+  max_patient_age: number;
+  gender_distribution: GenderDistribution;
+  top_regions: RegionCount[];
+  top_cities: CityCount[];
+  temporal_distribution?: Record<string, number>;
+}
+
+export interface IllnessClusterData {
+  n_clusters: number;
+  total_illnesses: number;
+  cluster_statistics: IllnessClusterStatistics[];
+  illnesses: IllnessRecord[];
+  centers: number[][];
+}

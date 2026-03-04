@@ -1,9 +1,9 @@
 import MapTabs from "@/components/clinicians/map-page/map-tabs";
-import { getPatientClusters } from "@/utils/cluster";
+import { getIllnessClusters } from "@/utils/cluster";
 
 export default async function MapPage() {
-  const kDefault = 8;
-  const clusters = await getPatientClusters(kDefault);
+  const initialK = 8;
+  const illnessClusters = await getIllnessClusters(initialK);
 
   return (
     <main className="container px-8 pt-12 pb-8 md:px-16 lg:px-24">
@@ -16,7 +16,7 @@ export default async function MapPage() {
             Visualizing disease spread and statistics across the Philippines.
           </p>
         </div>
-        <MapTabs clusters={clusters} initialK={kDefault} />
+        <MapTabs illnessClusters={illnessClusters} />
       </div>
     </main>
   );

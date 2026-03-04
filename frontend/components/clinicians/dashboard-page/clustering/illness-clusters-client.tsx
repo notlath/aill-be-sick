@@ -9,23 +9,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AlertCircle, Loader2 } from "lucide-react";
-import ClusterOverviewCards from "./cluster-overview-cards";
-import type { PatientClusterData } from "@/types";
+import IllnessClusterOverviewCards from "./illness-cluster-overview-cards";
+import type { IllnessClusterData } from "@/types";
 import { Input } from "@/components/ui/input";
 
-interface PatientClustersClientProps {
-  initialData: PatientClusterData;
-  initialK: number;
+interface IllnessClustersClientProps {
+  initialData?: IllnessClusterData;
+  initialK?: number;
 }
 
-const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
+const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   initialData,
-  initialK,
+  initialK = 4,
 }) => {
-  const [clusterData, setClusterData] = useState<PatientClusterData | null>(
-    initialData,
+  const [clusterData, setClusterData] = useState<IllnessClusterData | null>(
+    initialData || null,
   );
-  const [loading, setLoading] = useState(!initialData); // Loading only if no initial data is provided
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [k, setK] = useState<number>(initialK);
   const [kInput, setKInput] = useState<string>(String(initialK));
@@ -35,9 +35,9 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   const [selectedVariables, setSelectedVariables] = useState({
     age: true,
     gender: true,
-    disease: true,
     city: true,
     region: false,
+    time: false,
   });
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
@@ -45,9 +45,11 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
+  const BACKEND_URL =
+    process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
+
   // Fetch silhouette analysis to determine recommended k
   useEffect(() => {
-    // Clear previous timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
@@ -55,17 +57,16 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     const fetchRecommendedK = async () => {
       try {
         setLoadingRecommendation(true);
-        // Build query parameters based on selected variables
         const params = new URLSearchParams({
           range: "2-25",
           age: String(selectedVariables.age),
           gender: String(selectedVariables.gender),
-          disease: String(selectedVariables.disease),
-          region: String(selectedVariables.region),
           city: String(selectedVariables.city),
+          region: String(selectedVariables.region),
+          time: String(selectedVariables.time),
         });
         const res = await fetch(
-          `http://localhost:10000/api/patient-clusters/silhouette?${params.toString()}`,
+          `${BACKEND_URL}/api/illness-clusters/silhouette?${params.toString()}`,
         );
         if (!res.ok) {
           throw new Error("Failed to fetch silhouette analysis");
@@ -77,13 +78,11 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
         }
       } catch (err) {
         console.error("Error fetching recommended k:", err);
-        // Fail silently - we'll just not show a recommendation
       } finally {
         setLoadingRecommendation(false);
       }
     };
 
-    // Debounce by 300ms to prevent rapid refetches
     debounceTimerRef.current = setTimeout(fetchRecommendedK, 300);
 
     return () => {
@@ -91,7 +90,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [selectedVariables]);
+  }, [selectedVariables, BACKEND_URL]);
 
   // Auto-apply recommended k when it becomes available
   useEffect(() => {
@@ -107,16 +106,15 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
 
   // Load kmeans cluster data when k changes
   useEffect(() => {
-    // Skip on initial render until recommendedK is available and applied
     if (isInitialRender.current) {
       return;
     }
 
     fetchClusterData(k);
-  }, [k, selectedVariables]);
+  }, [k, selectedVariables, BACKEND_URL]);
 
   const clampK = (val: number) => {
-    if (Number.isNaN(val)) return k; // ignore invalid
+    if (Number.isNaN(val)) return k;
     if (val < 2) return 2;
     if (val > 25) return 25;
     return val;
@@ -125,28 +123,27 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   const fetchClusterData = (clusterCount: number) => {
     setLoading(true);
     setError(null);
-    // Build query parameters based on selected variables
     const params = new URLSearchParams({
       n_clusters: String(clusterCount),
       age: String(selectedVariables.age),
       gender: String(selectedVariables.gender),
-      disease: String(selectedVariables.disease),
-      region: String(selectedVariables.region),
       city: String(selectedVariables.city),
+      region: String(selectedVariables.region),
+      time: String(selectedVariables.time),
     });
-    fetch(`http://localhost:10000/api/patient-clusters?${params.toString()}`)
+    fetch(`${BACKEND_URL}/api/illness-clusters?${params.toString()}`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Failed to fetch updated cluster data");
         }
         return res.json();
       })
-      .then((data: PatientClusterData) => {
+      .then((data: IllnessClusterData) => {
         setClusterData(data);
       })
       .catch((err) => {
         setError(err.message || "An unknown error occurred");
-        setClusterData(null); // Clear data on error to show error state
+        setClusterData(null);
       })
       .finally(() => {
         setLoading(false);
@@ -171,7 +168,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     setK(nextK);
     setKInput(String(nextK));
     try {
-      sessionStorage.setItem("patientClusters.k", String(nextK));
+      sessionStorage.setItem("illnessClusters.k", String(nextK));
     } catch (_) {
       // Ignore session storage errors
     }
@@ -191,13 +188,11 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   };
 
   const handleVariableChange = (variable: keyof typeof selectedVariables) => {
-    // Count how many variables are currently selected
     const selectedCount =
       Object.values(selectedVariables).filter(Boolean).length;
 
-    // If trying to uncheck the last selected variable, prevent it
     if (selectedVariables[variable] && selectedCount === 1) {
-      return; // Do nothing - prevent unchecking last variable
+      return;
     }
 
     setSelectedVariables((prev) => ({
@@ -206,9 +201,6 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
     }));
   };
 
-  const handleDiseaseChange = () => {
-    handleVariableChange("disease");
-  };
   const modalRoot = isMounted ? document.body : null;
   const confirmModal = (
     <div className={`modal ${showConfirmModal ? "modal-open" : ""}`}>
@@ -259,17 +251,6 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
             {/* Buttons */}
             <div className="flex flex-wrap gap-3">
               <label
-                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.disease ? "btn-primary btn-soft" : ""}`}
-              >
-                <input
-                  type="checkbox"
-                  className="hidden"
-                  checked={selectedVariables.disease}
-                  onChange={handleDiseaseChange}
-                />
-                <span>Diagnosed disease</span>
-              </label>
-              <label
                 className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary btn-soft" : ""}`}
               >
                 <input
@@ -278,7 +259,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                   checked={selectedVariables.age}
                   onChange={() => handleVariableChange("age")}
                 />
-                <span>Age</span>
+                <span>Patient age</span>
               </label>
               <label
                 className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary btn-soft" : ""}`}
@@ -289,7 +270,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                   checked={selectedVariables.gender}
                   onChange={() => handleVariableChange("gender")}
                 />
-                <span>Gender</span>
+                <span>Patient gender</span>
               </label>
               <label
                 className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.city ? "btn-primary btn-soft" : ""}`}
@@ -331,16 +312,27 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
                 />
                 <span>Region</span>
               </label>
+              <label
+                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary btn-soft" : ""}`}
+              >
+                <input
+                  type="checkbox"
+                  className="hidden"
+                  checked={selectedVariables.time}
+                  onChange={() => handleVariableChange("time")}
+                />
+                <span>Time (seasonal)</span>
+              </label>
             </div>
 
             {/* Groups */}
             <form onSubmit={onSubmitK} className="space-y-3">
               <div className="flex items-center gap-3">
-                <label htmlFor="cluster-k" className="text-xs">
+                <label htmlFor="illness-cluster-k" className="text-xs">
                   Groups:
                 </label>
                 <Input
-                  id="cluster-k"
+                  id="illness-cluster-k"
                   type="number"
                   className="input h-7 w-17 text-xs font-medium"
                   min={2}
@@ -373,9 +365,9 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
           </div>
           <div className="space-y-1 text-right">
             <div className="from-primary to-primary/70 bg-gradient-to-br bg-clip-text text-5xl font-semibold tracking-tight text-transparent tabular-nums">
-              {clusterData?.total_patients.toLocaleString() ?? "N/A"}
+              {clusterData?.total_illnesses.toLocaleString() ?? "N/A"}
             </div>
-            <div className="text-muted text-sm font-medium">Patients</div>
+            <div className="text-muted text-sm font-medium">Diagnoses</div>
           </div>
         </div>
       </div>
@@ -388,7 +380,6 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
               Recalculating clusters...
             </p>
           </div>
-          {/* Skeletons mirroring cluster overview cards layout */}
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[0, 1, 2, 3].map((index) => (
               <Card key={index} className="border-border h-[520px]">
@@ -414,7 +405,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
               Error Loading Cluster Data
             </CardTitle>
             <CardDescription className="text-red-600">
-              {error || "Could not retrieve patient cluster information."}
+              {error || "Could not retrieve illness cluster information."}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -422,7 +413,7 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
 
       {!loading && !error && clusterData ? (
         <div className="space-y-6">
-          <ClusterOverviewCards statistics={clusterData.cluster_statistics} />
+          <IllnessClusterOverviewCards statistics={clusterData.cluster_statistics} />
         </div>
       ) : null}
 
@@ -431,4 +422,4 @@ const PatientClustersClient: React.FC<PatientClustersClientProps> = ({
   );
 };
 
-export default PatientClustersClient;
+export default IllnessClustersClient;
