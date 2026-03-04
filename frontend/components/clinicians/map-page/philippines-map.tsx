@@ -857,7 +857,7 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
         )}
       </div>
 
-      <Card className="group hover:border-primary/30">
+      <Card className="group overflow-hidden hover:border-primary/30">
 
         {/* Map Container */}
         <div ref={containerRef} className="w-full h-[800px] overflow-hidden relative">
