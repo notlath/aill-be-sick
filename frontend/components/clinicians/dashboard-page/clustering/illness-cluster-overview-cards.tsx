@@ -88,10 +88,9 @@ const CLUSTER_THEMES = [
   },
 ];
 
-const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = ({
-  statistics,
-  selectedVariables = { city: true, region: false },
-}) => {
+const IllnessClusterOverviewCards: React.FC<
+  IllnessClusterOverviewCardsProps
+> = ({ statistics, selectedVariables = { city: true, region: false } }) => {
   const [expandedClusters, setExpandedClusters] = React.useState<
     Record<string, boolean>
   >({});
@@ -152,11 +151,11 @@ const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = 
         return (
           <Card
             key={stat.cluster_id}
-            className={`group relative overflow-hidden transition-all duration-500 ${theme.border} border-2 `}
+            className={`relative overflow-hidden shadow-sm! transition-none! ${theme.border} border-2 `}
           >
             {/* Gradient Background Overlay */}
             <div
-              className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-60 transition-opacity duration-500 `}
+              className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-60 `}
             />
 
             <CardHeader className="relative pb-4">
@@ -195,16 +194,28 @@ const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = 
                           const showRegion = selectedVariables.region;
 
                           // Priority: City (if enabled) > Region (if enabled)
-                          if (showCity && stat.top_cities && stat.top_cities.length >= 1) {
+                          if (
+                            showCity &&
+                            stat.top_cities &&
+                            stat.top_cities.length >= 1
+                          ) {
                             // Show top city even if there are multiple
                             regionLocation = stat.top_cities[0].city;
                             regionPrefix = "from";
                             hasMultipleCities = stat.top_cities.length > 1;
-                          } else if (showRegion && stat.top_regions && stat.top_regions.length === 1) {
+                          } else if (
+                            showRegion &&
+                            stat.top_regions &&
+                            stat.top_regions.length === 1
+                          ) {
                             // Only one region, display "from {region}"
                             regionLocation = stat.top_regions[0].region;
                             regionPrefix = "from";
-                          } else if (showRegion && stat.top_regions && stat.top_regions.length >= 2) {
+                          } else if (
+                            showRegion &&
+                            stat.top_regions &&
+                            stat.top_regions.length >= 2
+                          ) {
                             // Two or more regions - check if top region is dominant
                             const topRegion = stat.top_regions[0];
                             const secondRegion = stat.top_regions[1];
@@ -237,7 +248,9 @@ const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = 
                               {regionLocation ? (
                                 <>
                                   {" "}
-                                  {hasMultipleCities ? "primarily" : regionPrefix}{" "}
+                                  {hasMultipleCities
+                                    ? "primarily"
+                                    : regionPrefix}{" "}
                                   <strong>{regionLocation}</strong>
                                 </>
                               ) : null}
@@ -271,7 +284,9 @@ const IllnessClusterOverviewCards: React.FC<IllnessClusterOverviewCardsProps> = 
                 >
                   {stat.count}
                 </span>
-                <span className="text-muted text-sm font-medium">diagnoses</span>
+                <span className="text-muted text-sm font-medium">
+                  diagnoses
+                </span>
               </div>
             </CardHeader>
 
