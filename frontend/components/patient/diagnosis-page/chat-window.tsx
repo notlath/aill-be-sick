@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
+import ThreadTransition from "./thread-transition";
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
 
 // Helpers to map backend strings to enum values expected by CreateMessageSchema
@@ -254,6 +255,13 @@ const ChatWindow = ({
           }
         } else if (data?.error) {
           console.error("Error getting follow-up question:", data.error);
+          createMessageExecute({
+            chatId,
+            content:
+              "I could not fetch the next follow-up question. Please try submitting your symptoms again.",
+            type: "ERROR",
+            role: "AI",
+          });
           setCurrentQuestion(null);
         }
       },
@@ -275,6 +283,14 @@ const ChatWindow = ({
 
           if (data.error === "UNSUPPORTED_LANGUAGE") {
             errorMessage = `Sorry, I detected that you're using a different language, which is not currently supported. Please describe your symptoms in **English** or **Filipino**.`;
+          } else if (data.error === "INTERNAL_ERROR") {
+            errorMessage =
+              data.message ||
+              "An internal diagnosis error occurred. Please try again.";
+          } else if (data.error === "DIAGNOSIS_TIMEOUT") {
+            errorMessage =
+              data.message ||
+              "Diagnosis is taking too long. Please try again with a shorter symptom summary.";
           } else if (data.error === "INSUFFICIENT_SYMPTOM_EVIDENCE") {
             errorMessage =
               data.message ||
@@ -291,6 +307,8 @@ const ChatWindow = ({
             type: "ERROR",
             role: "AI",
           });
+          // Allow retry if initial diagnosis failed.
+          hasRunInitialDiagnosis.current = false;
         } else if (data?.success && data?.diagnosis) {
           console.log("[DEBUG] ENTERED SUCCESS HANDLER - data:", data);
           const {
@@ -574,7 +592,12 @@ const ChatWindow = ({
   }, [chatId, form]);
 
   useEffect(() => {
-    if (messages.length === 1 && !hasRunInitialDiagnosis.current) {
+    const hasOnlyInitialSymptom =
+      messages.length === 1 &&
+      messages[0]?.role === "USER" &&
+      messages[0]?.type === "SYMPTOMS";
+
+    if (hasOnlyInitialSymptom && !hasRunInitialDiagnosis.current) {
       runDiagnosisExecute({
         chatId,
         symptoms: messages[0].content,
@@ -582,38 +605,39 @@ const ChatWindow = ({
       });
       hasRunInitialDiagnosis.current = true;
     }
-  }, [messages.length, chatId, runDiagnosisExecute]);
+  }, [messages, chatId, runDiagnosisExecute]);
 
   return (
-    <FormProvider {...form}>
-      <ChatContainer
-        ref={chatEndRef}
-        messages={optimisticMessages as any}
-        isGettingQuestion={isGettingQuestion}
-        isDiagnosing={isDiagnosing}
-        isGettingExplanations={isGettingExplanations}
-        isCreatingMessage={isCreatingMessage}
-        hasDiagnosis={chat.hasDiagnosis}
-        location={location}
-        currentQuestion={currentQuestion as any}
-        onQuestionAnswer={handleQuestionAnswer}
-        dbExplanation={dbExplanation as unknown as TempExplanation}
-        userRole={userRole}
-      />
-      {isFinalDiagnosis &&
-        currentDiagnosis?.cdss &&
-        (currentDiagnosis?.confidence ?? 0) >= 0.95 && (
-          <div className="mt-3">
-            <CDSSSummary cdss={currentDiagnosis.cdss} />
-          </div>
-        )}
-      {!chat.hasDiagnosis && (
-        <div className="-bottom-0.5 sticky bg-base-100 p-4 pt-0">
-          <DiagnosisForm
-            createMessageExecute={createMessageExecute}
-            isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
-            disabled={!!currentQuestion}
-          />
+    <ThreadTransition className="w-full max-w-[768px]">
+      <FormProvider {...form}>
+        <ChatContainer
+          ref={chatEndRef}
+          messages={optimisticMessages as any}
+          isGettingQuestion={isGettingQuestion}
+          isDiagnosing={isDiagnosing}
+          isGettingExplanations={isGettingExplanations}
+          isCreatingMessage={isCreatingMessage}
+          hasDiagnosis={chat.hasDiagnosis}
+          location={location}
+          currentQuestion={currentQuestion as any}
+          onQuestionAnswer={handleQuestionAnswer}
+          dbExplanation={dbExplanation as unknown as TempExplanation}
+          userRole={userRole}
+        />
+        {isFinalDiagnosis &&
+          currentDiagnosis?.cdss &&
+          (currentDiagnosis?.confidence ?? 0) >= 0.95 && (
+            <div className="mt-3">
+              <CDSSSummary cdss={currentDiagnosis.cdss} />
+            </div>
+          )}
+        {!chat.hasDiagnosis && (
+          <div className="-bottom-0.5 sticky bg-base-100 p-4 pt-0">
+            <DiagnosisForm
+              createMessageExecute={createMessageExecute}
+              isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
+              disabled={!!currentQuestion}
+            />
           {/* <div className="flex justify-between items-center mt-2">
             <label className="label">
               <span className="label-text">Mode</span>
@@ -635,23 +659,24 @@ const ChatWindow = ({
               </button>
             </div>
           </div> */}
-        </div>
-      )}
-      <dialog id="record_success_modal" className="modal">
-        <div className="modal-box">
-          <form method="dialog">
-            <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
-              ✕
-            </button>
-          </form>
-          <h3 className="font-bold text-lg">Diagnosis recorded</h3>
-          <p className="py-4 text-muted">
-            This diagnosis has been successfully stored and saved in the
-            records!
-          </p>
-        </div>
-      </dialog>
-    </FormProvider>
+          </div>
+        )}
+        <dialog id="record_success_modal" className="modal">
+          <div className="modal-box">
+            <form method="dialog">
+              <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
+                ✕
+              </button>
+            </form>
+            <h3 className="font-bold text-lg">Diagnosis recorded</h3>
+            <p className="py-4 text-muted">
+              This diagnosis has been successfully stored and saved in the
+              records!
+            </p>
+          </div>
+        </dialog>
+      </FormProvider>
+    </ThreadTransition>
   );
 };
 

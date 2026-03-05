@@ -142,6 +142,45 @@ def new_case():
                 200,
             )
 
+        # Seed server-side session state for all non-terminal flows.
+        # This keeps follow-up logic consistent even when initial confidence is low.
+        lang_detected = (
+            "tl"
+            if "Tagalog" in str(model_used)
+            or "TAGALOG" in str(model_used).upper()
+            else "en"
+        )
+        # Classifier may return probs as a flat list or nested list (e.g. [[...]]).
+        # Normalize to a flat float list for session serialization.
+        mean_probs_list = []
+        for item in (mean_probs or []):
+            if isinstance(item, (list, tuple)):
+                for sub_item in item:
+                    mean_probs_list.append(float(sub_item))
+            else:
+                mean_probs_list.append(float(item))
+        top_diseases_serialized = [
+            {
+                "disease": d.get("disease"),
+                "probability": float(d.get("probability", 0.0)),
+            }
+            for d in (top_diseases or [])
+            if isinstance(d, dict)
+        ]
+        session["diagnosis"] = {
+            "disease": pred,
+            "confidence": float(confidence),
+            "uncertainty": float(uncertainty),
+            "top_diseases": top_diseases_serialized,
+            "mean_probs": mean_probs_list,
+            "base_probs": mean_probs_list,       # Frozen initial NLP classification
+            "current_probs": mean_probs_list,    # Updated by Bayesian evidence
+            "symptoms_text": symptoms,
+            "lang": lang_detected,
+            "model_used": str(model_used) if model_used is not None else "BioClinical ModernBERT",
+            "start_time": time.time(),
+        }
+
         # EARLY STOP: If initial diagnosis is very confident, skip follow-up questions entirely
         if confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
             print(
@@ -223,6 +262,47 @@ def new_case():
                     201,
                 )
 
+            # Detailed symptom narratives should continue into follow-up flow
+            # instead of being hard-rejected, even when confidence is weak.
+            detailed_enough = _count_words(symptoms) >= 12 or len(symptoms) >= 120
+            if detailed_enough:
+                cdss = _build_cdss_payload(
+                    symptoms,
+                    pred,
+                    confidence,
+                    uncertainty,
+                    top_diseases,
+                    model_used,
+                )
+                return (
+                    jsonify(
+                        {
+                            "data": {
+                                "pred": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs,
+                                "model_used": model_used,
+                                "disease": pred,
+                                "top_diseases": top_diseases,
+                                "mean_probs": mean_probs,
+                                "cdss": cdss,
+                                "advisory": {
+                                    "low_confidence": True,
+                                    "message": "Your symptoms are detailed enough to continue. We'll ask a few targeted questions to narrow it down.",
+                                    "thresholds": {
+                                        "hard_min_conf": config.SYMPTOM_MIN_CONF,
+                                        "soft_min_conf": config.SYMPTOM_SOFT_MIN_CONF,
+                                        "hard_max_mi": config.SYMPTOM_MAX_MI,
+                                        "soft_max_mi": config.SYMPTOM_SOFT_MAX_MI,
+                                    },
+                                },
+                            }
+                        }
+                    ),
+                    201,
+                )
+
             # Otherwise, ask user for more detail (hard rejection)
             return (
                 jsonify(
@@ -248,25 +328,6 @@ def new_case():
             top_diseases,
             model_used,
         )
-        # Determine language from model_used
-        lang_detected = "tl" if "Tagalog" in str(model_used) or "TAGALOG" in str(model_used).upper() else "en"
-
-        # SAVE TO SESSION (Server-Side State)
-        # Verify serializable types
-        session["diagnosis"] = {
-            "disease": pred,
-            "confidence": float(confidence),
-            "uncertainty": float(uncertainty),
-            "top_diseases": top_diseases,
-            "mean_probs": mean_probs,
-            "base_probs": mean_probs,       # Frozen initial NLP classification
-            "current_probs": mean_probs,     # Updated by Bayesian evidence
-            "symptoms_text": symptoms,
-            "lang": lang_detected,
-            "model_used": model_used if 'model_used' in dir() else "BioClinical ModernBERT",
-            "start_time": time.time(),
-        }
-
         return (
             jsonify(
                 {
