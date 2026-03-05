@@ -38,14 +38,6 @@ export const createDiagnosis = actionClient
         where: { messageId },
       });
 
-      if (!explanation) {
-        console.error(`Explanation not found for messageId: ${messageId}`);
-
-        return {
-          error: `Explanation not found for messageId: ${messageId}`,
-        };
-      }
-
       await prisma.diagnosis.create({
         data: {
           confidence,
@@ -61,11 +53,15 @@ export const createDiagnosis = actionClient
           province: dbUser.province,
           region: dbUser.region,
           barangay: dbUser.barangay,
-          explanation: {
-            connect: {
-              id: explanation.id,
-            },
-          },
+          ...(explanation
+            ? {
+                explanation: {
+                  connect: {
+                    id: explanation.id,
+                  },
+                },
+              }
+            : {}),
         },
       });
 

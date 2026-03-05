@@ -1,14 +1,14 @@
 import { Message, TempDiagnosis } from "@/lib/generated/prisma";
+import { Explanation } from "@/types";
 import { cn } from "@/utils/lib";
-import Markdown from "react-markdown";
-import remarkBreaks from "remark-breaks";
-import RecordDiagnosisBtn from "./record-diagnosis-btn";
 import { LocationData } from "@/utils/location";
 import { ChevronDown, ChevronUp, XCircle } from "lucide-react";
-import { Explanation } from "@/types";
-import ViewInsightsBtn from "./view-insights-btn";
-import InsightsModal from "./insights-modal";
 import { useState } from "react";
+import Markdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
+import InsightsModal from "./insights-modal";
+import RecordDiagnosisBtn from "./record-diagnosis-btn";
+import ViewInsightsBtn from "./view-insights-btn";
 
 type ChatBubbleProps = {
   messagesLength: number;
@@ -110,9 +110,7 @@ const ChatBubble = ({
             disabled={
               chatHasDiagnosis ||
               !tempDiagnosis ||
-              messagesLength - 1 !== idx ||
-              isGettingExplanations ||
-              !explanation
+              messagesLength - 1 !== idx
             }
             tempDiagnosis={tempDiagnosis}
             chatId={chatId}

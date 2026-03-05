@@ -39,7 +39,8 @@ const mapDisease = (
   | "TYPHOID"
   | "DIARRHEA"
   | "MEASLES"
-  | "INFLUENZA" => {
+  | "INFLUENZA"
+  | "IMPETIGO" => {
   switch ((disease || "").toLowerCase()) {
     case "dengue":
       return "DENGUE";
@@ -53,6 +54,8 @@ const mapDisease = (
       return "MEASLES";
     case "influenza":
       return "INFLUENZA";
+    case "impetigo":
+      return "IMPETIGO";
     default:
       return "PNEUMONIA";
   }
