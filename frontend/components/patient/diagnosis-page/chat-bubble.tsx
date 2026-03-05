@@ -3,7 +3,7 @@ import { Explanation } from "@/types";
 import { cn } from "@/utils/lib";
 import { LocationData } from "@/utils/location";
 import { ChevronDown, ChevronUp, XCircle } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import Markdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import InsightsModal from "./insights-modal";
@@ -20,6 +20,15 @@ type ChatBubbleProps = {
   explanation: Explanation | null;
   userRole?: string;
 } & Message;
+
+const MARKDOWN_PLUGINS = [remarkBreaks];
+
+const MARKDOWN_COMPONENTS = {
+  p: ({ children }: any) => <p className="my-0">{children}</p>,
+  strong: ({ children }: any) => (
+    <strong className="font-bold">{children}</strong>
+  ),
+};
 
 const ChatBubble = ({
   content,
@@ -68,13 +77,8 @@ const ChatBubble = ({
       )}
       <div>
         <Markdown
-          remarkPlugins={[remarkBreaks]}
-          components={{
-            p: ({ children }) => <p className="my-0">{children}</p>,
-            strong: ({ children }) => (
-              <strong className="font-bold">{children}</strong>
-            ),
-          }}
+          remarkPlugins={MARKDOWN_PLUGINS}
+          components={MARKDOWN_COMPONENTS}
         >
           {content}
         </Markdown>
@@ -129,4 +133,4 @@ const ChatBubble = ({
   );
 };
 
-export default ChatBubble;
+export default memo(ChatBubble);

@@ -7,6 +7,15 @@ import remarkBreaks from "remark-breaks";
 import ChatBubble from "./chat-bubble";
 import QuestionBubble from "./question-bubble";
 
+const MARKDOWN_PLUGINS = [remarkBreaks];
+
+const MARKDOWN_COMPONENTS = {
+  p: ({ children }: any) => <p className="my-0">{children}</p>,
+  strong: ({ children }: any) => (
+    <strong className="font-bold">{children}</strong>
+  ),
+};
+
 type ChatContainerProps = {
   messages: (Message & {
     tempDiagnosis?: TempDiagnosis;
@@ -81,13 +90,8 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
           <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
             <div className="flex items-center gap-1.5">
               <Markdown
-                remarkPlugins={[remarkBreaks]}
-                components={{
-                  p: ({ children }) => <p className="my-0">{children}</p>,
-                  strong: ({ children }) => (
-                    <strong className="font-bold">{children}</strong>
-                  ),
-                }}
+                remarkPlugins={MARKDOWN_PLUGINS}
+                components={MARKDOWN_COMPONENTS}
               >
                 Diagnosing
               </Markdown>
@@ -99,13 +103,8 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
           <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
             <div className="flex items-center gap-1.5">
               <Markdown
-                remarkPlugins={[remarkBreaks]}
-                components={{
-                  p: ({ children }) => <p className="my-0">{children}</p>,
-                  strong: ({ children }) => (
-                    <strong className="font-bold">{children}</strong>
-                  ),
-                }}
+                remarkPlugins={MARKDOWN_PLUGINS}
+                components={MARKDOWN_COMPONENTS}
               >
                 Asking you follow-up questions
               </Markdown>
@@ -117,13 +116,8 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
           <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
             <div className="flex items-center gap-1.5">
               <Markdown
-                remarkPlugins={[remarkBreaks]}
-                components={{
-                  p: ({ children }) => <p className="my-0">{children}</p>,
-                  strong: ({ children }) => (
-                    <strong className="font-bold">{children}</strong>
-                  ),
-                }}
+                remarkPlugins={MARKDOWN_PLUGINS}
+                components={MARKDOWN_COMPONENTS}
               >
                 Generating insights for your diagnosis
               </Markdown>

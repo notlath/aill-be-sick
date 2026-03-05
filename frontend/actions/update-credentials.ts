@@ -1,11 +1,14 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
-import { actionClient } from "./client";
-import { UpdateEmailSchema, UpdatePasswordSchema } from "@/schemas/UpdateCredentialsSchema";
+import prisma from "@/prisma/prisma";
+import {
+  UpdateEmailSchema,
+  UpdatePasswordSchema,
+} from "@/schemas/UpdateCredentialsSchema";
 import { createClient } from "@/utils/supabase/server";
 import { getAuthUser } from "@/utils/user";
-import prisma from "@/prisma/prisma";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { actionClient } from "./client";
 
 export const updateEmailAction = actionClient
   .inputSchema(UpdateEmailSchema)
@@ -20,12 +23,12 @@ export const updateEmailAction = actionClient
 
     try {
       const supabase = await createClient();
-      
+
       const { error } = await supabase.auth.updateUser({ email });
 
       if (error) {
-         console.error(`Error updating email: ${error.message}`);
-         return { error: `Failed to update email: ${error.message}` };
+        console.error(`Error updating email: ${error.message}`);
+        return { error: `Failed to update email: ${error.message}` };
       }
 
       // Also update the database record
@@ -33,10 +36,10 @@ export const updateEmailAction = actionClient
         where: { authId: authUser.id },
         data: {
           email,
-        }
+        },
       });
 
-      updateTag(`user-${authUser.id}`);
+      revalidateTag(`user-${authUser.id}`, { expire: 0 });
       revalidatePath("/", "layout");
 
       return { success: true };
@@ -59,12 +62,12 @@ export const updatePasswordAction = actionClient
 
     try {
       const supabase = await createClient();
-      
+
       const { error } = await supabase.auth.updateUser({ password });
 
       if (error) {
-         console.error(`Error updating password: ${error.message}`);
-         return { error: `Failed to update password: ${error.message}` };
+        console.error(`Error updating password: ${error.message}`);
+        return { error: `Failed to update password: ${error.message}` };
       }
 
       // We do not redirect here, so the user can just see a success status.

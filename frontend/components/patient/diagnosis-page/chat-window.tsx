@@ -7,8 +7,8 @@ import { runDiagnosis } from "@/actions/run-diagnosis";
 import { useUserLocation } from "@/hooks/use-location";
 import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import {
-    CreateChatSchema,
-    CreateChatSchemaType,
+  CreateChatSchema,
+  CreateChatSchemaType,
 } from "@/schemas/CreateChatSchema";
 import { Explanation as TempExplanation } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -200,8 +200,8 @@ const ChatWindow = ({
               // Otherwise, avoid showing the disease/confidence to the patient to prevent alarm.
               const summary = impressive
                 ? `Final assessment: ${disease} (confidence ${(
-                  confidence * 100
-                ).toFixed(1)}%)`
+                    confidence * 100
+                  ).toFixed(1)}%)`
                 : diagnosis.message || `Assessment complete: ${disease}`;
 
               // Log when confidence is good but below impressive threshold
@@ -374,10 +374,10 @@ const ChatWindow = ({
             const impressive = (confidence ?? 0) >= 0.95;
             const summary = impressive
               ? `Final assessment: ${disease} (confidence ${(
-                confidence * 100
-              ).toFixed(1)}%)`
+                  confidence * 100
+                ).toFixed(1)}%)`
               : (data.diagnosis as any)?.message ||
-              `Assessment complete: ${disease}`;
+                `Assessment complete: ${disease}`;
 
             createMessageExecute({
               chatId,
@@ -467,7 +467,11 @@ const ChatWindow = ({
           const symptomsText = lastDiagnosisRef.current?.symptoms;
           const meanProbs = lastDiagnosisRef.current?.mean_probs;
 
-          if (meanProbs && Array.isArray(meanProbs) && !explanationRequestedRef.current.has(created.id)) {
+          if (
+            meanProbs &&
+            Array.isArray(meanProbs) &&
+            !explanationRequestedRef.current.has(created.id)
+          ) {
             explanationRequestedRef.current.add(created.id);
             getExplanations({
               symptoms: symptomsText,
@@ -576,7 +580,21 @@ const ChatWindow = ({
     }
   }, [chatId, form]);
 
+  // Restore hasRunInitialDiagnosis from sessionStorage so navigating away and back
+  // (which unmounts/remounts the component) doesn't reset the guard.
   useEffect(() => {
+    if (sessionStorage.getItem(`diagnosis-run-${chatId}`) === "true") {
+      hasRunInitialDiagnosis.current = true;
+    }
+  }, [chatId]);
+
+  useEffect(() => {
+    // ChatWindow is only rendered for active (non-completed) sessions.
+    // The page-level server component routes completed chats to ChatHistoryView.
+    // These guards are defense-in-depth only.
+    const hasExistingAiMessages = messages.some((m) => m.role === "AI");
+    if (chat.hasDiagnosis || hasExistingAiMessages) return;
+
     if (messages.length === 1 && !hasRunInitialDiagnosis.current) {
       runDiagnosisExecute({
         chatId,
@@ -584,8 +602,10 @@ const ChatWindow = ({
         skipMessage: true,
       });
       hasRunInitialDiagnosis.current = true;
+      sessionStorage.setItem(`diagnosis-run-${chatId}`, "true");
     }
-  }, [messages.length, chatId, runDiagnosisExecute]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, chatId, chat.hasDiagnosis]);
 
   return (
     <FormProvider {...form}>

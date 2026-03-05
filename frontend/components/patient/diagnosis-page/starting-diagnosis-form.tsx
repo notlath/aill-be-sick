@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUp, Loader2 } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "nextjs-toploader/app";
+import { useRef } from "react";
 import { useForm } from "react-hook-form";
 
 const StartingDiagnosisForm = () => {
@@ -20,11 +21,17 @@ const StartingDiagnosisForm = () => {
     resolver: zodResolver(CreateChatSchema),
   });
   const router = useRouter();
+  // Guard: only navigate on an intentional submission within this lifecycle.
+  // Prevents stale onSuccess callbacks (from router cache or re-renders) from
+  // spuriously navigating to the previously created chat.
+  const hasSubmittedRef = useRef(false);
   const { execute, isExecuting } = useAction(createChat, {
     onSuccess: ({ data }) => {
+      if (!hasSubmittedRef.current) return;
+      hasSubmittedRef.current = false;
       if (data.success) {
-        form.setValue('chatId', '');
-        form.setValue('symptoms', '');
+        form.setValue("chatId", "");
+        form.setValue("symptoms", "");
         router.push(`/diagnosis/${data.success.chatId}`);
       } else if (data.error) {
         // TODO: Error handling
@@ -34,6 +41,7 @@ const StartingDiagnosisForm = () => {
   });
 
   const handleSubmit = (data: CreateChatSchemaType) => {
+    hasSubmittedRef.current = true;
     execute(data);
   };
 

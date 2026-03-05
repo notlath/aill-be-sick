@@ -3,7 +3,7 @@
 import prisma from "@/prisma/prisma";
 import { ExplainDiagnosisSchema } from "@/schemas/ExplainDiagnosisSchema";
 import axios, { AxiosError } from "axios";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 
 const BACKEND_URL =
@@ -11,12 +11,12 @@ const BACKEND_URL =
 
 export const explainDiagnosis = actionClient
   .inputSchema(ExplainDiagnosisSchema)
-  .action(async ({parsedInput}) => {
-    const {meanProbs, messageId, symptoms} = parsedInput;
+  .action(async ({ parsedInput }) => {
+    const { meanProbs, messageId, symptoms } = parsedInput;
 
     try {
       // BRIDGE: Get session cookie from browser and forward to Flask
-      const {cookies} = await import("next/headers");
+      const { cookies } = await import("next/headers");
       const cookieStore = await cookies();
       const sessionCookie = cookieStore.get("session");
       const cookieHeader = sessionCookie
@@ -24,7 +24,7 @@ export const explainDiagnosis = actionClient
         : "";
 
       const {
-        data: {symptoms: text, tokens},
+        data: { symptoms: text, tokens },
       } = await axios.post(
         `${BACKEND_URL}/diagnosis/explain`,
         {
@@ -109,11 +109,9 @@ export const explainDiagnosis = actionClient
       });
 
       if (message) {
-        updateTag(`messages-${message.chatId}`);
-        updateTag("messages");
+        revalidateTag(`messages-${message.chatId}`, { expire: 0 });
+        revalidateTag("messages", { expire: 0 });
       }
-
-      revalidatePath("/diagnosis/[chatId]", "page");
 
       return {
         success: "Successfully retrieved explanation.",
@@ -138,6 +136,6 @@ export const explainDiagnosis = actionClient
         }
       }
 
-      return {error: `Error running explanation: ${error}`};
+      return { error: `Error running explanation: ${error}` };
     }
   });
