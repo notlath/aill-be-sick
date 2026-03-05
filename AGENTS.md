@@ -8,29 +8,28 @@ This repository contains a full-stack application for disease detection based on
 
 The project is divided into two main parts:
 
--   **`backend/`**: A Flask REST API that processes symptoms and returns disease predictions.
--   **`frontend/`**: A Next.js application that provides the user interface for the application.
+- **`backend/`**: A Flask REST API that processes symptoms and returns disease predictions.
+- **`frontend/`**: A Next.js application that provides the user interface for the application.
 
 ### Architecture
 
--   **Backend**: Flask REST API
--   **Frontend**: Next.js App Router
--   **Database**: PostgreSQL with Prisma ORM and Supabase for authentication
+- **Backend**: Flask REST API
+- **Frontend**: Next.js App Router
+- **Database**: PostgreSQL with Prisma ORM and Supabase for authentication
 
 ### Technologies
 
--   **Backend**: Python, Flask
--   **Frontend**: TypeScript, Next.js, React, Tailwind CSS
--   **Database**: PostgreSQL, Prisma, Supabase
+- **Backend**: Python, Flask
+- **Frontend**: TypeScript, Next.js, React, Tailwind CSS
+- **Database**: PostgreSQL, Prisma, Supabase
 
 ## Project Structure
 
 The project is organized into the following main directories:
 
--   **`backend/`**: Contains the Flask REST API. See the `backend/README.md` for more details.
--   **`frontend/`**: Contains the Next.js application. See the `frontend/AGENTS.md` and `frontend/README.md` for more details.
--   **`notebooks/`**: Contains Jupyter notebooks for data analysis and model experimentation.
-
+- **`backend/`**: Contains the Flask REST API. See the `backend/README.md` for more details.
+- **`frontend/`**: Contains the Next.js application. See the `frontend/AGENTS.md` and `frontend/README.md` for more details.
+- **`notebooks/`**: Contains Jupyter notebooks for data analysis and model experimentation.
 
 ## Build and Run Commands
 
@@ -41,16 +40,16 @@ The project is organized into the following main directories:
     cd backend
     ```
 2.  **Create a virtual environment:**
-    -   **Windows:**
-        ```bash
-        python -m venv venv
-        venv\Scripts/activate
-        ```
-    -   **macOS/Linux:**
-        ```bash
-        python3 -m venv venv
-        source venv/bin/activate
-        ```
+    - **Windows:**
+      ```bash
+      python -m venv venv
+      venv\Scripts/activate
+      ```
+    - **macOS/Linux:**
+      ```bash
+      python3 -m venv venv
+      source venv/bin/activate
+      ```
 3.  **Install dependencies:**
     ```bash
     pip install -r requirements.txt
@@ -89,23 +88,22 @@ The project is organized into the following main directories:
     ```
     The frontend will be available at `http://localhost:3000`.
 
-
 ### Key Backend Files
 
--   `app.py`: The main Flask application file.
--   `requirements.txt`: The Python dependencies for the backend.
--   `run_flask.bat`: A batch file for running the Flask application on Windows.
--   `test_flask.py`: The tests for the Flask application.
+- `app.py`: The main Flask application file.
+- `requirements.txt`: The Python dependencies for the backend.
+- `run_flask.bat`: A batch file for running the Flask application on Windows.
+- `test_flask.py`: The tests for the Flask application.
 
 For more detailed information about the backend, see the `backend/README.md` file.
 
 ### Key Frontend Files
 
--   `app/`: The Next.js App Router pages and layouts.
--   `actions/`: Server actions for authentication, case management, and disease detection.
--   `prisma/`: The database schema and Prisma client.
--   `utils/`: Utility functions, including Supabase clients.
--   `public/`: Static assets.
+- `app/`: The Next.js App Router pages and layouts.
+- `actions/`: Server actions for authentication, case management, and disease detection.
+- `prisma/`: The database schema and Prisma client.
+- `utils/`: Utility functions, including Supabase clients.
+- `public/`: Static assets.
 
 For more detailed information about the frontend, see the `frontend/README.md` file.
 
@@ -139,29 +137,28 @@ node scripts/seed-diagnoses.js
 
 ### Backend
 
--   The backend is a standard Flask application.
--   Follow the conventions in the existing code.
--   Write tests for new features in the `backend/tests` directory.
+- The backend is a standard Flask application.
+- Follow the conventions in the existing code.
+- Write tests for new features in the `backend/tests` directory.
 
 ### Frontend
 
--   The frontend is a Next.js application with the App Router.
--   Use TypeScript for all new code.
--   Use Prisma for all database interactions.
--   Use Supabase for authentication.
--   Follow the conventions in the existing code.
--   Write tests for new features.
+- The frontend is a Next.js application with the App Router.
+- Use TypeScript for all new code.
+- Use Prisma for all database interactions.
+- Use Supabase for authentication.
+- Follow the conventions in the existing code.
+- Write tests for new features.
 
 ### Commits
 
--   Follow the conventional commit format.
-
+- Follow the conventional commit format.
 
 ## Miscellaneous
 
--   The `notebooks/` directory contains Jupyter notebooks for data analysis and model experimentation.
--   The project was bootstrapped with `create-next-app`.
--   The backend was migrated from Django to Flask. See `backend/MIGRATION_GUIDE.md` for more details.
+- The `notebooks/` directory contains Jupyter notebooks for data analysis and model experimentation.
+- The project was bootstrapped with `create-next-app`.
+- The backend was migrated from Django to Flask. See `backend/MIGRATION_GUIDE.md` for more details.
 
 ## Development Conventions
 
@@ -179,15 +176,16 @@ node scripts/seed-diagnoses.js
 - **NEVER** use `useEffect` or client-side fetching mechanisms for initial data loads that can be done on the server.
 - **ALWAYS** use `revalidatePath` or `revalidateTag` from `next/cache` for revalidating cached data after mutations.
 - **Example (Server Component):**
+
   ```typescript
   // app/dashboard/page.tsx
-  import prisma from '@/lib/prisma';
+  import prisma from "@/lib/prisma";
 
   async function DashboardPage() {
     const patients = await prisma.patient.findMany();
-    return (
-      {/* ... render patients ... */}
-    );
+    return {
+      /* ... render patients ... */
+    };
   }
   ```
 
@@ -276,19 +274,20 @@ The project uses `next-safe-action` to create type-safe server actions. This lib
       };
 
       return (
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit(new FormData(e.currentTarget));
-        }}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit(new FormData(e.currentTarget));
+          }}
+        >
           {/* ... form fields for name and email ... */}
-          <button type="submit" disabled={status === 'executing'}>
-            {status === 'executing' ? "Creating..." : "Create Patient"}
+          <button type="submit" disabled={status === "executing"}>
+            {status === "executing" ? "Creating..." : "Create Patient"}
           </button>
         </form>
       );
     }
     ```
-
 
 ## Testing & Quality Assurance
 
@@ -353,3 +352,12 @@ When creating new sidebar navigation items:
 - Check [DaisyUI documentation](https://daisyui.com/components/)
 - Use DaisyUI's pre-built components and utilities
 - Keep it simple with DaisyUI classes
+
+## Copywriting Guidelines
+
+- **ALWAYS** review user-facing text for clarity, grammar, and spelling before finalizing.
+- This app is for all ages, but writing should prioritize adult millennials through older, non-technical users.
+- Use plain language, short sentences, and familiar terms; explain medical jargon when needed.
+- Keep tone calm, respectful, and supportive. Avoid slang, sarcasm, and alarmist wording.
+- Because this is a medical app, avoid absolute claims and avoid wording that sounds like a guaranteed diagnosis.
+- Prefer practical, actionable wording that helps users understand what to do next.

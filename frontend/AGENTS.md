@@ -219,7 +219,7 @@ The frontend communicates with the Django backend for disease detection:
   const ServerComponent = async () => {
     const data = await fetchDataFromDatabase();
     return <ClientComponent data={data} />;
-  }
+  };
 
   export default ServerComponent;
   ```
@@ -234,7 +234,7 @@ The frontend communicates with the Django backend for disease detection:
     const [state, setState] = useState(initialState);
     // Interactive logic here
     return <div>{/* Render UI */}</div>;
-  }
+  };
 
   export default ClientComponent;
   ```
@@ -251,13 +251,13 @@ The frontend communicates with the Django backend for disease detection:
 
   ```typescript
   // app/dashboard/page.tsx
-  import prisma from '@/lib/prisma';
+  import prisma from "@/lib/prisma";
 
   async function DashboardPage() {
     const patients = await prisma.patient.findMany();
-    return (
-      {/* ... render patients ... */}
-    );
+    return {
+      /* ... render patients ... */
+    };
   }
   ```
 
@@ -277,87 +277,89 @@ The project uses `next-safe-action` to create type-safe server actions. This lib
 
 1. **Define the Schema (in `schemas/CreatePatientSchema.ts`)**
 
-    ```typescript
-    import * as z from "zod";
+   ```typescript
+   import * as z from "zod";
 
-    export const CreatePatientSchema = z.object({
-      name: z.string().min(1, "Patient name is required"),
-      email: z.string().email("Invalid email address"),
-    });
-    ```
+   export const CreatePatientSchema = z.object({
+     name: z.string().min(1, "Patient name is required"),
+     email: z.string().email("Invalid email address"),
+   });
+   ```
 
 2. **Define the Server Action (in `actions/create-patient.ts`)**
 
-    ```typescript
-    "use server";
+   ```typescript
+   "use server";
 
-    import { actionClient } from "./client";
-    import { CreatePatientSchema } from "@/schemas/CreatePatientSchema";
-    import prisma from "@/prisma/prisma";
-    import { revalidatePath } from "next/cache";
+   import { actionClient } from "./client";
+   import { CreatePatientSchema } from "@/schemas/CreatePatientSchema";
+   import prisma from "@/prisma/prisma";
+   import { revalidatePath } from "next/cache";
 
-    export const createPatient = actionClient
-      .inputSchema(CreatePatientSchema)
-      .action(async ({ parsedInput }) => {
-        const { name, email } = parsedInput;
+   export const createPatient = actionClient
+     .inputSchema(CreatePatientSchema)
+     .action(async ({ parsedInput }) => {
+       const { name, email } = parsedInput;
 
-        try {
-          const newPatient = await prisma.patient.create({
-            data: {
-              name,
-              email,
-            },
-          });
+       try {
+         const newPatient = await prisma.patient.create({
+           data: {
+             name,
+             email,
+           },
+         });
 
-          // Revalidate the dashboard to show the new patient
-          revalidatePath("/dashboard");
+         // Revalidate the dashboard to show the new patient
+         revalidatePath("/dashboard");
 
-          return { success: newPatient };
-        } catch (error) {
-          console.error(`Error creating new patient: ${error}`);
-          return { error: "Failed to create new patient." };
-        }
-      });
-    ```
+         return { success: newPatient };
+       } catch (error) {
+         console.error(`Error creating new patient: ${error}`);
+         return { error: "Failed to create new patient." };
+       }
+     });
+   ```
 
 3. **Using the Action in a Client Component**
 
-    ```tsx
-    // In a form component
-    import { useAction } from "next-safe-action/hooks";
-    import { createPatient } from "@/actions/create-patient";
+   ```tsx
+   // In a form component
+   import { useAction } from "next-safe-action/hooks";
+   import { createPatient } from "@/actions/create-patient";
 
-    function PatientForm() {
-      const { execute, status } = useAction(createPatient, {
-        onSuccess: (data) => {
-          console.log("Patient created successfully:", data);
-        },
-        onError: (error) => {
-          console.error("Failed to create patient:", error);
-        },
-      });
+   function PatientForm() {
+     const { execute, status } = useAction(createPatient, {
+       onSuccess: (data) => {
+         console.log("Patient created successfully:", data);
+       },
+       onError: (error) => {
+         console.error("Failed to create patient:", error);
+       },
+     });
 
-      const onSubmit = (formData: FormData) => {
-        // next-safe-action can directly take the schema type
-        // For simplicity with forms, you might construct the object
-        const name = formData.get("name") as string;
-        const email = formData.get("email") as string;
-        execute({ name, email });
-      };
+     const onSubmit = (formData: FormData) => {
+       // next-safe-action can directly take the schema type
+       // For simplicity with forms, you might construct the object
+       const name = formData.get("name") as string;
+       const email = formData.get("email") as string;
+       execute({ name, email });
+     };
 
-      return (
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit(new FormData(e.currentTarget));
-        }}>
-          {/* ... form fields for name and email ... */}
-          <button type="submit" disabled={status === 'executing'}>
-            {status === 'executing' ? "Creating..." : "Create Patient"}
-          </button>
-        </form>
-      );
-    }
-    ```
+     return (
+       <form
+         onSubmit={(e) => {
+           e.preventDefault();
+           onSubmit(new FormData(e.currentTarget));
+         }}
+       >
+         {/* ... form fields for name and email ... */}
+         <button type="submit" disabled={status === "executing"}>
+           {status === "executing" ? "Creating..." : "Create Patient"}
+         </button>
+       </form>
+     );
+   }
+   ```
 
 ## Testing & Quality Assurance
 
@@ -417,3 +419,12 @@ For tabbed navigation, use the components from `@/components/ui/tabs` as demonst
 - **ALWAYS** use the `<Tabs>`, `<TabsList>`, `<TabsTrigger>`, and `<TabsContent>` components.
 - To create a full-width set of tabs, apply a `grid` layout to the `<TabsList>` element (e.g., `className="grid w-full grid-cols-4 h-auto"`).
 - Ensure each `<TabsTrigger>` has a corresponding `<TabsContent>` panel linked by the `value` prop.
+
+## Copywriting Guidelines
+
+- **ALWAYS** review all user-facing copy for clarity, grammar, and spelling before shipping.
+- The app is open to all ages, but copy should prioritize adult millennials through older, non-technical users.
+- Use plain, readable language and keep sentences short; explain medical terms in simple words.
+- Maintain a calm, supportive, and professional tone; avoid slang, sarcasm, and fear-inducing wording.
+- Because this is a medical app, avoid absolute guarantees and avoid language that implies certain diagnosis outcomes.
+- Prefer clear, action-oriented text that helps users understand the next step.

@@ -18,6 +18,26 @@ interface IllnessClustersClientProps {
   initialK?: number;
 }
 
+type ClusterVariableSelection = {
+  age: boolean;
+  gender: boolean;
+  city: boolean;
+  region: boolean;
+  barangay: boolean;
+  province: boolean;
+  time: boolean;
+};
+
+const DEFAULT_SELECTED_VARIABLES: ClusterVariableSelection = {
+  age: true,
+  gender: true,
+  city: true,
+  region: false,
+  barangay: false,
+  province: false,
+  time: false,
+};
+
 const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   initialData,
   initialK = 4,
@@ -32,17 +52,14 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   const [recommendedK, setRecommendedK] = useState<number | null>(null);
   const [loadingRecommendation, setLoadingRecommendation] =
     useState<boolean>(true);
-  const [selectedVariables, setSelectedVariables] = useState({
-    age: true,
-    gender: true,
-    city: true,
-    region: false,
-    time: false,
-  });
+  const [selectedVariables, setSelectedVariables] =
+    useState<ClusterVariableSelection>(DEFAULT_SELECTED_VARIABLES);
+  const [appliedVariables, setAppliedVariables] =
+    useState<ClusterVariableSelection>(DEFAULT_SELECTED_VARIABLES);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const clusterDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const hasFetchedInitialDataRef = useRef(false);
   const [isMounted, setIsMounted] = useState(false);
 
   const BACKEND_URL =
@@ -63,6 +80,8 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
           gender: String(selectedVariables.gender),
           city: String(selectedVariables.city),
           region: String(selectedVariables.region),
+          barangay: String(selectedVariables.barangay),
+          province: String(selectedVariables.province),
           time: String(selectedVariables.time),
         });
         const res = await fetch(
@@ -92,10 +111,9 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
     };
   }, [selectedVariables, BACKEND_URL]);
 
-  // Auto-apply recommended k when it becomes available
+  // Keep the groups input aligned with the latest recommendation
   useEffect(() => {
     if (recommendedK) {
-      setK(recommendedK);
       setKInput(String(recommendedK));
     }
   }, [recommendedK]);
@@ -104,25 +122,6 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
     setIsMounted(true);
   }, []);
 
-  // Load kmeans cluster data when k or selectedVariables changes (debounced)
-  useEffect(() => {
-    // Clear any pending cluster fetch
-    if (clusterDebounceTimerRef.current) {
-      clearTimeout(clusterDebounceTimerRef.current);
-    }
-
-    // Debounce cluster fetch by 200ms to prevent rapid API calls
-    clusterDebounceTimerRef.current = setTimeout(() => {
-      fetchClusterData(k);
-    }, 200);
-
-    return () => {
-      if (clusterDebounceTimerRef.current) {
-        clearTimeout(clusterDebounceTimerRef.current);
-      }
-    };
-  }, [k, selectedVariables, BACKEND_URL]);
-
   const clampK = (val: number) => {
     if (Number.isNaN(val)) return k;
     if (val < 2) return 2;
@@ -130,16 +129,21 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
     return val;
   };
 
-  const fetchClusterData = (clusterCount: number) => {
+  const fetchClusterData = (
+    clusterCount: number,
+    variables: ClusterVariableSelection,
+  ) => {
     setLoading(true);
     setError(null);
     const params = new URLSearchParams({
       n_clusters: String(clusterCount),
-      age: String(selectedVariables.age),
-      gender: String(selectedVariables.gender),
-      city: String(selectedVariables.city),
-      region: String(selectedVariables.region),
-      time: String(selectedVariables.time),
+      age: String(variables.age),
+      gender: String(variables.gender),
+      city: String(variables.city),
+      region: String(variables.region),
+      barangay: String(variables.barangay),
+      province: String(variables.province),
+      time: String(variables.time),
     });
     fetch(`${BACKEND_URL}/api/illness-clusters?${params.toString()}`)
       .then((res) => {
@@ -160,6 +164,13 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
       });
   };
 
+  useEffect(() => {
+    if (!initialData && !hasFetchedInitialDataRef.current) {
+      hasFetchedInitialDataRef.current = true;
+      fetchClusterData(k, appliedVariables);
+    }
+  }, [initialData, k, appliedVariables]);
+
   const onSubmitK = (e: React.FormEvent) => {
     e.preventDefault();
     const nextK = clampK(parseInt(kInput, 10));
@@ -175,8 +186,13 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
 
   const applyClusteringWithK = (clusterCount: number) => {
     const nextK = clampK(clusterCount);
+    const nextVariables = { ...selectedVariables };
+
     setK(nextK);
     setKInput(String(nextK));
+    setAppliedVariables(nextVariables);
+    fetchClusterData(nextK, nextVariables);
+
     try {
       sessionStorage.setItem("illnessClusters.k", String(nextK));
     } catch (_) {
@@ -205,11 +221,46 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
       return;
     }
 
-    // Update variables immediately - clustering will auto-apply with debouncing
+    // Update draft selections only; clusters regenerate when Apply is clicked
     setSelectedVariables((prev) => ({
       ...prev,
       [variable]: !prev[variable],
     }));
+  };
+
+  const handleLocationVariableChange = (
+    variable: "city" | "region" | "barangay" | "province",
+  ) => {
+    setSelectedVariables((prev) => {
+      // If selecting this location variable, deselect all other location variables
+      if (!prev[variable]) {
+        return {
+          ...prev,
+          city: variable === "city",
+          region: variable === "region",
+          barangay: variable === "barangay",
+          province: variable === "province",
+        };
+      }
+
+      // If deselecting, check if at least one variable would remain
+      const wouldHaveOtherLocationVar =
+        (variable !== "city" && prev.city) ||
+        (variable !== "region" && prev.region) ||
+        (variable !== "barangay" && prev.barangay) ||
+        (variable !== "province" && prev.province);
+
+      const wouldHaveNonLocationVar = prev.age || prev.gender || prev.time;
+
+      if (!wouldHaveOtherLocationVar && !wouldHaveNonLocationVar) {
+        return prev; // Don't deselect if it would leave no variables selected
+      }
+
+      return {
+        ...prev,
+        [variable]: false,
+      };
+    });
   };
 
   const modalRoot = isMounted ? document.body : null;
@@ -260,81 +311,83 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
             <h2 className="text-base font-semibold">Select variables</h2>
 
             {/* Buttons */}
-            <div className="flex flex-wrap gap-3">
-              <label
-                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary btn-soft" : ""}`}
-              >
-                <input
-                  type="checkbox"
-                  className="hidden"
-                  checked={selectedVariables.age}
-                  onChange={() => handleVariableChange("age")}
-                />
-                <span>Patient age</span>
-              </label>
-              <label
-                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary btn-soft" : ""}`}
-              >
-                <input
-                  type="checkbox"
-                  className="hidden"
-                  checked={selectedVariables.gender}
-                  onChange={() => handleVariableChange("gender")}
-                />
-                <span>Patient gender</span>
-              </label>
-              <label
-                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.city ? "btn-primary btn-soft" : ""}`}
-              >
-                <input
-                  type="checkbox"
-                  className="hidden"
-                  checked={selectedVariables.city}
-                  onChange={() => {
-                    const selectedCount =
-                      Object.values(selectedVariables).filter(Boolean).length;
-                    if (selectedVariables.city && selectedCount === 1) return;
-                    setSelectedVariables((prev) => ({
-                      ...prev,
-                      city: !prev.city,
-                      region: false,
-                    }));
-                  }}
-                />
-                <span>City</span>
-              </label>
-              <label
-                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.region ? "btn-primary btn-soft" : ""}`}
-              >
-                <input
-                  type="checkbox"
-                  className="hidden"
-                  checked={selectedVariables.region}
-                  onChange={() => {
-                    const selectedCount =
-                      Object.values(selectedVariables).filter(Boolean).length;
-                    if (selectedVariables.region && selectedCount === 1) return;
-                    setSelectedVariables((prev) => ({
-                      ...prev,
-                      region: !prev.region,
-                      city: false,
-                    }));
-                  }}
-                />
-                <span>Region</span>
-              </label>
-              {/* TODO: Re-enable time (seasonal) toggle when temporal analysis is ready */}
-              {/* <label
-                className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary btn-soft" : ""}`}
-              >
-                <input
-                  type="checkbox"
-                  className="hidden"
-                  checked={selectedVariables.time}
-                  onChange={() => handleVariableChange("time")}
-                />
-                <span>Time (seasonal)</span>
-              </label> */}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Demographic Variables */}
+              <div className="flex items-center gap-3">
+                <label
+                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary btn-soft" : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={selectedVariables.age}
+                    onChange={() => handleVariableChange("age")}
+                  />
+                  <span>Patient age</span>
+                </label>
+                <label
+                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary btn-soft" : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={selectedVariables.gender}
+                    onChange={() => handleVariableChange("gender")}
+                  />
+                  <span>Patient gender</span>
+                </label>
+              </div>
+
+              {/* Vertical Divider */}
+              <div className="border-l border-base-300 h-8" />
+
+              {/* Place Variables */}
+              <div className="flex items-center gap-3">
+                <label
+                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.region ? "btn-primary btn-soft" : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={selectedVariables.region}
+                    onChange={() => handleLocationVariableChange("region")}
+                  />
+                  <span>Region</span>
+                </label>
+                <label
+                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.province ? "btn-primary btn-soft" : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={selectedVariables.province}
+                    onChange={() => handleLocationVariableChange("province")}
+                  />
+                  <span>Province/District</span>
+                </label>
+                <label
+                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.city ? "btn-primary btn-soft" : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={selectedVariables.city}
+                    onChange={() => handleLocationVariableChange("city")}
+                  />
+                  <span>City</span>
+                </label>
+                <label
+                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.barangay ? "btn-primary btn-soft" : ""}`}
+                >
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={selectedVariables.barangay}
+                    onChange={() => handleLocationVariableChange("barangay")}
+                  />
+                  <span>Barangay</span>
+                </label>
+              </div>
             </div>
 
             {/* Groups */}
@@ -354,9 +407,12 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                   disabled={loading}
                 />
 
-                <span className="text-muted text-xs font-normal">
+                <span className="text-muted flex items-center gap-1.5 text-xs font-normal">
                   {loadingRecommendation ? (
-                    <>Calculating recommendation...</>
+                    <>
+                      <Loader2 className="size-3 animate-spin" />
+                      Calculating recommendation...
+                    </>
                   ) : recommendedK ? (
                     <>Recommended: {recommendedK} groups</>
                   ) : (
@@ -427,7 +483,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
         <div className="space-y-6">
           <IllnessClusterOverviewCards
             statistics={clusterData.cluster_statistics}
-            selectedVariables={selectedVariables}
+            selectedVariables={appliedVariables}
           />
         </div>
       ) : null}
