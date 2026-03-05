@@ -1,0 +1,141 @@
+"use client";
+
+import { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown } from "lucide-react";
+import { IllnessRecord } from "@/types";
+
+export const columns: ColumnDef<IllnessRecord>[] = [
+  {
+    accessorKey: "patient_id",
+    header: ({ column }) => {
+      return (
+        <button
+          className="flex items-center gap-1 hover:text-primary"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Patient ID
+          <ArrowUpDown className="w-4 h-4" />
+        </button>
+      );
+    },
+    cell: ({ row }) => {
+      return <span>{row.getValue("patient_id")}</span>;
+    },
+  },
+  {
+    accessorKey: "patient_name",
+    header: ({ column }) => {
+      return (
+        <button
+          className="flex items-center gap-1 hover:text-primary"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Name
+          <ArrowUpDown className="w-4 h-4" />
+        </button>
+      );
+    },
+    cell: ({ row }) => {
+      const name = row.getValue("patient_name") as string | null;
+      return <span>{name || "—"}</span>;
+    },
+  },
+  {
+    accessorKey: "patient_age",
+    header: ({ column }) => {
+      return (
+        <button
+          className="flex items-center gap-1 hover:text-primary"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Age
+          <ArrowUpDown className="w-4 h-4" />
+        </button>
+      );
+    },
+    cell: ({ row }) => {
+      const age = row.getValue("patient_age") as number | null;
+      return <span>{age ?? "—"}</span>;
+    },
+  },
+  {
+    accessorKey: "patient_gender",
+    header: ({ column }) => {
+      return (
+        <button
+          className="flex items-center gap-1 hover:text-primary"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Gender
+          <ArrowUpDown className="w-4 h-4" />
+        </button>
+      );
+    },
+    filterFn: "equalsString",
+    cell: ({ row }) => {
+      const gender = row.getValue("patient_gender") as string | null;
+      if (!gender) return <span>—</span>;
+      const displayGender = gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase();
+      return <span>{displayGender}</span>;
+    },
+  },
+  {
+    id: "location",
+    header: "Location",
+    accessorFn: (row) => {
+      const barangay = row.barangay;
+      const city = row.city;
+      const region = row.region;
+      return [barangay, city, region].filter(Boolean).join(", ");
+    },
+    filterFn: (row, columnId, filterValue) => {
+      const search = filterValue.toLowerCase();
+      const value = row.getValue(columnId) as string;
+      return value.toLowerCase().includes(search);
+    },
+    cell: ({ row }) => {
+      const display = row.getValue("location") as string;
+      return (
+        <div className="max-w-sm truncate" title={display || "—"}>
+          {display || "—"}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "disease",
+    header: ({ column }) => {
+      return (
+        <button
+          className="flex items-center gap-1 hover:text-primary"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Diagnosis
+          <ArrowUpDown className="w-4 h-4" />
+        </button>
+      );
+    },
+    cell: ({ row }) => {
+      return <span>{row.getValue("disease")}</span>;
+    },
+  },
+  {
+    accessorKey: "diagnosed_at",
+    header: ({ column }) => {
+      return (
+        <button
+          className="flex items-center gap-1 hover:text-primary"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Diagnosis Date
+          <ArrowUpDown className="w-4 h-4" />
+        </button>
+      );
+    },
+    cell: ({ row }) => {
+      const dateStr = row.getValue("diagnosed_at") as string | null;
+      if (!dateStr) return <span>—</span>;
+      return <span>{new Date(dateStr).toLocaleDateString()}</span>;
+    },
+  },
+];

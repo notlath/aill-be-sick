@@ -199,6 +199,31 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
     return illnessHeatmapData.provinceLegendBinsByProvince[currentProvinceNormalized] ?? [];
   }, [illnessHeatmapData, currentProvinceNormalized]);
 
+  // ----- Anomaly Province Drilldown Data Memos -----
+  const anomalyBarangayCounts = useMemo(() => {
+    if (!anomalyHeatmapData) return new Map<string, number>();
+    return new Map<string, number>(Object.entries(anomalyHeatmapData.barangayCounts));
+  }, [anomalyHeatmapData]);
+
+  const anomalyCityTotals = useMemo(() => {
+    if (!anomalyHeatmapData) return new Map<string, number>();
+    return new Map<string, number>(Object.entries(anomalyHeatmapData.cityTotals));
+  }, [anomalyHeatmapData]);
+
+  const anomalyProvinceTotals = useMemo(() => {
+    if (!anomalyHeatmapData) return new Map<string, number>();
+    const mapped = new Map<string, number>();
+    for (const [provinceName, count] of Object.entries(anomalyHeatmapData.provinceTotals)) {
+      mapped.set(normalizeLoc(provinceName), count);
+    }
+    return mapped;
+  }, [anomalyHeatmapData]);
+
+  const anomalyActiveProvinceLegendBins = useMemo(() => {
+    if (!anomalyHeatmapData || !currentProvinceNormalized) return [];
+    return anomalyHeatmapData.provinceLegendBinsByProvince[currentProvinceNormalized] ?? [];
+  }, [anomalyHeatmapData, currentProvinceNormalized]);
+
   // --- Load Search Index ---
   useEffect(() => {
     fetch('/search-index.json')
@@ -476,7 +501,19 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
 
       const getAnomalyCountForFeature = (feature: MapFeature): number => {
         if (selectedTab !== "anomaly" || !anomalyHeatmapData) return 0;
-        // Anomaly heatmap only at country level (province shapes)
+
+        if (viewState.level === "province") {
+          if (!currentProvinceNormalized) return 0;
+          const cityName =
+            feature.properties.adm3_en ||
+            cityNameByPsgc.get(feature.properties.adm3_psgc || 0) ||
+            "";
+          const barangayName = feature.properties.adm4_en || "";
+          if (!cityName || !barangayName) return 0;
+          const barangayKey = `${currentProvinceNormalized}||${normalizeLoc(cityName)}||${normalizeLoc(barangayName)}`;
+          return anomalyBarangayCounts.get(barangayKey) ?? 0;
+        }
+
         const provinceName = feature.properties.adm2_en || feature.properties.adm3_en;
         if (!provinceName) return 0;
         return anomalyHeatmapData.provinceCounts[normalizeLoc(provinceName)] ?? 0;
@@ -485,11 +522,15 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
       const getAnomalyFillColor = (feature: MapFeature): string => {
         if (!anomalyHeatmapData) return ZERO_CLUSTER_COLOR;
         const count = getAnomalyCountForFeature(feature);
-        if (count <= 0 || anomalyHeatmapData.legendBins.length === 0) return ZERO_CLUSTER_COLOR;
-        const matchedBin = anomalyHeatmapData.legendBins.find(
+        const activeLegendBins =
+          viewState.level === "province"
+            ? anomalyActiveProvinceLegendBins
+            : anomalyHeatmapData.legendBins;
+        if (count <= 0 || activeLegendBins.length === 0) return ZERO_CLUSTER_COLOR;
+        const matchedBin = activeLegendBins.find(
           (bin) => count >= bin.min && count <= bin.max,
         );
-        return matchedBin?.color ?? anomalyHeatmapData.legendBins[anomalyHeatmapData.legendBins.length - 1]?.color ?? ZERO_CLUSTER_COLOR;
+        return matchedBin?.color ?? activeLegendBins[activeLegendBins.length - 1]?.color ?? ZERO_CLUSTER_COLOR;
       };
 
       // Create Group Hierarchy
@@ -582,6 +623,30 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
         .on("mousemove", (event, d: any) => {
           const name = d.properties.adm4_en || d.properties.adm3_en || d.properties.adm2_en || d.properties.adm1_en || "Feature";
           if (selectedTab === "anomaly" && anomalyHeatmapData) {
+            if (viewState.level === "province") {
+              const provinceName = currentProvinceName || "Province";
+              const normalizedProvince = normalizeLoc(provinceName);
+              const cityName =
+                d.properties.adm3_en ||
+                cityNameByPsgc.get(d.properties.adm3_psgc) ||
+                "Unknown city";
+              const barangayName = d.properties.adm4_en || name;
+              const barangayKey = `${normalizedProvince}||${normalizeLoc(cityName)}||${normalizeLoc(barangayName)}`;
+              const cityKey = `${normalizedProvince}||${normalizeLoc(cityName)}`;
+              const barangayCount = anomalyBarangayCounts.get(barangayKey) ?? 0;
+              const cityTotal = anomalyCityTotals.get(cityKey) ?? 0;
+              const provinceTotal = anomalyProvinceTotals.get(normalizedProvince) ?? 0;
+
+              tooltip
+                .style("display", "block")
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px")
+                .html(
+                  `${barangayName}: ${barangayCount} anomalies<br/>${cityName} total: ${cityTotal}<br/>${provinceName} total: ${provinceTotal}`,
+                );
+              return;
+            }
+
             const provinceName =
               d.properties.adm2_en || d.properties.adm3_en || name;
             const normalizedProvince = normalizeLoc(provinceName);
@@ -772,6 +837,20 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
     currentProvinceName,
     currentProvinceNormalized,
     activeProvinceLegendBins,
+    // Illness cluster dependencies
+    illnessHeatmapData,
+    illnessProjectedProvinceCounts,
+    illnessProvinceCounts,
+    illnessProvinceTotals,
+    illnessCityTotals,
+    illnessBarangayCounts,
+    illnessActiveProvinceLegendBins,
+    selectedIllnessCluster,
+    // Anomaly province drilldown dependencies
+    anomalyBarangayCounts,
+    anomalyCityTotals,
+    anomalyProvinceTotals,
+    anomalyActiveProvinceLegendBins,
   ]); // Depend on highlightId
 
   // Handle Drill-down
@@ -848,7 +927,7 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
         )}
       </div>
 
-      <Card className="group hover:border-primary/30">
+      <Card className="group overflow-hidden hover:border-primary/30">
 
         {/* Map Container */}
         <div ref={containerRef} className="w-full h-[800px] overflow-hidden relative">
@@ -988,7 +1067,10 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
                   />
                   <span>0</span>
                 </div>
-                {anomalyHeatmapData.legendBins.map((bin) => (
+                {(viewState.level === "province"
+                  ? anomalyActiveProvinceLegendBins
+                  : anomalyHeatmapData.legendBins
+                ).map((bin) => (
                   <div key={`${bin.min}-${bin.max}`} className="flex items-center gap-2">
                     <span
                       className="inline-block h-3 w-5 rounded-sm border border-base-300"

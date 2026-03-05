@@ -45,6 +45,16 @@ export interface CityCount {
   count: number;
 }
 
+export interface ProvinceCount {
+  province: string;
+  count: number;
+}
+
+export interface BarangayCount {
+  barangay: string;
+  count: number;
+}
+
 export interface ClusterStatistics {
   cluster_id: number;
   count: number;
@@ -75,6 +85,7 @@ export interface SurveillanceAnomaly {
   longitude: number;
   city: string | null;
   province: string | null;
+  barangay: string | null;
   region: string | null;
   confidence: number;
   uncertainty: number;
@@ -137,12 +148,20 @@ export type AnomalyHeatmapData = {
   provinceCounts: Record<string, number>;
   // Normalized province name -> actual anomaly count from province field (for tooltip)
   provinceDirectCounts: Record<string, number>;
+  // Normalized "province||city||barangay" -> count
+  barangayCounts: Record<string, number>;
+  // Normalized "province||city" -> count
+  cityTotals: Record<string, number>;
+  // Normalized province name -> count (for tooltip at province level)
+  provinceTotals: Record<string, number>;
   // Region name -> total anomalies in that region
   regionTotals: Record<string, number>;
   // Normalized province name -> region display label
   provinceToRegion: Record<string, string>;
   globalMax: number;
   legendBins: HeatmapLegendBin[];
+  // Province-specific legend bins keyed by normalized province name
+  provinceLegendBinsByProvince: Record<string, HeatmapLegendBin[]>;
   selectedDisease: string;
 };
 
@@ -177,7 +196,9 @@ export interface IllnessClusterStatistics {
   max_patient_age: number;
   gender_distribution: GenderDistribution;
   top_regions: RegionCount[];
+  top_provinces?: ProvinceCount[];
   top_cities: CityCount[];
+  top_barangays?: BarangayCount[];
   temporal_distribution?: Record<string, number>;
 }
 

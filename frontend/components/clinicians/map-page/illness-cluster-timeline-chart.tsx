@@ -17,14 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { SurveillanceAnomaly } from "@/types";
+import type { IllnessRecord } from "@/types";
+import { getClusterBaseColor } from "@/utils/cluster-colors";
 
-export type AnomalyTimelineChartProps = {
-  /** Anomalies already filtered to the selected disease by the caller */
-  anomalies: SurveillanceAnomaly[];
-  disease: string;
-  /** Hex colour derived from getClusterBaseColor for the selected disease */
-  diseaseColor: string;
+type IllnessClusterTimelineChartProps = {
+  illnesses: IllnessRecord[];
+  nClusters: number;
+  selectedCluster: number;
+  clusterColorIndex: number;
 };
 
 type TimeGranularity = "day" | "week" | "month";
@@ -36,10 +36,9 @@ type TimeBucket = {
   count: number;
 };
 
-// ─── Date helpers (mirrors illness-cluster-timeline-chart) ───────────────────
-
 function getDayKey(dateStr: string): string {
-  return new Date(dateStr).toISOString().slice(0, 10);
+  const d = new Date(dateStr);
+  return d.toISOString().slice(0, 10);
 }
 
 function getISOWeekKey(dateStr: string): string {
@@ -57,77 +56,51 @@ function getMonthKey(dateStr: string): string {
 }
 
 function formatShortDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function formatMonth(monthKey: string): string {
   const [year, month] = monthKey.split("-");
-  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(
-    "en-US",
-    { month: "short", year: "numeric" },
-  );
+  const d = new Date(Number(year), Number(month) - 1, 1);
+  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
-// ─── Custom Tooltip ──────────────────────────────────────────────────────────
-
-type AnomalyTooltipProps = {
-  active?: boolean;
-  payload?: ReadonlyArray<{ payload: TimeBucket }>;
-  label?: string | number;
-  granularity: TimeGranularity;
-};
-
-function AnomalyChartTooltip({
-  active,
-  payload,
-  label,
-  granularity,
-}: AnomalyTooltipProps) {
-  if (!active || !payload?.length) return null;
-  const bucket = payload[0].payload;
-  return (
-    <div className="bg-white border border-base-300 rounded shadow-sm px-3 py-2 text-xs">
-      <p className="mb-1 font-medium">
-        {granularity === "week"
-          ? `${bucket.periodStart} – ${bucket.periodEnd}`
-          : label}
-      </p>
-      <p>
-        {bucket.count} anomal{bucket.count === 1 ? "y" : "ies"}
-      </p>
-    </div>
-  );
-}
-
-// ─── Component ───────────────────────────────────────────────────────────────
-
-export function AnomalyTimelineChart({
-  anomalies,
-  disease,
-  diseaseColor,
-}: AnomalyTimelineChartProps) {
+export function IllnessClusterTimelineChart({
+  illnesses,
+  nClusters,
+  selectedCluster,
+  clusterColorIndex,
+}: IllnessClusterTimelineChartProps) {
   const [granularity, setGranularity] = useState<TimeGranularity>("month");
 
+  const clusterColor = useMemo(
+    () => getClusterBaseColor(clusterColorIndex),
+    [clusterColorIndex],
+  );
+
   const chartData = useMemo<TimeBucket[]>(() => {
-    const withDates = anomalies.filter((a) => !!a.created_at);
+    // Filter to selected cluster illnesses with diagnosed_at
+    const withDates = illnesses.filter(
+      (i) => i.diagnosed_at && i.cluster === selectedCluster,
+    );
     if (withDates.length === 0) return [];
 
+    // Group by time period
     const bucketMap = new Map<string, number>();
 
-    for (const anomaly of withDates) {
+    for (const illness of withDates) {
       const key =
         granularity === "day"
-          ? getDayKey(anomaly.created_at)
+          ? getDayKey(illness.diagnosed_at!)
           : granularity === "week"
-            ? getISOWeekKey(anomaly.created_at)
-            : getMonthKey(anomaly.created_at);
+            ? getISOWeekKey(illness.diagnosed_at!)
+            : getMonthKey(illness.diagnosed_at!);
 
-      bucketMap.set(key, (bucketMap.get(key) ?? 0) + 1);
+      bucketMap.set(key, (bucketMap.get(key) || 0) + 1);
     }
 
+    // Sort and build buckets
     const sorted = [...bucketMap.entries()].sort((a, b) =>
       a[0].localeCompare(b[0]),
     );
@@ -143,7 +116,7 @@ export function AnomalyTimelineChart({
         periodEnd = label;
       } else if (granularity === "week") {
         label = formatShortDate(periodKey);
-        periodStart = label;
+        periodStart = formatShortDate(periodKey);
         const endDate = new Date(periodKey);
         endDate.setDate(endDate.getDate() + 6);
         periodEnd = formatShortDate(endDate.toISOString().slice(0, 10));
@@ -153,28 +126,36 @@ export function AnomalyTimelineChart({
         periodEnd = label;
       }
 
-      return { label, periodStart, periodEnd, count };
+      return {
+        label,
+        periodStart,
+        periodEnd,
+        count,
+      };
     });
-  }, [anomalies, granularity]);
+  }, [illnesses, selectedCluster, granularity]);
 
   if (chartData.length === 0) {
     return (
       <div className="bg-base-200 rounded-box p-4 text-center text-sm text-base-content/70">
-        No temporal data available for {disease} anomalies
+        No temporal data available for this cluster
       </div>
     );
   }
 
-  const gradientId = `anomalyGradient-${diseaseColor.replace("#", "")}`;
+  // Create a unique ID for the gradient based on the cluster color
+  const gradientId = `colorGradient-${clusterColor.replace("#", "")}`;
 
   return (
     <div className="bg-base-200 rounded-box p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="font-semibold text-sm">{disease} — Anomalies Over Time</p>
+        <p className="font-semibold text-sm">
+          Cluster {selectedCluster} — Illnesses Over Time
+        </p>
         <Select
-          className="w-auto"
           value={granularity}
           onValueChange={(v) => setGranularity(v as TimeGranularity)}
+          className="w-auto"
         >
           <SelectTrigger className="w-28 h-7 text-xs bg-white">
             <SelectValue />
@@ -186,33 +167,19 @@ export function AnomalyTimelineChart({
           </SelectContent>
         </Select>
       </div>
-
-      {/* Container pattern: explicit height wrapper + ResponsiveContainer */}
       <div className="w-full h-[220px]">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={chartData}
-            margin={{ top: 5, right: 10, bottom: 5, left: -10 }}
+            margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
           >
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor={diseaseColor}
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor={diseaseColor}
-                  stopOpacity={0}
-                />
+                <stop offset="5%" stopColor={clusterColor} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={clusterColor} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="hsl(var(--heroui-default-200))"
-              vertical={false}
-            />
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--heroui-default-200))" vertical={false} />
             <XAxis
               dataKey="label"
               tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
@@ -226,18 +193,29 @@ export function AnomalyTimelineChart({
               axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
             />
             <Tooltip
-              content={(props) => (
-                <AnomalyChartTooltip {...props} granularity={granularity} />
-              )}
+              content={({ active, payload, label }) => {
+                if (!active || !payload || !payload.length) return null;
+                const data = payload[0].payload as TimeBucket;
+                return (
+                  <div className="bg-white border border-base-300 rounded shadow-sm px-3 py-2 text-xs">
+                    <p className="font-semibold mb-1">
+                      {granularity === "week"
+                        ? `${data.periodStart} – ${data.periodEnd}`
+                        : label}
+                    </p>
+                    <p>
+                      {data.count} illness{data.count === 1 ? "" : "es"}
+                    </p>
+                  </div>
+                );
+              }}
             />
             <Area
               type="monotone"
               dataKey="count"
-              stroke={diseaseColor}
-              strokeWidth={2}
+              stroke={clusterColor}
               fillOpacity={1}
               fill={`url(#${gradientId})`}
-              isAnimationActive={false}
             />
           </AreaChart>
         </ResponsiveContainer>

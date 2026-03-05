@@ -185,7 +185,9 @@ def illness_clusters():
 
         include_age = _parse_bool(request.args.get("age"), True)
         include_gender = _parse_bool(request.args.get("gender"), True)
+        include_barangay = _parse_bool(request.args.get("barangay"), False)
         include_city = _parse_bool(request.args.get("city"), True)
+        include_province = _parse_bool(request.args.get("province"), False)
         include_region = _parse_bool(request.args.get("region"), True)
         include_time = _parse_bool(request.args.get("time"), False)
 
@@ -193,7 +195,9 @@ def illness_clusters():
         data, illness_info = fetch_diagnosis_data(
             include_age=include_age,
             include_gender=include_gender,
+            include_barangay=include_barangay,
             include_city=include_city,
+            include_province=include_province,
             include_region=include_region,
             include_time=include_time,
         )
@@ -258,7 +262,9 @@ def illness_clusters_silhouette():
         # Parse variable selection parameters
         include_age = _parse_bool(request.args.get("age"), True)
         include_gender = _parse_bool(request.args.get("gender"), True)
+        include_barangay = _parse_bool(request.args.get("barangay"), False)
         include_city = _parse_bool(request.args.get("city"), True)
+        include_province = _parse_bool(request.args.get("province"), False)
         include_region = _parse_bool(request.args.get("region"), True)
         include_time = _parse_bool(request.args.get("time"), False)
 
@@ -266,7 +272,9 @@ def illness_clusters_silhouette():
         data, _ = fetch_diagnosis_data(
             include_age=include_age,
             include_gender=include_gender,
+            include_barangay=include_barangay,
             include_city=include_city,
+            include_province=include_province,
             include_region=include_region,
             include_time=include_time,
         )
