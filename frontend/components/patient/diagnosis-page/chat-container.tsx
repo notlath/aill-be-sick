@@ -2,8 +2,6 @@ import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { Explanation } from "@/types";
 import { LocationData } from "@/utils/location";
 import { forwardRef } from "react";
-import Markdown from "react-markdown";
-import remarkBreaks from "remark-breaks";
 import ChatBubble from "./chat-bubble";
 import QuestionBubble from "./question-bubble";
 
