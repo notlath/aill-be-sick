@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 import type { GeoJsonObject } from "geojson";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -14,12 +14,10 @@ const MAP_STYLE = { height: "600px", width: "100%" };
 
 type ChoroplethMapProps = {
   casesData: Record<string, number>;
+  geoData: GeoJsonObject;
 };
 
-const ChoroplethMap = ({ casesData }: ChoroplethMapProps) => {
-  const [geoData, setGeoData] = useState<GeoJsonObject | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
+const ChoroplethMap = ({ casesData, geoData }: ChoroplethMapProps) => {
   // Generate a unique, stable key per mount cycle so each navigation produces
   // a fresh MapContainer and avoids the "container is being reused" error.
   const id = useId();
@@ -28,37 +26,6 @@ const ChoroplethMap = ({ casesData }: ChoroplethMapProps) => {
   mountRef.current += 1;
   
   const mapKey = `${id}-${mountRef.current}`;
-
-  // Fetch the GeoJSON from /public. Error is captured so the loading state
-  // doesn't hang silently on network failure.
-  useEffect(() => {
-    fetch("/geojson/bagong_silangan.geojson")
-      .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load GeoJSON: ${res.status}`);
-        return res.json();
-      })
-      .then((data: GeoJsonObject) => setGeoData(data))
-      .catch((err: unknown) =>
-        setError(err instanceof Error ? err.message : "Unknown error")
-      );
-  }, []);
-
-  // Render an error boundary fallback (papalitan ng DaisyUI skeleton maya)
-  if (error) {
-    return (
-      <div className="rounded-xl overflow-hidden" aria-label="Map error">
-        {error}
-      </div>
-    );
-  }
-
-  if (!geoData) {
-    return (
-      <div className="rounded-xl overflow-hidden" aria-label="Loading map">
-        <div className="skeleton h-[600px] w-full" />
-      </div>
-    );
-  }
 
   return (
     <div className="rounded-xl overflow-hidden">

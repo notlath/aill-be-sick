@@ -6,27 +6,60 @@ import { Card, CardContent } from "@/components/ui/card";
 import dynamic from "next/dynamic";
 import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
 import useDateRangeStore from "@/stores/use-date-range-store";
+import { useEffect, useState } from "react";
+import { getDiseaseDiagnosesByDistricts } from "@/utils/diagnosis";
+import type { GeoJsonObject } from "geojson";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), { ssr: false });
-
-const casesData: Record<string, number> = {
-  "Parkwoods": 42,
-  "Sitio Veterans": 18,
-  "Spring Valley": 75,
-  "Filinvest 2": 31,
-  "Violago Homes": 60,
-  "Filinvest Heights - Brookside": 22,
-  "Sitio Bakal": 55,
-  "Sugartowne": 14,
-  "DSWD": 9,
-  "Barangay Proper": 88,
-  "Agri Land": 33,
-  "Covenant Village": 47,
-};
 
 const ByDiseaseTab = () => {
   const { selectedDisease, setSelectedDisease } = useSelectedDiseaseStore();
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
+  const [geoData, setGeoData] = useState<GeoJsonObject | null>(null);
+  const [casesData, setCasesData] = useState<Record<string, number>>({});
+  const [mapLoading, setMapLoading] = useState(true);
+
+  const fetchCasesData = async () => {
+    setMapLoading(true);
+
+    const { success, error } = await getDiseaseDiagnosesByDistricts(selectedDisease, startDate, endDate);
+
+    if (error) {
+      throw new Error(error);
+    }
+    
+    if (success) {
+      const transformedData = success.reduce((acc, item) => {
+        if (item.district) {
+          acc[item.district] = item._count.id;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      setCasesData(transformedData);
+    }
+
+    setMapLoading(false);
+  }
+
+  useEffect(() => {
+    fetchCasesData();
+  }, [selectedDisease, startDate, endDate]);
+
+  // Fetch the GeoJSON from /public. Error is captured so the loading state
+  // doesn't hang silently on network failure.
+  useEffect(() => {
+    fetch("/geojson/bagong_silangan.geojson")
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load GeoJSON: ${res.status}`);
+        return res.json();
+      })
+      .then((data: GeoJsonObject) => setGeoData(data))
+      .catch((err: unknown) => {
+        throw Error(err instanceof Error ? err.message : "Unknown error")
+      }
+      );
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -45,7 +78,11 @@ const ByDiseaseTab = () => {
       <div>
         <Card>
           <CardContent className="p-8">
-            <ChoroplethMap casesData={casesData} />
+            {(mapLoading || !geoData) ? (
+              <div className="rounded-xl overflow-hidden" aria-label="Loading map">
+                <div className="skeleton h-[600px] w-full" />
+              </div>
+            ) : <ChoroplethMap geoData={geoData} casesData={casesData} />}
           </CardContent>
         </Card>
       </div>
