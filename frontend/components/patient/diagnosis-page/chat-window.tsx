@@ -1,21 +1,21 @@
 "use client";
 
-import {createMessage} from "@/actions/create-message";
-import {explainDiagnosis} from "@/actions/explain-diagnosis";
-import {getFollowUpQuestion} from "@/actions/get-follow-up-question";
-import {runDiagnosis} from "@/actions/run-diagnosis";
-import {useUserLocation} from "@/hooks/use-location";
-import {Chat, Explanation, Message} from "@/lib/generated/prisma";
+import { createMessage } from "@/actions/create-message";
+import { explainDiagnosis } from "@/actions/explain-diagnosis";
+import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
+import { runDiagnosis } from "@/actions/run-diagnosis";
+import { useUserLocation } from "@/hooks/use-location";
+import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import {
   CreateChatSchema,
   CreateChatSchemaType,
 } from "@/schemas/CreateChatSchema";
-import {Explanation as TempExplanation} from "@/types";
-import {zodResolver} from "@hookform/resolvers/zod";
-import {useAction, useOptimisticAction} from "next-safe-action/hooks";
+import { Explanation as TempExplanation } from "@/types";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useAction, useOptimisticAction } from "next-safe-action/hooks";
 import dynamic from "next/dynamic";
-import {useEffect, useRef, useState} from "react";
-import {FormProvider, useForm} from "react-hook-form";
+import { useEffect, useRef, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
 import ThreadTransition from "./thread-transition";
@@ -77,7 +77,7 @@ const ChatWindow = ({
   dbExplanation,
   userRole,
 }: ChatWindowProps) => {
-  const {location, requestLocation} = useUserLocation();
+  const { location, requestLocation } = useUserLocation();
 
   const form = useForm<CreateChatSchemaType>({
     resolver: zodResolver(CreateChatSchema),
@@ -107,13 +107,23 @@ const ChatWindow = ({
   const prevChatIdRef = useRef<string>(chatId);
   const explanationRequestedRef = useRef<Set<string>>(new Set());
   const diagnosisRequestedRef = useRef<Set<string>>(new Set());
+  const followUpPendingRef = useRef<boolean>(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  // Guards against duplicate DIAGNOSIS messages from concurrent follow-up responses.
+  // Keep separate in-flight and created states so failed writes can still retry.
+  const finalDiagnosisInFlightRef = useRef<boolean>(false);
+  const finalDiagnosisCreatedRef = useRef<boolean>(false);
 
   const lastDiagnosisRef = useRef<any>(null);
+  const initialSymptomsRef = useRef<string>("");
 
   const getCurrentSymptoms = () => {
     return (
+      initialSymptomsRef.current ||
       messages.find((m) => m.type === "SYMPTOMS" && m.role === "USER")
-        ?.content || form.getValues("symptoms")
+        ?.content ||
+      lastDiagnosisRef.current?.symptoms ||
+      form.getValues("symptoms")
     ).toString();
   };
 
@@ -128,11 +138,11 @@ const ChatWindow = ({
   } | null>(null);
   const [isFinalDiagnosis, setIsFinalDiagnosis] = useState<boolean>(false);
 
-  const {execute: getFollowUpExecute, isExecuting: isGettingQuestion} =
+  const { execute: getFollowUpExecute, isExecuting: isGettingQuestion } =
     useAction(getFollowUpQuestion, {
-      onSuccess: ({data}) => {
+      onSuccess: ({ data }) => {
         if (data?.success) {
-          const {question, should_stop, reason, diagnosis, session_id} =
+          const { question, should_stop, reason, diagnosis, session_id } =
             data.success as any;
 
           // ── Capture session_id from backend ──
@@ -189,8 +199,14 @@ const ChatWindow = ({
 
           if (should_stop && !question) {
             setIsFinalDiagnosis(true);
-            if (diagnosis) {
-              const {disease, confidence, uncertainty, model_used} = diagnosis;
+            if (diagnosis && !finalDiagnosisCreatedRef.current) {
+              if (finalDiagnosisInFlightRef.current) {
+                setCurrentQuestion(null);
+                return;
+              }
+              finalDiagnosisInFlightRef.current = true;
+              const { disease, confidence, uncertainty, model_used } =
+                diagnosis;
               const impressive = (confidence ?? 0) >= 0.9;
 
               const summary = impressive
@@ -252,13 +268,13 @@ const ChatWindow = ({
       },
     });
 
-  const {execute: getExplanations, isExecuting: isGettingExplanations} =
+  const { execute: getExplanations, isExecuting: isGettingExplanations } =
     useAction(explainDiagnosis, {});
 
-  const {execute: runDiagnosisExecute, isExecuting: isDiagnosing} = useAction(
+  const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } = useAction(
     runDiagnosis,
     {
-      onSuccess: ({data}) => {
+      onSuccess: ({ data }) => {
         if (data?.error) {
           let errorMessage = "";
 
@@ -346,27 +362,34 @@ const ChatWindow = ({
 
             setIsFinalDiagnosis(true);
 
-            const impressive = (confidence ?? 0) >= 0.95;
-            const summary = impressive
-              ? `Final assessment: ${disease} (confidence ${(
-                  confidence * 100
-                ).toFixed(1)}%)`
-              : (data.diagnosis as any)?.message ||
-                `Assessment complete: ${disease}`;
+            if (!finalDiagnosisCreatedRef.current) {
+              if (finalDiagnosisInFlightRef.current) {
+                setCurrentQuestion(null);
+                return;
+              }
+              finalDiagnosisInFlightRef.current = true;
+              const impressive = (confidence ?? 0) >= 0.95;
+              const summary = impressive
+                ? `Final assessment: ${disease} (confidence ${(
+                    confidence * 100
+                  ).toFixed(1)}%)`
+                : (data.diagnosis as any)?.message ||
+                  `Assessment complete: ${disease}`;
 
-            createMessageExecute({
-              chatId,
-              content: summary,
-              type: "DIAGNOSIS",
-              role: "AI",
-              tempDiagnosis: {
-                confidence,
-                uncertainty,
-                modelUsed: mapModelUsed(model_used),
-                disease: mapDisease(disease),
-                symptoms: getCurrentSymptoms(),
-              },
-            });
+              createMessageExecute({
+                chatId,
+                content: summary,
+                type: "DIAGNOSIS",
+                role: "AI",
+                tempDiagnosis: {
+                  confidence,
+                  uncertainty,
+                  modelUsed: mapModelUsed(model_used),
+                  disease: mapDisease(disease),
+                  symptoms: getCurrentSymptoms(),
+                },
+              });
+            }
             setCurrentQuestion(null);
           } else if (!data.isConfident) {
             // ── Simplified: pass session_id instead of thick state ──
@@ -414,16 +437,28 @@ const ChatWindow = ({
     updateFn: (currentMessages, newMessage: any) => {
       return [...currentMessages, newMessage];
     },
-    onSuccess: ({data}) => {
+    onSuccess: ({ data }) => {
       if (data.success) {
         const created = data.success as any;
 
         if (created.role === "USER" && created.type === "SYMPTOMS") {
+          initialSymptomsRef.current = created.content;
+          // Reset all diagnosis state for new case - batch related updates
           setCurrentQuestion(null);
           setAskedQuestions([]);
           setConfirmNeeded(false);
           setIsFinalDiagnosis(false);
-          setDiagnosisSessionId(null); // Reset session for new diagnosis
+          setDiagnosisSessionId(null);
+          lastDiagnosisRef.current = null;
+          followUpPendingRef.current = false;
+          finalDiagnosisInFlightRef.current = false;
+          finalDiagnosisCreatedRef.current = false;
+
+          // Cancel any in-flight follow-up requests
+          if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+          }
 
           if (!diagnosisRequestedRef.current.has(created.id)) {
             diagnosisRequestedRef.current.add(created.id);
@@ -436,6 +471,9 @@ const ChatWindow = ({
         }
 
         if (created.type === "DIAGNOSIS") {
+          finalDiagnosisInFlightRef.current = false;
+          finalDiagnosisCreatedRef.current = true;
+
           const symptomsText = lastDiagnosisRef.current?.symptoms;
           const meanProbs = lastDiagnosisRef.current?.mean_probs;
 
@@ -456,7 +494,9 @@ const ChatWindow = ({
         console.error("Error creating message:", data.error);
       }
     },
-    onError: ({error}) => {
+    onError: ({ error }) => {
+      // If DIAGNOSIS creation failed, allow a subsequent stop response to retry.
+      finalDiagnosisInFlightRef.current = false;
       console.error("Failed to create message:", error);
     },
   });
@@ -466,36 +506,81 @@ const ChatWindow = ({
     symptom: string,
     questionId: string,
   ) => {
+    // Prevent concurrent follow-up requests - Next.js best practice for async operations
+    if (followUpPendingRef.current) {
+      console.warn(
+        "[handleQuestionAnswer] Follow-up request already pending, ignoring duplicate call",
+      );
+      return;
+    }
+
+    // Cancel any in-flight request to prevent race conditions
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    followUpPendingRef.current = true;
+
+    // Batch state updates to minimize re-renders
     const updatedAsked = [...askedQuestions, questionId];
     setAskedQuestions(updatedAsked);
     setCurrentQuestion(null);
 
-    await createMessageExecute({
-      chatId,
-      content: symptom,
-      type: "ANSWER",
-      role: "USER",
-    });
+    try {
+      // Create user answer message first
+      await createMessageExecute({
+        chatId,
+        content: symptom,
+        type: "ANSWER",
+        role: "USER",
+      });
 
-    // ── Simplified: send session_id + answer context ──
-    // The backend handles all state (probs, evidence texts, clamping)
-    getFollowUpExecute({
-      session_id: diagnosisSessionId || undefined,
-      disease: currentDiagnosis?.disease || "",
-      confidence: currentDiagnosis?.confidence || 0,
-      uncertainty: currentDiagnosis?.uncertainty || 1,
-      asked_questions: updatedAsked,
-      symptoms: getCurrentSymptoms(),
-      top_diseases: currentDiagnosis?.top_diseases || [],
-      last_answer: answer,
-      last_question_id: questionId,
-      last_question_text: currentQuestion?.question,
-      current_probs: currentDiagnosis?.mean_probs || undefined,
-    });
+      // Get next follow-up question with proper error handling
+      await getFollowUpExecute({
+        session_id: diagnosisSessionId || undefined,
+        disease: currentDiagnosis?.disease || "",
+        confidence: currentDiagnosis?.confidence || 0,
+        uncertainty: currentDiagnosis?.uncertainty || 1,
+        asked_questions: updatedAsked,
+        symptoms: getCurrentSymptoms(),
+        top_diseases: currentDiagnosis?.top_diseases || [],
+        last_answer: answer,
+        last_question_id: questionId,
+        last_question_text: currentQuestion?.question,
+        current_probs: currentDiagnosis?.mean_probs || undefined,
+      });
+    } catch (error) {
+      // Only log actual errors, ignore abort signals from intentional cancellations
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.error("[handleQuestionAnswer] Error during follow-up:", error);
+        createMessageExecute({
+          chatId,
+          content:
+            "An error occurred while processing your answer. Please try again or start a new diagnosis.",
+          type: "ERROR",
+          role: "AI",
+        });
+      }
+    } finally {
+      // Always release the lock, even on error
+      followUpPendingRef.current = false;
+    }
   };
 
   const hasRunInitialDiagnosis = useRef<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Cleanup on unmount - cancel any in-flight requests to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      followUpPendingRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     requestLocation();
@@ -507,6 +592,7 @@ const ChatWindow = ({
         chatId,
         symptoms: "",
       });
+      // Reset all diagnosis state when chat changes
       setCurrentQuestion(null);
       setAskedQuestions([]);
       setConfirmNeeded(false);
@@ -517,6 +603,16 @@ const ChatWindow = ({
       hasRunInitialDiagnosis.current = false;
       explanationRequestedRef.current = new Set();
       diagnosisRequestedRef.current = new Set();
+      followUpPendingRef.current = false;
+      finalDiagnosisInFlightRef.current = false;
+      finalDiagnosisCreatedRef.current = false;
+
+      // Cancel any in-flight requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+
       prevChatIdRef.current = chatId;
     }
   }, [chatId, form]);
@@ -573,7 +669,7 @@ const ChatWindow = ({
             <DiagnosisForm
               createMessageExecute={createMessageExecute}
               isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
-              disabled={!!currentQuestion}
+              disabled={!!currentQuestion || isFinalDiagnosis}
             />
           </div>
         )}

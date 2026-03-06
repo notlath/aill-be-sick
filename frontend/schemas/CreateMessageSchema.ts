@@ -9,11 +9,19 @@ export const CreateMessageSchema = z.object({
   role: z.enum(["USER", "AI"]).default("USER"),
   tempDiagnosis: z
     .object({
-      confidence: z.number().min(0).max(1),
-      uncertainty: z.number().min(0).max(1),
+      confidence: z.number().min(-0.1).max(1.1),
+      uncertainty: z.number().min(-0.1).max(1.1),
       modelUsed: z.enum(["BIOCLINICAL_MODERNBERT", "ROBERTA_TAGALOG"]),
-      disease: z.enum(["DENGUE", "PNEUMONIA", "TYPHOID", "DIARRHEA", "MEASLES", "INFLUENZA", "IMPETIGO"]),
-      symptoms: z.string().min(1, "Symptoms cannot be empty"),
+      disease: z.enum([
+        "DENGUE",
+        "PNEUMONIA",
+        "TYPHOID",
+        "DIARRHEA",
+        "MEASLES",
+        "INFLUENZA",
+        "IMPETIGO",
+      ]),
+      symptoms: z.string(),
     })
     .optional(),
 });

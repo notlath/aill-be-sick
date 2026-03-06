@@ -3,7 +3,7 @@ import { Explanation } from "@/types";
 import { LocationData } from "@/utils/location";
 import remarkBreaks from "remark-breaks";
 import Markdown from "react-markdown";
-import { forwardRef } from "react";
+import { forwardRef, memo } from "react";
 import ChatBubble from "./chat-bubble";
 import QuestionBubble from "./question-bubble";
 
@@ -42,7 +42,38 @@ type ChatContainerProps = {
   userRole?: string;
 };
 
-const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
+/**
+ * Custom comparison function to prevent unnecessary re-renders.
+ * Only re-renders when messages array length changes or primitive props change.
+ * This is a shallow comparison optimized for the chat use case.
+ */
+function areChatContainerPropsEqual(
+  prev: ChatContainerProps,
+  next: ChatContainerProps
+): boolean {
+  // Re-render if message count changes (new message added/removed)
+  if (prev.messages.length !== next.messages.length) return false;
+  
+  // Re-render if any loading state changes
+  if (
+    prev.isCreatingMessage !== next.isCreatingMessage ||
+    prev.isDiagnosing !== next.isDiagnosing ||
+    prev.isGettingQuestion !== next.isGettingQuestion ||
+    prev.isGettingExplanations !== next.isGettingExplanations
+  ) return false;
+  
+  // Re-render if question changes
+  if (prev.currentQuestion?.id !== next.currentQuestion?.id) return false;
+  
+  // Re-render if diagnosis state changes
+  if (prev.hasDiagnosis !== next.hasDiagnosis) return false;
+  
+  // Skip re-render if only message array reference changed but length is same
+  // Individual ChatBubble components will handle their own memoization
+  return true;
+}
+
+const ChatContainer = memo(forwardRef<HTMLDivElement, ChatContainerProps>(
   (
     {
       messages,
@@ -129,7 +160,7 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
       </section>
     );
   }
-);
+), areChatContainerPropsEqual);
 
 ChatContainer.displayName = "ChatContainer";
 

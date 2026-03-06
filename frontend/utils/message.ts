@@ -15,6 +15,9 @@ export const getMessagesByChatId = async (
         tempDiagnosis: include?.tempDiagnosis,
         explanation: include?.explanation,
       },
+      orderBy: {
+        createdAt: "asc",
+      },
     });
 
     return { success: messages };
