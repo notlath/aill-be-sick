@@ -179,8 +179,10 @@ def illness_clusters():
     Query params:
       - n_clusters: number of clusters (default: 4)
       - age, gender, city, region, time: boolean flags for variable selection
-            - month: diagnosis month filter (YYYY-MM)
-            - week: diagnosis ISO week filter (YYYY-Www)
+      - month: diagnosis month filter (YYYY-MM)
+      - week: diagnosis ISO week filter (YYYY-Www)
+      - start_date: start of date range filter (YYYY-MM-DD) - use with end_date
+      - end_date: end of date range filter (YYYY-MM-DD) - use with start_date
     """
     try:
         n_clusters = int(request.args.get("n_clusters", 4))
@@ -194,6 +196,8 @@ def illness_clusters():
         include_time = _parse_bool(request.args.get("time"), False)
         diagnosis_month = request.args.get("month")
         diagnosis_week = request.args.get("week")
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
 
         # Keep month/week filters mutually exclusive if both are passed
         if diagnosis_month and diagnosis_week:
@@ -210,6 +214,8 @@ def illness_clusters():
             include_time=include_time,
             diagnosis_month=diagnosis_month,
             diagnosis_week=diagnosis_week,
+            start_date=start_date,
+            end_date=end_date,
         )
 
         if data.size == 0:
@@ -257,8 +263,10 @@ def illness_clusters_silhouette():
     Query params:
       - range: e.g. "3-10" or "4" (defaults to 3-10)
       - age, gender, city, region, time: boolean flags for variable selection
-            - month: diagnosis month filter (YYYY-MM)
-            - week: diagnosis ISO week filter (YYYY-Www)
+      - month: diagnosis month filter (YYYY-MM)
+      - week: diagnosis ISO week filter (YYYY-Www)
+      - start_date: start of date range filter (YYYY-MM-DD) - use with end_date
+      - end_date: end of date range filter (YYYY-MM-DD) - use with start_date
     Returns JSON with best k and per-k metrics (silhouette, inertia, cluster sizes).
     """
     try:
@@ -283,6 +291,8 @@ def illness_clusters_silhouette():
         include_time = _parse_bool(request.args.get("time"), False)
         diagnosis_month = request.args.get("month")
         diagnosis_week = request.args.get("week")
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
 
         # Keep month/week filters mutually exclusive if both are passed
         if diagnosis_month and diagnosis_week:
@@ -299,6 +309,8 @@ def illness_clusters_silhouette():
             include_time=include_time,
             diagnosis_month=diagnosis_month,
             diagnosis_week=diagnosis_week,
+            start_date=start_date,
+            end_date=end_date,
         )
         n_samples = len(data)
         if n_samples < 3:

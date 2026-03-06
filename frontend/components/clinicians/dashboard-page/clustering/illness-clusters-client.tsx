@@ -72,11 +72,18 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
 
   const buildDiagnosisDateFilterParams = (): Record<string, string> => {
     if (dateRangeStart && dateRangeEnd) {
-      // For now, send the start month as a single month filter
-      // TODO: Extend backend to support date ranges
-      const year = dateRangeStart.getFullYear();
-      const month = String(dateRangeStart.getMonth() + 1).padStart(2, "0");
-      return { month: `${year}-${month}` };
+      // Send start_date and end_date in YYYY-MM-DD format for date range filtering
+      const formatDate = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+
+      return {
+        start_date: formatDate(dateRangeStart),
+        end_date: formatDate(dateRangeEnd),
+      };
     }
 
     return {};

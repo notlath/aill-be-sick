@@ -19,10 +19,26 @@ def fetch_diagnosis_data(
     include_time=False,
     diagnosis_month=None,
     diagnosis_week=None,
+    start_date=None,
+    end_date=None,
 ):
     """
     Fetch diagnosis data from PostgreSQL database with linked patient demographics.
     Uses DATABASE_URL environment variable if db_url not provided.
+    
+    Args:
+        db_url: Optional database URL
+        include_age: Include age in clustering features
+        include_gender: Include gender in clustering features
+        include_city: Include city in clustering features
+        include_province: Include province in clustering features
+        include_barangay: Include barangay in clustering features
+        include_region: Include region in clustering features
+        include_time: Include time-based features
+        diagnosis_month: Filter by single month (YYYY-MM format)
+        diagnosis_week: Filter by ISO week (YYYY-Www format)
+        start_date: Start of date range filter (YYYY-MM-DD format) - use with end_date
+        end_date: End of date range filter (YYYY-MM-DD format) - use with start_date
     
     Returns: tuple of (encoded_data, illness_info)
         - encoded_data: numpy array for clustering
@@ -34,6 +50,8 @@ def fetch_diagnosis_data(
     month_end = None
     week_start = None
     week_end = None
+    range_start = None
+    range_end = None
 
     if diagnosis_month:
         try:
@@ -61,6 +79,24 @@ def fetch_diagnosis_data(
         except (ValueError, TypeError) as exc:
             raise ValueError(
                 "Invalid week filter format. Expected YYYY-Www."
+            ) from exc
+
+    # Parse date range filters (YYYY-MM-DD format)
+    if start_date:
+        try:
+            range_start = datetime.strptime(start_date, "%Y-%m-%d")
+        except ValueError as exc:
+            raise ValueError(
+                "Invalid start_date format. Expected YYYY-MM-DD."
+            ) from exc
+    
+    if end_date:
+        try:
+            # End date is inclusive, so add 1 day for the upper bound
+            range_end = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+        except ValueError as exc:
+            raise ValueError(
+                "Invalid end_date format. Expected YYYY-MM-DD."
             ) from exc
 
     query_str = """
@@ -104,6 +140,15 @@ def fetch_diagnosis_data(
         )
         params["diagnosis_week_start"] = week_start
         params["diagnosis_week_end"] = week_end
+
+    # Date range filter (takes precedence if both start and end are provided)
+    if range_start and range_end:
+        query_str += (
+            ' AND d."createdAt" >= :range_start '
+            ' AND d."createdAt" < :range_end '
+        )
+        params["range_start"] = range_start
+        params["range_end"] = range_end
 
     query_str += ' ORDER BY d."createdAt" DESC '
 
