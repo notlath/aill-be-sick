@@ -8,8 +8,13 @@ import type { IllnessClusterStatistics } from "@/types";
 interface IllnessClusterOverviewCardsProps {
   statistics: IllnessClusterStatistics[];
   selectedVariables?: {
+    age: boolean;
+    gender: boolean;
+    barangay: boolean;
+    province: boolean;
     city: boolean;
     region: boolean;
+    time: boolean;
   };
 }
 
@@ -90,7 +95,18 @@ const CLUSTER_THEMES = [
 
 const IllnessClusterOverviewCards: React.FC<
   IllnessClusterOverviewCardsProps
-> = ({ statistics, selectedVariables = { city: true, region: false } }) => {
+> = ({
+  statistics,
+  selectedVariables = {
+    age: true,
+    gender: true,
+    city: true,
+    region: false,
+    barangay: false,
+    province: false,
+    time: false,
+  },
+}) => {
   const [expandedClusters, setExpandedClusters] = React.useState<
     Record<string, boolean>
   >({});
@@ -630,8 +646,8 @@ const IllnessClusterOverviewCards: React.FC<
                 </div>
               ) : null}
 
-              {/* TODO: Re-enable temporal distribution when time (seasonal) toggle is active */}
-              {/* {stat.temporal_distribution &&
+              {selectedVariables.time &&
+                stat.temporal_distribution &&
                 Object.keys(stat.temporal_distribution).length > 0 && (
                   <div>
                     <div className="mb-3 flex items-center gap-2">
@@ -655,7 +671,7 @@ const IllnessClusterOverviewCards: React.FC<
                         ))}
                     </div>
                   </div>
-                )} */}
+                  )}
             </CardContent>
           </Card>
         );
