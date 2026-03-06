@@ -111,63 +111,111 @@ const ByDiseaseTab = () => {
         </Card>
       </div>
 
-      {!mapLoading && Object.keys(casesData).length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Cases</CardTitle>
-              <Activity className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-              <div className="text-2xl font-bold">{totalCases.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                For the selected disease and period
-              </p>
-            </CardContent>
-          </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+        {mapLoading ? (
+          <>
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <div className="skeleton h-4 w-24" />
+                <div className="skeleton h-4 w-4" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="skeleton h-8 w-32 mb-2" />
+                <div className="skeleton h-3 w-40" />
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Most Affected Area</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-              <div className="text-2xl font-bold truncate" title={highestDistrict}>
-                {highestDistrict}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                With {highestCases.toLocaleString()} reported cases
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <div className="skeleton h-4 w-32" />
+                <div className="skeleton h-4 w-4" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="skeleton h-8 w-40 mb-2" />
+                <div className="skeleton h-3 w-48" />
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Affected Districts</CardTitle>
-              <MapPin className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-              <div className="text-2xl font-bold">{affectedDistrictsCount.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Areas with at least 1 case
-              </p>
-            </CardContent>
-          </Card>
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <div className="skeleton h-4 w-28" />
+                <div className="skeleton h-4 w-4" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="skeleton h-8 w-24 mb-2" />
+                <div className="skeleton h-3 w-36" />
+              </CardContent>
+            </Card>
 
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Average Cases</CardTitle>
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-              <div className="text-2xl font-bold">{averageCases.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Per affected district
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            <Card className="border-border">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <div className="skeleton h-4 w-28" />
+                <div className="skeleton h-4 w-4" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="skeleton h-8 w-24 mb-2" />
+                <div className="skeleton h-3 w-36" />
+              </CardContent>
+            </Card>
+          </>
+        ) : Object.keys(casesData).length > 0 ? (
+          <>
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Cases</CardTitle>
+                <Activity className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="text-2xl font-bold">{totalCases.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  For the selected disease and period
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Most Affected Area</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="text-2xl font-bold truncate" title={highestDistrict}>
+                  {highestDistrict}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  With {highestCases.toLocaleString()} reported cases
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Affected Districts</CardTitle>
+                <MapPin className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="text-2xl font-bold">{affectedDistrictsCount.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Areas with at least 1 case
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Average Cases</CardTitle>
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="text-2xl font-bold">{averageCases.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Per affected district
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        ) : null}
+      </div>
     </div>
   );
 };

@@ -3,7 +3,7 @@
 import { getColor } from "@/utils/map-helpers";
 import { Feature, GeoJsonObject } from "geojson";
 import { Layer, LeafletMouseEvent, PathOptions } from "leaflet";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { GeoJSON, useMap } from "react-leaflet";
 import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
 
@@ -15,18 +15,7 @@ interface ChoroplethLayerProps {
 export default function ChoroplethLayer({ geoData, casesData }: ChoroplethLayerProps) {
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
   const map = useMap();
-  const [isMounted, setIsMounted] = useState(false);
   const { selectedDisease } = useSelectedDiseaseStore();
-
-  useEffect(() => {
-    setIsMounted(true);
-
-    return () => setIsMounted(false);
-  }, [])
-
-  if (!isMounted) {
-    return null;
-  }
 
   // Determine the style for each feature based on its case count
   function style(feature?: Feature): PathOptions {

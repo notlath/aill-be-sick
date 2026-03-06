@@ -51,14 +51,8 @@ const ChoroplethLegend = ({ label = "Legend" }: ChoroplethLegendProps) => {
 
     legend.addTo(map);
 
-    // Cleanup on unmount — guard against the map already being destroyed
-    // during client-side navigation, which would throw on _targets access.
     return () => {
-      try {
-        legend.remove();
-      } catch {
-        // Map was already removed; nothing to clean up.
-      }
+      legend.remove();
     }
   }, [map, selectedDisease, label])
 
