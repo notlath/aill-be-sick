@@ -1,6 +1,7 @@
 # illness_cluster_service.py
 # Utility for k-means clustering on illness/diagnosis data
 import os
+from datetime import datetime, timedelta
 import numpy as np
 from sklearn.cluster import KMeans
 from sqlalchemy import text
@@ -16,6 +17,8 @@ def fetch_diagnosis_data(
     include_barangay=False,
     include_region=True,
     include_time=False,
+    diagnosis_month=None,
+    diagnosis_week=None,
 ):
     """
     Fetch diagnosis data from PostgreSQL database with linked patient demographics.
@@ -27,36 +30,85 @@ def fetch_diagnosis_data(
     """
     engine = get_db_engine(db_url)
 
-    with engine.connect() as conn:
-        result = conn.execute(
-            text(
-                """
-            SELECT 
-                d.id,
-                d.disease,
-                d.confidence,
-                d.uncertainty,
-                d.city,
-                d.province,
-                d.barangay,
-                d.region,
-                d.latitude,
-                d.longitude,
-                d."createdAt" AS diagnosed_at,
-                u.id AS user_id,
-                u.name AS user_name,
-                u.email AS user_email,
-                u.age,
-                u.gender
-            FROM "Diagnosis" d
-            JOIN "User" u ON d."userId" = u.id
-            WHERE u.role = 'PATIENT'
-                AND u.age IS NOT NULL
-                AND u.gender IS NOT NULL
-            ORDER BY d."createdAt" DESC
-            """
-            )
+    month_start = None
+    month_end = None
+    week_start = None
+    week_end = None
+
+    if diagnosis_month:
+        try:
+            month_start = datetime.strptime(diagnosis_month, "%Y-%m")
+            if month_start.month == 12:
+                month_end = month_start.replace(
+                    year=month_start.year + 1,
+                    month=1,
+                    day=1,
+                )
+            else:
+                month_end = month_start.replace(month=month_start.month + 1, day=1)
+        except ValueError as exc:
+            raise ValueError(
+                "Invalid month filter format. Expected YYYY-MM."
+            ) from exc
+
+    if diagnosis_week:
+        try:
+            year_str, week_str = diagnosis_week.split("-W")
+            iso_year = int(year_str)
+            iso_week = int(week_str)
+            week_start = datetime.fromisocalendar(iso_year, iso_week, 1)
+            week_end = week_start + timedelta(days=7)
+        except (ValueError, TypeError) as exc:
+            raise ValueError(
+                "Invalid week filter format. Expected YYYY-Www."
+            ) from exc
+
+    query_str = """
+        SELECT 
+            d.id,
+            d.disease,
+            d.confidence,
+            d.uncertainty,
+            d.city,
+            d.province,
+            d.barangay,
+            d.region,
+            d.latitude,
+            d.longitude,
+            d."createdAt" AS diagnosed_at,
+            u.id AS user_id,
+            u.name AS user_name,
+            u.email AS user_email,
+            u.age,
+            u.gender
+        FROM "Diagnosis" d
+        JOIN "User" u ON d."userId" = u.id
+        WHERE u.role = 'PATIENT'
+            AND u.age IS NOT NULL
+            AND u.gender IS NOT NULL
+    """
+
+    params = {}
+    if month_start and month_end:
+        query_str += (
+            ' AND d."createdAt" >= :diagnosis_month_start '
+            ' AND d."createdAt" < :diagnosis_month_end '
         )
+        params["diagnosis_month_start"] = month_start
+        params["diagnosis_month_end"] = month_end
+
+    if week_start and week_end:
+        query_str += (
+            ' AND d."createdAt" >= :diagnosis_week_start '
+            ' AND d."createdAt" < :diagnosis_week_end '
+        )
+        params["diagnosis_week_start"] = week_start
+        params["diagnosis_week_end"] = week_end
+
+    query_str += ' ORDER BY d."createdAt" DESC '
+
+    with engine.connect() as conn:
+        result = conn.execute(text(query_str), params)
         data = result.fetchall()
 
     if not data:
