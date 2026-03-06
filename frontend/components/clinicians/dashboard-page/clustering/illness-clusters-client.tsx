@@ -8,16 +8,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AlertCircle, CalendarDays, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import IllnessClusterOverviewCards from "./illness-cluster-overview-cards";
+import DiagnosisDateFilter from "./diagnosis-date-filter";
 import type { IllnessClusterData } from "@/types";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
 
 interface IllnessClustersClientProps {
   initialData?: IllnessClusterData;
@@ -32,179 +27,6 @@ type ClusterVariableSelection = {
   barangay: boolean;
   province: boolean;
   time: boolean;
-};
-
-type DiagnosisDateFilterMode = "all" | "month" | "week";
-
-type MonthOption = {
-  value: string;
-  label: string;
-  shortLabel: string;
-  year: number;
-};
-
-type WeekOption = {
-  value: string;
-  label: string;
-  year: number;
-  week: number;
-};
-
-type WeekCalendarRow = {
-  value: string;
-  weekNumber: number;
-  days: Date[];
-};
-
-const buildMonthOptions = (count: number) => {
-  const options: Array<MonthOption> = [];
-  const now = new Date();
-
-  for (let offset = 0; offset < count; offset += 1) {
-    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    options.push({
-      value: `${year}-${month}`,
-      label: d.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-      shortLabel: d.toLocaleDateString("en-US", { month: "short" }),
-      year,
-    });
-  }
-
-  return options;
-};
-
-const getISOWeekStart = (baseDate: Date) => {
-  const d = new Date(baseDate);
-  const day = d.getDay() || 7;
-  d.setDate(d.getDate() - day + 1);
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
-
-const getISOWeekInfo = (date: Date) => {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const day = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const week = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  return { year: d.getUTCFullYear(), week };
-};
-
-const formatWeekDateRange = (start: Date, end: Date) => {
-  const startLabel = start.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-  const endLabel = end.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-
-  return `${startLabel} - ${endLabel}`;
-};
-
-const buildWeekOptions = (count: number) => {
-  const options: Array<WeekOption> = [];
-  const currentWeekStart = getISOWeekStart(new Date());
-
-  for (let offset = 0; offset < count; offset += 1) {
-    const weekStart = new Date(currentWeekStart);
-    weekStart.setDate(currentWeekStart.getDate() - offset * 7);
-
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-
-    const { year, week } = getISOWeekInfo(weekStart);
-    if (week < 1 || week > 53) {
-      continue;
-    }
-    const weekStr = String(week).padStart(2, "0");
-    const rangeLabel = formatWeekDateRange(weekStart, weekEnd);
-    options.push({
-      value: `${year}-W${weekStr}`,
-      label: `${rangeLabel} (Week ${week})`,
-      year,
-      week,
-    });
-  }
-
-  return options;
-};
-
-const getISOWeekValue = (weekStart: Date) => {
-  const { year, week } = getISOWeekInfo(weekStart);
-  return `${year}-W${String(week).padStart(2, "0")}`;
-};
-
-const getWeekStartFromISOValue = (weekValue: string) => {
-  const match = /^(\d{4})-W(\d{2})$/.exec(weekValue);
-  if (!match) return null;
-
-  const year = Number(match[1]);
-  const week = Number(match[2]);
-  if (week < 1 || week > 53) return null;
-
-  const jan4 = new Date(year, 0, 4);
-  const week1Start = getISOWeekStart(jan4);
-  const start = new Date(week1Start);
-  start.setDate(week1Start.getDate() + (week - 1) * 7);
-  start.setHours(0, 0, 0, 0);
-  return start;
-};
-
-const formatWeekPickerTriggerLabel = (weekValue: string) => {
-  const weekStart = getWeekStartFromISOValue(weekValue);
-  if (!weekStart) {
-    return "Select week";
-  }
-
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  const { week, year } = getISOWeekInfo(weekStart);
-
-  const startLabel = weekStart.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-  const endLabel = weekEnd.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-
-  return `Week ${week} (${startLabel} - ${endLabel}, ${year})`;
-};
-
-const buildWeekCalendarRows = (monthDate: Date): WeekCalendarRow[] => {
-  const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-  const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-  const firstCalendarWeekStart = getISOWeekStart(monthStart);
-  const lastCalendarWeekStart = getISOWeekStart(monthEnd);
-
-  const rows: WeekCalendarRow[] = [];
-  const cursor = new Date(firstCalendarWeekStart);
-
-  while (cursor <= lastCalendarWeekStart) {
-    const weekStart = new Date(cursor);
-    const days = Array.from({ length: 7 }, (_, index) => {
-      const day = new Date(weekStart);
-      day.setDate(weekStart.getDate() + index);
-      return day;
-    });
-
-    const { week } = getISOWeekInfo(weekStart);
-
-    rows.push({
-      value: getISOWeekValue(weekStart),
-      weekNumber: week,
-      days,
-    });
-
-    cursor.setDate(cursor.getDate() + 7);
-  }
-
-  return rows;
 };
 
 const DEFAULT_SELECTED_VARIABLES: ClusterVariableSelection = {
@@ -237,158 +59,24 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
     useState<ClusterVariableSelection>(DEFAULT_SELECTED_VARIABLES);
   const [appliedVariables, setAppliedVariables] =
     useState<ClusterVariableSelection>(DEFAULT_SELECTED_VARIABLES);
-  const [diagnosisDateFilterMode, setDiagnosisDateFilterMode] =
-    useState<DiagnosisDateFilterMode>("all");
-  const [diagnosisMonth, setDiagnosisMonth] = useState<string>("");
-  const [diagnosisWeek, setDiagnosisWeek] = useState<string>("");
+  const [dateRangeStart, setDateRangeStart] = useState<Date | null>(null);
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasFetchedInitialDataRef = useRef(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [isWeekPickerOpen, setIsWeekPickerOpen] = useState(false);
-  const [weekPickerMonth, setWeekPickerMonth] = useState<Date>(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
-  });
-  const weekPickerRef = useRef<HTMLDivElement | null>(null);
-  const monthOptions = React.useMemo(() => buildMonthOptions(24), []);
-  const weekOptions = React.useMemo(() => buildWeekOptions(52), []);
-  const [activeMonthYear, setActiveMonthYear] = useState<number>(
-    new Date().getFullYear(),
-  );
-  const [activeWeekYear, setActiveWeekYear] = useState<number>(
-    new Date().getFullYear(),
-  );
-
-  const availableMonthYears = React.useMemo(() => {
-    const years = new Set<number>();
-    monthOptions.forEach((option) => years.add(option.year));
-    return Array.from(years).sort((a, b) => b - a);
-  }, [monthOptions]);
-
-  const monthOptionsByYear = React.useMemo(() => {
-    const grouped = new Map<number, MonthOption[]>();
-
-    monthOptions.forEach((option) => {
-      const current = grouped.get(option.year) ?? [];
-      grouped.set(option.year, [...current, option]);
-    });
-
-    return grouped;
-  }, [monthOptions]);
-
-  const activeYearMonthOptions = React.useMemo(() => {
-    const options = monthOptionsByYear.get(activeMonthYear) ?? [];
-
-    return [...options].sort((a, b) => {
-      const monthA = Number(a.value.split("-")[1]);
-      const monthB = Number(b.value.split("-")[1]);
-      return monthA - monthB;
-    });
-  }, [monthOptionsByYear, activeMonthYear]);
-
-  const selectedMonthOption = React.useMemo(
-    () => monthOptions.find((option) => option.value === diagnosisMonth),
-    [diagnosisMonth, monthOptions],
-  );
-
-  const availableWeekYears = React.useMemo(() => {
-    const years = new Set<number>();
-    weekOptions.forEach((option) => years.add(option.year));
-    return Array.from(years).sort((a, b) => b - a);
-  }, [weekOptions]);
-
-  const weekOptionsByMonthInActiveYear = React.useMemo(() => {
-    return weekOptions.filter((option) => option.year === activeWeekYear);
-  }, [weekOptions, activeWeekYear]);
-
-  const weekCalendarRows = React.useMemo(
-    () => buildWeekCalendarRows(weekPickerMonth),
-    [weekPickerMonth],
-  );
 
   const BACKEND_URL =
     process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
 
-  useEffect(() => {
-    if (availableMonthYears.length === 0) {
-      return;
-    }
-
-    if (!availableMonthYears.includes(activeMonthYear)) {
-      setActiveMonthYear(availableMonthYears[0]);
-    }
-  }, [activeMonthYear, availableMonthYears]);
-
-  useEffect(() => {
-    if (availableWeekYears.length === 0) {
-      return;
-    }
-
-    if (!availableWeekYears.includes(activeWeekYear)) {
-      setActiveWeekYear(availableWeekYears[0]);
-    }
-  }, [activeWeekYear, availableWeekYears]);
-
-  useEffect(() => {
-    setWeekPickerMonth(
-      new Date(activeWeekYear, weekPickerMonth.getMonth(), 1),
-    );
-  }, [activeWeekYear]);
-
-  useEffect(() => {
-    if (!diagnosisWeek) {
-      return;
-    }
-
-    const selectedWeekStart = getWeekStartFromISOValue(diagnosisWeek);
-    if (!selectedWeekStart) {
-      return;
-    }
-
-    setActiveWeekYear(getISOWeekInfo(selectedWeekStart).year);
-    setWeekPickerMonth(
-      new Date(selectedWeekStart.getFullYear(), selectedWeekStart.getMonth(), 1),
-    );
-  }, [diagnosisWeek]);
-
-  useEffect(() => {
-    if (!isWeekPickerOpen) {
-      return;
-    }
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        weekPickerRef.current &&
-        !weekPickerRef.current.contains(event.target as Node)
-      ) {
-        setIsWeekPickerOpen(false);
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setIsWeekPickerOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    document.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("mousedown", handleOutsideClick);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, [isWeekPickerOpen]);
-
   const buildDiagnosisDateFilterParams = (): Record<string, string> => {
-    if (diagnosisDateFilterMode === "month" && diagnosisMonth) {
-      return { month: diagnosisMonth };
-    }
-
-    if (diagnosisDateFilterMode === "week" && diagnosisWeek) {
-      return { week: diagnosisWeek };
+    if (dateRangeStart && dateRangeEnd) {
+      // For now, send the start month as a single month filter
+      // TODO: Extend backend to support date ranges
+      const year = dateRangeStart.getFullYear();
+      const month = String(dateRangeStart.getMonth() + 1).padStart(2, "0");
+      return { month: `${year}-${month}` };
     }
 
     return {};
@@ -479,13 +167,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [
-    selectedVariables,
-    diagnosisDateFilterMode,
-    diagnosisMonth,
-    diagnosisWeek,
-    BACKEND_URL,
-  ]);
+  }, [selectedVariables, dateRangeStart, dateRangeEnd, BACKEND_URL]);
 
   // Keep the groups input aligned with the latest recommendation
   useEffect(() => {
@@ -640,27 +322,6 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
     });
   };
 
-  const handleDiagnosisDateFilterModeChange = (
-    nextMode: DiagnosisDateFilterMode,
-  ) => {
-    setIsWeekPickerOpen(false);
-
-    if (nextMode === "all") {
-      setDiagnosisMonth("");
-      setDiagnosisWeek("");
-    } else if (nextMode === "month") {
-      // Always default to the most recent month so filtering is explicit.
-      setDiagnosisMonth((prev) => prev || monthOptions[0]?.value || "");
-      setDiagnosisWeek("");
-    } else if (nextMode === "week") {
-      // Always default to the most recent week so filtering is explicit.
-      setDiagnosisWeek((prev) => prev || weekOptions[0]?.value || "");
-      setDiagnosisMonth("");
-    }
-
-    setDiagnosisDateFilterMode(nextMode);
-  };
-
   const modalRoot = isMounted ? document.body : null;
   const confirmModal = (
     <div className={`modal ${showConfirmModal ? "modal-open" : ""}`}>
@@ -799,261 +460,15 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <span className="text-xs font-medium">Diagnosis date filter:</span>
-
-              <label
-                className={`btn btn-sm cursor-pointer font-normal ${diagnosisDateFilterMode === "all" ? "btn-success btn-soft" : ""}`}
-              >
-                <input
-                  type="radio"
-                  name="diagnosis-date-filter"
-                  className="hidden"
-                  checked={diagnosisDateFilterMode === "all"}
-                  onChange={() => {
-                    handleDiagnosisDateFilterModeChange("all");
-                  }}
-                />
-                <span>All dates</span>
-              </label>
-
-              <label
-                className={`btn btn-sm cursor-pointer font-normal ${diagnosisDateFilterMode === "month" ? "btn-success btn-soft" : ""}`}
-              >
-                <input
-                  type="radio"
-                  name="diagnosis-date-filter"
-                  className="hidden"
-                  checked={diagnosisDateFilterMode === "month"}
-                  onChange={() => {
-                    handleDiagnosisDateFilterModeChange("month");
-                  }}
-                />
-                <span>By month</span>
-              </label>
-
-              <label
-                className={`btn btn-sm cursor-pointer font-normal ${diagnosisDateFilterMode === "week" ? "btn-success btn-soft" : ""}`}
-              >
-                <input
-                  type="radio"
-                  name="diagnosis-date-filter"
-                  className="hidden"
-                  checked={diagnosisDateFilterMode === "week"}
-                  onChange={() => {
-                    handleDiagnosisDateFilterModeChange("week");
-                  }}
-                />
-                <span>By week</span>
-              </label>
-
-              {diagnosisDateFilterMode !== "all" ? (
-                diagnosisDateFilterMode === "month" ? (
-                  <Select
-                    className="w-auto"
-                    value={diagnosisMonth || monthOptions[0]?.value}
-                    onValueChange={(value) => setDiagnosisMonth(value)}
-                  >
-                    <SelectTrigger
-                      className="h-8 w-[260px] border-success/40 text-xs"
-                      disabled={loading}
-                    >
-                      {selectedMonthOption
-                        ? selectedMonthOption.label
-                        : "Select month"}
-                    </SelectTrigger>
-                    <SelectContent className="left-0 w-[min(94vw,520px)] p-3">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-xs font-semibold uppercase text-base-content/70">
-                            Year
-                          </span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                          {availableMonthYears.map((year) => (
-                            <button
-                              key={year}
-                              type="button"
-                              className={`btn btn-sm ${activeMonthYear === year ? "btn-success" : "btn-ghost"}`}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setActiveMonthYear(year);
-                              }}
-                            >
-                              {year}
-                            </button>
-                          ))}
-                        </div>
-
-                        <div className="border-base-300 border-t pt-3">
-                          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                            {activeYearMonthOptions.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                                className="list-none [&>a]:justify-center [&>a]:py-2.5"
-                              >
-                                {option.shortLabel} {option.year}
-                              </SelectItem>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className="relative w-auto" ref={weekPickerRef}>
-                    <button
-                      type="button"
-                      className="flex h-8 w-[260px] items-center justify-between gap-2 rounded-[10px] border border-success/40 bg-white/50 px-4 py-2.5 text-xs text-base-content transition-all duration-200 hover:border-base-300/70 hover:bg-white/70 focus:border-primary/40 focus:ring-2 focus:ring-primary/20 focus:outline-none"
-                      disabled={loading}
-                      onClick={() => setIsWeekPickerOpen((prev) => !prev)}
-                    >
-                      <span className="truncate text-left">
-                        {diagnosisWeek
-                          ? formatWeekPickerTriggerLabel(diagnosisWeek)
-                          : "Select week"}
-                      </span>
-                      <CalendarDays className="size-4 shrink-0" />
-                    </button>
-
-                    {isWeekPickerOpen ? (
-                      <div className="bg-base-100 border-base-300 absolute left-0 z-40 mt-2 w-[min(94vw,520px)] rounded-[12px] border p-3 shadow-lg">
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between px-1">
-                            <span className="text-xs font-semibold uppercase text-base-content/70">
-                              Year
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                            {availableWeekYears.map((year) => (
-                              <button
-                                key={year}
-                                type="button"
-                                className={`btn btn-sm ${activeWeekYear === year ? "btn-success" : "btn-ghost"}`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  setActiveWeekYear(year);
-                                }}
-                              >
-                                {year}
-                              </button>
-                            ))}
-                          </div>
-
-                          <div className="border-base-300 border-t pt-3">
-                            <div className="mb-2 flex items-center justify-between">
-                              <button
-                                type="button"
-                                className="btn btn-ghost btn-xs"
-                                onClick={() =>
-                                  setWeekPickerMonth(
-                                    (prev) =>
-                                      new Date(
-                                        prev.getFullYear(),
-                                        prev.getMonth() - 1,
-                                        1,
-                                      ),
-                                  )
-                                }
-                              >
-                                <ChevronLeft className="size-4" />
-                              </button>
-
-                              <span className="text-sm font-semibold">
-                                {weekPickerMonth.toLocaleDateString("en-US", {
-                                  month: "long",
-                                  year: "numeric",
-                                })}
-                              </span>
-
-                              <button
-                                type="button"
-                                className="btn btn-ghost btn-xs"
-                                onClick={() =>
-                                  setWeekPickerMonth(
-                                    (prev) =>
-                                      new Date(
-                                        prev.getFullYear(),
-                                        prev.getMonth() + 1,
-                                        1,
-                                      ),
-                                  )
-                                }
-                              >
-                                <ChevronRight className="size-4" />
-                              </button>
-                            </div>
-
-                            <div className="grid grid-cols-8 gap-1 px-1 text-center text-[11px] font-medium text-base-content/70">
-                              <span>Wk</span>
-                              <span>Mon</span>
-                              <span>Tue</span>
-                              <span>Wed</span>
-                              <span>Thu</span>
-                              <span>Fri</span>
-                              <span>Sat</span>
-                              <span>Sun</span>
-                            </div>
-
-                            <div className="mt-1 space-y-1">
-                              {weekCalendarRows.map((row) => {
-                                const isSelected = diagnosisWeek === row.value;
-                                const existsInYear = weekOptionsByMonthInActiveYear.some(
-                                  (option) => option.value === row.value,
-                                );
-
-                                return (
-                                  <button
-                                    key={row.value}
-                                    type="button"
-                                    disabled={!existsInYear}
-                                    className={`grid w-full grid-cols-8 items-center gap-1 rounded-[10px] px-2 py-1.5 text-xs transition-colors ${
-                                      isSelected
-                                        ? "bg-success/20 ring-success/60 ring-1"
-                                        : "hover:bg-success/15 hover:text-success"
-                                    } ${!existsInYear ? "opacity-40" : ""}`}
-                                    onClick={() => {
-                                      setDiagnosisWeek(row.value);
-                                      setIsWeekPickerOpen(false);
-                                    }}
-                                  >
-                                    <span className="text-base-content/70 text-left text-[11px] font-semibold">
-                                      {row.weekNumber}
-                                    </span>
-
-                                    {row.days.map((day) => {
-                                      const inMonth =
-                                        day.getMonth() === weekPickerMonth.getMonth() &&
-                                        day.getFullYear() ===
-                                          weekPickerMonth.getFullYear();
-
-                                      return (
-                                        <span
-                                          key={day.toISOString()}
-                                          className={`rounded-md px-1 py-0.5 text-center ${
-                                            inMonth
-                                              ? "text-base-content"
-                                              : "text-base-content/40"
-                                          }`}
-                                        >
-                                          {day.getDate()}
-                                        </span>
-                                      );
-                                    })}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )
-              ) : null}
+            {/* Diagnosis Date Filter */}
+            <div className="border-base-300 border-t pt-4">
+              <DiagnosisDateFilter
+                onDateRangeChange={(start, end) => {
+                  setDateRangeStart(start);
+                  setDateRangeEnd(end);
+                }}
+                loading={loading}
+              />
             </div>
 
             {/* Groups */}
