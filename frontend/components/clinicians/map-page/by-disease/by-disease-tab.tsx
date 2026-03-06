@@ -10,6 +10,7 @@ import { useEffect, useState, useMemo } from "react";
 import { getDiseaseDiagnosesByDistricts } from "@/utils/diagnosis";
 import type { GeoJsonObject } from "geojson";
 import { Activity, MapPin, TrendingUp, AlertTriangle } from "lucide-react";
+import { Diagnosis } from "@/lib/generated/prisma";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), { ssr: false });
 
@@ -18,6 +19,7 @@ const ByDiseaseTab = () => {
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
   const [geoData, setGeoData] = useState<GeoJsonObject | null>(null);
   const [casesData, setCasesData] = useState<Record<string, number>>({});
+  const [diagnoses, setDiagnoses] = useState<(Diagnosis)[]>([]);
   const [mapLoading, setMapLoading] = useState(true);
 
   const fetchCasesData = async () => {
@@ -30,7 +32,9 @@ const ByDiseaseTab = () => {
     }
 
     if (success) {
-      const transformedData = success.reduce((acc, item) => {
+      const { diagnoses, grouped } = success;
+
+      const transformedData = grouped.reduce((acc, item) => {
         if (item.district) {
           acc[item.district] = item._count.id;
         }
@@ -38,6 +42,7 @@ const ByDiseaseTab = () => {
       }, {} as Record<string, number>);
 
       setCasesData(transformedData);
+      setDiagnoses(diagnoses);
     }
 
     setMapLoading(false);
@@ -59,7 +64,7 @@ const ByDiseaseTab = () => {
       .catch((err: unknown) => {
         throw Error(err instanceof Error ? err.message : "Unknown error")
       }
-      );
+    );
   }, []);
 
   const {
@@ -106,13 +111,13 @@ const ByDiseaseTab = () => {
               <div className="rounded-xl overflow-hidden" aria-label="Loading map">
                 <div className="skeleton h-[600px] w-full" />
               </div>
-            ) : <ChoroplethMap geoData={geoData} casesData={casesData} />}
+            ) : <ChoroplethMap geoData={geoData} casesData={casesData} diagnoses={diagnoses} />}
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-        {mapLoading ? (
+        {(mapLoading || !geoData) ? (
           <>
             <Card className="border-border">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">

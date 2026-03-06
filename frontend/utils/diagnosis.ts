@@ -91,49 +91,77 @@ export const getDiseaseDiagnosesByDistricts = async (
   try {
 
     if (disease === 'all') {
-      const diagnoses = await prisma.diagnosis.groupBy({
-        by: ['district'],
+      const [diagnoses, grouped] = await Promise.all([
+        prisma.diagnosis.findMany({
+          where: {
+            district: { not: null },
+            createdAt: {
+              gte: startDate ? new Date(startDate) : undefined,
+              lte: endDate ? new Date(endDate) : undefined,
+            },
+          },
+          include: {
+            user: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        }),
+        prisma.diagnosis.groupBy({
+          by: ["district"],
+          where: {
+            district: { not: null },
+            createdAt: {
+              gte: startDate ? new Date(startDate) : undefined,
+              lte: endDate ? new Date(endDate) : undefined,
+            },
+          },
+          _count: {
+            id: true,
+          },
+          orderBy: {
+            _count: {
+              id: "desc",
+            },
+          },
+        }),
+      ]);
+
+      return { success: { diagnoses, grouped } };
+    }
+
+    const [diagnoses, grouped] = await Promise.all([
+      prisma.diagnosis.findMany({
+        where: {
+          disease: disease.toUpperCase() as any,
+          district: { not: null },
+          createdAt: {
+            gte: startDate ? new Date(startDate) : undefined,
+            lte: endDate ? new Date(endDate) : undefined,
+          },
+        },
+      }),
+      prisma.diagnosis.groupBy({
+        by: ["district"],
         where: {
           district: { not: null },
           createdAt: {
             gte: startDate ? new Date(startDate) : undefined,
             lte: endDate ? new Date(endDate) : undefined,
-          }
+          },
         },
         _count: {
           id: true,
         },
         orderBy: {
           _count: {
-            id: 'desc'
-          }
-        }
-      });
+            id: "desc",
+          },
+        },
+      }),
+    ]);
 
-      return { success: diagnoses };
-    }
-
-    const diagnoses = await prisma.diagnosis.groupBy({
-      by: ['disease', 'district'],
-      where: {
-        disease: disease.toUpperCase() as any,
-        district: { not: null },
-        createdAt: {
-          gte: startDate ? new Date(startDate) : undefined,
-          lte: endDate ? new Date(endDate) : undefined,
-        }
-      },
-      _count: {
-        id: true,
-      },
-      orderBy: {
-        _count: {
-          id: 'desc'
-        }
-      }
-    });
-
-    return { success: diagnoses };
+    return { success: { diagnoses, grouped } };
   } catch (error) {
     console.error(`Error fetching diagnoses for disease ${disease}`, error);
 

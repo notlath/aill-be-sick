@@ -6,13 +6,15 @@ import { Layer, LeafletMouseEvent, PathOptions } from "leaflet";
 import { useRef } from "react";
 import { GeoJSON, useMap } from "react-leaflet";
 import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
+import { Diagnosis } from "@/lib/generated/prisma/wasm";
 
 interface ChoroplethLayerProps {
   geoData: GeoJsonObject;
   casesData: Record<string, number>;
+  diagnoses: Diagnosis[];
 }
 
-export default function ChoroplethLayer({ geoData, casesData }: ChoroplethLayerProps) {
+export default function ChoroplethLayer({ geoData, casesData, diagnoses }: ChoroplethLayerProps) {
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
   const map = useMap();
   const { selectedDisease } = useSelectedDiseaseStore();
