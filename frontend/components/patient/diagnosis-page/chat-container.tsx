@@ -2,8 +2,6 @@ import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { Explanation } from "@/types";
 import { LocationData } from "@/utils/location";
 import { forwardRef } from "react";
-import Markdown from "react-markdown";
-import remarkBreaks from "remark-breaks";
 import ChatBubble from "./chat-bubble";
 import QuestionBubble from "./question-bubble";
 
@@ -77,58 +75,9 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
             disabled={isCreatingMessage || isDiagnosing}
           />
         )}
-        {(isDiagnosing || isCreatingMessage) && (
-          <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
-            <div className="flex items-center gap-1.5">
-              <Markdown
-                remarkPlugins={[remarkBreaks]}
-                components={{
-                  p: ({ children }) => <p className="my-0">{children}</p>,
-                  strong: ({ children }) => (
-                    <strong className="font-bold">{children}</strong>
-                  ),
-                }}
-              >
-                Diagnosing
-              </Markdown>
-              <span className="loading loading-dots loading-xs"></span>
-            </div>
-          </article>
-        )}
-        {isGettingQuestion && !currentQuestion && (
-          <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
-            <div className="flex items-center gap-1.5">
-              <Markdown
-                remarkPlugins={[remarkBreaks]}
-                components={{
-                  p: ({ children }) => <p className="my-0">{children}</p>,
-                  strong: ({ children }) => (
-                    <strong className="font-bold">{children}</strong>
-                  ),
-                }}
-              >
-                Asking you follow-up questions
-              </Markdown>
-              <span className="loading loading-dots loading-xs"></span>
-            </div>
-          </article>
-        )}
-        {isGettingExplanations && (
-          <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
-            <div className="flex items-center gap-1.5">
-              <Markdown
-                remarkPlugins={[remarkBreaks]}
-                components={{
-                  p: ({ children }) => <p className="my-0">{children}</p>,
-                  strong: ({ children }) => (
-                    <strong className="font-bold">{children}</strong>
-                  ),
-                }}
-              >
-                Generating insights for your diagnosis
-              </Markdown>
-              <span className="loading loading-dots loading-xs"></span>
-            </div>
+        {(isDiagnosing || isCreatingMessage || (isGettingQuestion && !currentQuestion) || isGettingExplanations) && (
+          <article className="self-start bg-base-200 px-4 py-3 rounded-xl max-w-[60%]">
+            <span className="loading loading-dots loading-sm"></span>
           </article>
         )}
         <div ref={ref} />
