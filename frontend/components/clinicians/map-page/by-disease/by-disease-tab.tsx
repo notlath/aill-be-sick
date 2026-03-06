@@ -11,6 +11,7 @@ import { getDiseaseDiagnosesByDistricts } from "@/utils/diagnosis";
 import type { GeoJsonObject } from "geojson";
 import { Activity, MapPin, TrendingUp, AlertTriangle } from "lucide-react";
 import { Diagnosis } from "@/lib/generated/prisma";
+import FeaturePatientsModal from "../map/feature-patients-modal";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), { ssr: false });
 
@@ -21,6 +22,7 @@ const ByDiseaseTab = () => {
   const [casesData, setCasesData] = useState<Record<string, number>>({});
   const [diagnoses, setDiagnoses] = useState<(Diagnosis)[]>([]);
   const [mapLoading, setMapLoading] = useState(true);
+  const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
 
   const fetchCasesData = async () => {
     setMapLoading(true);
@@ -64,7 +66,7 @@ const ByDiseaseTab = () => {
       .catch((err: unknown) => {
         throw Error(err instanceof Error ? err.message : "Unknown error")
       }
-    );
+      );
   }, []);
 
   const {
@@ -111,7 +113,14 @@ const ByDiseaseTab = () => {
               <div className="rounded-xl overflow-hidden" aria-label="Loading map">
                 <div className="skeleton h-[600px] w-full" />
               </div>
-            ) : <ChoroplethMap geoData={geoData} casesData={casesData} diagnoses={diagnoses} />}
+            ) : (
+              <ChoroplethMap
+                geoData={geoData}
+                casesData={casesData}
+                diagnoses={diagnoses}
+                onFeatureClick={(name) => setSelectedFeature(name)}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
@@ -221,6 +230,13 @@ const ByDiseaseTab = () => {
           </>
         ) : null}
       </div>
+
+      <FeaturePatientsModal
+        isOpen={!!selectedFeature}
+        onClose={() => setSelectedFeature(null)}
+        featureName={selectedFeature ?? ""}
+        diagnoses={selectedFeature ? diagnoses.filter((d) => d.district === selectedFeature) : []}
+      />
     </div>
   );
 };

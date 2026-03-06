@@ -17,16 +17,17 @@ type ChoroplethMapProps = {
   casesData: Record<string, number>;
   geoData: GeoJsonObject;
   diagnoses: Diagnosis[];
+  onFeatureClick?: (featureName: string) => void;
 };
 
-const ChoroplethMap = ({ casesData, geoData, diagnoses }: ChoroplethMapProps) => {
+const ChoroplethMap = ({ casesData, geoData, diagnoses, onFeatureClick }: ChoroplethMapProps) => {
   // Generate a unique, stable key per mount cycle so each navigation produces
   // a fresh MapContainer and avoids the "container is being reused" error.
   const id = useId();
   const mountRef = useRef(0);
 
   mountRef.current += 1;
-  
+
   const mapKey = `${id}-${mountRef.current}`;
 
   return (
@@ -42,7 +43,12 @@ const ChoroplethMap = ({ casesData, geoData, diagnoses }: ChoroplethMapProps) =>
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <ChoroplethLayer casesData={casesData} geoData={geoData} diagnoses={diagnoses} />
+        <ChoroplethLayer
+          casesData={casesData}
+          geoData={geoData}
+          diagnoses={diagnoses}
+          onFeatureClick={onFeatureClick}
+        />
         <ChoroplethLegend />
       </MapContainer>
     </div>
