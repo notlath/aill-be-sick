@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, MapPin, HeartPulse, Calendar } from "lucide-react";
@@ -91,6 +92,7 @@ const CLUSTER_THEMES = [
 const IllnessClusterOverviewCards: React.FC<
   IllnessClusterOverviewCardsProps
 > = ({ statistics, selectedVariables = { city: true, region: false } }) => {
+  const router = useRouter();
   const [expandedClusters, setExpandedClusters] = React.useState<
     Record<string, boolean>
   >({});
@@ -151,7 +153,12 @@ const IllnessClusterOverviewCards: React.FC<
         return (
           <Card
             key={stat.cluster_id}
-            className={`relative overflow-hidden shadow-sm! transition-none! ${theme.border} border-2 `}
+            className={`relative overflow-hidden shadow-sm! transition-none! cursor-pointer hover:shadow-md! hover:border-opacity-100 ${theme.border} border-2 `}
+            onClick={() => {
+              router.push(
+                `/map?tab=illness-cluster&cluster=${String(index + 1)}`,
+              );
+            }}
           >
             {/* Gradient Background Overlay */}
             <div

@@ -209,3 +209,5 @@ export interface IllnessClusterData {
   illnesses: IllnessRecord[];
   centers: number[][];
 }
+
+export type SearchParams = Record<string, string | string[] | undefined>;
