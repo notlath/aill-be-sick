@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { format } from "date-fns";
-import { Calendar } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import { cn } from "@/utils/lib";
 import "react-day-picker/dist/style.css";
@@ -13,6 +13,7 @@ interface DatePickerProps {
   disabled?: boolean;
   className?: string;
   placeholder?: string;
+  clearable?: boolean;
 }
 
 export function DatePicker({
@@ -21,6 +22,7 @@ export function DatePicker({
   disabled,
   className,
   placeholder = "Pick a date",
+  clearable = true,
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
@@ -87,18 +89,25 @@ export function DatePicker({
     setIsOpen(false);
   };
 
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedDate(undefined);
+    onChange("");
+    setIsOpen(false);
+  };
+
   return (
     <div className="relative w-full" ref={containerRef}>
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        disabled={disabled}
+      <div
+        role="button"
+        tabIndex={disabled ? -1 : 0}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
         className={cn(
           "flex items-center gap-2 w-full justify-start",
           "px-4 py-2.5 rounded-[10px]",
           "bg-white/50 backdrop-blur-sm",
           "border border-border",
-          "hover:bg-white/70 hover:border-base-300/70",
+          disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-white/70 hover:border-base-300/70 cursor-pointer",
           "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40",
           "transition-all duration-200",
           "text-sm text-base-content text-left font-normal",
@@ -107,8 +116,18 @@ export function DatePicker({
         )}
       >
         <Calendar className="mr-2 h-4 w-4 shrink-0" />
-        <span className="truncate">{selectedDate ? format(selectedDate, "MMM d, yyyy") : placeholder}</span>
-      </button>
+        <span className="truncate flex-1">{selectedDate ? format(selectedDate, "MMM d, yyyy") : placeholder}</span>
+        {clearable && selectedDate && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="shrink-0 p-1 rounded-full hover:bg-base-300/50 transition-colors"
+            tabIndex={-1}
+          >
+            <X className="h-3.5 w-3.5 text-base-content/60" />
+          </button>
+        )}
+      </div>
 
       {isOpen && today && (
         <div className="absolute top-full left-0 z-50 mt-2 w-full min-w-70">

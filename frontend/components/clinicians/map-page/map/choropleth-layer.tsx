@@ -3,28 +3,21 @@
 import { getColor } from "@/utils/map-helpers";
 import { Feature, GeoJsonObject } from "geojson";
 import { Layer, LeafletMouseEvent, PathOptions } from "leaflet";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { GeoJSON, useMap } from "react-leaflet";
+import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
+import { Diagnosis } from "@/lib/generated/prisma/wasm";
 
 interface ChoroplethLayerProps {
   geoData: GeoJsonObject;
   casesData: Record<string, number>;
+  diagnoses: Diagnosis[];
 }
 
-export default function ChoroplethLayer({ geoData, casesData }: ChoroplethLayerProps) {
+export default function ChoroplethLayer({ geoData, casesData, diagnoses }: ChoroplethLayerProps) {
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
   const map = useMap();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-
-    return () => setIsMounted(false);
-  }, [])
-  
-  if (!isMounted) {
-    return null;
-  }
+  const { selectedDisease } = useSelectedDiseaseStore();
 
   // Determine the style for each feature based on its case count
   function style(feature?: Feature): PathOptions {
@@ -33,12 +26,12 @@ export default function ChoroplethLayer({ geoData, casesData }: ChoroplethLayerP
     const isBoundary = !name;
 
     return {
-      fillColor: isBoundary ? "transparent" : getColor(count),
+      fillColor: isBoundary ? "transparent" : getColor(count, selectedDisease),
       weight: isBoundary ? 2 : 2,
       opacity: 1,
       color: isBoundary ? "#9CA3AF" : "white",
       dashArray: isBoundary ? "3" : "10",
-      fillOpacity: isBoundary ? 0 : 0.5,
+      fillOpacity: isBoundary ? 0 : 0.7,
     };
   }
 
@@ -50,7 +43,7 @@ export default function ChoroplethLayer({ geoData, casesData }: ChoroplethLayerP
       weight: 4,
       color: "#ffffff",
       dashArray: "",
-      fillOpacity: 0.65,
+      fillOpacity: 0.9,
     });
     layer.bringToFront();
   }
@@ -93,6 +86,7 @@ export default function ChoroplethLayer({ geoData, casesData }: ChoroplethLayerP
 
   return (
     <GeoJSON
+      key={selectedDisease}
       data={geoData}
       style={style}
       onEachFeature={onEachFeature}

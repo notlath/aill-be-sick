@@ -9,27 +9,27 @@ datasource db {
 }
 
 model User {
-  id        Int         @id @default(autoincrement())
-  email     String      @unique
-  name      String?
-  authId    String?     @unique
-  avatar    String?
+  id          Int         @id @default(autoincrement())
+  email       String      @unique
+  name        String?
+  authId      String?     @unique
+  avatar      String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @default(now()) @updatedAt
   role        Role        @default(PATIENT)
-  isOnboarded Boolean     @default(false)
   city        String?
   latitude    Float?
   longitude   Float?
   region      String?
   age         Int?
-  gender    Gender?
-  province  String?
-  district  String?
-  barangay  String?
-  birthday  DateTime?
-  chats     Chat[]
-  diagnoses Diagnosis[]
+  gender      Gender?
+  province    String?
+  barangay    String?
+  birthday    DateTime?
+  isOnboarded Boolean     @default(false)
+  district    String?
+  chats       Chat[]
+  diagnoses   Diagnosis[]
 }
 
 model Chat {
@@ -87,6 +87,7 @@ model Diagnosis {
   region      String?
   province    String?
   barangay    String?
+  district    String?
   chat        Chat         @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   explanation Explanation?
@@ -101,6 +102,26 @@ model Explanation {
   messageId   Int?       @unique
   diagnosis   Diagnosis? @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
   message     Message?   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model diagnosis_sessions {
+  session_id       String @id
+  chat_id          String
+  initial_symptoms String
+  base_probs       String
+  current_probs    String
+  disease          String
+  confidence       Float
+  uncertainty      Float
+  top_diseases     String
+  model_used       String
+  lang             String @default("en")
+  asked_questions  String @default("[]")
+  evidence_texts   String @default("[]")
+  created_at       Float
+  updated_at       Float
+
+  @@index([chat_id], map: "idx_diagnosis_sessions_chat_id")
 }
 
 enum Role {
