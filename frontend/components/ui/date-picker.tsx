@@ -12,6 +12,7 @@ interface DatePickerProps {
   onChange: (date: string) => void;
   disabled?: boolean;
   className?: string;
+  placeholder?: string;
 }
 
 export function DatePicker({
@@ -19,6 +20,7 @@ export function DatePicker({
   onChange,
   disabled,
   className,
+  placeholder = "Pick a date",
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
@@ -100,11 +102,12 @@ export function DatePicker({
           "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40",
           "transition-all duration-200",
           "text-sm text-base-content text-left font-normal",
+          "whitespace-nowrap shrink-0 min-w-[180px]",
           className,
         )}
       >
-        <Calendar className="mr-2 h-4 w-4" />
-        {selectedDate ? format(selectedDate, "MMM d, yyyy") : "Pick a date"}
+        <Calendar className="mr-2 h-4 w-4 shrink-0" />
+        <span className="truncate">{selectedDate ? format(selectedDate, "MMM d, yyyy") : placeholder}</span>
       </button>
 
       {isOpen && today && (

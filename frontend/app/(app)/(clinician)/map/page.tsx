@@ -1,7 +1,8 @@
+import ChoroplethMapTabs from "@/components/clinicians/map-page/map/choropleth-map-tabs";
 
 export default async function MapPage() {
   return (
-    <main className="container px-8 pt-12 pb-8 md:px-16 lg:px-24">
+    <main className="container px-8 pt-12 pb-8 md:px-16 lg:px-24 space-y-8">
       <div className="max-w-[1600px] mx-auto space-y-6">
         <div className="flex flex-col space-y-2">
           <h1 className="font-semibold text-6xl tracking-tight bg-gradient-to-br from-base-content via-base-content to-base-content/70 bg-clip-text text-transparent">
@@ -12,6 +13,7 @@ export default async function MapPage() {
           </p>
         </div>
       </div>
+      <ChoroplethMapTabs />
     </main>
   );
 }
