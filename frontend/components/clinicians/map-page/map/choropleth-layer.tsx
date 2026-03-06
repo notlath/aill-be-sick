@@ -5,6 +5,7 @@ import { Feature, GeoJsonObject } from "geojson";
 import { Layer, LeafletMouseEvent, PathOptions } from "leaflet";
 import { useEffect, useRef, useState } from "react";
 import { GeoJSON, useMap } from "react-leaflet";
+import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
 
 interface ChoroplethLayerProps {
   geoData: GeoJsonObject;
@@ -15,13 +16,14 @@ export default function ChoroplethLayer({ geoData, casesData }: ChoroplethLayerP
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
   const map = useMap();
   const [isMounted, setIsMounted] = useState(false);
+  const { selectedDisease } = useSelectedDiseaseStore();
 
   useEffect(() => {
     setIsMounted(true);
 
     return () => setIsMounted(false);
   }, [])
-  
+
   if (!isMounted) {
     return null;
   }
@@ -33,12 +35,12 @@ export default function ChoroplethLayer({ geoData, casesData }: ChoroplethLayerP
     const isBoundary = !name;
 
     return {
-      fillColor: isBoundary ? "transparent" : getColor(count),
+      fillColor: isBoundary ? "transparent" : getColor(count, selectedDisease),
       weight: isBoundary ? 2 : 2,
       opacity: 1,
       color: isBoundary ? "#9CA3AF" : "white",
       dashArray: isBoundary ? "3" : "10",
-      fillOpacity: isBoundary ? 0 : 0.5,
+      fillOpacity: isBoundary ? 0 : 0.7,
     };
   }
 
@@ -50,7 +52,7 @@ export default function ChoroplethLayer({ geoData, casesData }: ChoroplethLayerP
       weight: 4,
       color: "#ffffff",
       dashArray: "",
-      fillOpacity: 0.65,
+      fillOpacity: 0.9,
     });
     layer.bringToFront();
   }
@@ -93,6 +95,7 @@ export default function ChoroplethLayer({ geoData, casesData }: ChoroplethLayerP
 
   return (
     <GeoJSON
+      key={selectedDisease}
       data={geoData}
       style={style}
       onEachFeature={onEachFeature}
