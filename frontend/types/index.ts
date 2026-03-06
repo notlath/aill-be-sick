@@ -1,3 +1,4 @@
+
 export type TempDiagnosis = {
   confidence: number;
   uncertainty: number;
