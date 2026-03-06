@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { ClusterTimelineChart } from "@/components/clinicians/map-page/cluster-timeline-chart";
 import { IllnessClusterTimelineChart } from "@/components/clinicians/map-page/illness-cluster-timeline-chart";
 import { AnomalyTimelineChart } from "@/components/clinicians/map-page/anomaly-timeline-chart";
+import { DiseaseTimelineChart } from "@/components/clinicians/map-page/disease-timeline-chart";
 import {
   Select,
   SelectContent,
@@ -15,13 +15,14 @@ import {
 import {
   AnomalyHeatmapData,
   ClusterStatistics,
+  DiseaseHeatmapData,
   IllnessClusterData, MapHeatmapData,
   OutbreakFullResult,
   PatientClusterData,
   SurveillanceAnomaly
 } from "@/types";
 import { buildClusterRamp, getClusterBaseColor } from "@/utils/cluster-colors";
-import { getMapDiseaseData } from "@/utils/map-data";
+import { DiseaseMapData, getMapDiseaseData } from "@/utils/map-data";
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import provinces from "@/public/locations/provinces.json";
@@ -219,6 +220,12 @@ export function MapContainer({
   const [disease, setDisease] = useState<string>("All");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [diseaseMapData, setDiseaseMapData] = useState<DiseaseMapData | undefined>(
+    undefined,
+  );
+  const [diseaseFetchError, setDiseaseFetchError] = useState<string | undefined>(
+    undefined,
+  );
 
   const handleIllnessVariableChange = (variable: keyof typeof illnessSelectedVariables) => {
     const selectedCount =
@@ -685,6 +692,147 @@ export function MapContainer({
     };
   }, [illnessClusterData, selectedIllnessCluster, selectedTab, illnessClusterOrder]);
 
+  // ----- Disease Heatmap Data -----
+  const diseaseHeatmapData = useMemo<DiseaseHeatmapData | undefined>(() => {
+    if (!diseaseMapData || selectedTab !== "disease") return undefined;
+
+    const selectedDiseaseLabel = disease === "All" ? "All Diseases" : disease;
+    const colorIndex = disease === "All" ? 0 : Math.max(0, DISEASES.indexOf(disease));
+    const diseaseBaseColor = getClusterBaseColor(colorIndex);
+
+    const provinceCounts: Record<string, number> = {};
+    const provinceTotals: Record<string, number> = {};
+    for (const province of diseaseMapData.byProvince) {
+      const normalizedProvince = normalizeLoc(province.location);
+      if (!normalizedProvince) continue;
+      const canonicalProvince = provinceNameByAlias.get(normalizedProvince);
+      if (!canonicalProvince) continue;
+      const provinceKey = normalizeLoc(canonicalProvince);
+      provinceCounts[provinceKey] = (provinceCounts[provinceKey] || 0) + province.count;
+      provinceTotals[provinceKey] = (provinceTotals[provinceKey] || 0) + province.count;
+    }
+
+    const regionTotals: Record<string, number> = {};
+    for (const region of diseaseMapData.byRegion) {
+      const rawRegionName = region.location?.trim();
+      if (!rawRegionName) continue;
+
+      const normalizedRegion = normalizeLoc(rawRegionName);
+      const regionPsgc = regionPsgcByAlias.get(normalizedRegion);
+      const officialRegionName = regionPsgc ? regionNameByPsgc.get(regionPsgc) : rawRegionName;
+
+      if (officialRegionName) {
+        regionTotals[officialRegionName] = (regionTotals[officialRegionName] || 0) + region.count;
+      }
+    }
+
+    const cityTotals: Record<string, number> = {};
+    const barangayCounts: Record<string, number> = {};
+    for (const item of diseaseMapData.byBarangayWithProvince) {
+      const normalizedProvince = normalizeLoc(item.province);
+      const normalizedCity = normalizeLoc(item.municipality);
+      const normalizedBarangay = normalizeLoc(item.barangay);
+      if (!normalizedProvince || !normalizedCity || !normalizedBarangay) continue;
+
+      const provinceCityKey = `${normalizedProvince}||${normalizedCity}`;
+      const provinceCityBarangayKey = `${provinceCityKey}||${normalizedBarangay}`;
+
+      cityTotals[provinceCityKey] = (cityTotals[provinceCityKey] || 0) + item.count;
+      barangayCounts[provinceCityBarangayKey] =
+        (barangayCounts[provinceCityBarangayKey] || 0) + item.count;
+    }
+
+    const provinceToRegion: Record<string, string> = {};
+    for (const [provinceName, regionPsgc] of provinceNameToRegionPsgc.entries()) {
+      const regionName = regionNameByPsgc.get(regionPsgc);
+      if (!regionName) continue;
+      provinceToRegion[normalizeLoc(provinceName)] = regionName;
+    }
+
+    const globalMax = Object.values(provinceCounts).reduce(
+      (max, count) => Math.max(max, count),
+      0,
+    );
+
+    const legendBins: DiseaseHeatmapData["legendBins"] = [];
+    const provinceLegendBinsByProvince: DiseaseHeatmapData["provinceLegendBinsByProvince"] = {};
+    if (globalMax > 0) {
+      const colorRamp = buildClusterRamp(diseaseBaseColor, 5);
+      const bucketSize = Math.ceil(globalMax / colorRamp.length);
+      for (let index = 0; index < colorRamp.length; index += 1) {
+        const min = index * bucketSize + 1;
+        const max = Math.min(globalMax, (index + 1) * bucketSize);
+        if (min > max) continue;
+        legendBins.push({ min, max, color: colorRamp[index] });
+      }
+
+      const provinceBarangayMax = new Map<string, number>();
+      for (const [key, count] of Object.entries(barangayCounts)) {
+        const [normalizedProvinceName] = key.split("||");
+        if (!normalizedProvinceName) continue;
+        const currentMax = provinceBarangayMax.get(normalizedProvinceName) ?? 0;
+        if (count > currentMax) {
+          provinceBarangayMax.set(normalizedProvinceName, count);
+        }
+      }
+
+      for (const [normalizedProvinceName, provinceMax] of provinceBarangayMax.entries()) {
+        if (provinceMax <= 0) {
+          provinceLegendBinsByProvince[normalizedProvinceName] = [];
+          continue;
+        }
+        const provinceBucketSize = Math.ceil(provinceMax / colorRamp.length);
+        const bins: DiseaseHeatmapData["legendBins"] = [];
+        for (let index = 0; index < colorRamp.length; index += 1) {
+          const min = index * provinceBucketSize + 1;
+          const max = Math.min(provinceMax, (index + 1) * provinceBucketSize);
+          if (min > max) continue;
+          bins.push({ min, max, color: colorRamp[index] });
+        }
+        provinceLegendBinsByProvince[normalizedProvinceName] = bins;
+      }
+    }
+
+    return {
+      diseaseBaseColor,
+      selectedDisease: selectedDiseaseLabel,
+      provinceCounts,
+      provinceTotals,
+      regionTotals,
+      provinceToRegion,
+      cityTotals,
+      barangayCounts,
+      globalMax,
+      legendBins,
+      provinceLegendBinsByProvince,
+    };
+  }, [disease, diseaseMapData, selectedTab]);
+
+  const diseaseSummary = useMemo(() => {
+    if (selectedTab !== "disease" || !diseaseMapData || !diseaseHeatmapData) return null;
+
+    const topRegions = Object.entries(diseaseHeatmapData.regionTotals)
+      .filter(([, count]) => count > 0)
+      .sort((a, b) => b[1] - a[1]);
+
+    const topCities = Object.entries(diseaseHeatmapData.cityTotals)
+      .filter(([, count]) => count > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([key, count]) => {
+        const parts = key.split("||");
+        return { city: parts[parts.length - 1], count };
+      });
+
+    return {
+      totalPatients: diseaseMapData.totalPatients,
+      topRegions,
+      topCities,
+      diseaseBaseColor: diseaseHeatmapData.diseaseBaseColor,
+      selectedDisease: diseaseHeatmapData.selectedDisease,
+      dates: diseaseMapData.dates,
+    };
+  }, [selectedTab, diseaseMapData, diseaseHeatmapData]);
+
   const selectedClusterSummary = useMemo(() => {
     if (!clusterData || selectedTab !== "cluster") return null;
 
@@ -816,24 +964,51 @@ export function MapContainer({
   // Fetch all patient location data for map
   useEffect(() => {
     if (selectedTab !== "disease") return;
+    let cancelled = false;
 
     async function fetchMapData() {
-      setDataLoading(true);
+      try {
+        setDataLoading(true);
+        setDiseaseFetchError(undefined);
 
-      const params: any = {};
-      if (disease !== "All") params.disease = disease;
-      if (startDate) params.startDate = new Date(startDate);
-      if (endDate) params.endDate = new Date(endDate);
+        const params: {
+          disease?: string;
+          startDate?: Date;
+          endDate?: Date;
+        } = {};
+        if (disease !== "All") params.disease = disease;
+        if (startDate) params.startDate = new Date(startDate);
+        if (endDate) params.endDate = new Date(endDate);
 
-      const result = await getMapDiseaseData(params);
+        const result = await getMapDiseaseData(params);
+        if (cancelled) return;
 
-      if (result.error) {
-        console.error("Error fetching map data:", result.error);
+        if (result.error) {
+          setDiseaseMapData(undefined);
+          setDiseaseFetchError(result.error);
+          console.error("Error fetching map data:", result.error);
+          return;
+        }
+
+        setDiseaseMapData(result.success);
+      } catch (error) {
+        if (cancelled) return;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        setDiseaseMapData(undefined);
+        setDiseaseFetchError(errorMessage);
+        console.error("Error fetching map data:", errorMessage);
+      } finally {
+        if (!cancelled) {
+          setDataLoading(false);
+        }
       }
-      setDataLoading(false);
     }
 
     fetchMapData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedTab, disease, startDate, endDate]);
 
   // Fetch clusters when k changes
@@ -1632,8 +1807,10 @@ export function MapContainer({
       <div className="relative">
         <PhilippinesMap
           selectedTab={selectedTab}
+          selectedDisease={disease}
           selectedCluster={selectedCluster}
           selectedIllnessCluster={selectedIllnessCluster}
+          diseaseHeatmapData={diseaseHeatmapData}
           heatmapData={heatmapData}
           illnessHeatmapData={illnessHeatmapData}
           anomalyHeatmapData={anomalyHeatmapData}
@@ -1649,6 +1826,80 @@ export function MapContainer({
           </div>
         )}
       </div>
+
+      {selectedTab === "disease" && diseaseFetchError && (
+        <div className="alert alert-error text-sm">
+          <span>Failed to load disease map data: {diseaseFetchError}</span>
+        </div>
+      )}
+
+      {selectedTab === "disease" && diseaseSummary && !diseaseFetchError && (
+        <div className="card bg-base-100 border border-base-300">
+          <div className="card-body gap-4">
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-3 rounded-full"
+                style={{ backgroundColor: diseaseSummary.diseaseBaseColor }}
+              />
+              <h3 className="card-title text-base">
+                {diseaseSummary.selectedDisease} Overview
+              </h3>
+            </div>
+
+            <div className="rounded-lg bg-base-200 px-4 py-3 text-sm text-base-content/80 leading-relaxed">
+              <strong>{diseaseSummary.totalPatients}</strong> recorded cases
+              {diseaseSummary.topRegions.length > 0 && (
+                <>
+                  , concentrated primarily in <strong>{diseaseSummary.topRegions[0][0]}</strong>
+                </>
+              )}
+              .
+            </div>
+
+            <DiseaseTimelineChart
+              dates={diseaseSummary.dates}
+              disease={diseaseSummary.selectedDisease}
+              diseaseColor={diseaseSummary.diseaseBaseColor}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-base-200 rounded-box p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-semibold">Top Regions</p>
+                </div>
+                {diseaseSummary.topRegions.length > 0 ? (
+                  <div className="space-y-1">
+                    {diseaseSummary.topRegions.slice(0, 5).map(([region, count]) => (
+                      <p key={region}>
+                        {region} ({count})
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-base-content/70">No region data</p>
+                )}
+              </div>
+
+              <div className="bg-base-200 rounded-box p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-semibold">Top Cities</p>
+                </div>
+                {diseaseSummary.topCities.length > 0 ? (
+                  <div className="space-y-1">
+                    {diseaseSummary.topCities.slice(0, 5).map(({ city, count }) => (
+                      <p key={city}>
+                        {city} ({count})
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-base-content/70">No city data</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedTab === "cluster" && selectedClusterSummary && (
         <div className="card bg-base-100 border border-base-300">
@@ -1980,12 +2231,6 @@ export function MapContainer({
                   {anomalyDisease} Anomaly Overview
                 </h3>
               </div>
-              <Link
-                href="/alerts"
-                className="btn btn-ghost btn-xs text-primary"
-              >
-                View full analysis →
-              </Link>
             </div>
 
             {/* Natural language interpretation */}

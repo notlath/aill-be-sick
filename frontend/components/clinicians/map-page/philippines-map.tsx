@@ -6,8 +6,9 @@ import { useGeoData, ViewState, ViewLevel, MapFeature } from "@/hooks/use-geo-da
 import { ChevronLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { AnomalyHeatmapData, MapHeatmapData } from "@/types";
+import { AnomalyHeatmapData, DiseaseHeatmapData, MapHeatmapData } from "@/types";
 import provinces from "@/public/locations/provinces.json";
+import regions from "@/public/locations/regions.json";
 
 
 // Helper to determine next level in the flow
@@ -32,12 +33,19 @@ type PhilippinesMapProps = {
   selectedDisease?: string;
   selectedCluster?: string;
   selectedIllnessCluster?: string;
+  diseaseHeatmapData?: DiseaseHeatmapData;
   heatmapData?: MapHeatmapData;
   illnessHeatmapData?: MapHeatmapData;
   anomalyHeatmapData?: AnomalyHeatmapData;
 }
 
 type ProvinceRecord = {
+  psgc: string;
+  name: string;
+  regionPsgc: string;
+};
+
+type RegionRecord = {
   psgc: string;
   name: string;
 };
@@ -47,8 +55,15 @@ const COUNTRY_MIN_ZOOM = 0.35;
 const ZOOM_STEP_MULTIPLIER = 0.45;
 
 const provinceRows = provinces as ProvinceRecord[];
+const regionRows = regions as RegionRecord[];
 const provinceNameByPsgc = new Map(
   provinceRows.map((province) => [province.psgc, province.name]),
+);
+const regionNameByPsgc = new Map(
+  regionRows.map((region) => [region.psgc, region.name]),
+);
+const regionNameByProvincePsgc = new Map(
+  provinceRows.map((province) => [province.psgc, regionNameByPsgc.get(province.regionPsgc) || ""]),
 );
 
 const normalizeLoc = (value?: string | null): string => {
@@ -63,7 +78,38 @@ const normalizeLoc = (value?: string | null): string => {
     .replace(/\s+province$/i, "");
 };
 
-const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData, illnessHeatmapData, anomalyHeatmapData }: PhilippinesMapProps) => {
+const regionNameByProvinceName = new Map<string, string>();
+for (const province of provinceRows) {
+  const regionName = regionNameByPsgc.get(province.regionPsgc);
+  if (!regionName) continue;
+  regionNameByProvinceName.set(normalizeLoc(province.name), regionName);
+}
+
+const getProvinceLabel = (
+  provinceName: string | null,
+  provinceId: string | null,
+  geoData: { features?: MapFeature[] } | null,
+): string => {
+  if (!provinceName) return "Province";
+
+  let regionName = "";
+  if (provinceId) {
+    regionName = regionNameByProvincePsgc.get(provinceId) || "";
+  }
+
+  if (!regionName) {
+    const fromFeature = geoData?.features?.[0]?.properties?.adm1_en;
+    if (fromFeature) regionName = fromFeature;
+  }
+
+  if (!regionName) {
+    regionName = regionNameByProvinceName.get(normalizeLoc(provinceName)) || "";
+  }
+
+  return regionName ? `${provinceName}, ${regionName}` : provinceName;
+};
+
+const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, diseaseHeatmapData, heatmapData, illnessHeatmapData, anomalyHeatmapData }: PhilippinesMapProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -85,6 +131,27 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
 
   // Use Custom Hook for Data Fetching
   const { geoData, loading, error } = useGeoData(viewState);
+
+  // ----- Disease Heatmap Data Memos -----
+  const diseaseProvinceCounts = useMemo(() => {
+    if (!diseaseHeatmapData) return new Map<string, number>();
+    return new Map<string, number>(Object.entries(diseaseHeatmapData.provinceCounts));
+  }, [diseaseHeatmapData]);
+
+  const diseaseProvinceTotals = useMemo(() => {
+    if (!diseaseHeatmapData) return new Map<string, number>();
+    return new Map<string, number>(Object.entries(diseaseHeatmapData.provinceTotals));
+  }, [diseaseHeatmapData]);
+
+  const diseaseCityTotals = useMemo(() => {
+    if (!diseaseHeatmapData) return new Map<string, number>();
+    return new Map<string, number>(Object.entries(diseaseHeatmapData.cityTotals));
+  }, [diseaseHeatmapData]);
+
+  const diseaseBarangayCounts = useMemo(() => {
+    if (!diseaseHeatmapData) return new Map<string, number>();
+    return new Map<string, number>(Object.entries(diseaseHeatmapData.barangayCounts));
+  }, [diseaseHeatmapData]);
 
   const projectedProvinceCounts = useMemo(() => {
     if (!heatmapData) return new Map<string, number>();
@@ -155,6 +222,11 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
     if (!heatmapData || !currentProvinceNormalized) return [];
     return heatmapData.provinceLegendBinsByProvince[currentProvinceNormalized] ?? [];
   }, [heatmapData, currentProvinceNormalized]);
+
+  const diseaseActiveProvinceLegendBins = useMemo(() => {
+    if (!diseaseHeatmapData || !currentProvinceNormalized) return [];
+    return diseaseHeatmapData.provinceLegendBinsByProvince[currentProvinceNormalized] ?? [];
+  }, [diseaseHeatmapData, currentProvinceNormalized]);
 
   // ----- Illness Cluster Data Memos -----
   const illnessProjectedProvinceCounts = useMemo(() => {
@@ -261,7 +333,10 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
     // Default: try to get the Province Name from the first feature
     // In 'province' view, features are Barangays having adm2_en as Province Name
     const firstFeature = geoData.features[0];
-    let provinceName = firstFeature.properties.adm2_en || "Province"; // Fallback
+    let provinceName =
+      currentProvinceName ||
+      firstFeature.properties.adm2_en ||
+      "Province"; // Fallback
 
     // Handle Country View
     if (viewState.level === 'country') {
@@ -269,6 +344,10 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
     }
 
     let newName = provinceName;
+
+    if (viewState.level === "province") {
+      newName = getProvinceLabel(provinceName, viewState.id, geoData);
+    }
 
     // If highlighting, user wants context (City, etc.)
     if (highlightId && viewState.level === 'province') {
@@ -303,12 +382,13 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
       }
 
       if (foundName) {
+        const provinceLabel = getProvinceLabel(provinceName, viewState.id, geoData);
         if (cityName) {
-          // Brgy, City, Prov
-          newName = `${foundName}, ${cityName}, ${provinceName}`;
+          // Brgy, City, Prov, Region
+          newName = `${foundName}, ${cityName}, ${provinceLabel}`;
         } else {
-          // City, Prov
-          newName = `${foundName}, ${provinceName}`;
+          // City, Prov, Region
+          newName = `${foundName}, ${provinceLabel}`;
         }
       }
     }
@@ -419,6 +499,26 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
       // Color Scale
       const colorScale = d3.scaleOrdinal(d3.schemeBlues[9]);
 
+      const getDiseaseCountForFeature = (feature: MapFeature): number => {
+        if (selectedTab !== "disease" || !diseaseHeatmapData) return 0;
+
+        if (viewState.level === "province") {
+          if (!currentProvinceNormalized) return 0;
+          const cityName =
+            feature.properties.adm3_en ||
+            cityNameByPsgc.get(feature.properties.adm3_psgc || 0) ||
+            "";
+          const barangayName = feature.properties.adm4_en || "";
+          if (!cityName || !barangayName) return 0;
+          const barangayKey = `${currentProvinceNormalized}||${normalizeLoc(cityName)}||${normalizeLoc(barangayName)}`;
+          return diseaseBarangayCounts.get(barangayKey) ?? 0;
+        }
+
+        const provinceName = feature.properties.adm2_en || feature.properties.adm3_en;
+        if (!provinceName) return 0;
+        return diseaseProvinceCounts.get(normalizeLoc(provinceName)) ?? 0;
+      };
+
       const getClusterCountForFeature = (feature: MapFeature): number => {
         if (selectedTab !== "cluster" || !heatmapData) return 0;
 
@@ -460,6 +560,20 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
       };
 
       const getFeatureFillColor = (feature: MapFeature): string => {
+        if (selectedTab === "disease" && diseaseHeatmapData) {
+          const count = getDiseaseCountForFeature(feature);
+          const activeLegendBins =
+            viewState.level === "province"
+              ? diseaseActiveProvinceLegendBins
+              : diseaseHeatmapData.legendBins;
+          if (count <= 0 || activeLegendBins.length === 0) return ZERO_CLUSTER_COLOR;
+
+          const matchedBin = activeLegendBins.find(
+            (bin) => count >= bin.min && count <= bin.max,
+          );
+          return matchedBin?.color ?? activeLegendBins[activeLegendBins.length - 1]?.color ?? ZERO_CLUSTER_COLOR;
+        }
+
         if (selectedTab === "cluster" && heatmapData) {
           const count = getClusterCountForFeature(feature);
           const activeLegendBins =
@@ -622,6 +736,48 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
         })
         .on("mousemove", (event, d: any) => {
           const name = d.properties.adm4_en || d.properties.adm3_en || d.properties.adm2_en || d.properties.adm1_en || "Feature";
+          if (selectedTab === "disease" && diseaseHeatmapData) {
+            if (viewState.level === "province") {
+              const provinceName = currentProvinceName || "Province";
+              const normalizedProvince = normalizeLoc(provinceName);
+              const cityName =
+                d.properties.adm3_en ||
+                cityNameByPsgc.get(d.properties.adm3_psgc) ||
+                "Unknown city";
+              const barangayName = d.properties.adm4_en || name;
+              const barangayKey = `${normalizedProvince}||${normalizeLoc(cityName)}||${normalizeLoc(barangayName)}`;
+              const cityKey = `${normalizedProvince}||${normalizeLoc(cityName)}`;
+              const barangayCount = diseaseBarangayCounts.get(barangayKey) ?? 0;
+              const cityTotal = diseaseCityTotals.get(cityKey) ?? 0;
+              const provinceTotal = diseaseProvinceTotals.get(normalizedProvince) ?? 0;
+
+              tooltip
+                .style("display", "block")
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 10) + "px")
+                .html(
+                  `${barangayName}: ${barangayCount} ${diseaseHeatmapData.selectedDisease} cases<br/>${cityName} total: ${cityTotal}<br/>${provinceName} total: ${provinceTotal}`,
+                );
+              return;
+            }
+
+            const provinceName =
+              d.properties.adm2_en || d.properties.adm3_en || name;
+            const normalizedProvince = normalizeLoc(provinceName);
+            const provinceCount = diseaseHeatmapData.provinceCounts[normalizedProvince] ?? 0;
+            const regionName = diseaseHeatmapData.provinceToRegion[normalizedProvince] ?? "Region";
+            const regionTotal = diseaseHeatmapData.regionTotals[regionName] ?? 0;
+
+            tooltip
+              .style("display", "block")
+              .style("left", (event.pageX + 10) + "px")
+              .style("top", (event.pageY - 10) + "px")
+              .html(
+                `<strong>${name}</strong>: ${provinceCount} ${diseaseHeatmapData.selectedDisease} cases<br/>${regionName} total: ${regionTotal}`,
+              );
+            return;
+          }
+
           if (selectedTab === "anomaly" && anomalyHeatmapData) {
             if (viewState.level === "province") {
               const provinceName = currentProvinceName || "Province";
@@ -826,6 +982,12 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
     containerRef,
     highlightId,
     selectedTab,
+    diseaseHeatmapData,
+    diseaseProvinceCounts,
+    diseaseProvinceTotals,
+    diseaseCityTotals,
+    diseaseBarangayCounts,
+    diseaseActiveProvinceLegendBins,
     heatmapData,
     anomalyHeatmapData,
     projectedProvinceCounts,
@@ -866,7 +1028,9 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
       let nextName = "Unknown";
 
       nextId = props.adm2_psgc ? props.adm2_psgc.toString() : null;
-      nextName = props.adm2_en || "Province";
+      
+      const provinceName = props.adm2_en || "Province";
+      nextName = getProvinceLabel(provinceName, nextId, geoData);
 
       if (!nextId && props.id) nextId = props.id.toString();
 
@@ -975,6 +1139,41 @@ const PhilippinesMap = memo(({ selectedTab, selectedIllnessCluster, heatmapData,
               <p>Shift + Scroll: Pan (Horizontal)</p>
               <p>Ctrl + Scroll: Zoom</p>
               <p>Click: Drill down</p>
+            </div>
+          )}
+
+          {selectedTab === "disease" && diseaseHeatmapData && (
+            <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded shadow text-xs z-10 min-w-48">
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className="inline-block h-3 w-3 rounded-full border border-base-300"
+                  style={{ backgroundColor: diseaseHeatmapData.diseaseBaseColor }}
+                />
+                <p className="font-semibold">
+                  {diseaseHeatmapData.selectedDisease} Case Legend
+                </p>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-3 w-5 rounded-sm border border-base-300"
+                    style={{ backgroundColor: ZERO_CLUSTER_COLOR }}
+                  />
+                  <span>0</span>
+                </div>
+                {(viewState.level === "province"
+                  ? diseaseActiveProvinceLegendBins
+                  : diseaseHeatmapData.legendBins
+                ).map((bin) => (
+                  <div key={`${bin.min}-${bin.max}`} className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-3 w-5 rounded-sm border border-base-300"
+                      style={{ backgroundColor: bin.color }}
+                    />
+                    <span>{bin.min}-{bin.max}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

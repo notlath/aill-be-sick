@@ -30,6 +30,7 @@ export type DiseaseMapData = {
   byBarangay: LocationCaseCount[];
   byBarangayWithProvince: BarangayProvinceCaseCount[];
   byDisease: Record<string, LocationCaseCount[]>;
+  dates: string[];
 };
 
 type BarangayRecord = {
@@ -152,67 +153,65 @@ export const getMapDiseaseData = async ({
     };
     
     const diseaseEnumKey = disease ? diseaseToEnum[disease] : undefined;
-
-    // Build the filter for users with location data
-    // Match the backend's requirement: latitude, longitude, city/region, age, and gender
-    const userWhereClause: any = {
-      role: "PATIENT",
-      latitude: { not: null },
-      longitude: { not: null },
-      age: { not: null },
-      gender: { not: null },
-      OR: [
-        { city: { not: null } },
-        { province: { not: null } },
-        { region: { not: null } },
-      ],
-    };
-    if (province) {
-      userWhereClause.province = {
-        equals: province,
-        mode: "insensitive",
-      };
+    const hasDateFilter = Boolean(startDate || endDate);
+    const diagnosisDateWhere: { gte?: Date; lte?: Date } = {};
+    if (startDate) {
+      diagnosisDateWhere.gte = startDate;
+    }
+    if (endDate) {
+      const endDateInclusive = new Date(endDate);
+      endDateInclusive.setHours(23, 59, 59, 999);
+      diagnosisDateWhere.lte = endDateInclusive;
     }
 
-    // If filtering by disease, we need to fetch users with that disease diagnosis
-    let users: any[] = [];
+    // Fetch diagnosis records and resolve location from diagnosis first, then user fallback.
+    const diagnosisWhereClause: any = {
+      ...(Object.keys(diagnosisDateWhere).length > 0
+        ? { createdAt: diagnosisDateWhere }
+        : {}),
+      ...(diseaseEnumKey ? { disease: diseaseEnumKey as any } : {}),
+    };
 
-    if (diseaseEnumKey) {
-      // Fetch users who have at least one diagnosis of the selected disease
-      users = await prisma.user.findMany({
-        where: userWhereClause,
-        select: {
-          id: true,
-          city: true,
-          province: true,
-          region: true,
-          barangay: true,
-          diagnoses: {
-            where: {
-              disease: diseaseEnumKey as any, // Cast to any to handle enum
-            },
-            orderBy: { createdAt: "desc" },
-            take: 1,
+    if (province) {
+      diagnosisWhereClause.OR = [
+        {
+          province: {
+            equals: province,
+            mode: "insensitive",
           },
         },
-      });
-
-      // Filter to only include users who have the disease diagnosis
-      users = users.filter((u) => u.diagnoses && u.diagnoses.length > 0);
-
-    } else {
-      // Fetch all patients with location data (matches dashboard count)
-      users = await prisma.user.findMany({
-        where: userWhereClause,
-        select: {
-          id: true,
-          city: true,
-          province: true,
-          region: true,
-          barangay: true,
+        {
+          user: {
+            is: {
+              province: {
+                equals: province,
+                mode: "insensitive",
+              },
+            },
+          },
         },
-      });
+      ];
     }
+
+    const diagnoses = await prisma.diagnosis.findMany({
+      where: diagnosisWhereClause,
+      select: {
+        disease: true,
+        city: true,
+        province: true,
+        region: true,
+        barangay: true,
+        createdAt: true,
+        user: {
+          select: {
+            city: true,
+            province: true,
+            region: true,
+            barangay: true,
+          },
+        },
+      },
+    });
 
     // Aggregate by location
     const cityCount = new Map<string, number>();
@@ -222,11 +221,13 @@ export const getMapDiseaseData = async ({
     const barangayWithProvinceCount = new Map<string, number>();
     const diseaseLocationMap = new Map<string, Map<string, number>>();
 
-    users.forEach((user) => {
-      const city = user.city?.trim() || null;
-      const province = user.province?.trim() || null;
-      const region = user.region?.trim() || null;
-      const barangay = user.barangay?.trim() || null;
+    diagnoses.forEach((diagnosis) => {
+      const city = diagnosis.city?.trim() || diagnosis.user?.city?.trim() || null;
+      const province =
+        diagnosis.province?.trim() || diagnosis.user?.province?.trim() || null;
+      const region = diagnosis.region?.trim() || diagnosis.user?.region?.trim() || null;
+      const barangay =
+        diagnosis.barangay?.trim() || diagnosis.user?.barangay?.trim() || null;
 
       // Track by barangay (most granular)
       if (barangay) {
@@ -375,7 +376,8 @@ export const getMapDiseaseData = async ({
         .sort((a, b) => b.count - a.count);
     });
 
-    const totalPatients = users.length;
+    const dates = diagnoses.map(d => d.createdAt.toISOString());
+    const totalPatients = diagnoses.length;
 
     return {
       success: {
@@ -386,6 +388,7 @@ export const getMapDiseaseData = async ({
         byBarangay,
         byBarangayWithProvince,
         byDisease,
+        dates,
       },
     };
   } catch (error) {

@@ -142,6 +142,27 @@ export type MapHeatmapData = {
   selectedClusterDisplay: string;
 };
 
+export type DiseaseHeatmapData = {
+  diseaseBaseColor: string;
+  selectedDisease: string;
+  // Normalized province name -> count used for country-level fill
+  provinceCounts: Record<string, number>;
+  // Normalized province name -> count used for tooltip at province level
+  provinceTotals: Record<string, number>;
+  // Region name -> total case count
+  regionTotals: Record<string, number>;
+  // Normalized province name -> region display label
+  provinceToRegion: Record<string, string>;
+  // Normalized "province||city" -> count
+  cityTotals: Record<string, number>;
+  // Normalized "province||city||barangay" -> count
+  barangayCounts: Record<string, number>;
+  globalMax: number;
+  legendBins: HeatmapLegendBin[];
+  // Province-specific legend bins keyed by normalized province name
+  provinceLegendBinsByProvince: Record<string, HeatmapLegendBin[]>;
+};
+
 export type AnomalyHeatmapData = {
   diseaseBaseColor: string;
   // Normalized province name -> region-projected anomaly count (for fill)
