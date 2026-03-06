@@ -1155,6 +1155,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
           <IllnessClusterOverviewCards
             statistics={clusterData.cluster_statistics}
             selectedVariables={appliedVariables}
+            illnesses={clusterData.illnesses}
           />
         </div>
       ) : null}
