@@ -4,13 +4,20 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, MapPin, HeartPulse, Calendar } from "lucide-react";
-import type { IllnessClusterStatistics } from "@/types";
+import type { IllnessClusterStatistics, IllnessRecord } from "@/types";
+import PatientsModal from "@/components/clinicians/map-page/patients-modal";
 
 interface IllnessClusterOverviewCardsProps {
   statistics: IllnessClusterStatistics[];
+  illnesses: IllnessRecord[];
   selectedVariables?: {
+    age: boolean;
+    gender: boolean;
+    barangay: boolean;
+    province: boolean;
     city: boolean;
     region: boolean;
+    time: boolean;
   };
 }
 
@@ -91,11 +98,28 @@ const CLUSTER_THEMES = [
 
 const IllnessClusterOverviewCards: React.FC<
   IllnessClusterOverviewCardsProps
-> = ({ statistics, selectedVariables = { city: true, region: false } }) => {
+> = ({
+  statistics,
+  illnesses,
+  selectedVariables = {
+    age: true,
+    gender: true,
+    city: true,
+    region: false,
+    barangay: false,
+    province: false,
+    time: false,
+  },
+}) => {
   const router = useRouter();
   const [expandedClusters, setExpandedClusters] = React.useState<
     Record<string, boolean>
   >({});
+  const [selectedClusterId, setSelectedClusterId] = React.useState<
+    number | null
+  >(null);
+  const [selectedClusterDisplay, setSelectedClusterDisplay] =
+    React.useState("");
 
   const sortedStatistics = React.useMemo(() => {
     return [...statistics].sort((a, b) => {
@@ -103,6 +127,14 @@ const IllnessClusterOverviewCards: React.FC<
       return b.count - a.count;
     });
   }, [statistics]);
+
+  const selectedClusterPatients = React.useMemo(() => {
+    if (selectedClusterId === null) {
+      return [];
+    }
+
+    return illnesses.filter((illness) => illness.cluster === selectedClusterId);
+  }, [illnesses, selectedClusterId]);
 
   return (
     <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -169,7 +201,19 @@ const IllnessClusterOverviewCards: React.FC<
               {/* Header: Cluster Name */}
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="mb-2 font-semibold">Group {index + 1}</div>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <div className="font-semibold">Group {index + 1}</div>
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-outline border-border"
+                      onClick={() => {
+                        setSelectedClusterId(stat.cluster_id);
+                        setSelectedClusterDisplay(String(index + 1));
+                      }}
+                    >
+                      View patients
+                    </button>
+                  </div>
                   {/* Clinical Notes - Minimal Card */}
                   <div className="">
                     <div
@@ -637,8 +681,8 @@ const IllnessClusterOverviewCards: React.FC<
                 </div>
               ) : null}
 
-              {/* TODO: Re-enable temporal distribution when time (seasonal) toggle is active */}
-              {/* {stat.temporal_distribution &&
+              {selectedVariables.time &&
+                stat.temporal_distribution &&
                 Object.keys(stat.temporal_distribution).length > 0 && (
                   <div>
                     <div className="mb-3 flex items-center gap-2">
@@ -662,11 +706,21 @@ const IllnessClusterOverviewCards: React.FC<
                         ))}
                     </div>
                   </div>
-                )} */}
+                )}
             </CardContent>
           </Card>
         );
       })}
+
+      <PatientsModal
+        isOpen={selectedClusterId !== null}
+        onClose={() => {
+          setSelectedClusterId(null);
+          setSelectedClusterDisplay("");
+        }}
+        patients={selectedClusterPatients}
+        clusterDisplay={selectedClusterDisplay}
+      />
     </div>
   );
 };

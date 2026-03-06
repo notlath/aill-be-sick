@@ -6,6 +6,7 @@ import { actionClient } from "./client";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
+const FOLLOWUP_TIMEOUT_MS = 30000;
 
 const FollowUpSchema = z.object({
   disease: z.string(),
@@ -86,6 +87,7 @@ export const getFollowUpQuestion = actionClient
         payload,
         {
           withCredentials: true, // CRITICAL: Send session cookies
+          timeout: FOLLOWUP_TIMEOUT_MS,
           headers: {
             Cookie: cookieHeader, // Manually attach cookie for Server Action
           },
@@ -104,6 +106,18 @@ export const getFollowUpQuestion = actionClient
       };
     } catch (error) {
       console.error("Error getting follow-up question:", error);
+
+      if (
+        error instanceof AxiosError &&
+        (error.code === "ECONNABORTED" ||
+          (typeof error.message === "string" &&
+            error.message.toLowerCase().includes("timeout")))
+      ) {
+        return {
+          error:
+            "Follow-up question is taking too long. Please submit your symptoms again.",
+        };
+      }
 
       if (error instanceof AxiosError && error.response) {
         const errorData = error.response.data;

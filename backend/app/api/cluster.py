@@ -179,6 +179,8 @@ def illness_clusters():
     Query params:
       - n_clusters: number of clusters (default: 4)
       - age, gender, city, region, time: boolean flags for variable selection
+            - month: diagnosis month filter (YYYY-MM)
+            - week: diagnosis ISO week filter (YYYY-Www)
     """
     try:
         n_clusters = int(request.args.get("n_clusters", 4))
@@ -190,6 +192,12 @@ def illness_clusters():
         include_province = _parse_bool(request.args.get("province"), False)
         include_region = _parse_bool(request.args.get("region"), True)
         include_time = _parse_bool(request.args.get("time"), False)
+        diagnosis_month = request.args.get("month")
+        diagnosis_week = request.args.get("week")
+
+        # Keep month/week filters mutually exclusive if both are passed
+        if diagnosis_month and diagnosis_week:
+            diagnosis_week = None
 
         # Fetch diagnosis data from PostgreSQL using DATABASE_URL
         data, illness_info = fetch_diagnosis_data(
@@ -200,6 +208,8 @@ def illness_clusters():
             include_province=include_province,
             include_region=include_region,
             include_time=include_time,
+            diagnosis_month=diagnosis_month,
+            diagnosis_week=diagnosis_week,
         )
 
         if data.size == 0:
@@ -232,6 +242,8 @@ def illness_clusters():
                 "centers": centers.tolist(),
             }
         )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         error_details = traceback.format_exc()
         print(f"ERROR in illness_clusters: {str(e)}")
@@ -245,6 +257,8 @@ def illness_clusters_silhouette():
     Query params:
       - range: e.g. "3-10" or "4" (defaults to 3-10)
       - age, gender, city, region, time: boolean flags for variable selection
+            - month: diagnosis month filter (YYYY-MM)
+            - week: diagnosis ISO week filter (YYYY-Www)
     Returns JSON with best k and per-k metrics (silhouette, inertia, cluster sizes).
     """
     try:
@@ -267,6 +281,12 @@ def illness_clusters_silhouette():
         include_province = _parse_bool(request.args.get("province"), False)
         include_region = _parse_bool(request.args.get("region"), True)
         include_time = _parse_bool(request.args.get("time"), False)
+        diagnosis_month = request.args.get("month")
+        diagnosis_week = request.args.get("week")
+
+        # Keep month/week filters mutually exclusive if both are passed
+        if diagnosis_month and diagnosis_week:
+            diagnosis_week = None
 
         # Fetch encoded data with variable selection
         data, _ = fetch_diagnosis_data(
@@ -277,6 +297,8 @@ def illness_clusters_silhouette():
             include_province=include_province,
             include_region=include_region,
             include_time=include_time,
+            diagnosis_month=diagnosis_month,
+            diagnosis_week=diagnosis_week,
         )
         n_samples = len(data)
         if n_samples < 3:
@@ -330,6 +352,8 @@ def illness_clusters_silhouette():
                 "results": results,
             }
         )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         error_details = traceback.format_exc()
         return jsonify({"error": str(e), "details": error_details}), 500

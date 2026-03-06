@@ -8,6 +8,7 @@ import {createMessage} from "./create-message";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
+const DIAGNOSIS_TIMEOUT_MS = 30000;
 
 export const runDiagnosis = actionClient
   .inputSchema(RunDiagnosisSchema)
@@ -29,6 +30,7 @@ export const runDiagnosis = actionClient
         },
         {
           withCredentials: true, // Enable session cookies
+          timeout: DIAGNOSIS_TIMEOUT_MS,
         },
       );
 
@@ -219,6 +221,19 @@ Do you want to record this diagnosis?
     } catch (error) {
       console.error("Error running diagnosis:", error);
 
+      if (
+        error instanceof AxiosError &&
+        (error.code === "ECONNABORTED" ||
+          (typeof error.message === "string" &&
+            error.message.toLowerCase().includes("timeout")))
+      ) {
+        return {
+          error: "DIAGNOSIS_TIMEOUT",
+          message:
+            "Diagnosis is taking too long. Please try again with a shorter symptom summary.",
+        };
+      }
+
       if (error instanceof AxiosError && error.response) {
         const errorData = error.response.data;
 
@@ -237,6 +252,20 @@ Do you want to record this diagnosis?
             details: errorData.details,
           };
         }
+
+        if (errorData.error === "INTERNAL_ERROR") {
+          return {
+            error: "INTERNAL_ERROR",
+            message:
+              errorData.message ||
+              "Internal diagnosis error. Please try again with a shorter symptom summary.",
+          };
+        }
+
+        return {
+          error: errorData.error || "DIAGNOSIS_FAILED",
+          message: errorData.message || "Failed to process diagnosis.",
+        };
       }
 
       return {error: `Error running diagnosis: ${error}`};

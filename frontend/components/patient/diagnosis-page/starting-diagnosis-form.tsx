@@ -6,12 +6,20 @@ import {
   CreateChatSchemaType,
 } from "@/schemas/CreateChatSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
-import { useRouter } from "nextjs-toploader/app";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
-const StartingDiagnosisForm = () => {
+type StartingDiagnosisFormProps = {
+  onPendingSymptomsChange?: (symptoms: string) => void;
+};
+
+const StartingDiagnosisForm = ({
+  onPendingSymptomsChange,
+}: StartingDiagnosisFormProps) => {
+  const [isNavigating, setIsNavigating] = useState(false);
   const form = useForm<CreateChatSchemaType>({
     defaultValues: {
       symptoms: "",
@@ -20,20 +28,47 @@ const StartingDiagnosisForm = () => {
     resolver: zodResolver(CreateChatSchema),
   });
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isNavigating) return;
+
+    // Guard against permanent loading when navigation fails or stalls.
+    const timeout = setTimeout(() => {
+      setIsNavigating(false);
+      onPendingSymptomsChange?.("");
+    }, 10000);
+
+    return () => clearTimeout(timeout);
+  }, [isNavigating, onPendingSymptomsChange]);
+
   const { execute, isExecuting } = useAction(createChat, {
     onSuccess: ({ data }) => {
       if (data.success) {
-        form.setValue('chatId', '');
-        form.setValue('symptoms', '');
-        router.push(`/diagnosis/${data.success.chatId}`);
+        setIsNavigating(true);
+        // Keep query payload short to avoid URL-size issues on long symptom text.
+        const pendingSymptoms = encodeURIComponent(
+          data.success.symptoms.slice(0, 180),
+        );
+        router.push(
+          `/diagnosis/${data.success.chatId}?symptoms=${pendingSymptoms}`,
+        );
       } else if (data.error) {
+        setIsNavigating(false);
+        onPendingSymptomsChange?.("");
         // TODO: Error handling
         console.error(data.error);
       }
     },
+    onError: () => {
+      setIsNavigating(false);
+      onPendingSymptomsChange?.("");
+    },
   });
 
+  const isLoading = isExecuting || isNavigating;
+
   const handleSubmit = (data: CreateChatSchemaType) => {
+    onPendingSymptomsChange?.(data.symptoms);
     execute(data);
   };
 
@@ -47,6 +82,7 @@ const StartingDiagnosisForm = () => {
                 className="flex-1 pl-1 border-none outline-none bg-transparent resize-none   text-base-content placeholder:text-muted transition-all duration-300 min-h-[40px]"
                 placeholder="I'm feeling..."
                 suppressHydrationWarning
+                disabled={isLoading}
                 onKeyDown={(e) => {
                   // Submit on Enter, allow Shift+Enter for newline, and ignore IME composition
                   if (
@@ -63,14 +99,12 @@ const StartingDiagnosisForm = () => {
               />
               <button
                 type="submit"
-                disabled={isExecuting}
+                disabled={isLoading}
+                aria-busy={isLoading}
+                aria-live="polite"
                 className="ml-3 p-0 w-12 h-12 aspect-square rounded-xl bg-primary text-primary-content shadow-md hover:shadow-xl hover:bg-primary/90 active:scale-95 transition-all duration-200 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100"
               >
-                {isExecuting ? (
-                  <Loader2 className="size-5 animate-spin" strokeWidth={2.5} />
-                ) : (
-                  <ArrowUp className="size-5" strokeWidth={2.5} />
-                )}
+                <ArrowUp className="size-5" strokeWidth={2.5} />
               </button>
             </div>
             {form.formState.errors.symptoms && (

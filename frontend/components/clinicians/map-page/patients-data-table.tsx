@@ -246,7 +246,7 @@ export function PatientsDataTable<TData, TValue>({
             <SelectTrigger className="w-[80px]">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bottom-full top-auto mb-2">
               {pageSizeOptions.map((size) => (
                 <SelectItem key={size} value={String(size)}>
                   {size}

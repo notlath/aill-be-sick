@@ -1,4 +1,5 @@
 import ChatWindow from "@/components/patient/diagnosis-page/chat-window";
+import ThreadTransition from "@/components/patient/diagnosis-page/thread-transition";
 import { getChatById } from "@/utils/chat";
 import { getDiagnosisByChatId } from "@/utils/diagnosis";
 import { getExplanationByDiagnosisId } from "@/utils/explanation";
@@ -8,20 +9,19 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Chat } from "@/lib/generated/prisma";
 
-const ChatSkeleton = () => {
+const ChatSkeleton = ({ pendingSymptoms }: { pendingSymptoms?: string }) => {
   return (
-    <div className="flex flex-col flex-1 space-x-auto space-y-4 py-8 w-full max-w-[768px] mx-auto px-4">
-      <div className="skeleton h-16 w-3/4 self-end rounded-2xl"></div>
-      <div className="skeleton h-32 w-4/5 self-start rounded-2xl"></div>
-      <div className="skeleton h-20 w-1/2 self-end rounded-2xl"></div>
-      <div className="skeleton h-40 w-3/4 self-start rounded-2xl"></div>
+    <ThreadTransition className="w-full flex justify-center">
+      <div className="flex flex-col flex-1 space-y-3 py-8 w-full max-w-[768px] mx-auto px-3 sm:px-4">
+        <article className="self-end bg-primary text-primary-content px-4 py-3 rounded-xl max-w-[85%] whitespace-pre-wrap break-words">
+          {pendingSymptoms || "Analyzing your symptoms..."}
+        </article>
 
-      <div className="absolute bottom-0 left-0 right-0 bg-base-100 p-4 pt-0 z-10 flex flex-col items-center">
-        <div className="flex w-full max-w-[800px] gap-2 items-center">
-          <div className="skeleton h-[52px] w-full rounded-xl"></div>
-        </div>
+        <article className="self-start bg-base-200 px-4 py-3 rounded-xl max-w-[60%]">
+          <span className="loading loading-dots loading-sm"></span>
+        </article>
       </div>
-    </div>
+    </ThreadTransition>
   );
 };
 
@@ -67,11 +67,14 @@ const ChatDataLoader = async ({ chatId, chat, userRole }: { chatId: string; chat
 
 const ChatPage = async ({
   params,
+  searchParams,
 }: {
   params: Promise<{ chatId: string }>;
-  searchParams: Promise<{ symptoms: string }>;
+  searchParams: Promise<{ symptoms?: string }>;
 }) => {
   const { chatId } = await params;
+  const resolvedSearchParams = await searchParams;
+  const pendingSymptoms = resolvedSearchParams?.symptoms || "";
 
   // Enforce auth to preserve previous behavior and setup dynamic constraints
   const { success: dbUser, error: authError } = await getCurrentDbUser();
@@ -94,7 +97,7 @@ const ChatPage = async ({
 
   return (
     <main className="relative flex flex-col items-center h-full w-full">
-      <Suspense fallback={<ChatSkeleton />}>
+      <Suspense fallback={<ChatSkeleton pendingSymptoms={pendingSymptoms} />}>
         <ChatDataLoader chatId={chatId} chat={chat} userRole={dbUser.role} />
       </Suspense>
     </main>

@@ -1,3 +1,5 @@
+"use client";
+
 import StartingDiagnosisForm from "@/components/patient/diagnosis-page/starting-diagnosis-form";
 
 const PatientHomePage = () => {
