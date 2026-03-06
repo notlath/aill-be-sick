@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getCurrentDbUser } from "@/utils/user";
-import ProfileForm from "@/components/clinician/profile/profile-form";
+import ProfileForm from "@/components/clinicians/profile-page/profile-form";
 
 async function ProfileData() {
   const { success: dbUser, error } = await getCurrentDbUser();

@@ -1,14 +1,8 @@
-import MapTabs from "@/components/clinicians/map-page/map-tabs";
-import { BackButton } from "@/components/clinicians/map-page/back-button";
-import { getIllnessClusters } from "@/utils/cluster";
+import ChoroplethMapTabs from "@/components/clinicians/map-page/map/choropleth-map-tabs";
 
 export default async function MapPage() {
-  const initialK = 8;
-  const illnessClusters = await getIllnessClusters(initialK);
-
   return (
-    <main className="container px-8 pt-12 pb-8 md:px-16 lg:px-24 relative">
-      <BackButton />
+    <main className="container px-8 pt-12 pb-8 md:px-16 lg:px-24 space-y-8">
       <div className="max-w-[1600px] mx-auto space-y-6">
         <div className="flex flex-col space-y-2">
           <h1 className="font-semibold text-6xl tracking-tight bg-gradient-to-br from-base-content via-base-content to-base-content/70 bg-clip-text text-transparent">
@@ -18,8 +12,8 @@ export default async function MapPage() {
             Visualizing disease spread and statistics across the Philippines.
           </p>
         </div>
-        <MapTabs illnessClusters={illnessClusters} />
       </div>
+      <ChoroplethMapTabs />
     </main>
   );
 }
