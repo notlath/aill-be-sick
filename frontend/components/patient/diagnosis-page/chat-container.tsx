@@ -53,7 +53,7 @@ function areChatContainerPropsEqual(
 ): boolean {
   // Re-render if message count changes (new message added/removed)
   if (prev.messages.length !== next.messages.length) return false;
-  
+
   // Re-render if any loading state changes
   if (
     prev.isCreatingMessage !== next.isCreatingMessage ||
@@ -61,15 +61,29 @@ function areChatContainerPropsEqual(
     prev.isGettingQuestion !== next.isGettingQuestion ||
     prev.isGettingExplanations !== next.isGettingExplanations
   ) return false;
-  
+
   // Re-render if question changes
   if (prev.currentQuestion?.id !== next.currentQuestion?.id) return false;
-  
+
   // Re-render if diagnosis state changes
   if (prev.hasDiagnosis !== next.hasDiagnosis) return false;
-  
-  // Skip re-render if only message array reference changed but length is same
-  // Individual ChatBubble components will handle their own memoization
+
+  // Re-render if any message's explanation changed
+  // This is critical for the "View Insights" button to enable after explanations load
+  for (let i = 0; i < prev.messages.length; i++) {
+    const prevMsg = prev.messages[i];
+    const nextMsg = next.messages[i];
+    
+    // Check if message IDs match (should always be true if length is same)
+    if (prevMsg.id !== nextMsg.id) return false;
+    
+    // Check if explanation state changed
+    const prevHasExplanation = !!prevMsg.explanation;
+    const nextHasExplanation = !!nextMsg.explanation;
+    if (prevHasExplanation !== nextHasExplanation) return false;
+  }
+
+  // Skip re-render if only message array reference changed but content is same
   return true;
 }
 

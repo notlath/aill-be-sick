@@ -64,7 +64,7 @@ const mapDisease = (
 
 type ChatWindowProps = {
   chatId: string;
-  messages: Message[];
+  messages: (Message & { explanation?: Explanation | null })[];
   chat: Chat;
   dbExplanation: Explanation | null;
   userRole?: string;
@@ -106,6 +106,7 @@ const ChatWindow = ({
 
   const prevChatIdRef = useRef<string>(chatId);
   const explanationRequestedRef = useRef<Set<string>>(new Set());
+  const lastExplanationMessageIdRef = useRef<number | null>(null);
   const diagnosisRequestedRef = useRef<Set<string>>(new Set());
   const followUpPendingRef = useRef<boolean>(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -268,8 +269,28 @@ const ChatWindow = ({
       },
     });
 
+  // Store explanations fetched for each message ID
+  const [messageExplanations, setMessageExplanations] = useState<
+    Record<number, Explanation>
+  >({});
+
   const { execute: getExplanations, isExecuting: isGettingExplanations } =
-    useAction(explainDiagnosis, {});
+    useAction(explainDiagnosis, {
+      onSuccess: ({ data }) => {
+        if (data?.success && data.explanation) {
+          const messageId = lastExplanationMessageIdRef.current;
+          if (messageId !== null) {
+            setMessageExplanations((prev) => ({
+              ...prev,
+              [messageId]: {
+                tokens: data.explanation.tokens,
+                importances: data.explanation.importances,
+              } as Explanation,
+            }));
+          }
+        }
+      },
+    });
 
   const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } = useAction(
     runDiagnosis,
@@ -483,6 +504,7 @@ const ChatWindow = ({
             !explanationRequestedRef.current.has(created.id)
           ) {
             explanationRequestedRef.current.add(created.id);
+            lastExplanationMessageIdRef.current = created.id;
             getExplanations({
               symptoms: symptomsText,
               meanProbs,
@@ -645,7 +667,13 @@ const ChatWindow = ({
       <FormProvider {...form}>
         <ChatContainer
           ref={chatEndRef}
-          messages={optimisticMessages as any}
+          messages={optimisticMessages.map((msg) => ({
+            ...msg,
+            explanation:
+              msg.explanation ||
+              (msg.id && messageExplanations[msg.id]) ||
+              null,
+          })) as any}
           isGettingQuestion={isGettingQuestion}
           isDiagnosing={isDiagnosing}
           isGettingExplanations={isGettingExplanations}

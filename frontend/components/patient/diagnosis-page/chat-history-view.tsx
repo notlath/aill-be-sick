@@ -8,7 +8,7 @@ import ChatContainer from "./chat-container";
 
 type ChatHistoryViewProps = {
   chatId: string;
-  messages: Message[];
+  messages: (Message & { explanation?: Explanation | null })[];
   chat: Chat;
   dbExplanation: Explanation | null;
   userRole?: string;
@@ -43,7 +43,10 @@ const ChatHistoryView = ({
   return (
     <>
       <ChatContainer
-        messages={messages as any}
+        messages={messages.map((msg) => ({
+          ...msg,
+          explanation: msg.explanation || dbExplanation,
+        })) as any}
         isGettingQuestion={false}
         isDiagnosing={false}
         isGettingExplanations={false}

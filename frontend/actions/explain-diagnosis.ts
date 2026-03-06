@@ -95,23 +95,30 @@ export const explainDiagnosis = actionClient
         importancesArray = [];
       }
 
+      // Get the diagnosisId from the message's tempDiagnosis relation
+      const messageWithDiagnosis = await prisma.message.findUnique({
+        where: { id: messageId },
+        select: { chatId: true, tempDiagnosis: true },
+      });
+
+      // Find the corresponding Diagnosis record to link it
+      let diagnosisId: number | null = null;
+      if (messageWithDiagnosis?.chatId) {
+        const diagnosis = await prisma.diagnosis.findUnique({
+          where: { chatId: messageWithDiagnosis.chatId },
+          select: { id: true },
+        });
+        diagnosisId = diagnosis?.id ?? null;
+      }
+
       await prisma.explanation.create({
         data: {
           tokens: tokensArray,
           importances: importancesArray,
           messageId: messageId,
+          diagnosisId: diagnosisId ?? undefined,
         },
       });
-
-      const message = await prisma.message.findUnique({
-        where: { id: messageId },
-        select: { chatId: true },
-      });
-
-      if (message) {
-        revalidateTag(`messages-${message.chatId}`, { expire: 0 });
-        revalidateTag("messages", { expire: 0 });
-      }
 
       return {
         success: "Successfully retrieved explanation.",
