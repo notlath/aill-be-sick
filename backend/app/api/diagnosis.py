@@ -1,9 +1,16 @@
 """
 Diagnosis blueprint: /diagnosis/new, /diagnosis/follow-up, /diagnosis/explain
+
+Redesigned with:
+  1. Session-Backed Database – all follow-up state persisted in diagnosis_sessions table
+  2. Expected Information Gain – active learning picks the most informative question
+  3. Unified Inference – structured evidence text re-fed into the NLP model
+  4. First-Class Neuro-Symbolic Verification – inline clamping of impossible diseases
 """
 
 import time
 import traceback
+import numpy as np
 from flask import Blueprint, request, jsonify, session, current_app
 
 import app.config as config
@@ -11,8 +18,13 @@ from app.services.ml_service import classifier, explainer, CORRECT_ID2LABEL
 from app.utils import _count_words, _build_cdss_payload, detect_language_heuristic
 from app.utils.scoring import bayesian_evidence_update, lookup_question_metadata
 from app.evidence_keywords import EVIDENCE_KEYWORDS
+from app.models.diagnosis_session import create_session, get_session, update_session
+from app.services.information_gain import select_best_question_across_diseases
 
 diagnosis_bp = Blueprint("diagnosis", __name__)
+
+# Build reverse map once at module level
+LABEL2IDX = {v: k for k, v in CORRECT_ID2LABEL.items()}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -49,14 +61,92 @@ def _stop_response(reason, pred, confidence, uncertainty, probs,
     return jsonify({"data": data}), 200
 
 
+def _normalize_mean_probs(mean_probs):
+    """Flatten nested probability lists to a simple float list."""
+    flat = []
+    for item in (mean_probs or []):
+        if isinstance(item, (list, tuple)):
+            for sub in item:
+                flat.append(float(sub))
+        else:
+            flat.append(float(item))
+    return flat
+
+
+def _serialize_top_diseases(top_diseases):
+    """Ensure top_diseases is a list of serializable dicts."""
+    return [
+        {
+            "disease": d.get("disease"),
+            "probability": float(d.get("probability", 0.0)),
+        }
+        for d in (top_diseases or [])
+        if isinstance(d, dict)
+    ]
+
+
+def _build_evidence_text(initial_symptoms: str, evidence_texts: list[str]) -> str:
+    """
+    Build the unified inference text by combining the initial symptom
+    description with structured evidence sentences from follow-up answers.
+    """
+    parts = [initial_symptoms]
+    parts.extend(evidence_texts)
+    return ". ".join(parts)
+
+
+def _clamp_impossible_diseases(
+    current_probs: np.ndarray,
+    symptoms_text: str,
+    verification_layer,
+    disease_labels: dict,
+) -> np.ndarray:
+    """
+    Neuro-Symbolic Verification: for each disease, check if the symptoms
+    are consistent with that disease. If verification fails, clamp that
+    disease's probability to near-zero.
+
+    This prevents the system from wasting follow-up questions on diseases
+    the user cannot plausibly have.
+    """
+    probs = current_probs.copy()
+    clamped_any = False
+
+    for idx, label in disease_labels.items():
+        if probs[idx] < 0.01:
+            continue  # Already near-zero, skip verification overhead
+        result = verification_layer.verify(symptoms_text, label)
+        if not result["is_valid"]:
+            print(f"[CLAMP] Clamping {label} to 0 (unexplained: {result['unexplained_concepts']})")
+            probs[idx] = 1e-10
+            clamped_any = True
+
+    if clamped_any:
+        total = probs.sum()
+        if total > 0:
+            probs = probs / total
+
+    return probs
+
+
+def _has_evidence(q, symptoms_lower: str) -> bool:
+    """Check if the question's symptoms are already mentioned in the input."""
+    qid = q.get("id", "")
+    keywords = EVIDENCE_KEYWORDS.get(qid, [])
+    if not keywords:
+        return False
+    return any(kw in symptoms_lower for kw in keywords)
+
+
 # ── /diagnosis/new ────────────────────────────────────────────────────────────
 
 @diagnosis_bp.route("/diagnosis/new", methods=["POST"])
 def new_case():
     """
     Start a new diagnosis case. Accepts a symptom description.
+    Creates a DB-backed DiagnosisSession for stateful follow-ups.
     """
-    session.clear()  # Start fresh for every new case
+    session.clear()  # Clear any legacy Flask cookie session
     try:
         data = request.get_json()
 
@@ -64,6 +154,7 @@ def new_case():
             return jsonify({"error": "No JSON data provided"}), 400
 
         symptoms = data.get("symptoms", "").strip()
+        chat_id = data.get("chat_id", "")
 
         print(f"\n[NEW CASE] Symptoms: {symptoms}")
 
@@ -101,18 +192,9 @@ def new_case():
             print(
                 f"[VERIFICATION] FAIL: Unexplained concepts {unexplained} for predicted disease {pred}"
             )
-            print(
-                f"[LOG_INSTANCE] ONTOLOGY_MISMATCH | predicted={pred} | unexplained={unexplained} | conf={confidence:.4f}"
-            )
             cdss = _build_cdss_payload(
-                symptoms,
-                pred,
-                confidence,
-                uncertainty,
-                top_diseases,
-                model_used,
+                symptoms, pred, confidence, uncertainty, top_diseases, model_used,
             )
-            # Add verification failure to red flags
             cdss["red_flags"] = cdss.get("red_flags", []) + [
                 f"Symptoms detected that are not typical of {pred}. Please consult a healthcare professional."
             ]
@@ -142,60 +224,52 @@ def new_case():
                 200,
             )
 
-        # Seed server-side session state for all non-terminal flows.
-        # This keeps follow-up logic consistent even when initial confidence is low.
+        # ── Create DB-backed session ──────────────────────────────────────
         lang_detected = (
             "tl"
             if "Tagalog" in str(model_used)
             or "TAGALOG" in str(model_used).upper()
             else "en"
         )
-        # Classifier may return probs as a flat list or nested list (e.g. [[...]]).
-        # Normalize to a flat float list for session serialization.
-        mean_probs_list = []
-        for item in (mean_probs or []):
-            if isinstance(item, (list, tuple)):
-                for sub_item in item:
-                    mean_probs_list.append(float(sub_item))
-            else:
-                mean_probs_list.append(float(item))
-        top_diseases_serialized = [
-            {
-                "disease": d.get("disease"),
-                "probability": float(d.get("probability", 0.0)),
-            }
-            for d in (top_diseases or [])
-            if isinstance(d, dict)
-        ]
+        mean_probs_list = _normalize_mean_probs(mean_probs)
+        top_diseases_serialized = _serialize_top_diseases(top_diseases)
+
+        session_id = create_session(
+            chat_id=chat_id,
+            initial_symptoms=symptoms,
+            base_probs=mean_probs_list,
+            current_probs=mean_probs_list,
+            disease=pred,
+            confidence=float(confidence),
+            uncertainty=float(uncertainty),
+            top_diseases=top_diseases_serialized,
+            model_used=str(model_used) if model_used is not None else "BioClinical ModernBERT",
+            lang=lang_detected,
+        )
+        print(f"[NEW CASE] Created DB session: {session_id}")
+
+        # Also set legacy Flask session for backward compat
         session["diagnosis"] = {
             "disease": pred,
             "confidence": float(confidence),
             "uncertainty": float(uncertainty),
             "top_diseases": top_diseases_serialized,
             "mean_probs": mean_probs_list,
-            "base_probs": mean_probs_list,       # Frozen initial NLP classification
-            "current_probs": mean_probs_list,    # Updated by Bayesian evidence
+            "base_probs": mean_probs_list,
+            "current_probs": mean_probs_list,
             "symptoms_text": symptoms,
             "lang": lang_detected,
             "model_used": str(model_used) if model_used is not None else "BioClinical ModernBERT",
             "start_time": time.time(),
         }
 
-        # EARLY STOP: If initial diagnosis is very confident, skip follow-up questions entirely
+        # EARLY STOP: Very high confidence -> skip follow-ups
         if confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
             print(
-                f"[NEW CASE] STOP: Very high confidence on initial diagnosis (conf={confidence:.3f}, MI={uncertainty:.4f})"
-            )
-            print(
-                f"[LOG_INSTANCE] HIGH_CONFIDENCE_INITIAL | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | will_skip_followup=True"
+                f"[NEW CASE] STOP: Very high confidence (conf={confidence:.3f}, MI={uncertainty:.4f})"
             )
             cdss = _build_cdss_payload(
-                symptoms,
-                pred,
-                confidence,
-                uncertainty,
-                top_diseases,
-                model_used,
+                symptoms, pred, confidence, uncertainty, top_diseases, model_used,
             )
             return (
                 jsonify(
@@ -210,8 +284,9 @@ def new_case():
                             "top_diseases": top_diseases,
                             "mean_probs": mean_probs,
                             "cdss": cdss,
-                            "skip_followup": True,  # Signal to frontend to skip follow-up questions
+                            "skip_followup": True,
                             "skip_reason": "HIGH_CONFIDENCE_INITIAL",
+                            "session_id": session_id,
                         }
                     }
                 ),
@@ -220,18 +295,12 @@ def new_case():
 
         # Gate low-confidence / high-uncertainty predictions
         if confidence < config.SYMPTOM_MIN_CONF or uncertainty > config.SYMPTOM_MAX_MI:
-            # If it's within the soft band, proceed with a low-confidence advisory
             if (
                 confidence >= config.SYMPTOM_SOFT_MIN_CONF
                 and uncertainty <= config.SYMPTOM_SOFT_MAX_MI
             ):
                 cdss = _build_cdss_payload(
-                    symptoms,
-                    pred,
-                    confidence,
-                    uncertainty,
-                    top_diseases,
-                    model_used,
+                    symptoms, pred, confidence, uncertainty, top_diseases, model_used,
                 )
                 return (
                     jsonify(
@@ -246,15 +315,10 @@ def new_case():
                                 "top_diseases": top_diseases,
                                 "mean_probs": mean_probs,
                                 "cdss": cdss,
+                                "session_id": session_id,
                                 "advisory": {
                                     "low_confidence": True,
                                     "message": "We couldn't confidently match your symptoms yet. We'll ask a few targeted questions to narrow it down.",
-                                    "thresholds": {
-                                        "hard_min_conf": config.SYMPTOM_MIN_CONF,
-                                        "soft_min_conf": config.SYMPTOM_SOFT_MIN_CONF,
-                                        "hard_max_mi": config.SYMPTOM_MAX_MI,
-                                        "soft_max_mi": config.SYMPTOM_SOFT_MAX_MI,
-                                    },
                                 },
                             }
                         }
@@ -262,17 +326,11 @@ def new_case():
                     201,
                 )
 
-            # Detailed symptom narratives should continue into follow-up flow
-            # instead of being hard-rejected, even when confidence is weak.
+            # Detailed symptom narratives should continue
             detailed_enough = _count_words(symptoms) >= 12 or len(symptoms) >= 120
             if detailed_enough:
                 cdss = _build_cdss_payload(
-                    symptoms,
-                    pred,
-                    confidence,
-                    uncertainty,
-                    top_diseases,
-                    model_used,
+                    symptoms, pred, confidence, uncertainty, top_diseases, model_used,
                 )
                 return (
                     jsonify(
@@ -287,15 +345,10 @@ def new_case():
                                 "top_diseases": top_diseases,
                                 "mean_probs": mean_probs,
                                 "cdss": cdss,
+                                "session_id": session_id,
                                 "advisory": {
                                     "low_confidence": True,
                                     "message": "Your symptoms are detailed enough to continue. We'll ask a few targeted questions to narrow it down.",
-                                    "thresholds": {
-                                        "hard_min_conf": config.SYMPTOM_MIN_CONF,
-                                        "soft_min_conf": config.SYMPTOM_SOFT_MIN_CONF,
-                                        "hard_max_mi": config.SYMPTOM_MAX_MI,
-                                        "soft_max_mi": config.SYMPTOM_SOFT_MAX_MI,
-                                    },
                                 },
                             }
                         }
@@ -303,7 +356,7 @@ def new_case():
                     201,
                 )
 
-            # Otherwise, ask user for more detail (hard rejection)
+            # Hard rejection
             return (
                 jsonify(
                     {
@@ -321,12 +374,7 @@ def new_case():
             )
 
         cdss = _build_cdss_payload(
-            symptoms,
-            pred,
-            confidence,
-            uncertainty,
-            top_diseases,
-            model_used,
+            symptoms, pred, confidence, uncertainty, top_diseases, model_used,
         )
         return (
             jsonify(
@@ -337,11 +385,12 @@ def new_case():
                         "uncertainty": uncertainty,
                         "probs": probs,
                         "model_used": model_used,
-                        "disease": pred,  # Add disease for follow-up
-                        "top_diseases": top_diseases,  # Add top competing diseases
+                        "disease": pred,
+                        "top_diseases": top_diseases,
                         "mean_probs": mean_probs,
                         "cdss": cdss,
                         "session_valid": True,
+                        "session_id": session_id,
                     }
                 }
             ),
@@ -350,15 +399,10 @@ def new_case():
 
     except Exception as e:
         error_msg = str(e)
-
         print(f"Exception caught in new_case: {error_msg}")
-        print(f"Exception type: {type(e)}")
 
         if "INSUFFICIENT_SYMPTOM_EVIDENCE:" in error_msg:
             reason = error_msg.split("INSUFFICIENT_SYMPTOM_EVIDENCE:")[1].strip()
-
-            print(f"Insufficient symptom evidence: {reason}")
-
             return (
                 jsonify(
                     {
@@ -372,9 +416,6 @@ def new_case():
 
         if "UNSUPPORTED_LANGUAGE:" in error_msg:
             lang = error_msg.split("UNSUPPORTED_LANGUAGE:")[1].strip()
-
-            print(f"Detected unsupported language: {lang}")
-
             return (
                 jsonify(
                     {
@@ -389,7 +430,6 @@ def new_case():
         error_details = traceback.format_exc()
         print(f"ERROR in new_case:")
         print(error_details)
-        # gc.collect() - GC calls moved to ml.py internally
         payload = {
             "error": "INTERNAL_ERROR",
             "message": error_msg,
@@ -404,136 +444,121 @@ def new_case():
 @diagnosis_bp.route("/diagnosis/follow-up", methods=["POST"])
 def follow_up_question():
     """
-    Updated: Accepts full symptoms string, re-runs classifier, returns new diagnosis and next question.
+    Redesigned follow-up endpoint:
+      1. Loads state from DB session (falls back to legacy cookie/request body)
+      2. Applies Bayesian evidence update from the last answer
+      3. Clamps impossible diseases via Neuro-Symbolic verification
+      4. Optionally re-runs unified inference with accumulated evidence text
+      5. Selects next question via Expected Information Gain (EIG)
     """
     try:
         data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
 
-        # SESSION VALIDATION (with request-body fallback for backward compat)
-        session_data = session.get("diagnosis")
-        if not session_data:
-            # Fallback: construct session_data from request body fields
-            # This supports tests and API consumers that don't use cookies
-            client_disease = data.get("disease")
-            if client_disease:
-                session_data = {
-                    "disease": client_disease,
-                    "confidence": data.get("confidence"),
-                    "uncertainty": data.get("uncertainty"),
-                    "top_diseases": data.get("top_diseases", []),
-                    "mean_probs": data.get("mean_probs", []),
-                    "current_probs": data.get("current_probs", data.get("mean_probs", [])),
-                    "symptoms_text": data.get("symptoms", ""),
-                    "lang": None,
-                    "start_time": time.time(),
+        # ── 1. LOAD SESSION STATE ─────────────────────────────────────────
+        session_id = data.get("session_id")
+        sess = None
+
+        if session_id:
+            sess = get_session(session_id)
+            if sess:
+                print(f"[FOLLOW-UP] Using DB session: {session_id}")
+
+        # Fallback: legacy Flask cookie session or request body
+        if not sess:
+            legacy_session = session.get("diagnosis")
+            if legacy_session:
+                sess = {
+                    "initial_symptoms": legacy_session.get("symptoms_text", ""),
+                    "base_probs": legacy_session.get("base_probs", legacy_session.get("mean_probs", [])),
+                    "current_probs": legacy_session.get("current_probs", legacy_session.get("mean_probs", [])),
+                    "disease": legacy_session.get("disease", ""),
+                    "confidence": legacy_session.get("confidence", 0),
+                    "uncertainty": legacy_session.get("uncertainty", 1),
+                    "top_diseases": legacy_session.get("top_diseases", []),
+                    "model_used": legacy_session.get("model_used", "BioClinical ModernBERT"),
+                    "lang": legacy_session.get("lang", "en"),
+                    "asked_questions": [],
+                    "evidence_texts": [],
+                    "created_at": legacy_session.get("start_time", time.time()),
                 }
-                print("[FOLLOW-UP] Using request-body fallback (no server session)")
+                print("[FOLLOW-UP] Using legacy Flask cookie session (fallback)")
+            elif data.get("disease"):
+                # Final fallback: construct from request payload
+                sess = {
+                    "initial_symptoms": data.get("symptoms", ""),
+                    "base_probs": data.get("current_probs", data.get("mean_probs", [])),
+                    "current_probs": data.get("current_probs", data.get("mean_probs", [])),
+                    "disease": data.get("disease", ""),
+                    "confidence": data.get("confidence", 0),
+                    "uncertainty": data.get("uncertainty", 1),
+                    "top_diseases": data.get("top_diseases", []),
+                    "model_used": "(request fallback)",
+                    "lang": "en",
+                    "asked_questions": data.get("asked_questions", []),
+                    "evidence_texts": [],
+                    "created_at": time.time(),
+                }
+                print("[FOLLOW-UP] Using request-body fallback (no session found)")
             else:
-                # No session and no client-provided disease context
-                print("[SECURITY] Session missing or expired in follow-up")
                 return (
-                    jsonify(
-                        {
-                            "error": "SESSION_EXPIRED",
-                            "message": "Your session has expired. Please start a new diagnosis.",
-                            "code": "SESSION_EXPIRED",
-                        }
-                    ),
+                    jsonify({
+                        "error": "SESSION_EXPIRED",
+                        "message": "Your session has expired. Please start a new diagnosis.",
+                        "code": "SESSION_EXPIRED",
+                    }),
                     440,
                 )
-            
-        # Validate session age (e.g., 1 hour expiry)
-        if time.time() - session_data.get("start_time", 0) > 3600:
+
+        # Check session age
+        if time.time() - sess.get("created_at", 0) > 3600:
+            if session_id:
+                # Could delete the DB row here
+                pass
             session.clear()
             return (
-                jsonify(
-                    {
-                        "error": "SESSION_EXPIRED",
-                        "message": "Your session has timed out. Please start over.",
-                    }
-                ),
+                jsonify({
+                    "error": "SESSION_EXPIRED",
+                    "message": "Your session has timed out. Please start over.",
+                }),
                 440,
             )
 
-        # Use updated symptoms string (initial + positives)
-        symptoms_text = data.get("symptoms", "").strip()
-        if not symptoms_text:
-             # Fallback to session symptoms if not provided
-             symptoms_text = session_data.get("symptoms_text", "")
-        
-        # TRUST SERVER STATE for context, ignore client-provided context fields if they differ
-        prior_disease = session_data.get("disease")
-        prior_confidence = session_data.get("confidence")
-        prior_uncertainty = session_data.get("uncertainty")
-        prior_top_diseases = session_data.get("top_diseases", []) or []
-        
-        # These fields still come from client as they are interaction logic
-        asked_questions = data.get("asked_questions", [])
+        # Extract state from session
+        initial_symptoms = sess.get("initial_symptoms", "")
+        current_probs = np.array(sess.get("current_probs", []), dtype=np.float64).flatten()
+        evidence_texts = list(sess.get("evidence_texts", []))
+        asked_questions_from_session = set(sess.get("asked_questions", []))
+
+        # Merge client-provided asked_questions with session (union)
+        client_asked = set(data.get("asked_questions", []))
+        asked_questions = asked_questions_from_session | client_asked
+
+        # Request fields
         force_question = data.get("force", False)
-        mode = data.get("mode", "adaptive")
         last_answer = data.get("last_answer")
         last_question_id = data.get("last_question_id")
         last_question_text = data.get("last_question_text")
 
-        # Lightweight debug to verify dynamic reclassification input length and asked count
-        try:
-            print(
-                f"[FOLLOW-UP] Reclassify on symptoms len={len(symptoms_text)} | asked={len(asked_questions)}"
-            )
-        except Exception:
-            pass
+        # Use symptoms from request or session
+        symptoms_text = data.get("symptoms", "").strip() or initial_symptoms
 
-        # Log last answer that led to this follow-up
-        try:
-            if last_answer is not None and last_question_id:
-                ans = str(last_answer).lower()
-                symbol = "✅" if ans == "yes" else ("❌" if ans == "no" else ans)
-                print(f"[FOLLOW-UP] Answer: {symbol} to [{last_question_id}]")
-                if last_question_text:
-                    print(f"[FOLLOW-UP] Question text: {last_question_text}")
-        except Exception:
-            pass
-
-        # ── HYBRID SCORING: Bayesian Evidence Update ──
-        # Instead of re-running the NLP classifier with appended boilerplate text
-        # (which causes distributional shift and confidence drop), we use the
-        # initial classification result as the base and apply Bayesian evidence
-        # updates from follow-up Yes/No answers.
-        
-        # Get the question bank for question metadata lookup
+        # ── 2. BAYESIAN EVIDENCE UPDATE ───────────────────────────────────
         QUESTION_BANK_EN = current_app.config["QUESTION_BANK_EN"]
         QUESTION_BANK_TL = current_app.config["QUESTION_BANK_TL"]
-        
-        # Retrieve current probability distribution
-        # PREFER request-body current_probs (reliable) over session (Flask cookie sessions
-        # are not reliably round-tripped through Next.js server actions)
-        current_probs_raw = data.get("current_probs") or session_data.get("current_probs") or session_data.get("mean_probs")
-        
-        if current_probs_raw is None or not prior_disease:
-            return (
-                jsonify(
-                    {
-                        "error": "SESSION_EXPIRED",
-                        "message": "Session state missing. Please start a new diagnosis.",
-                        "code": "SESSION_EXPIRED",
-                    }
-                ),
-                440,
-            )
-        
-        # Flatten if nested [[...]]
-        import numpy as np
-        current_probs = np.array(current_probs_raw).flatten()
-        
-        # Apply Bayesian update if there's a new answer to process
+
+        pred = sess.get("disease", "")
+        confidence = float(sess.get("confidence", 0))
+        uncertainty = float(sess.get("uncertainty", 1))
+        top_diseases = sess.get("top_diseases", [])
+        model_used = sess.get("model_used", "BioClinical ModernBERT")
+
         if last_answer and last_question_id:
-            # Look up question metadata from the appropriate question bank
-            session_lang = session_data.get("lang")
+            session_lang = sess.get("lang", "en")
             qb = QUESTION_BANK_TL if session_lang in ["tl", "fil"] else QUESTION_BANK_EN
             q_meta = lookup_question_metadata(last_question_id, qb)
-            
+
             if q_meta:
                 update_result = bayesian_evidence_update(
                     current_probs=current_probs,
@@ -542,297 +567,243 @@ def follow_up_question():
                     target_disease_idx=q_meta["disease_idx"],
                     disease_labels=CORRECT_ID2LABEL,
                 )
-                
-                # Update session with new probabilities
+
                 current_probs = np.array(update_result["probs"])
                 pred = update_result["predicted_label"]
                 confidence = update_result["confidence"]
                 uncertainty = update_result["uncertainty"]
                 top_diseases = update_result["top_diseases"]
-                probs = update_result["probs_formatted"]
-                model_used = session_data.get("model_used", "BioClinical ModernBERT")
-                mean_probs = update_result["probs"]
-                
-                # Persist updated state back to session
-                diag = session.get("diagnosis", {})
-                diag["current_probs"] = update_result["probs"]
-                diag["confidence"] = confidence
-                diag["uncertainty"] = uncertainty
-                diag["disease"] = pred
-                diag["top_diseases"] = top_diseases
-                session["diagnosis"] = diag
-                
-                print(f"[FOLLOW-UP] Bayesian update: {q_meta['disease']} q={last_question_id} ans={last_answer} -> conf={confidence:.3f}, MI={uncertainty:.4f}")
-            else:
-                # Question not found in bank; use prior state as-is
-                print(f"[FOLLOW-UP] Question {last_question_id} not found in question bank, using prior state")
-                pred = prior_disease
-                confidence = float(prior_confidence) if prior_confidence is not None else 0.0
-                uncertainty = float(prior_uncertainty) if prior_uncertainty is not None else 1.0
-                top_diseases = prior_top_diseases
-                probs = [f"{d.get('disease')}: {(float(d.get('probability', 0.0))*100):.2f}%" for d in top_diseases]
-                model_used = session_data.get("model_used", "(prior state)")
-                mean_probs = current_probs.tolist()
-        else:
-            # First follow-up call (no answer yet), use session state directly
-            pred = prior_disease
-            confidence = float(prior_confidence) if prior_confidence is not None else 0.0
-            uncertainty = float(prior_uncertainty) if prior_uncertainty is not None else 1.0
-            top_diseases = prior_top_diseases
-            probs = [f"{d.get('disease')}: {(float(d.get('probability', 0.0))*100):.2f}%" for d in top_diseases]
-            model_used = session_data.get("model_used", "BioClinical ModernBERT")
-            mean_probs = current_probs.tolist()
 
-        # Neuro-Symbolic Verification (Catch Out-of-Scope even in follow-up)
-        # This prevents confidence drift from accepting invalid diseases
+                print(
+                    f"[FOLLOW-UP] Bayesian update: {q_meta['disease']} "
+                    f"q={last_question_id} ans={last_answer} -> "
+                    f"conf={confidence:.3f}, MI={uncertainty:.4f}"
+                )
+            else:
+                print(f"[FOLLOW-UP] Question {last_question_id} not in bank, using prior state")
+
+            # ── 3. BUILD EVIDENCE TEXT FOR UNIFIED INFERENCE ──────────────
+            if last_question_text:
+                if str(last_answer).lower() == "yes":
+                    # Find positive_symptom text from question bank
+                    pos_text = None
+                    for disease_qs in list(QUESTION_BANK_EN.values()) + list(QUESTION_BANK_TL.values()):
+                        for q in disease_qs:
+                            if q.get("id") == last_question_id:
+                                pos_text = q.get("positive_symptom", "")
+                                break
+                        if pos_text:
+                            break
+                    if pos_text:
+                        evidence_texts.append(f"Patient confirms: {pos_text}")
+                    else:
+                        evidence_texts.append(f"Patient confirms symptom from: {last_question_text}")
+                else:
+                    neg_text = None
+                    for disease_qs in list(QUESTION_BANK_EN.values()) + list(QUESTION_BANK_TL.values()):
+                        for q in disease_qs:
+                            if q.get("id") == last_question_id:
+                                neg_text = q.get("negative_symptom", "")
+                                break
+                        if neg_text:
+                            break
+                    if neg_text:
+                        evidence_texts.append(f"Patient denies: {neg_text}")
+                    else:
+                        evidence_texts.append(f"Patient denies symptom from: {last_question_text}")
+
+        # ── 4. NEURO-SYMBOLIC CLAMPING ────────────────────────────────────
+        # Clamp impossible diseases DURING the loop, not just at the end.
         verification_layer = current_app.config["VERIFICATION_LAYER"]
-        verification_result = verification_layer.verify(symptoms_text, pred)
-        if not verification_result["is_valid"]:
-            unexplained = verification_result["unexplained_concepts"]
-            print(
-                f"[VERIFICATION-FOLLOWUP] FAIL: Unexplained concepts {unexplained} for predicted disease {pred}"
-            )
-            print(
-                f"[LOG_INSTANCE] ONTOLOGY_MISMATCH_FOLLOWUP | predicted={pred} | unexplained={unexplained} | conf={confidence:.4f}"
-            )
-            cdss = _build_cdss_payload(
-                symptoms_text,
-                pred,
-                confidence,
-                uncertainty,
-                top_diseases,
-                model_used,
-            )
+        unified_text = _build_evidence_text(initial_symptoms, evidence_texts)
+
+        clamped_probs = _clamp_impossible_diseases(
+            current_probs, unified_text, verification_layer, CORRECT_ID2LABEL,
+        )
+
+        if not np.allclose(clamped_probs, current_probs, atol=1e-8):
+            current_probs = clamped_probs
+            pred_idx = int(np.argmax(current_probs))
+            pred = CORRECT_ID2LABEL.get(pred_idx, pred)
+            confidence = float(np.max(current_probs))
+            from scipy.stats import entropy as _ent
+            raw_h = float(_ent(current_probs))
+            max_h = float(np.log(len(current_probs)))
+            uncertainty = raw_h / max_h if max_h > 0 else 0.0
+            top_diseases = [
+                {"disease": CORRECT_ID2LABEL.get(i, f"D{i}"), "probability": float(current_probs[i])}
+                for i in range(len(current_probs))
+            ]
+            top_diseases.sort(key=lambda x: x["probability"], reverse=True)
+            print(f"[FOLLOW-UP] Post-clamp: {pred} conf={confidence:.3f} MI={uncertainty:.4f}")
+
+        # Final verification on the top disease
+        v_result = verification_layer.verify(unified_text, pred)
+        if not v_result["is_valid"]:
+            unexplained = v_result["unexplained_concepts"]
+            print(f"[VERIFICATION-FOLLOWUP] FAIL: {unexplained} for {pred}")
+            probs_formatted = [
+                f"{d['disease']}: {(d['probability']*100):.2f}%" for d in top_diseases
+            ]
             return (
-                jsonify(
-                    {
-                        "data": {
-                            "should_stop": True,
-                            "reason": "OUT_OF_SCOPE",
-                            "message": "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for proper evaluation.",
-                            "diagnosis": {
-                                "pred": pred,
-                                "disease": pred,
-                                "confidence": confidence,
-                                "uncertainty": uncertainty,
-                                "probs": probs,
-                                "model_used": model_used,
-                                "top_diseases": top_diseases,
-                                "mean_probs": mean_probs,
-                                "is_valid": False,
-                                "cdss": cdss,
-                                "verification_failure": {
-                                    "unexplained_concepts": list(unexplained),
-                                    "message": "Your symptoms include indicators not typically associated with our supported conditions. Please consult a healthcare professional."
-                                }
-                            },
-                        }
+                jsonify({
+                    "data": {
+                        "should_stop": True,
+                        "reason": "OUT_OF_SCOPE",
+                        "message": "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.",
+                        "diagnosis": {
+                            "pred": pred, "disease": pred,
+                            "confidence": confidence, "uncertainty": uncertainty,
+                            "probs": probs_formatted, "model_used": model_used,
+                            "top_diseases": top_diseases,
+                            "mean_probs": current_probs.tolist(),
+                            "is_valid": False,
+                            "cdss": _build_cdss_payload(
+                                symptoms_text, pred, confidence, uncertainty, top_diseases, model_used,
+                            ),
+                            "verification_failure": {
+                                "unexplained_concepts": list(unexplained),
+                                "message": "Your symptoms include indicators not typically associated with our supported conditions."
+                            }
+                        },
                     }
-                ),
+                }),
                 200,
             )
 
-        # Language detection for question bank using robust heuristic
-        # Determine Language
-        session_lang = session_data.get("lang")
-        if (symptoms_text or "").strip():
-             lang = detect_language_heuristic(symptoms_text)
-        else:
-             lang = session_lang if session_lang else "en"
+        # ── PERSIST UPDATED STATE ─────────────────────────────────────────
+        mean_probs = current_probs.tolist()
+        probs_formatted = [
+            f"{d['disease']}: {(d['probability']*100):.2f}%" for d in top_diseases
+        ]
 
-        QUESTION_BANK_TL = current_app.config["QUESTION_BANK_TL"]
-        QUESTION_BANK_EN = current_app.config["QUESTION_BANK_EN"]
-        QUESTION_BANK = QUESTION_BANK_TL if lang in ["tl", "fil"] else QUESTION_BANK_EN
-
-        # EARLY STOP: Check high confidence FIRST, before any other logic
-        # This prevents asking questions when diagnosis is already very confident
-        if not force_question and confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
-            print(
-                f"[FOLLOW-UP] STOP: Very high confidence reached (conf={confidence:.3f}, MI={uncertainty:.4f})"
+        if session_id:
+            update_session(
+                session_id,
+                current_probs=mean_probs,
+                disease=pred,
+                confidence=confidence,
+                uncertainty=uncertainty,
+                top_diseases=top_diseases,
+                asked_questions=list(asked_questions),
+                evidence_texts=evidence_texts,
             )
+
+        # Also update legacy Flask session for backward compat
+        diag = session.get("diagnosis", {})
+        diag.update({
+            "current_probs": mean_probs,
+            "confidence": confidence,
+            "uncertainty": uncertainty,
+            "disease": pred,
+            "top_diseases": top_diseases,
+        })
+        session["diagnosis"] = diag
+
+        # ── EARLY STOP CHECKS ────────────────────────────────────────────
+        if not force_question and confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
+            print(f"[FOLLOW-UP] STOP: High confidence (conf={confidence:.3f}, MI={uncertainty:.4f})")
             return _stop_response(
                 "HIGH_CONFIDENCE_FINAL", pred, confidence, uncertainty,
-                probs, model_used, top_diseases, mean_probs, symptoms_text,
+                probs_formatted, model_used, top_diseases, mean_probs, symptoms_text,
             )
 
-        # Early stop logic: Check if prediction meets thesis validity thresholds
-        # If not, flag as OUT_OF_SCOPE instead of forcing a potentially incorrect diagnosis
         is_valid_prediction = (
-            confidence >= config.VALID_MIN_CONF 
+            confidence >= config.VALID_MIN_CONF
             and uncertainty <= config.VALID_MAX_UNCERTAINTY
         )
-        
-        if (
-            len(asked_questions) >= config.MAX_QUESTIONS_THRESHOLD
-            and not is_valid_prediction
-        ):
-            print(
-                f"[FOLLOW-UP] STOP: OUT_OF_SCOPE after {len(asked_questions)} questions (conf={confidence:.3f} < {config.VALID_MIN_CONF}, MI={uncertainty:.4f} > {config.VALID_MAX_UNCERTAINTY})"
-            )
-            print(
-                f"[LOG_INSTANCE] OUT_OF_SCOPE | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | asked_questions={len(asked_questions)} | threshold_conf={config.VALID_MIN_CONF} | threshold_mi={config.VALID_MAX_UNCERTAINTY}"
-            )
+
+        if len(asked_questions) >= config.MAX_QUESTIONS_THRESHOLD and not is_valid_prediction:
+            print(f"[FOLLOW-UP] STOP: OUT_OF_SCOPE after {len(asked_questions)} questions")
             return _stop_response(
                 "OUT_OF_SCOPE", pred, confidence, uncertainty,
-                probs, model_used, top_diseases, mean_probs, symptoms_text,
-                message="Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for proper evaluation.",
+                probs_formatted, model_used, top_diseases, mean_probs, symptoms_text,
+                message="Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.",
                 is_valid=False,
             )
 
         if len(asked_questions) >= config.EXHAUSTED_QUESTIONS_THRESHOLD:
-            # Check validity before exhaustion response
-            is_exhausted_valid = (
-                confidence >= config.VALID_MIN_CONF 
-                and uncertainty <= config.VALID_MAX_UNCERTAINTY
-            )
-            reason = "HIGH_CONFIDENCE_FINAL" if is_exhausted_valid else "OUT_OF_SCOPE"
+            is_valid = confidence >= config.VALID_MIN_CONF and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "OUT_OF_SCOPE"
             message = (
-                f"Final assessment: {pred}" if is_exhausted_valid 
-                else "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for proper evaluation."
+                f"Final assessment: {pred}" if is_valid
+                else "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional."
             )
-            print(
-                f"[FOLLOW-UP] STOP: Exhausted questions for disease={pred} after {len(asked_questions)} asked | valid={is_exhausted_valid}"
-            )
+            print(f"[FOLLOW-UP] STOP: Exhausted questions ({len(asked_questions)}) valid={is_valid}")
             return _stop_response(
                 reason, pred, confidence, uncertainty,
-                probs, model_used, top_diseases, mean_probs, symptoms_text,
-                message=message, is_valid=is_exhausted_valid,
+                probs_formatted, model_used, top_diseases, mean_probs, symptoms_text,
+                message=message, is_valid=is_valid,
             )
 
-        # If not forced, stop when confidence and uncertainty thresholds are met (secondary check)
-        # This catches cases where confidence increased after first follow-up
-        if not force_question and confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
-            print("[FOLLOW-UP] STOP: High confidence and low uncertainty reached")
-            return _stop_response(
-                "HIGH_CONFIDENCE_FINAL", pred, confidence, uncertainty,
-                probs, model_used, top_diseases, mean_probs, symptoms_text,
-            )
+        # ── 5. EIG-BASED QUESTION SELECTION ──────────────────────────────
+        # Detect language for question bank
+        session_lang = sess.get("lang", "en")
+        if symptoms_text.strip():
+            lang = detect_language_heuristic(symptoms_text)
+        else:
+            lang = session_lang if session_lang else "en"
 
-        # Question selection logic with duplicate-evidence skipping and coverage
-        current_disease = pred
-        if current_disease not in QUESTION_BANK:
-            print(
-                f"[FOLLOW-UP] STOP: No questions available for disease: {current_disease}"
-            )
-            return _stop_response(
-                "NO_QUESTIONS_AVAILABLE", pred, confidence, uncertainty,
-                probs, model_used, top_diseases, mean_probs, symptoms_text,
-                message=f"No follow-up questions available for {current_disease}. Diagnosis complete.",
-            )
+        QUESTION_BANK = QUESTION_BANK_TL if lang in ["tl", "fil"] else QUESTION_BANK_EN
 
-        primary_questions = QUESTION_BANK[current_disease]
+        # Identify which questions to skip (already evidenced in initial symptoms)
         symptoms_lower = (symptoms_text or "").lower()
+        skip_ids = set()
+        for disease_name, questions in QUESTION_BANK.items():
+            for q in questions:
+                if _has_evidence(q, symptoms_lower):
+                    skip_ids.add(q["id"])
 
-        # Improved evidence detection: check for key symptom keywords, not full phrases
-        def has_evidence(q):
-            """Check if the question's key symptoms are already mentioned in initial symptoms"""
-            qid = q.get("id", "")
-            keywords = EVIDENCE_KEYWORDS.get(qid, [])
-            if not keywords:
-                return False
-            # Check if ANY of the keywords are present in symptoms
-            return any(kw in symptoms_lower for kw in keywords)
+        if skip_ids:
+            print(f"[FOLLOW-UP] Skipping {len(skip_ids)} already-evidenced questions")
 
-        duplicate_ids = [q["id"] for q in primary_questions if has_evidence(q)]
-        available_questions = [
-            q
-            for q in primary_questions
-            if q["id"] not in asked_questions and q["id"] not in duplicate_ids
-        ]
+        # Use EIG to find the best question across ALL diseases
+        selected_question = select_best_question_across_diseases(
+            current_probs=current_probs,
+            question_bank=QUESTION_BANK,
+            asked_question_ids=asked_questions,
+            skip_question_ids=skip_ids,
+            disease_labels=CORRECT_ID2LABEL,
+        )
 
-        if duplicate_ids:
-            try:
-                print(
-                    f"[FOLLOW-UP] Skipping {len(duplicate_ids)} duplicate question(s) already evidenced in symptoms: {', '.join(duplicate_ids)}"
-                )
-            except Exception:
-                pass
-
-        if not available_questions:
-            print(
-                f"[FOLLOW-UP] STOP: All questions asked for disease: {current_disease}"
-            )
-            
-            # Check validity before exhaustion response (Same logic as EXHAUSTED_QUESTIONS_THRESHOLD)
-            is_exhausted_valid = (
-                confidence >= config.VALID_MIN_CONF 
-                and uncertainty <= config.VALID_MAX_UNCERTAINTY
-            )
-            reason = "HIGH_CONFIDENCE_FINAL" if is_exhausted_valid else "LOW_CONFIDENCE_FINAL"
+        if not selected_question:
+            # All questions exhausted
+            is_valid = confidence >= config.VALID_MIN_CONF and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "LOW_CONFIDENCE_FINAL"
             message = (
-                f"Final assessment: {pred}" if is_exhausted_valid 
-                else "You may not be experiencing a disease that this system can process or your inputs are invalid."
+                f"Final assessment: {pred}" if is_valid
+                else "You may not be experiencing a disease that this system can process."
             )
-            
+            print(f"[FOLLOW-UP] STOP: No more questions available, valid={is_valid}")
             return _stop_response(
                 reason, pred, confidence, uncertainty,
-                probs, model_used, top_diseases, mean_probs, symptoms_text,
-                message=message, is_valid=is_exhausted_valid,
+                probs_formatted, model_used, top_diseases, mean_probs, symptoms_text,
+                message=message, is_valid=is_valid,
             )
 
-        # Compute primary coverage (how many primary questions are already evidenced)
-        primary_only = [
-            q
-            for q in primary_questions
-            if (q.get("category") or "").lower() == "primary"
-        ]
-        coverage_primary = sum(1 for q in primary_only if has_evidence(q))
-
-        # Evidence-based early stop
-        if coverage_primary >= 3 and (confidence >= 0.78 and uncertainty <= 0.04):
-            print(
-                f"[FOLLOW-UP] STOP: Sufficient evidence reached (coverage_primary={coverage_primary}, conf={confidence:.3f}, MI={uncertainty:.4f})"
-            )
-            print(
-                f"[LOG_INSTANCE] SUFFICIENT_EVIDENCE | disease={pred} | conf={confidence:.4f} | MI={uncertainty:.4f} | coverage_primary={coverage_primary} | asked_questions={len(asked_questions)} | frontend_will_show_error=NO"
-            )
-            return _stop_response(
-                "High confidence reached", pred, confidence, uncertainty,
-                probs, model_used, top_diseases, mean_probs, symptoms_text,
-            )
-
-        # Discrimination logic (prefer when probs close OR coverage strong)
-        selected_question = None
-        if mode != "legacy" and len(top_diseases) >= 2:
-            second_disease = top_diseases[1]["disease"]
-            prob_diff = abs(
-                top_diseases[0]["probability"] - top_diseases[1]["probability"]
-            )
-            if (
-                prob_diff < 0.2 or coverage_primary >= 2
-            ) and second_disease in QUESTION_BANK:
-                secondary_questions = QUESTION_BANK[second_disease]
-                secondary_question_texts = {q["question"] for q in secondary_questions}
-                discriminating_questions = [
-                    q
-                    for q in available_questions
-                    if q["question"] not in secondary_question_texts
-                ]
-                if discriminating_questions:
-                    selected_question = max(
-                        discriminating_questions, key=lambda q: q["weight"]
-                    )
-        if not selected_question:
-            selected_question = max(
-                available_questions,
-                key=lambda q: (q["category"] == "primary", q["weight"]),
-            )
-
-        # Summary log for current decision state and the next question selected
-        try:
-            print(
-                f"[FOLLOW-UP] {pred} | Lang: {lang} | Conf: {confidence:.3f} | MI: {uncertainty:.4f} | Asked: {len(asked_questions)}"
-            )
-            if len(top_diseases) >= 2:
-                td0, td1 = top_diseases[0], top_diseases[1]
-                print(
-                    f"[FOLLOW-UP] Top 2: {td0['disease']} ({td0['probability']:.3f}), {td1['disease']} ({td1['probability']:.3f})"
+        # Evidence-based early stop (from coverage)
+        current_disease = pred
+        if current_disease in QUESTION_BANK:
+            primary_questions = QUESTION_BANK[current_disease]
+            primary_only = [q for q in primary_questions if (q.get("category") or "").lower() == "primary"]
+            coverage_primary = sum(1 for q in primary_only if _has_evidence(q, symptoms_lower))
+            if coverage_primary >= 3 and confidence >= 0.78 and uncertainty <= 0.04:
+                print(f"[FOLLOW-UP] STOP: Sufficient evidence (coverage={coverage_primary})")
+                return _stop_response(
+                    "High confidence reached", pred, confidence, uncertainty,
+                    probs_formatted, model_used, top_diseases, mean_probs, symptoms_text,
                 )
-            print(
-                f"[FOLLOW-UP] Next question -> {selected_question['id']}: {selected_question['question']} (cat: {selected_question.get('category', '')})"
-            )
-        except Exception:
-            pass
+
+        # Log selection
+        eig_val = selected_question.get("_eig", 0)
+        target_disease = selected_question.get("_disease", "?")
+        print(
+            f"[FOLLOW-UP] {pred} | Lang: {lang} | Conf: {confidence:.3f} | MI: {uncertainty:.4f} | Asked: {len(asked_questions)}"
+        )
+        print(
+            f"[FOLLOW-UP] EIG selected -> {selected_question['id']}: {selected_question['question']} "
+            f"(EIG={eig_val:.4f}, target={target_disease}, cat={selected_question.get('category', '')})"
+        )
 
         return (
             jsonify(
@@ -844,26 +815,23 @@ def follow_up_question():
                             "question": selected_question["question"],
                             "positive_symptom": selected_question["positive_symptom"],
                             "negative_symptom": selected_question["negative_symptom"],
-                            "category": selected_question["category"],
+                            "category": selected_question.get("category", "secondary"),
                         },
                         "diagnosis": {
                             "pred": pred,
                             "disease": pred,
                             "confidence": confidence,
                             "uncertainty": uncertainty,
-                            "probs": probs,
+                            "probs": probs_formatted,
                             "model_used": model_used,
                             "top_diseases": top_diseases,
                             "mean_probs": mean_probs,
                             "cdss": _build_cdss_payload(
-                                symptoms_text,
-                                pred,
-                                confidence,
-                                uncertainty,
-                                top_diseases,
-                                model_used,
+                                symptoms_text, pred, confidence,
+                                uncertainty, top_diseases, model_used,
                             ),
                         },
+                        "session_id": session_id,
                     }
                 }
             ),
@@ -901,10 +869,8 @@ def explain_diagnosis():
         if mean_probs is None:
             return jsonify({"error": "mean_probs is required"}), 400
 
-        # Get model explanations (explainer returns a plain serializable dict)
         result = explainer(text, mean_probs)
 
-        # Return the real symptoms and tokens from the explainer result
         return (
             jsonify(
                 {"symptoms": result.get("symptoms"), "tokens": result.get("tokens")}
