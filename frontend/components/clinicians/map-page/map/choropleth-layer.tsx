@@ -12,9 +12,10 @@ interface ChoroplethLayerProps {
   geoData: GeoJsonObject;
   casesData: Record<string, number>;
   diagnoses: Diagnosis[];
+  onFeatureClick?: (featureName: string) => void;
 }
 
-export default function ChoroplethLayer({ geoData, casesData, diagnoses }: ChoroplethLayerProps) {
+export default function ChoroplethLayer({ geoData, casesData, diagnoses, onFeatureClick }: ChoroplethLayerProps) {
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
   const map = useMap();
   const { selectedDisease } = useSelectedDiseaseStore();
@@ -55,6 +56,13 @@ export default function ChoroplethLayer({ geoData, casesData, diagnoses }: Choro
 
   // On click, zoom to feature or pwedeng i-display yung patients belonging in that zone
   function zoomToFeature(e: LeafletMouseEvent) {
+    const layer = e.target;
+    const name = layer.feature?.properties?.name;
+
+    if (name && onFeatureClick) {
+      onFeatureClick(name);
+    }
+
     map.fitBounds(e.target.getBounds());
   }
 

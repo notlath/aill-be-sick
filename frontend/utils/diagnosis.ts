@@ -140,6 +140,9 @@ export const getDiseaseDiagnosesByDistricts = async (
             lte: endDate ? new Date(endDate) : undefined,
           },
         },
+        include: {
+          user: true,
+        },
       }),
       prisma.diagnosis.groupBy({
         by: ["district"],
