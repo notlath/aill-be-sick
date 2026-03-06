@@ -7,6 +7,7 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+import type { DiseaseType } from "@/stores/use-selected-disease-store";
 
 const DISEASES = [
   { value: "all", label: "All diseases" },
@@ -20,8 +21,8 @@ const DISEASES = [
 ] as const;
 
 interface DiseaseSelectProps {
-  value: string;
-  onValueChange: (value: string) => void;
+  value: DiseaseType;
+  onValueChange: (value: DiseaseType) => void;
   className?: string;
 }
 
@@ -30,8 +31,12 @@ export function DiseaseSelect({
   onValueChange,
   className,
 }: DiseaseSelectProps) {
+  const handleChange = (newValue: string) => {
+    onValueChange(newValue as DiseaseType);
+  };
+
   return (
-      <Select value={value} onValueChange={onValueChange} className="w-[300px]">
+      <Select value={value} onValueChange={handleChange} className="w-[300px]">
         <SelectTrigger>
           <SelectValue placeholder="Select disease" />
         </SelectTrigger>

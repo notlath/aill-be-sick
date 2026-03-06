@@ -1,10 +1,11 @@
 "use client";
 
-import { DiseaseSelect } from "./disease-select";
-import { DateRangeFilter } from "./date-range-filter";
-import { useState } from "react";
+import { DiseaseSelect } from "../disease-select";
+import { DateRangeFilter } from "../date-range-filter";
 import { Card, CardContent } from "@/components/ui/card";
 import dynamic from "next/dynamic";
+import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
+import useDateRangeStore from "@/stores/use-date-range-store";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), { ssr: false });
 
@@ -24,9 +25,8 @@ const casesData: Record<string, number> = {
 };
 
 const ByDiseaseTab = () => {
-  const [selectedDisease, setSelectedDisease] = useState("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const { selectedDisease, setSelectedDisease } = useSelectedDiseaseStore();
+  const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
 
   return (
     <div className="space-y-4">
