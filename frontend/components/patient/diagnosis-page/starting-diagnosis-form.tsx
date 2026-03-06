@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUp } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "nextjs-toploader/app";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 type StartingDiagnosisFormProps = {

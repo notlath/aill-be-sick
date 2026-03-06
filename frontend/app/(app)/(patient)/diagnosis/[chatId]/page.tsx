@@ -1,5 +1,6 @@
 import ChatHistoryView from "@/components/patient/diagnosis-page/chat-history-view";
 import ChatWindow from "@/components/patient/diagnosis-page/chat-window";
+import ThreadTransition from "@/components/patient/diagnosis-page/thread-transition";
 import { Chat } from "@/lib/generated/prisma";
 import { getChatById } from "@/utils/chat";
 import { getDiagnosisByChatId } from "@/utils/diagnosis";
