@@ -9,7 +9,7 @@ export function getColor(count: number): string {
           ? "#FC4E2A"
           : count > 10
             ? "#FD8D3C"
-            : count > 5
+            : count > 1
               ? "#FEB24C"
               : "#FFEDA0";
 }
