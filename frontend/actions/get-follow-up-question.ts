@@ -1,18 +1,22 @@
 "use server";
 
-import axios, { AxiosError } from "axios";
+import axios, {AxiosError} from "axios";
 import * as z from "zod";
-import { actionClient } from "./client";
+import {actionClient} from "./client";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
 const FOLLOWUP_TIMEOUT_MS = 30000;
 
 const FollowUpSchema = z.object({
-  disease: z.string(),
-  confidence: z.number(),
-  uncertainty: z.number(),
-  asked_questions: z.array(z.string()),
+  // Primary: DB session-backed flow
+  session_id: z.string().optional(),
+
+  // Legacy fields (backward compat with existing callsites)
+  disease: z.string().optional(),
+  confidence: z.number().optional(),
+  uncertainty: z.number().optional(),
+  asked_questions: z.array(z.string()).optional(),
   symptoms: z.string().optional(),
   top_diseases: z
     .array(
@@ -24,11 +28,9 @@ const FollowUpSchema = z.object({
     .optional(),
   force: z.boolean().optional(),
   mode: z.enum(["adaptive", "legacy"]).optional(),
-  // Optional context: last answer to previous question
   last_answer: z.enum(["yes", "no"]).optional(),
   last_question_id: z.string().optional(),
   last_question_text: z.string().optional(),
-  // Bayesian evidence state: updated probability distribution
   current_probs: z.array(z.any()).optional(),
 });
 
@@ -36,6 +38,7 @@ export const getFollowUpQuestion = actionClient
   .inputSchema(FollowUpSchema)
   .action(async ({parsedInput}) => {
     const {
+      session_id,
       disease,
       confidence,
       uncertainty,
@@ -50,31 +53,36 @@ export const getFollowUpQuestion = actionClient
     } = parsedInput;
 
     try {
-      const payload = {
-        disease,
-        confidence,
-        uncertainty,
-        asked_questions,
+      const payload: Record<string, unknown> = {
+        // Session ID is the primary state carrier
+        session_id: session_id || undefined,
+
+        // Legacy fields for backward compat
+        disease: disease || "",
+        confidence: confidence ?? 0,
+        uncertainty: uncertainty ?? 1,
+        asked_questions: asked_questions || [],
         symptoms: symptoms || "",
         force: force || false,
         top_diseases: top_diseases || [],
         mode: process.env.NEXT_PUBLIC_DIAGNOSIS_MODE || "adaptive",
-        // pass through optional last answer context (if provided)
+
+        // Follow-up context
         last_answer,
         last_question_id,
         last_question_text,
-        // Bayesian evidence state: round-trip the updated probability distribution
+
+        // Bayesian state (legacy; DB session is preferred)
         current_probs: current_probs || undefined,
       };
 
-      // DEBUG: Log what we're sending
       console.log("[FRONTEND] Sending follow-up request:", {
-        asked_questions_count: asked_questions.length,
-        asked_questions,
+        session_id,
+        asked_questions_count: (asked_questions || []).length,
         last_question_id,
       });
 
-      // BRIDGE: Get session cookie from browser and forward to Flask
+      // BRIDGE: Forward session cookie to Flask
       const {cookies} = await import("next/headers");
       const cookieStore = await cookies();
       const sessionCookie = cookieStore.get("session");
@@ -86,15 +94,14 @@ export const getFollowUpQuestion = actionClient
         `${BACKEND_URL}/diagnosis/follow-up`,
         payload,
         {
-          withCredentials: true, // CRITICAL: Send session cookies
+          withCredentials: true,
           timeout: FOLLOWUP_TIMEOUT_MS,
           headers: {
-            Cookie: cookieHeader, // Manually attach cookie for Server Action
+            Cookie: cookieHeader,
           },
         },
       );
 
-      // Return both question and diagnosis
       return {
         success: {
           should_stop: data.data.should_stop,
@@ -102,6 +109,7 @@ export const getFollowUpQuestion = actionClient
           diagnosis: data.data.diagnosis,
           reason: data.data.reason,
           message: data.data.message,
+          session_id: data.data.session_id || session_id,
         },
       };
     } catch (error) {

@@ -68,6 +68,7 @@ export const runDiagnosis = actionClient
         cdss,
         skip_followup,
         skip_reason,
+        session_id: diagnosisSessionId,
       } = diagnosis;
 
       // Debug: Log what we received from backend
@@ -215,6 +216,7 @@ Do you want to record this diagnosis?
           cdss: cdss || null,
           skip_followup,
           skip_reason,
+          session_id: diagnosisSessionId || undefined,
         },
         isConfident,
       };
