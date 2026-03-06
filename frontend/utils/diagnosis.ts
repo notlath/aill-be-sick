@@ -144,6 +144,7 @@ export const getDiseaseDiagnosesByDistricts = async (
       prisma.diagnosis.groupBy({
         by: ["district"],
         where: {
+          disease: disease.toUpperCase() as any,
           district: { not: null },
           createdAt: {
             gte: startDate ? new Date(startDate) : undefined,
