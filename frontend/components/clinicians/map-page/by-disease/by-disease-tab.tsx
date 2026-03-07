@@ -13,7 +13,7 @@ import { Diagnosis } from "@/lib/generated/prisma";
 import FeaturePatientsModal from "../map/feature-patients-modal";
 import { useGeoJsonData } from "@/hooks/map-hooks/use-geojson-data";
 
-const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), { ssr: false });
+const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
 
 const ByDiseaseTab = () => {
   const { selectedDisease, setSelectedDisease } = useSelectedDiseaseStore();
@@ -101,7 +101,7 @@ const ByDiseaseTab = () => {
                 <div className="skeleton h-[600px] w-full" />
               </div>
             ) : (
-              <ChoroplethMap
+              <HeatmapMap
                 geoData={geoData}
                 casesData={casesData}
                 diagnoses={diagnoses}
