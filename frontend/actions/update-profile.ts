@@ -2,6 +2,7 @@
 
 import prisma from "@/prisma/prisma";
 import { UpdateProfileSchema } from "@/schemas/UpdateProfileSchema";
+import { ProfileSchema } from "@/schemas/ProfileSchema";
 import { createClient } from "@/utils/supabase/server";
 import { getAuthUser } from "@/utils/user";
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -41,6 +42,55 @@ export const updateProfile = actionClient
     } catch (error) {
       console.error(`Error updating profile: ${error}`);
       return { error: "Failed to update profile" };
+    }
+  });
+
+export const updateProfileLocation = actionClient
+  .inputSchema(ProfileSchema)
+  .action(async ({ parsedInput }) => {
+    const {
+      birthday,
+      gender,
+      address,
+      district,
+      city,
+      barangay,
+      region,
+      province,
+      latitude,
+      longitude,
+    } = parsedInput;
+
+    const authUser = await getAuthUser();
+
+    if (!authUser) {
+      return { error: "Not authenticated" };
+    }
+
+    try {
+      const updatedUser = await prisma.user.update({
+        where: { authId: authUser.id },
+        data: {
+          birthday: birthday ? new Date(birthday) : null,
+          gender: gender || null,
+          address: address || null,
+          district: district || null,
+          city: city || null,
+          barangay: barangay || null,
+          region: region || null,
+          province: province || null,
+          latitude: latitude || null,
+          longitude: longitude || null,
+        },
+      });
+
+      revalidateTag(`user-${authUser.id}`, { expire: 0 });
+      revalidatePath("/", "layout");
+
+      return { success: true, user: updatedUser };
+    } catch (error) {
+      console.error(`Error updating profile location: ${error}`);
+      return { error: "Failed to update profile location" };
     }
   });
 
