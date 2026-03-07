@@ -1,0 +1,61 @@
+import { useEffect } from "react";
+import { useMap } from "react-leaflet";
+import type { ClusterLegendBin } from "@/utils/cluster-heatmap";
+
+type ClusterChoroplethLegendProps = {
+  title: string;
+  bins: ClusterLegendBin[];
+  zeroColor: string;
+};
+
+const ClusterChoroplethLegend = ({
+  title,
+  bins,
+  zeroColor,
+}: ClusterChoroplethLegendProps) => {
+  const map = useMap();
+
+  useEffect(() => {
+    const L = require("leaflet");
+    const legend = new L.control({ position: "bottomright" });
+
+    legend.onAdd = () => {
+      const div = L.DomUtil.create("div", "info legend card");
+
+      div.style.background = "rgba(255, 255, 255, 0.75)";
+      div.style.backdropFilter = "blur(8px)";
+      div.style.borderRadius = "12px";
+      div.style.padding = "12px 14px";
+      div.style.fontFamily = "var(--font-geist-sans), sans-serif";
+      div.style.fontWeight = "500";
+
+      div.innerHTML += `<h4 style=\"margin: 0 0 8px 0; font-weight: 600; font-size: 14px;\">${title}</h4>`;
+
+      div.innerHTML +=
+        `<div style=\"display: flex; align-items: center; margin-bottom: 6px;\">` +
+        `<i style=\"background:${zeroColor}; border: 2px solid rgba(0,0,0,0.2); width: 24px; height: 16px; display: inline-block; margin-right: 8px; border-radius: 2px;\"></i> ` +
+        `<span style=\"font-size: 13px; font-weight: 500;\">0</span>` +
+        `</div>`;
+
+      for (const bin of bins) {
+        div.innerHTML +=
+          `<div style=\"display: flex; align-items: center; margin-bottom: 6px;\">` +
+          `<i style=\"background:${bin.color}; border: 2px solid rgba(0,0,0,0.2); width: 24px; height: 16px; display: inline-block; margin-right: 8px; border-radius: 2px;\"></i> ` +
+          `<span style=\"font-size: 13px; font-weight: 500;\">${bin.label}</span>` +
+          `</div>`;
+      }
+
+      return div;
+    };
+
+    legend.addTo(map);
+
+    return () => {
+      legend.remove();
+    };
+  }, [map, title, bins, zeroColor]);
+
+  return null;
+};
+
+export default ClusterChoroplethLegend;

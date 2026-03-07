@@ -178,7 +178,7 @@ def illness_clusters():
     Cluster diagnoses/illnesses based on disease type and patient demographics.
     Query params:
       - n_clusters: number of clusters (default: 4)
-      - age, gender, city, region, time: boolean flags for variable selection
+      - age, gender, district, time: boolean flags for variable selection
             - month: diagnosis month filter (YYYY-MM)
             - week: diagnosis ISO week filter (YYYY-Www)
     """
@@ -187,29 +187,32 @@ def illness_clusters():
 
         include_age = _parse_bool(request.args.get("age"), True)
         include_gender = _parse_bool(request.args.get("gender"), True)
-        include_barangay = _parse_bool(request.args.get("barangay"), False)
-        include_city = _parse_bool(request.args.get("city"), True)
-        include_province = _parse_bool(request.args.get("province"), False)
-        include_region = _parse_bool(request.args.get("region"), True)
+        include_district = _parse_bool(request.args.get("district"), True)
         include_time = _parse_bool(request.args.get("time"), False)
         diagnosis_month = request.args.get("month")
         diagnosis_week = request.args.get("week")
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
 
         # Keep month/week filters mutually exclusive if both are passed
         if diagnosis_month and diagnosis_week:
+            diagnosis_week = None
+
+        # If start/end date filters are provided, ignore month/week filters
+        if start_date or end_date:
+            diagnosis_month = None
             diagnosis_week = None
 
         # Fetch diagnosis data from PostgreSQL using DATABASE_URL
         data, illness_info = fetch_diagnosis_data(
             include_age=include_age,
             include_gender=include_gender,
-            include_barangay=include_barangay,
-            include_city=include_city,
-            include_province=include_province,
-            include_region=include_region,
+            include_district=include_district,
             include_time=include_time,
             diagnosis_month=diagnosis_month,
             diagnosis_week=diagnosis_week,
+            start_date=start_date,
+            end_date=end_date,
         )
 
         if data.size == 0:
@@ -256,7 +259,7 @@ def illness_clusters_silhouette():
     """Evaluate KMeans clustering quality across a range of k using silhouette score.
     Query params:
       - range: e.g. "3-10" or "4" (defaults to 3-10)
-      - age, gender, city, region, time: boolean flags for variable selection
+      - age, gender, district, time: boolean flags for variable selection
             - month: diagnosis month filter (YYYY-MM)
             - week: diagnosis ISO week filter (YYYY-Www)
     Returns JSON with best k and per-k metrics (silhouette, inertia, cluster sizes).
@@ -276,29 +279,32 @@ def illness_clusters_silhouette():
         # Parse variable selection parameters
         include_age = _parse_bool(request.args.get("age"), True)
         include_gender = _parse_bool(request.args.get("gender"), True)
-        include_barangay = _parse_bool(request.args.get("barangay"), False)
-        include_city = _parse_bool(request.args.get("city"), True)
-        include_province = _parse_bool(request.args.get("province"), False)
-        include_region = _parse_bool(request.args.get("region"), True)
+        include_district = _parse_bool(request.args.get("district"), True)
         include_time = _parse_bool(request.args.get("time"), False)
         diagnosis_month = request.args.get("month")
         diagnosis_week = request.args.get("week")
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
 
         # Keep month/week filters mutually exclusive if both are passed
         if diagnosis_month and diagnosis_week:
+            diagnosis_week = None
+
+        # If start/end date filters are provided, ignore month/week filters
+        if start_date or end_date:
+            diagnosis_month = None
             diagnosis_week = None
 
         # Fetch encoded data with variable selection
         data, _ = fetch_diagnosis_data(
             include_age=include_age,
             include_gender=include_gender,
-            include_barangay=include_barangay,
-            include_city=include_city,
-            include_province=include_province,
-            include_region=include_region,
+            include_district=include_district,
             include_time=include_time,
             diagnosis_month=diagnosis_month,
             diagnosis_week=diagnosis_week,
+            start_date=start_date,
+            end_date=end_date,
         )
         n_samples = len(data)
         if n_samples < 3:

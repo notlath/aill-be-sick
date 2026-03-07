@@ -8,21 +8,23 @@ import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
 import useDateRangeStore from "@/stores/use-date-range-store";
 import { useEffect, useState, useMemo } from "react";
 import { getDiseaseDiagnosesByDistricts } from "@/utils/diagnosis";
-import type { GeoJsonObject } from "geojson";
 import { Activity, MapPin, TrendingUp, AlertTriangle } from "lucide-react";
 import { Diagnosis } from "@/lib/generated/prisma";
 import FeaturePatientsModal from "../map/feature-patients-modal";
+import { useGeoJsonData } from "@/hooks/map-hooks/use-geojson-data";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), { ssr: false });
 
 const ByDiseaseTab = () => {
   const { selectedDisease, setSelectedDisease } = useSelectedDiseaseStore();
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
-  const [geoData, setGeoData] = useState<GeoJsonObject | null>(null);
   const [casesData, setCasesData] = useState<Record<string, number>>({});
   const [diagnoses, setDiagnoses] = useState<(Diagnosis)[]>([]);
   const [mapLoading, setMapLoading] = useState(true);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
+  const { geoData, loading: geoLoading, error: geoError } = useGeoJsonData(
+    "/geojson/bagong_silangan.geojson",
+  );
 
   const fetchCasesData = async () => {
     setMapLoading(true);
@@ -53,21 +55,6 @@ const ByDiseaseTab = () => {
   useEffect(() => {
     fetchCasesData();
   }, [selectedDisease, startDate, endDate]);
-
-  // Fetch the GeoJSON from /public. Error is captured so the loading state
-  // doesn't hang silently on network failure.
-  useEffect(() => {
-    fetch("/geojson/bagong_silangan.geojson")
-      .then((res) => {
-        if (!res.ok) throw new Error(`Failed to load GeoJSON: ${res.status}`);
-        return res.json();
-      })
-      .then((data: GeoJsonObject) => setGeoData(data))
-      .catch((err: unknown) => {
-        throw Error(err instanceof Error ? err.message : "Unknown error")
-      }
-      );
-  }, []);
 
   const {
     totalCases,
@@ -109,7 +96,7 @@ const ByDiseaseTab = () => {
       <div>
         <Card>
           <CardContent className="p-8">
-            {(mapLoading || !geoData) ? (
+            {(mapLoading || geoLoading || !geoData) ? (
               <div className="rounded-xl overflow-hidden" aria-label="Loading map">
                 <div className="skeleton h-[600px] w-full" />
               </div>
@@ -126,7 +113,7 @@ const ByDiseaseTab = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-        {(mapLoading || !geoData) ? (
+        {(mapLoading || geoLoading || !geoData) ? (
           <>
             <Card className="border-border">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
