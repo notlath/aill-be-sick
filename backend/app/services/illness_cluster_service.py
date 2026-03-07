@@ -23,6 +23,20 @@ def fetch_diagnosis_data(
     Fetch diagnosis data from PostgreSQL database with linked patient demographics.
     Uses DATABASE_URL environment variable if db_url not provided.
     
+    Args:
+        db_url: Optional database URL
+        include_age: Include age in clustering features
+        include_gender: Include gender in clustering features
+        include_city: Include city in clustering features
+        include_province: Include province in clustering features
+        include_barangay: Include barangay in clustering features
+        include_region: Include region in clustering features
+        include_time: Include time-based features
+        diagnosis_month: Filter by single month (YYYY-MM format)
+        diagnosis_week: Filter by ISO week (YYYY-Www format)
+        start_date: Start of date range filter (YYYY-MM-DD format) - use with end_date
+        end_date: End of date range filter (YYYY-MM-DD format) - use with start_date
+    
     Returns: tuple of (encoded_data, illness_info)
         - encoded_data: numpy array for clustering
         - illness_info: list of dicts with diagnosis and patient details
@@ -74,6 +88,7 @@ def fetch_diagnosis_data(
 
     if end_date:
         try:
+            # End date is inclusive, so add 1 day for the upper bound
             end_datetime = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(
                 days=1
             )
@@ -125,6 +140,7 @@ def fetch_diagnosis_data(
         params["diagnosis_week_start"] = week_start
         params["diagnosis_week_end"] = week_end
 
+    # Date range filter (takes precedence if both start and end are provided)
     if start_datetime:
         query_str += ' AND d."createdAt" >= :diagnosis_start_date '
         params["diagnosis_start_date"] = start_datetime

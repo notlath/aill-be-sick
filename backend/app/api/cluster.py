@@ -179,8 +179,10 @@ def illness_clusters():
     Query params:
       - n_clusters: number of clusters (default: 4)
       - age, gender, district, time: boolean flags for variable selection
-            - month: diagnosis month filter (YYYY-MM)
-            - week: diagnosis ISO week filter (YYYY-Www)
+      - month: diagnosis month filter (YYYY-MM)
+      - week: diagnosis ISO week filter (YYYY-Www)
+      - start_date: start of date range filter (YYYY-MM-DD) - use with end_date
+      - end_date: end of date range filter (YYYY-MM-DD) - use with start_date
     """
     try:
         n_clusters = int(request.args.get("n_clusters", 4))
@@ -260,8 +262,10 @@ def illness_clusters_silhouette():
     Query params:
       - range: e.g. "3-10" or "4" (defaults to 3-10)
       - age, gender, district, time: boolean flags for variable selection
-            - month: diagnosis month filter (YYYY-MM)
-            - week: diagnosis ISO week filter (YYYY-Www)
+      - month: diagnosis month filter (YYYY-MM)
+      - week: diagnosis ISO week filter (YYYY-Www)
+      - start_date: start of date range filter (YYYY-MM-DD) - use with end_date
+      - end_date: end of date range filter (YYYY-MM-DD) - use with start_date
     Returns JSON with best k and per-k metrics (silhouette, inertia, cluster sizes).
     """
     try:

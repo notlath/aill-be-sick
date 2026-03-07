@@ -1,4 +1,5 @@
 import IllnessClusters from "@/components/clinicians/dashboard-page/illness-clusters";
+import IllnessPatternsExplainer from "@/components/clinicians/dashboard-page/illness-patterns-explainer";
 
 const ClinicianHomePage = () => {
   return (
@@ -23,10 +24,8 @@ const ClinicianHomePage = () => {
             style={{ animationDelay: "200ms" }}
           >
             <div>
-              <h2 className="text-2xl font-semibold mb-1">Illness Patterns</h2>
-              <p className="text-base-content/70 max-w-3xl text-sm">
-                View patient diagnosis groups based on the variables you select.
-              </p>
+              <h2 className="text-2xl font-semibold mb-2">Illness Patterns</h2>
+              <IllnessPatternsExplainer />
             </div>
             <IllnessClusters />
           </section>

@@ -1,16 +1,16 @@
 "use server";
 
-import {CompareDiagnosisSchema} from "@/schemas/CompareDiagnosisSchema";
+import { CompareDiagnosisSchema } from "@/schemas/CompareDiagnosisSchema";
+import { getBackendUrl } from "@/utils/backend-url";
 import axios from "axios";
-import {actionClient} from "./client";
+import { actionClient } from "./client";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
+const BACKEND_URL = getBackendUrl();
 
 export const compareDiagnosis = actionClient
   .inputSchema(CompareDiagnosisSchema)
-  .action(async ({parsedInput}) => {
-    const {symptoms} = parsedInput;
+  .action(async ({ parsedInput }) => {
+    const { symptoms } = parsedInput;
 
     try {
       const response = await axios.post(
@@ -28,7 +28,7 @@ export const compareDiagnosis = actionClient
       // BRIDGE: Capture session cookie from Flask and set it in Next.js response
       const setCookieHeader = response.headers["set-cookie"];
       if (setCookieHeader) {
-        const {cookies} = await import("next/headers");
+        const { cookies } = await import("next/headers");
         const cookieStore = await cookies();
 
         // Parse the session cookie (usually named 'session')
@@ -53,8 +53,8 @@ export const compareDiagnosis = actionClient
     } catch (error) {
       console.error("Error running diagnosis for comparison:", error);
       if (axios.isAxiosError(error) && error.response) {
-        return {error: error.response.data};
+        return { error: error.response.data };
       }
-      return {error: `Error running diagnosis: ${error}`};
+      return { error: `Error running diagnosis: ${error}` };
     }
   });

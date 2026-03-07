@@ -1,11 +1,11 @@
 "use server";
 
-import axios, {AxiosError} from "axios";
+import axios, { AxiosError } from "axios";
+import { getBackendUrl } from "@/utils/backend-url";
 import * as z from "zod";
-import {actionClient} from "./client";
+import { actionClient } from "./client";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
+const BACKEND_URL = getBackendUrl();
 const FOLLOWUP_TIMEOUT_MS = 30000;
 
 const FollowUpSchema = z.object({
@@ -36,7 +36,7 @@ const FollowUpSchema = z.object({
 
 export const getFollowUpQuestion = actionClient
   .inputSchema(FollowUpSchema)
-  .action(async ({parsedInput}) => {
+  .action(async ({ parsedInput }) => {
     const {
       session_id,
       disease,
@@ -83,14 +83,14 @@ export const getFollowUpQuestion = actionClient
       });
 
       // BRIDGE: Forward session cookie to Flask
-      const {cookies} = await import("next/headers");
+      const { cookies } = await import("next/headers");
       const cookieStore = await cookies();
       const sessionCookie = cookieStore.get("session");
       const cookieHeader = sessionCookie
         ? `session=${sessionCookie.value}`
         : "";
 
-      const {data} = await axios.post(
+      const { data } = await axios.post(
         `${BACKEND_URL}/diagnosis/follow-up`,
         payload,
         {
@@ -134,6 +134,6 @@ export const getFollowUpQuestion = actionClient
         };
       }
 
-      return {error: `Error getting follow-up question: ${error}`};
+      return { error: `Error getting follow-up question: ${error}` };
     }
   });
