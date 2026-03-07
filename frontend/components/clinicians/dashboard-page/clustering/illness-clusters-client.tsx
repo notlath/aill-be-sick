@@ -26,11 +26,39 @@ type ClusterVariableSelection = {
   time: boolean;
 };
 
+const VARIABLE_LABELS: Record<keyof ClusterVariableSelection, string> = {
+  age: "patient age",
+  gender: "patient gender",
+  district: "district",
+  time: "date of diagnosis (seasonal patterns)",
+};
+
 const DEFAULT_SELECTED_VARIABLES: ClusterVariableSelection = {
   age: true,
   gender: true,
   district: true,
   time: false,
+};
+
+const toVariableLabelList = (variables: ClusterVariableSelection) =>
+  (Object.keys(variables) as Array<keyof ClusterVariableSelection>)
+    .filter((key) => variables[key])
+    .map((key) => VARIABLE_LABELS[key]);
+
+const formatReadableList = (items: string[]) => {
+  if (items.length === 0) {
+    return "your selected variables";
+  }
+
+  if (items.length === 1) {
+    return items[0];
+  }
+
+  if (items.length === 2) {
+    return `${items[0]} and ${items[1]}`;
+  }
+
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
 };
 
 const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
@@ -282,6 +310,16 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
     }));
   };
 
+  const appliedVariableSummary = formatReadableList(
+    toVariableLabelList(appliedVariables),
+  );
+  const selectedVariableSummary = formatReadableList(
+    toVariableLabelList(selectedVariables),
+  );
+  const hasPendingVariableChanges = (
+    Object.keys(selectedVariables) as Array<keyof ClusterVariableSelection>
+  ).some((key) => selectedVariables[key] !== appliedVariables[key]);
+
   const modalRoot = isMounted ? document.body : null;
   const confirmModal = (
     <div className={`modal ${showConfirmModal ? "modal-open" : ""}`}>
@@ -427,6 +465,21 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                 {!loadingRecommendation && recommendationMessage ? (
                   <span className="text-warning text-xs font-medium">
                     {recommendationMessage}
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="text-muted  text-xs font-normal">
+                <span>
+                  The generated groups are currently based on{" "}
+                  <span className="font-medium">{appliedVariableSummary}</span>.
+                  Patients with similar details in these areas are placed in the
+                  same group
+                </span>
+                {hasPendingVariableChanges ? (
+                  <span className="block mt-1">
+                    Click Apply to rebuild the groups using the new variable
+                    picks
                   </span>
                 ) : null}
               </div>
