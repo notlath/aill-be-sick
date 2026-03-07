@@ -36,7 +36,7 @@ const IllnessPatternsExplainer = () => {
         onClick={() => setShowDetails((prev) => !prev)}
         aria-expanded={showDetails}
         aria-controls={detailsId}
-        className="btn btn-ghost btn-xs mt-2 gap-1 bg-base-200 hover:bg-base-300"
+        className="btn btn-ghost btn-xs mt-2.5 gap-1 bg-base-200 hover:bg-base-300 font-normal"
       >
         <span>{showDetails ? "Show less" : "Why not regular filters?"}</span>
         <ChevronDown

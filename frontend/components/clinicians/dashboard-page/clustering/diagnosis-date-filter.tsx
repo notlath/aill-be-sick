@@ -256,8 +256,8 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
   return (
     <div className="flex flex-col gap-4">
       {/* Compact preset selector to reduce button clutter. */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium">Date range:</span>
+      <div className="flex flex-nowrap items-center gap-2">
+        <span className="text-xs  whitespace-nowrap">Date range:</span>
         <Select
           value={activePreset}
           onValueChange={(value) => handlePresetClick(value as PresetType)}

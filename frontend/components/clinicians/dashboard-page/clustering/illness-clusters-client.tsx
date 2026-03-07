@@ -364,66 +364,67 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
       {/* Variable Selection Row */}
       <div className="card card-body bg-base-100 border-base-300 border">
         <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <h2 className="text-base font-semibold">Select variables</h2>
+          <form onSubmit={onSubmitK} className="flex flex-col gap-4">
+            {/* Variable Selection */}
+            <div>
+              <h2 className="text-base font-semibold">Select variables</h2>
+              <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                {/* Demographic Variables */}
+                <div className="flex items-center gap-3">
+                  <label
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary btn-soft" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={selectedVariables.age}
+                      onChange={() => handleVariableChange("age")}
+                    />
+                    <span>Patient age</span>
+                  </label>
+                  <label
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary btn-soft" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={selectedVariables.gender}
+                      onChange={() => handleVariableChange("gender")}
+                    />
+                    <span>Patient gender</span>
+                  </label>
+                  <label
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary btn-soft" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={selectedVariables.time}
+                      onChange={() => handleVariableChange("time")}
+                    />
+                    <span>Date of diagnosis (seasonal)</span>
+                  </label>
+                </div>
 
-            {/* Buttons */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Demographic Variables */}
-              <div className="flex items-center gap-3">
-                <label
-                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary btn-soft" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={selectedVariables.age}
-                    onChange={() => handleVariableChange("age")}
-                  />
-                  <span>Patient age</span>
-                </label>
-                <label
-                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary btn-soft" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={selectedVariables.gender}
-                    onChange={() => handleVariableChange("gender")}
-                  />
-                  <span>Patient gender</span>
-                </label>
-                <label
-                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary btn-soft" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={selectedVariables.time}
-                    onChange={() => handleVariableChange("time")}
-                  />
-                  <span>Date of diagnosis (seasonal)</span>
-                </label>
-              </div>
-
-              {/* Location Variable */}
-              <div className="flex items-center gap-3">
-                <label
-                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary btn-soft" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={selectedVariables.district}
-                    onChange={() => handleVariableChange("district")}
-                  />
-                  <span>District</span>
-                </label>
+                {/* Location Variable */}
+                <div className="flex items-center gap-3">
+                  <label
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary btn-soft" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={selectedVariables.district}
+                      onChange={() => handleVariableChange("district")}
+                    />
+                    <span>District</span>
+                  </label>
+                </div>
               </div>
             </div>
 
             {/* Diagnosis Date Filter */}
-            <div className="">
+            <div>
               <DiagnosisDateFilter
                 onDateRangeChange={(start, end) => {
                   setDateRangeStart(start);
@@ -433,57 +434,58 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
               />
             </div>
 
-            {/* Groups */}
-            <form onSubmit={onSubmitK} className="space-y-3">
-              <div className="flex items-center gap-3">
-                <label htmlFor="illness-cluster-k" className="text-xs">
-                  Groups:
-                </label>
-                <Input
-                  id="illness-cluster-k"
-                  type="number"
-                  className="input h-7 w-17 text-xs font-medium"
-                  min={2}
-                  max={25}
-                  value={kInput}
-                  onChange={(e) => setKInput(e.target.value)}
-                  disabled={loading}
-                />
+            {/* Groups Input */}
+            <div className="flex items-center gap-3">
+              <label htmlFor="illness-cluster-k" className="text-xs">
+                Groups:
+              </label>
+              <Input
+                id="illness-cluster-k"
+                type="number"
+                className="input h-7 w-17 text-xs font-medium"
+                min={2}
+                max={25}
+                value={kInput}
+                onChange={(e) => setKInput(e.target.value)}
+                disabled={loading}
+              />
 
-                <span className="text-muted flex items-center gap-1.5 text-xs font-normal">
-                  {loadingRecommendation ? (
-                    <>
-                      <Loader2 className="size-3 animate-spin" />
-                      Calculating recommendation...
-                    </>
-                  ) : recommendedK ? (
-                    <>Recommended: {recommendedK} groups</>
-                  ) : (
-                    <>Recommended: 2-25 groups</>
-                  )}
+              <span className="text-muted flex items-center gap-1.5 text-xs font-normal">
+                {loadingRecommendation ? (
+                  <>
+                    <Loader2 className="size-3 animate-spin" />
+                    Calculating recommendation...
+                  </>
+                ) : recommendedK ? (
+                  <>Recommended: {recommendedK} groups</>
+                ) : (
+                  <>Recommended: 2-25 groups</>
+                )}
+              </span>
+              {!loadingRecommendation && recommendationMessage ? (
+                <span className="text-warning text-xs font-medium">
+                  {recommendationMessage}
                 </span>
-                {!loadingRecommendation && recommendationMessage ? (
-                  <span className="text-warning text-xs font-medium">
-                    {recommendationMessage}
-                  </span>
-                ) : null}
-              </div>
+              ) : null}
+            </div>
 
-              <div className="text-muted  text-xs font-normal">
-                <span>
-                  The generated groups are currently based on{" "}
-                  <span className="font-medium">{appliedVariableSummary}</span>.
-                  Patients with similar details in these areas are placed in the
-                  same group
+            {/* Description */}
+            <div className="text-muted text-xs font-normal">
+              <span>
+                The generated groups are currently based on{" "}
+                <span className="font-medium">{appliedVariableSummary}</span>.
+                Patients with similar details in these areas are placed in the
+                same group
+              </span>
+              {hasPendingVariableChanges ? (
+                <span className="block mt-1">
+                  Click Apply to rebuild the groups using the new variable picks
                 </span>
-                {hasPendingVariableChanges ? (
-                  <span className="block mt-1">
-                    Click Apply to rebuild the groups using the new variable
-                    picks
-                  </span>
-                ) : null}
-              </div>
+              ) : null}
+            </div>
 
+            {/* Apply Button */}
+            <div>
               <button
                 type="submit"
                 className="btn btn-primary btn-sm w-fit"
@@ -492,8 +494,8 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
               >
                 {loading ? "Applying..." : "Apply"}
               </button>
-            </form>
-          </div>
+            </div>
+          </form>
           <div className="space-y-1 text-right">
             <div className="from-primary to-primary/70 bg-gradient-to-br bg-clip-text text-5xl font-semibold tracking-tight text-transparent tabular-nums">
               {clusterData?.total_illnesses.toLocaleString() ?? "N/A"}
