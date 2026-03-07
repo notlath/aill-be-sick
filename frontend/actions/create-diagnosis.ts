@@ -3,7 +3,7 @@
 import prisma from "@/prisma/prisma";
 import { CreateDiagnosisSchema } from "@/schemas/CreateDiagnosisSchema";
 import { getCurrentDbUser } from "@/utils/user";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 
 export const createDiagnosis = actionClient
@@ -38,14 +38,6 @@ export const createDiagnosis = actionClient
         where: { messageId },
       });
 
-      if (!explanation) {
-        console.error(`Explanation not found for messageId: ${messageId}`);
-
-        return {
-          error: `Explanation not found for messageId: ${messageId}`,
-        };
-      }
-
       await prisma.diagnosis.create({
         data: {
           confidence,
@@ -61,11 +53,15 @@ export const createDiagnosis = actionClient
           province: dbUser.province,
           region: dbUser.region,
           barangay: dbUser.barangay,
-          explanation: {
-            connect: {
-              id: explanation.id,
-            },
-          },
+          ...(explanation
+            ? {
+                explanation: {
+                  connect: {
+                    id: explanation.id,
+                  },
+                },
+              }
+            : {}),
         },
       });
 
@@ -78,13 +74,13 @@ export const createDiagnosis = actionClient
         where: { chatId },
       });
 
-      updateTag("messages");
-      updateTag(`messages-${chatId}`);
-      updateTag("diagnosis");
-      updateTag(`diagnosis-${chatId}`);
-      updateTag("chat");
-      updateTag(`chat-${chatId}`);
-      revalidatePath("/diagnosis/[chatId]", "page");
+      revalidateTag(`messages-${chatId}`, { expire: 0 });
+      revalidateTag("diagnosis", { expire: 0 });
+      revalidateTag(`diagnosis-${chatId}`, { expire: 0 });
+      revalidateTag("chat", { expire: 0 });
+      revalidateTag(`chat-${chatId}`, { expire: 0 });
+      revalidatePath(`/diagnosis/${chatId}`, "page");
+      revalidatePath("/history", "page");
 
       return { success: "Successfully recorded diagnosis" };
     } catch (error) {

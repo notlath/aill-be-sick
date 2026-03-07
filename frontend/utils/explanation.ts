@@ -9,9 +9,28 @@ export const getExplanationByDiagnosisId = async (diagnosisId: number) => {
   cacheTag("explanation", `explanation-${diagnosisId}`);
 
   try {
-    const explanation = await prisma.explanation.findUnique({
+    // Try fetching by diagnosisId first (new approach)
+    let explanation = await prisma.explanation.findUnique({
       where: { diagnosisId },
     });
+
+    // Fallback: If not found by diagnosisId, try fetching by messageId
+    // This handles legacy explanations that were only linked to messages
+    if (!explanation) {
+      const diagnosis = await prisma.diagnosis.findUnique({
+        where: { id: diagnosisId },
+        include: { chat: { include: { messages: { include: { explanation: true } } } } },
+      });
+
+      // Find the first message that has an explanation
+      const messageWithExplanation = diagnosis?.chat?.messages?.find(
+        (m) => m.explanation
+      );
+
+      if (messageWithExplanation?.explanation) {
+        explanation = messageWithExplanation.explanation;
+      }
+    }
 
     return { success: explanation };
   } catch (error) {

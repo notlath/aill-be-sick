@@ -1,11 +1,15 @@
-
+'use client'
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ByDiseaseTab from "../by-disease/by-disease-tab";
+import ByClusterTab from "../by-cluster/by-cluster-tab";
+import useChoroplethMapStore from "@/stores/use-choropleth-map-store";
 
 const ChoroplethMapTabs = () => {
+  const { activeTab, setActiveTab } = useChoroplethMapStore();
+
   return (
-    <Tabs defaultValue="by-disease">
+    <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'by-disease' | 'by-cluster' | 'by-anomaly')}>
       <TabsList>
         <TabsTrigger value="by-disease">By disease</TabsTrigger>
         <TabsTrigger value="by-cluster">By illness cluster</TabsTrigger>
@@ -17,7 +21,7 @@ const ChoroplethMapTabs = () => {
       </TabsContent>
 
       <TabsContent value="by-cluster">
-        {/* Content for By illness cluster tab */}
+        <ByClusterTab />
       </TabsContent>
 
       <TabsContent value="by-anomaly">

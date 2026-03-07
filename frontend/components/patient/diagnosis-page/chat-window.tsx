@@ -7,8 +7,8 @@ import { runDiagnosis } from "@/actions/run-diagnosis";
 import { useUserLocation } from "@/hooks/use-location";
 import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import {
-    CreateChatSchema,
-    CreateChatSchemaType,
+  CreateChatSchema,
+  CreateChatSchemaType,
 } from "@/schemas/CreateChatSchema";
 import { Explanation as TempExplanation } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,7 +40,8 @@ const mapDisease = (
   | "TYPHOID"
   | "DIARRHEA"
   | "MEASLES"
-  | "INFLUENZA" => {
+  | "INFLUENZA"
+  | "IMPETIGO" => {
   switch ((disease || "").toLowerCase()) {
     case "dengue":
       return "DENGUE";
@@ -54,6 +55,8 @@ const mapDisease = (
       return "MEASLES";
     case "influenza":
       return "INFLUENZA";
+    case "impetigo":
+      return "IMPETIGO";
     default:
       return "PNEUMONIA";
   }
@@ -61,7 +64,7 @@ const mapDisease = (
 
 type ChatWindowProps = {
   chatId: string;
-  messages: Message[];
+  messages: (Message & { explanation?: Explanation | null })[];
   chat: Chat;
   dbExplanation: Explanation | null;
   userRole?: string;
@@ -92,30 +95,37 @@ const ChatWindow = ({
     category?: string;
   } | null>(null);
   const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
-  const [positiveSymptoms, setPositiveSymptoms] = useState<string[]>([]);
   const [confirmNeeded, setConfirmNeeded] = useState<boolean>(false);
-  const [diagnosisMode, setDiagnosisMode] = useState<"adaptive" | "legacy">(
-    "adaptive",
+
+  // ── SESSION-BACKED STATE ──────────────────────────────────────────
+  // The DB session_id is the primary state carrier.
+  // The frontend only holds this ID; all probs/evidence live server-side.
+  const [diagnosisSessionId, setDiagnosisSessionId] = useState<string | null>(
+    null,
   );
 
   const prevChatIdRef = useRef<string>(chatId);
   const explanationRequestedRef = useRef<Set<string>>(new Set());
+  const lastExplanationMessageIdRef = useRef<number | null>(null);
   const diagnosisRequestedRef = useRef<Set<string>>(new Set());
+  const followUpPendingRef = useRef<boolean>(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  // Guards against duplicate DIAGNOSIS messages from concurrent follow-up responses.
+  // Keep separate in-flight and created states so failed writes can still retry.
+  const finalDiagnosisInFlightRef = useRef<boolean>(false);
+  const finalDiagnosisCreatedRef = useRef<boolean>(false);
 
-  const lastAnswerRef = useRef<{
-    answer: "yes" | "no";
-    questionId: string;
-    questionText?: string;
-  } | null>(null);
   const lastDiagnosisRef = useRef<any>(null);
+  const initialSymptomsRef = useRef<string>("");
 
   const getCurrentSymptoms = () => {
-    const initialSymptom = (
+    return (
+      initialSymptomsRef.current ||
       messages.find((m) => m.type === "SYMPTOMS" && m.role === "USER")
-        ?.content || form.getValues("symptoms")
+        ?.content ||
+      lastDiagnosisRef.current?.symptoms ||
+      form.getValues("symptoms")
     ).toString();
-
-    return [initialSymptom, ...positiveSymptoms].filter(Boolean).join(". ");
   };
 
   const [currentDiagnosis, setCurrentDiagnosis] = useState<{
@@ -133,8 +143,13 @@ const ChatWindow = ({
     useAction(getFollowUpQuestion, {
       onSuccess: ({ data }) => {
         if (data?.success) {
-          const { question, should_stop, reason, diagnosis } =
+          const { question, should_stop, reason, diagnosis, session_id } =
             data.success as any;
+
+          // ── Capture session_id from backend ──
+          if (session_id) {
+            setDiagnosisSessionId(session_id);
+          }
 
           if (diagnosis) {
             const {
@@ -155,7 +170,6 @@ const ChatWindow = ({
               model_used,
               mean_probs,
             });
-            // Persist current full symptoms for later explanations
             lastDiagnosisRef.current = {
               ...(lastDiagnosisRef.current || {}),
               ...diagnosis,
@@ -168,7 +182,6 @@ const ChatWindow = ({
             reason === "OUT_OF_SCOPE" ||
             diagnosis?.is_valid === false
           ) {
-            // Terminal but not a confident final prediction; do not show CDSS summary
             setIsFinalDiagnosis(false);
             const outOfScopeMessage =
               diagnosis?.message ||
@@ -186,32 +199,22 @@ const ChatWindow = ({
           }
 
           if (should_stop && !question) {
-            // Finalized prediction reached
             setIsFinalDiagnosis(true);
-            // Create a DIAGNOSIS message to surface record + insights buttons and persist temp diagnosis
-            if (diagnosis) {
+            if (diagnosis && !finalDiagnosisCreatedRef.current) {
+              if (finalDiagnosisInFlightRef.current) {
+                setCurrentQuestion(null);
+                return;
+              }
+              finalDiagnosisInFlightRef.current = true;
               const { disease, confidence, uncertainty, model_used } =
                 diagnosis;
               const impressive = (confidence ?? 0) >= 0.9;
 
-              // If confidence is high, show the final assessment.
-              // Otherwise, avoid showing the disease/confidence to the patient to prevent alarm.
               const summary = impressive
                 ? `Final assessment: ${disease} (confidence ${(
-                  confidence * 100
-                ).toFixed(1)}%)`
-                : diagnosis.message || `Assessment complete: ${disease}`;
-
-              // Log when confidence is good but below impressive threshold
-              if (!impressive && (confidence ?? 0) >= 0.9) {
-                console.warn(
-                  `[LOG_DISCREPANCY] Valid diagnosis below impressive threshold | disease=${disease} | conf=${(
                     confidence * 100
-                  ).toFixed(2)}% | MI=${(uncertainty * 100).toFixed(
-                    2,
-                  )}% | showing_error_msg=NO`,
-                );
-              }
+                  ).toFixed(1)}%)`
+                : diagnosis.message || `Assessment complete: ${disease}`;
 
               createMessageExecute({
                 chatId,
@@ -232,7 +235,6 @@ const ChatWindow = ({
           }
 
           if (question) {
-            // Still collecting evidence; keep CDSS summary hidden
             setIsFinalDiagnosis(false);
             const aiContent = question.question;
 
@@ -267,17 +269,33 @@ const ChatWindow = ({
       },
     });
 
+  // Store explanations fetched for each message ID
+  const [messageExplanations, setMessageExplanations] = useState<
+    Record<number, Explanation>
+  >({});
+
   const { execute: getExplanations, isExecuting: isGettingExplanations } =
-    useAction(explainDiagnosis, {});
+    useAction(explainDiagnosis, {
+      onSuccess: ({ data }) => {
+        if (data?.success && data.explanation) {
+          const messageId = lastExplanationMessageIdRef.current;
+          if (messageId !== null) {
+            setMessageExplanations((prev) => ({
+              ...prev,
+              [messageId]: {
+                tokens: data.explanation.tokens,
+                importances: data.explanation.importances,
+              } as Explanation,
+            }));
+          }
+        }
+      },
+    });
 
   const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } = useAction(
     runDiagnosis,
     {
       onSuccess: ({ data }) => {
-        console.log(
-          "[DEBUG BROWSER] onSuccess callback triggered, data:",
-          data,
-        );
         if (data?.error) {
           let errorMessage = "";
 
@@ -307,10 +325,8 @@ const ChatWindow = ({
             type: "ERROR",
             role: "AI",
           });
-          // Allow retry if initial diagnosis failed.
           hasRunInitialDiagnosis.current = false;
         } else if (data?.success && data?.diagnosis) {
-          console.log("[DEBUG] ENTERED SUCCESS HANDLER - data:", data);
           const {
             disease,
             confidence,
@@ -319,7 +335,13 @@ const ChatWindow = ({
             cdss,
             model_used,
             mean_probs,
+            session_id: newSessionId,
           } = data.diagnosis as any;
+
+          // ── Capture session_id from initial diagnosis ──
+          if (newSessionId) {
+            setDiagnosisSessionId(newSessionId);
+          }
 
           setCurrentDiagnosis({
             disease,
@@ -335,46 +357,23 @@ const ChatWindow = ({
             symptoms: getCurrentSymptoms() || data.diagnosis.symptoms,
           };
 
-          // Check if backend explicitly said to skip follow-up (very high confidence)
-          // Force recompile: 2025-11-01 19:30:00
           const shouldSkipFollowup =
             (data.diagnosis as any)?.skip_followup === true;
-
-          // Debug logging
-          console.log(
-            "[DEBUG] Chat Window - isConfident:",
-            data.isConfident,
-            "shouldSkipFollowup:",
-            shouldSkipFollowup,
-          );
-          console.log(
-            "[DEBUG] Chat Window - diagnosis object:",
-            data.diagnosis,
-          );
-          console.log(
-            "[DEBUG] Chat Window - skip_followup value:",
-            (data.diagnosis as any)?.skip_followup,
-          );
-          console.log(
-            "[DEBUG] Chat Window - skip_followup type:",
-            typeof (data.diagnosis as any)?.skip_followup,
-          );
 
           if (shouldSkipFollowup) {
             const skipReason = (data.diagnosis as any)?.skip_reason;
 
             if (skipReason === "OUT_OF_SCOPE") {
-              // Verification failure - show error message instead of diagnosis
               setIsFinalDiagnosis(false);
               const verificationFailure = (data.diagnosis as any)
                 ?.verification_failure;
-              const errorMessage =
+              const errorMsg =
                 verificationFailure?.message ||
-                "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional.";
+                "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.";
 
               createMessageExecute({
                 chatId,
-                content: errorMessage,
+                content: errorMsg,
                 type: "ERROR",
                 role: "AI",
               });
@@ -382,51 +381,56 @@ const ChatWindow = ({
               return;
             }
 
-            // Backend says diagnosis is very confident (≥95%), mark as final immediately
             setIsFinalDiagnosis(true);
 
-            // Create final diagnosis message
-            const impressive = (confidence ?? 0) >= 0.95;
-            const summary = impressive
-              ? `Final assessment: ${disease} (confidence ${(
-                confidence * 100
-              ).toFixed(1)}%)`
-              : (data.diagnosis as any)?.message ||
-              `Assessment complete: ${disease}`;
+            if (!finalDiagnosisCreatedRef.current) {
+              if (finalDiagnosisInFlightRef.current) {
+                setCurrentQuestion(null);
+                return;
+              }
+              finalDiagnosisInFlightRef.current = true;
+              const impressive = (confidence ?? 0) >= 0.95;
+              const summary = impressive
+                ? `Final assessment: ${disease} (confidence ${(
+                    confidence * 100
+                  ).toFixed(1)}%)`
+                : (data.diagnosis as any)?.message ||
+                  `Assessment complete: ${disease}`;
 
-            createMessageExecute({
-              chatId,
-              content: summary,
-              type: "DIAGNOSIS",
-              role: "AI",
-              tempDiagnosis: {
-                confidence,
-                uncertainty,
-                modelUsed: mapModelUsed(model_used),
-                disease: mapDisease(disease),
-                symptoms: getCurrentSymptoms(),
-              },
-            });
+              createMessageExecute({
+                chatId,
+                content: summary,
+                type: "DIAGNOSIS",
+                role: "AI",
+                tempDiagnosis: {
+                  confidence,
+                  uncertainty,
+                  modelUsed: mapModelUsed(model_used),
+                  disease: mapDisease(disease),
+                  symptoms: getCurrentSymptoms(),
+                },
+              });
+            }
             setCurrentQuestion(null);
           } else if (!data.isConfident) {
-            // Initial run is not final until follow-ups decide otherwise
+            // ── Simplified: pass session_id instead of thick state ──
             setIsFinalDiagnosis(false);
             getFollowUpExecute({
+              session_id: newSessionId || diagnosisSessionId || undefined,
               disease,
               confidence,
               uncertainty,
               asked_questions: askedQuestions,
               symptoms: getCurrentSymptoms(),
               top_diseases: top_diseases || [],
-              mode: diagnosisMode,
               current_probs: mean_probs || undefined,
             });
           } else {
-            // Confident but not high enough to skip entirely - ask confirmation question
             setIsFinalDiagnosis(false);
             if (!confirmNeeded) {
               setConfirmNeeded(true);
               getFollowUpExecute({
+                session_id: newSessionId || diagnosisSessionId || undefined,
                 disease,
                 confidence,
                 uncertainty,
@@ -434,13 +438,10 @@ const ChatWindow = ({
                 symptoms: form.getValues("symptoms"),
                 top_diseases: top_diseases || [],
                 force: true,
-                mode: diagnosisMode,
                 current_probs: mean_probs || undefined,
               });
             } else {
               setCurrentQuestion(null);
-              // This path may represent a finalized case after forced confirmation
-              // We'll still wait for follow-up response to mark final
             }
           }
         }
@@ -462,11 +463,23 @@ const ChatWindow = ({
         const created = data.success as any;
 
         if (created.role === "USER" && created.type === "SYMPTOMS") {
+          initialSymptomsRef.current = created.content;
+          // Reset all diagnosis state for new case - batch related updates
           setCurrentQuestion(null);
           setAskedQuestions([]);
-          setPositiveSymptoms([]);
           setConfirmNeeded(false);
           setIsFinalDiagnosis(false);
+          setDiagnosisSessionId(null);
+          lastDiagnosisRef.current = null;
+          followUpPendingRef.current = false;
+          finalDiagnosisInFlightRef.current = false;
+          finalDiagnosisCreatedRef.current = false;
+
+          // Cancel any in-flight follow-up requests
+          if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+          }
 
           if (!diagnosisRequestedRef.current.has(created.id)) {
             diagnosisRequestedRef.current.add(created.id);
@@ -479,11 +492,19 @@ const ChatWindow = ({
         }
 
         if (created.type === "DIAGNOSIS") {
+          finalDiagnosisInFlightRef.current = false;
+          finalDiagnosisCreatedRef.current = true;
+
           const symptomsText = lastDiagnosisRef.current?.symptoms;
           const meanProbs = lastDiagnosisRef.current?.mean_probs;
 
-          if (meanProbs && Array.isArray(meanProbs) && !explanationRequestedRef.current.has(created.id)) {
+          if (
+            meanProbs &&
+            Array.isArray(meanProbs) &&
+            !explanationRequestedRef.current.has(created.id)
+          ) {
             explanationRequestedRef.current.add(created.id);
+            lastExplanationMessageIdRef.current = created.id;
             getExplanations({
               symptoms: symptomsText,
               meanProbs,
@@ -496,6 +517,8 @@ const ChatWindow = ({
       }
     },
     onError: ({ error }) => {
+      // If DIAGNOSIS creation failed, allow a subsequent stop response to retry.
+      finalDiagnosisInFlightRef.current = false;
       console.error("Failed to create message:", error);
     },
   });
@@ -505,65 +528,81 @@ const ChatWindow = ({
     symptom: string,
     questionId: string,
   ) => {
+    // Prevent concurrent follow-up requests - Next.js best practice for async operations
+    if (followUpPendingRef.current) {
+      console.warn(
+        "[handleQuestionAnswer] Follow-up request already pending, ignoring duplicate call",
+      );
+      return;
+    }
+
+    // Cancel any in-flight request to prevent race conditions
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    followUpPendingRef.current = true;
+
+    // Batch state updates to minimize re-renders
     const updatedAsked = [...askedQuestions, questionId];
     setAskedQuestions(updatedAsked);
     setCurrentQuestion(null);
 
-    lastAnswerRef.current = {
-      answer,
-      questionId,
-      questionText: currentQuestion?.question,
-    };
+    try {
+      // Create user answer message first
+      await createMessageExecute({
+        chatId,
+        content: symptom,
+        type: "ANSWER",
+        role: "USER",
+      });
 
-    await createMessageExecute({
-      chatId,
-      content: symptom,
-      type: "ANSWER",
-      role: "USER",
-    });
-
-    let newPositives = [...positiveSymptoms];
-
-    const initialSymptom = (
-      messages.find((m) => m.type === "SYMPTOMS" && m.role === "USER")
-        ?.content || form.getValues("symptoms")
-    ).toString();
-
-    const initialSymptomText = (
-      messages.find((m) => m.type === "SYMPTOMS" && m.role === "USER")
-        ?.content || form.getValues("symptoms")
-    )
-      .toString()
-      .toLowerCase();
-    const alreadyPresent =
-      initialSymptomText.includes(symptom.toLowerCase()) ||
-      newPositives.some((s) => s.toLowerCase() === symptom.toLowerCase());
-    if (!alreadyPresent) {
-      newPositives = [...newPositives, symptom];
-      setPositiveSymptoms(newPositives);
+      // Get next follow-up question with proper error handling
+      await getFollowUpExecute({
+        session_id: diagnosisSessionId || undefined,
+        disease: currentDiagnosis?.disease || "",
+        confidence: currentDiagnosis?.confidence || 0,
+        uncertainty: currentDiagnosis?.uncertainty || 1,
+        asked_questions: updatedAsked,
+        symptoms: getCurrentSymptoms(),
+        top_diseases: currentDiagnosis?.top_diseases || [],
+        last_answer: answer,
+        last_question_id: questionId,
+        last_question_text: currentQuestion?.question,
+        current_probs: currentDiagnosis?.mean_probs || undefined,
+      });
+    } catch (error) {
+      // Only log actual errors, ignore abort signals from intentional cancellations
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.error("[handleQuestionAnswer] Error during follow-up:", error);
+        createMessageExecute({
+          chatId,
+          content:
+            "An error occurred while processing your answer. Please try again or start a new diagnosis.",
+          type: "ERROR",
+          role: "AI",
+        });
+      }
+    } finally {
+      // Always release the lock, even on error
+      followUpPendingRef.current = false;
     }
-    const allSymptoms = [initialSymptom, ...newPositives]
-      .filter(Boolean)
-      .join(". ");
-
-    getFollowUpExecute({
-      disease: currentDiagnosis?.disease || "",
-      confidence: currentDiagnosis?.confidence || 0,
-      uncertainty: currentDiagnosis?.uncertainty || 1,
-      asked_questions: updatedAsked,
-      symptoms: allSymptoms,
-      top_diseases: currentDiagnosis?.top_diseases || [],
-      mode: diagnosisMode,
-      last_answer: answer,
-      last_question_id: questionId,
-      last_question_text: currentQuestion?.question,
-      // Round-trip Bayesian-updated probability distribution
-      current_probs: currentDiagnosis?.mean_probs || undefined,
-    });
   };
 
   const hasRunInitialDiagnosis = useRef<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Cleanup on unmount - cancel any in-flight requests to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      followUpPendingRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     requestLocation();
@@ -575,44 +614,66 @@ const ChatWindow = ({
         chatId,
         symptoms: "",
       });
+      // Reset all diagnosis state when chat changes
       setCurrentQuestion(null);
       setAskedQuestions([]);
-      setPositiveSymptoms([]);
       setConfirmNeeded(false);
       setCurrentDiagnosis(null);
       setIsFinalDiagnosis(false);
-      setDiagnosisMode("adaptive");
-      lastAnswerRef.current = null;
+      setDiagnosisSessionId(null);
       lastDiagnosisRef.current = null;
       hasRunInitialDiagnosis.current = false;
       explanationRequestedRef.current = new Set();
       diagnosisRequestedRef.current = new Set();
+      followUpPendingRef.current = false;
+      finalDiagnosisInFlightRef.current = false;
+      finalDiagnosisCreatedRef.current = false;
+
+      // Cancel any in-flight requests
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+
       prevChatIdRef.current = chatId;
     }
   }, [chatId, form]);
 
+  // Restore hasRunInitialDiagnosis from sessionStorage
   useEffect(() => {
-    const hasOnlyInitialSymptom =
-      messages.length === 1 &&
-      messages[0]?.role === "USER" &&
-      messages[0]?.type === "SYMPTOMS";
+    if (sessionStorage.getItem(`diagnosis-run-${chatId}`) === "true") {
+      hasRunInitialDiagnosis.current = true;
+    }
+  }, [chatId]);
 
-    if (hasOnlyInitialSymptom && !hasRunInitialDiagnosis.current) {
+  useEffect(() => {
+    const hasExistingAiMessages = messages.some((m) => m.role === "AI");
+    if (chat.hasDiagnosis || hasExistingAiMessages) return;
+
+    if (messages.length === 1 && !hasRunInitialDiagnosis.current) {
       runDiagnosisExecute({
         chatId,
         symptoms: messages[0].content,
         skipMessage: true,
       });
       hasRunInitialDiagnosis.current = true;
+      sessionStorage.setItem(`diagnosis-run-${chatId}`, "true");
     }
-  }, [messages, chatId, runDiagnosisExecute]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, chatId, chat.hasDiagnosis]);
 
   return (
     <ThreadTransition className="w-full max-w-[768px]">
       <FormProvider {...form}>
         <ChatContainer
           ref={chatEndRef}
-          messages={optimisticMessages as any}
+          messages={optimisticMessages.map((msg) => ({
+            ...msg,
+            explanation:
+              msg.explanation ||
+              (msg.id && messageExplanations[msg.id]) ||
+              null,
+          })) as any}
           isGettingQuestion={isGettingQuestion}
           isDiagnosing={isDiagnosing}
           isGettingExplanations={isGettingExplanations}
@@ -636,29 +697,8 @@ const ChatWindow = ({
             <DiagnosisForm
               createMessageExecute={createMessageExecute}
               isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
-              disabled={!!currentQuestion}
+              disabled={!!currentQuestion || isFinalDiagnosis}
             />
-          {/* <div className="flex justify-between items-center mt-2">
-            <label className="label">
-              <span className="label-text">Mode</span>
-            </label>
-            <div className="btn-group">
-              <button
-                className={`btn btn-ghost ${diagnosisMode === "adaptive" ? "btn-active" : ""
-                  }`}
-                onClick={() => setDiagnosisMode("adaptive")}
-              >
-                Adaptive
-              </button>
-              <button
-                className={`btn btn-ghost ${diagnosisMode === "legacy" ? "btn-active" : ""
-                  }`}
-                onClick={() => setDiagnosisMode("legacy")}
-              >
-                Legacy
-              </button>
-            </div>
-          </div> */}
           </div>
         )}
         <dialog id="record_success_modal" className="modal">

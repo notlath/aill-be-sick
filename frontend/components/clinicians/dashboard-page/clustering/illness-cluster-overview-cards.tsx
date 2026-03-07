@@ -13,10 +13,7 @@ interface IllnessClusterOverviewCardsProps {
   selectedVariables?: {
     age: boolean;
     gender: boolean;
-    barangay: boolean;
-    province: boolean;
-    city: boolean;
-    region: boolean;
+    district: boolean;
     time: boolean;
   };
 }
@@ -104,10 +101,7 @@ const IllnessClusterOverviewCards: React.FC<
   selectedVariables = {
     age: true,
     gender: true,
-    city: true,
-    region: false,
-    barangay: false,
-    province: false,
+    district: true,
     time: false,
   },
 }) => {
@@ -235,51 +229,31 @@ const IllnessClusterOverviewCards: React.FC<
                             ageDescriptor = "predominantly children";
                           }
 
-                          // Region or City - respect selected variables
+                          // District - respect selected variables
                           let regionLocation = "";
                           let regionPrefix = "from";
-                          let hasMultipleCities = false;
+                          let hasMultipleDistricts = false;
 
-                          // Determine which geographic variable to show based on selection
-                          const showCity = selectedVariables.city;
-                          const showRegion = selectedVariables.region;
-
-                          // Priority: City (if enabled) > Region (if enabled)
                           if (
-                            showCity &&
-                            stat.top_cities &&
-                            stat.top_cities.length >= 1
+                            selectedVariables.district &&
+                            stat.top_districts &&
+                            stat.top_districts.length >= 1
                           ) {
-                            // Show top city even if there are multiple
-                            regionLocation = stat.top_cities[0].city;
+                            const topDistrict = stat.top_districts[0];
+                            regionLocation = topDistrict.district;
                             regionPrefix = "from";
-                            hasMultipleCities = stat.top_cities.length > 1;
-                          } else if (
-                            showRegion &&
-                            stat.top_regions &&
-                            stat.top_regions.length === 1
-                          ) {
-                            // Only one region, display "from {region}"
-                            regionLocation = stat.top_regions[0].region;
-                            regionPrefix = "from";
-                          } else if (
-                            showRegion &&
-                            stat.top_regions &&
-                            stat.top_regions.length >= 2
-                          ) {
-                            // Two or more regions - check if top region is dominant
-                            const topRegion = stat.top_regions[0];
-                            const secondRegion = stat.top_regions[1];
-                            const percentageIncrease =
-                              (topRegion.count - secondRegion.count) /
-                              secondRegion.count;
+                            hasMultipleDistricts = stat.top_districts.length > 1;
 
-                            if (percentageIncrease >= 0.4) {
-                              // Top region is 40% higher, display "mostly from {region}"
-                              regionLocation = topRegion.region;
-                              regionPrefix = "mostly from";
+                            if (stat.top_districts.length >= 2) {
+                              const secondDistrict = stat.top_districts[1];
+                              const percentageIncrease =
+                                (topDistrict.count - secondDistrict.count) /
+                                secondDistrict.count;
+
+                              if (percentageIncrease >= 0.4) {
+                                regionPrefix = "mostly from";
+                              }
                             }
-                            // Otherwise, don't mention region at all
                           }
 
                           // Gender descriptor
@@ -299,7 +273,7 @@ const IllnessClusterOverviewCards: React.FC<
                               {regionLocation ? (
                                 <>
                                   {" "}
-                                  {hasMultipleCities
+                                  {hasMultipleDistricts
                                     ? "primarily"
                                     : regionPrefix}{" "}
                                   <strong>{regionLocation}</strong>
@@ -490,119 +464,25 @@ const IllnessClusterOverviewCards: React.FC<
                 </div>
               </div>
 
-              {/* Top Cities - Pill Badges */}
-              {stat.top_cities && stat.top_cities.length > 0 ? (
+              {/* Top Districts - Pill Badges */}
+              {stat.top_districts && stat.top_districts.length > 0 ? (
                 <div>
-                  {stat.top_cities.length <= 5 ? (
+                  {stat.top_districts.length <= 5 ? (
                     <div>
                       <div className="mb-3 flex items-center gap-2">
                         <MapPin className={`size-3.5 ${theme.accentText}`} />
                         <span className="text-base-content/80 text-xs font-semibold tracking-wide">
-                          Top Cities ({stat.top_cities.length})
+                          Top Districts ({stat.top_districts.length})
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {stat.top_cities.map((city, idx) => (
+                        {stat.top_districts.map((district, idx) => (
                           <Badge
                             key={idx}
                             variant="outline"
                             className="text-xs font-medium"
                           >
-                            {city.city} ({city.count})
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="collapse rounded-none">
-                      <input
-                        type="checkbox"
-                        checked={expandedClusters[stat.cluster_id] || false}
-                        onChange={(e) =>
-                          setExpandedClusters({
-                            ...expandedClusters,
-                            [stat.cluster_id]: e.target.checked,
-                          })
-                        }
-                      />
-                      <div className="collapse-title p-0">
-                        <div className="text-base-content/80 mb-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <MapPin
-                              className={`size-3.5 ${theme.accentText}`}
-                            />
-                            <span className="text-xs font-semibold">
-                              Top Cities ({stat.top_cities.length})
-                            </span>
-                          </div>
-                          <span
-                            className={`swap swap-rotate ${
-                              expandedClusters[stat.cluster_id]
-                                ? "swap-active"
-                                : ""
-                            }`}
-                          >
-                            <div
-                              className={`swap-on ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}
-                            >
-                              -
-                            </div>
-                            <div
-                              className={`swap-off ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}
-                            >
-                              +
-                            </div>
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {stat.top_cities.slice(0, 5).map((city, idx) => (
-                            <Badge
-                              key={idx}
-                              variant="outline"
-                              className="text-xs font-medium"
-                            >
-                              {city.city} ({city.count})
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="collapse-content mt-1.5 p-0">
-                        <div className="flex flex-wrap gap-1.5">
-                          {stat.top_cities.slice(5).map((city, idx) => (
-                            <Badge
-                              key={idx}
-                              variant="outline"
-                              className="text-xs font-medium"
-                            >
-                              {city.city} ({city.count})
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : null}
-
-              {/* Top Regions - Pill Badges */}
-              {stat.top_regions && stat.top_regions.length > 0 ? (
-                <div>
-                  {stat.top_regions.length <= 5 ? (
-                    <div>
-                      <div className="mb-3 flex items-center gap-2">
-                        <MapPin className={`size-3.5 ${theme.accentText}`} />
-                        <span className="text-base-content/80 text-xs font-semibold tracking-wide">
-                          Top Regions ({stat.top_regions.length})
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {stat.top_regions.map((region, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="outline"
-                            className="text-xs font-medium"
-                          >
-                            {region.region} ({region.count})
+                            {district.district} ({district.count})
                           </Badge>
                         ))}
                       </div>
@@ -612,13 +492,13 @@ const IllnessClusterOverviewCards: React.FC<
                       <input
                         type="checkbox"
                         checked={
-                          expandedClusters[`${stat.cluster_id}-regions`] ||
+                          expandedClusters[`${stat.cluster_id}-districts`] ||
                           false
                         }
                         onChange={(e) =>
                           setExpandedClusters({
                             ...expandedClusters,
-                            [`${stat.cluster_id}-regions`]: e.target.checked,
+                            [`${stat.cluster_id}-districts`]: e.target.checked,
                           })
                         }
                       />
@@ -629,12 +509,12 @@ const IllnessClusterOverviewCards: React.FC<
                               className={`size-3.5 ${theme.accentText}`}
                             />
                             <span className="text-xs font-semibold">
-                              Top Regions ({stat.top_regions.length})
+                              Top Districts ({stat.top_districts.length})
                             </span>
                           </div>
                           <span
                             className={`swap swap-rotate ${
-                              expandedClusters[`${stat.cluster_id}-regions`]
+                              expandedClusters[`${stat.cluster_id}-districts`]
                                 ? "swap-active"
                                 : ""
                             }`}
@@ -652,26 +532,26 @@ const IllnessClusterOverviewCards: React.FC<
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {stat.top_regions.slice(0, 5).map((region, idx) => (
+                          {stat.top_districts.slice(0, 5).map((district, idx) => (
                             <Badge
                               key={idx}
                               variant="outline"
                               className="text-xs font-medium"
                             >
-                              {region.region} ({region.count})
+                              {district.district} ({district.count})
                             </Badge>
                           ))}
                         </div>
                       </div>
                       <div className="collapse-content mt-1.5 p-0">
                         <div className="flex flex-wrap gap-1.5">
-                          {stat.top_regions.slice(5).map((region, idx) => (
+                          {stat.top_districts.slice(5).map((district, idx) => (
                             <Badge
                               key={idx}
                               variant="outline"
                               className="text-xs font-medium"
                             >
-                              {region.region} ({region.count})
+                              {district.district} ({district.count})
                             </Badge>
                           ))}
                         </div>
