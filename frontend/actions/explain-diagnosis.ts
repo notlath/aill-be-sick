@@ -2,12 +2,12 @@
 
 import prisma from "@/prisma/prisma";
 import { ExplainDiagnosisSchema } from "@/schemas/ExplainDiagnosisSchema";
+import { getBackendUrl } from "@/utils/backend-url";
 import axios, { AxiosError } from "axios";
 import { revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
+const BACKEND_URL = getBackendUrl();
 
 export const explainDiagnosis = actionClient
   .inputSchema(ExplainDiagnosisSchema)

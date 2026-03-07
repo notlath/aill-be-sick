@@ -1,9 +1,9 @@
-'use server'
+"use server";
 
 import type { OutbreakSummary } from "@/types";
+import { getBackendUrl } from "@/utils/backend-url";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
+const BACKEND_URL = getBackendUrl();
 
 export const getOutbreakSummary = async (
   contamination: number = 0.05,

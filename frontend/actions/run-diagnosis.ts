@@ -1,25 +1,25 @@
 "use server";
 
-import {RunDiagnosisSchema} from "@/schemas/RunDiagnosisSchema";
-import {getCurrentDbUser} from "@/utils/user";
-import axios, {AxiosError} from "axios";
-import {actionClient} from "./client";
-import {createMessage} from "./create-message";
+import { RunDiagnosisSchema } from "@/schemas/RunDiagnosisSchema";
+import { getBackendUrl } from "@/utils/backend-url";
+import { getCurrentDbUser } from "@/utils/user";
+import axios, { AxiosError } from "axios";
+import { actionClient } from "./client";
+import { createMessage } from "./create-message";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
+const BACKEND_URL = getBackendUrl();
 const DIAGNOSIS_TIMEOUT_MS = 30000;
 
 export const runDiagnosis = actionClient
   .inputSchema(RunDiagnosisSchema)
-  .action(async ({parsedInput}) => {
-    const {symptoms, chatId, skipMessage} = parsedInput;
-    const {success: dbUser, error} = await getCurrentDbUser();
+  .action(async ({ parsedInput }) => {
+    const { symptoms, chatId, skipMessage } = parsedInput;
+    const { success: dbUser, error } = await getCurrentDbUser();
 
     if (!dbUser) {
       console.error(`Error fetching user: ${error}`);
 
-      return {error: `Error fetching user: ${error}`};
+      return { error: `Error fetching user: ${error}` };
     }
 
     try {
@@ -39,7 +39,7 @@ export const runDiagnosis = actionClient
       // BRIDGE: Capture session cookie from Flask and set it in Next.js response
       const setCookieHeader = response.headers["set-cookie"];
       if (setCookieHeader) {
-        const {cookies} = await import("next/headers");
+        const { cookies } = await import("next/headers");
         const cookieStore = await cookies();
 
         // Parse the session cookie (usually named 'session')
@@ -270,6 +270,6 @@ Do you want to record this diagnosis?
         };
       }
 
-      return {error: `Error running diagnosis: ${error}`};
+      return { error: `Error running diagnosis: ${error}` };
     }
   });
