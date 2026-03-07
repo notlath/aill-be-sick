@@ -5,11 +5,12 @@ export const OnboardingSchema = z.object({
   gender: z.enum(["MALE", "FEMALE", "OTHER"], {
     errorMap: () => ({ message: "Please select a gender" }),
   } as any),
-  // User input
-  city: z.string().min(1, "City/Municipality is required"),
-  barangay: z.string().min(1, "Barangay is required"),
-  // Auto-filled but user can edit
-  region: z.string().min(1, "Region is required"),
-  province: z.string().min(1, "Province is required"),
-  district: z.string().optional(), // Optional district for NCR and similar divisions
+  address: z.string().min(1, "Address is required"),
+  district: z.string().min(1, "District or zone is required"),
+  city: z.string().min(1),
+  barangay: z.string().min(1),
+  region: z.string().min(1),
+  province: z.string().min(1),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
 });
