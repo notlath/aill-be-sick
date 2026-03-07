@@ -1,17 +1,27 @@
 "use client";
 
-import { useMemo } from "react";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { completeOnboarding } from "@/actions/onboarding";
-import { Loader2 } from "lucide-react";
+import { Loader2, LocateFixed } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { OnboardingSchema } from "@/schemas/OnboardingSchema";
+import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
+import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
 
-import { Input } from "@/components/ui/input";
+const SearchBox = dynamic(
+  () => import("@mapbox/search-js-react").then((mod) => mod.SearchBox),
+  { ssr: false }
+);
+const AddressMinimap = dynamic(
+  () => import("@mapbox/search-js-react").then((mod) => mod.AddressMinimap),
+  { ssr: false }
+);
+
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
@@ -20,77 +30,56 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  REGIONS,
-  PROVINCES,
-  getAllMunicipalities,
-  getBarangaysByMunicipality,
-  getCityDisplayName,
-  getLocationFromBarangay,
-  getProvinceDisplayName,
-  getProvincesByRegion,
-} from "@/constants/locations";
+import { Input } from "@/components/ui/input";
+import { BAGONG_SILANGAN_DISTRICTS } from "@/constants/bagong-silangan-districts";
+import { useUserLocation } from "@/hooks/use-location";
+
+// Fixed location constants for Bagong Silangan, Quezon City
+const FIXED_CITY = "Quezon City";
+const FIXED_BARANGAY = "Bagong Silangan";
+const FIXED_REGION = "National Capital Region (NCR)";
+const FIXED_PROVINCE = "NCR, Second District (Not a Province)";
+
+const ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
 type OnboardingFormValues = z.infer<typeof OnboardingSchema>;
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const {
+    location,
+    error: locationError,
+    loading: isLocating,
+    requestLocation,
+  } = useUserLocation();
+
+  const [minimapFeature, setMinimapFeature] = useState<
+    GeoJSON.Feature<GeoJSON.Point> | undefined
+  >(undefined);
+
+  // Configure Mapbox Search JS token once on mount
+  useEffect(() => {
+    import("@mapbox/search-js-react").then(({ config }) => {
+      config.accessToken = ACCESS_TOKEN;
+    });
+  }, []);
 
   const form = useForm<OnboardingFormValues>({
     resolver: zodResolver(OnboardingSchema),
     defaultValues: {
       birthday: "",
-      city: "",
-      barangay: "",
-      region: "",
-      province: "",
+      gender: undefined,
+      address: "",
       district: "",
+      // Pre-filled — not shown as editable fields
+      city: FIXED_CITY,
+      barangay: FIXED_BARANGAY,
+      region: FIXED_REGION,
+      province: FIXED_PROVINCE,
+      latitude: undefined,
+      longitude: undefined,
     },
   });
-
-  const selectedCity = form.watch("city");
-  const selectedRegion = form.watch("region");
-
-  // Get all municipalities (cities) for selection
-  const allCities = useMemo(() => {
-    return getAllMunicipalities();
-  }, []);
-
-  // Get barangays filtered by selected city
-  const availableBarangays = useMemo(() => {
-    return selectedCity ? getBarangaysByMunicipality(selectedCity) : [];
-  }, [selectedCity]);
-
-  // Get provinces filtered by selected region
-  const availableProvinces = useMemo(() => {
-    return selectedRegion ? getProvincesByRegion(selectedRegion) : PROVINCES;
-  }, [selectedRegion]);
-
-  // Handle city change - reset barangay and auto-fill location
-  const handleCityChange = (val: string) => {
-    form.setValue("city", val);
-    form.setValue("barangay", "");
-    form.setValue("region", "");
-    form.setValue("province", "");
-    form.setValue("district", "");
-  };
-
-  // Handle barangay change - auto-fill region and province
-  const handleBarangayChange = (
-    val: string,
-    onChange: (val: string) => void,
-  ) => {
-    onChange(val);
-
-    const locationData = getLocationFromBarangay(val, selectedCity);
-    if (locationData) {
-      form.setValue("region", locationData.region, { shouldDirty: true });
-      form.setValue("province", locationData.province, { shouldDirty: true });
-      if (locationData.district) {
-        form.setValue("district", locationData.district, { shouldDirty: true });
-      }
-    }
-  };
 
   const { execute: submitOnboarding, isExecuting } = useAction(
     completeOnboarding,
@@ -104,7 +93,6 @@ export default function OnboardingPage() {
           if (data.success.role === "CLINICIAN") {
             redirectPath = "/dashboard";
           } else if (data.success.role === "DEVELOPER") {
-            // For developers, check their saved view preference
             const savedView = localStorage.getItem("developerView") as
               | "PATIENT"
               | "CLINICIAN"
@@ -131,14 +119,75 @@ export default function OnboardingPage() {
     });
   };
 
+  // On mount, request geolocation automatically
+  useEffect(() => {
+    if (!location) requestLocation();
+  }, []);
+
+  // When geolocation resolves successfully, populate address + coordinates and show minimap
+  useEffect(() => {
+    if (location) {
+      if (location.address && !form.getValues("address")) {
+        form.setValue("address", location.address, { shouldValidate: true });
+      }
+      if (location.lat !== undefined) {
+        form.setValue("latitude", location.lat);
+      }
+      if (location.lng !== undefined) {
+        form.setValue("longitude", location.lng);
+      }
+      // Build a GeoJSON feature from the resolved coordinates so the minimap
+      // is shown immediately, letting the user drag the marker to correct it.
+      if (location.lat !== undefined && location.lng !== undefined) {
+        setMinimapFeature({
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [location.lng, location.lat],
+          },
+          properties: {},
+        });
+      }
+    }
+  }, [location]);
+
+  // Handle Mapbox SearchBox selection — fires for any suggestion type (streets, addresses, POIs)
+  const handleAutofillRetrieve = (response: SearchBoxRetrieveResponse) => {
+    const feature = response?.features?.[0];
+    if (!feature) return;
+
+    const address: string =
+      feature.properties.full_address ||
+      feature.properties.place_formatted ||
+      feature.properties.name ||
+      "";
+    const lng: number = feature.geometry.coordinates[0];
+    const lat: number = feature.geometry.coordinates[1];
+
+    console.log("[onboarding] Autofill address selected —", { lat, lng, address });
+
+    form.setValue("address", address, { shouldValidate: true });
+    form.setValue("latitude", lat);
+    form.setValue("longitude", lng);
+    setMinimapFeature(feature as GeoJSON.Feature<GeoJSON.Point>);
+  };
+
+  // Handle minimap marker drag — update coordinates
+  const handleSaveMarkerLocation = (coordinate: [number, number]) => {
+    const [lng, lat] = coordinate;
+    console.log("[onboarding] Minimap marker moved —", { lat, lng });
+    form.setValue("latitude", lat);
+    form.setValue("longitude", lng);
+  };
+
   return (
-    <main className="flex bg-base-200 min-h-screen">
-      {/* Left Column - Onboarding Form */}
-      <section className="flex-1 flex flex-col justify-center px-8 sm:px-16 md:px-24 lg:px-32 py-12 overflow-y-auto">
+    <main className="flex h-screen overflow-hidden bg-base-200">
+      {/* Left Column — scrollable */}
+      <section className="flex-1 h-full overflow-y-auto flex flex-col justify-center px-8 sm:px-16 md:px-24 lg:px-32 py-12">
         <div className="w-full max-w-md mx-auto space-y-8">
           <div className="space-y-3 lg:text-left text-center">
             <h1 className="text-4xl font-bold tracking-tight">
-              Let's personalize your health journey
+              Let&apos;s personalize your health journey
             </h1>
             <p className="text-muted text-base">
               Create your patient profile so we can keep track of your health
@@ -147,8 +196,8 @@ export default function OnboardingPage() {
           </div>
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Birthday & Gender */}
             <div className="grid gap-6 md:grid-cols-2">
-              {/* Birthday */}
               <div className="space-y-2 col-span-2 md:col-span-1">
                 <label className="text-sm font-medium text-base-content block">
                   Birthday <span className="text-error">*</span>
@@ -171,7 +220,6 @@ export default function OnboardingPage() {
                 )}
               </div>
 
-              {/* Gender */}
               <div className="space-y-2 col-span-2 md:col-span-1">
                 <label className="text-sm font-medium text-base-content block">
                   Gender <span className="text-error">*</span>
@@ -180,7 +228,10 @@ export default function OnboardingPage() {
                   name="gender"
                   control={form.control}
                   render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value ?? ""}
+                      onValueChange={field.onChange}
+                    >
                       <SelectTrigger className="w-full bg-base-100">
                         <SelectValue placeholder="Select your gender" />
                       </SelectTrigger>
@@ -202,140 +253,158 @@ export default function OnboardingPage() {
 
             <div className="divider">Your Location</div>
 
-            <div className="grid gap-6 md:grid-cols-2">
-              {/* City */}
-              <div className="space-y-2 col-span-2 md:col-span-1">
-                <label className="text-sm font-medium text-base-content block">
-                  City/Municipality <span className="text-error">*</span>
-                </label>
-                <Select
-                  value={selectedCity}
-                  onValueChange={handleCityChange}
-                  showSearch
+            {/* Location error alert — shown when geolocation fails */}
+            {locationError && (
+              <div className="alert alert-error flex items-center gap-2 mb-4 justify-between">
+                <span>{locationError}</span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs ml-2"
+                  onClick={requestLocation}
+                  disabled={isLocating}
                 >
-                  <SelectTrigger className="w-full bg-base-100">
-                    <SelectValue placeholder="Select your city or municipality" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allCities.map((c) => (
-                      <SelectItem
-                        key={c.psgc}
-                        value={c.name}
-                        searchText={c.name}
-                      >
-                        {getCityDisplayName(c.name)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.city && (
-                  <span className="text-error text-xs font-medium">
-                    {form.formState.errors.city.message}
-                  </span>
-                )}
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {/* No address warning — geolocation succeeded but no address returned */}
+            {location && !location.address && !isLocating && (
+              <div className="alert alert-warning flex items-center gap-2 mb-4">
+                <span>
+                  We couldn&apos;t retrieve the address for your location.
+                  Please enter it manually.
+                </span>
+              </div>
+            )}
+
+            <div className="space-y-6">
+              {/* Fixed: Barangay & City */}
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-base-content block">
+                    City / Municipality
+                  </label>
+                  <Input
+                    value={FIXED_CITY}
+                    disabled
+                    className="bg-base-100 opacity-60 cursor-not-allowed"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-base-content block">
+                    Barangay
+                  </label>
+                  <Input
+                    value={FIXED_BARANGAY}
+                    disabled
+                    className="bg-base-100 opacity-60 cursor-not-allowed"
+                  />
+                </div>
               </div>
 
-              {/* Barangay */}
-              <div className="space-y-2 col-span-2 md:col-span-1">
+              {/* District / Zone */}
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-base-content block">
-                  Barangay <span className="text-error">*</span>
+                  District / Zone <span className="text-error">*</span>
                 </label>
                 <Controller
-                  name="barangay"
+                  name="district"
                   control={form.control}
                   render={({ field }) => (
                     <Select
-                      value={field.value}
-                      onValueChange={(val) =>
-                        handleBarangayChange(val, field.onChange)
-                      }
-                      showSearch
+                      value={field.value ?? ""}
+                      onValueChange={field.onChange}
                     >
-                      <SelectTrigger
-                        className="w-full bg-base-100"
-                        disabled={!selectedCity}
-                      >
-                        <SelectValue
-                          placeholder={
-                            selectedCity
-                              ? "Select your barangay"
-                              : "Select city first"
-                          }
-                        />
+                      <SelectTrigger className="w-full bg-base-100">
+                        <SelectValue placeholder="Select your district or zone" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableBarangays.map((b) => (
-                          <SelectItem key={b.psgc} value={b.name}>
-                            {b.name}
+                        {BAGONG_SILANGAN_DISTRICTS.map((d) => (
+                          <SelectItem key={d.name} value={d.name}>
+                            {d.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   )}
                 />
-                {form.formState.errors.barangay && (
+                {form.formState.errors.district && (
                   <span className="text-error text-xs font-medium">
-                    {form.formState.errors.barangay.message}
+                    {form.formState.errors.district.message}
                   </span>
                 )}
               </div>
 
-              {/* Region - Dropdown with auto-fill and manual editing */}
-              <div className="space-y-2 col-span-2 md:col-span-1">
+              {/* Street Address */}
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-base-content block">
-                  Region <span className="text-error">*</span>
+                  Address <span className="text-error">*</span>
                 </label>
-                <Controller
-                  name="region"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="w-full bg-base-100">
-                        <SelectValue placeholder="Select your region" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {REGIONS.map((r) => (
-                          <SelectItem key={r.psgc} value={r.name}>
-                            {r.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {form.formState.errors.region && (
-                  <span className="text-error text-xs font-medium">
-                    {form.formState.errors.region.message}
-                  </span>
-                )}
-              </div>
 
-              {/* Province - Dropdown with auto-fill and manual editing */}
-              <div className="space-y-2 col-span-2 md:col-span-1">
-                <label className="text-sm font-medium text-base-content block">
-                  Province/District <span className="text-error">*</span>
-                </label>
-                <Controller
-                  name="province"
-                  control={form.control}
-                  render={({ field }) => (
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="w-full bg-base-100">
-                        <SelectValue placeholder="Select your province or district" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableProvinces.map((p) => (
-                          <SelectItem key={p.psgc} value={p.name}>
-                            {getProvinceDisplayName(p.name)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <div className="space-y-1">
+                  <SearchBox
+                    accessToken={ACCESS_TOKEN}
+                    onRetrieve={handleAutofillRetrieve}
+                    onChange={(value) =>
+                      form.setValue("address", value, {
+                        shouldValidate: !!value,
+                      })
+                    }
+                    value={form.watch("address")}
+                    options={{ language: "en", country: "PH" }}
+                    placeholder="Start typing your street address…"
+                    theme={{
+                      variables: {
+                        fontFamily: "inherit",
+                        unit: "14px",
+                        padding: "0.5em",
+                        borderRadius: "0.5rem",
+                        colorBackground: "#ffffff",
+                        colorBackgroundHover: "#f5f5f7",
+                        colorText: "#1d1d1f",
+                        colorPrimary: "oklch(59% 0.145 163.225)",
+                        border: "1px solid #e8e8ed",
+                        boxShadow: "none",
+                      },
+                    }}
+                  />
+
+                  <div className="flex justify-end mt-2">
+                    <button
+                      type="button"
+                      onClick={requestLocation}
+                      disabled={isLocating}
+                      className="btn btn-ghost btn-sm gap-1.5 text-xs text-base-content/70"
+                    >
+                      {isLocating ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <LocateFixed className="size-3.5" />
+                      )}
+                      Use my location
+                    </button>
+                  </div>
+
+                  {/* Minimap — shown after geolocation resolves or a SearchBox suggestion is selected */}
+                  {minimapFeature && !isLocating && (
+                    <div className="rounded-xl overflow-hidden mt-4 h-48 w-full border border-base-300">
+                      <AddressMinimap
+                        accessToken={ACCESS_TOKEN}
+                        feature={minimapFeature}
+                        show={true}
+                        satelliteToggle
+                        canAdjustMarker
+                        footer
+                        onSaveMarkerLocation={handleSaveMarkerLocation}
+                      />
+                    </div>
                   )}
-                />
-                {form.formState.errors.province && (
+                </div>
+
+                {form.formState.errors.address && (
                   <span className="text-error text-xs font-medium">
-                    {form.formState.errors.province.message}
+                    {form.formState.errors.address.message}
                   </span>
                 )}
               </div>
@@ -344,11 +413,14 @@ export default function OnboardingPage() {
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={isExecuting}
-                className="btn btn-primary w-full h-12 rounded-xl text-base font-medium text-primary-content tracking-wide"
+                disabled={isExecuting || isLocating}
+                className="btn btn-primary w-full h-12 rounded-xl text-base font-medium text-primary-content tracking-wide disabled:text-muted"
               >
-                {isExecuting ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                {isExecuting || isLocating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    {isLocating ? "Getting your location…" : ""}
+                  </>
                 ) : (
                   "Get Started"
                 )}
@@ -358,12 +430,12 @@ export default function OnboardingPage() {
         </div>
       </section>
 
-      {/* Right Column - Image */}
+      {/* Right Column — fixed, non-scrolling image panel */}
       <section className="hidden lg:block lg:flex-1 relative p-2 overflow-hidden bg-base-200">
         <img
           src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=2940&auto=format&fit=crop"
           alt="Medical professional reviewing patient data"
-          className="w-full h-full object-cover rounded-3xl opacity-90"
+          className="w-full h-full object-cover rounded-3xl"
         />
       </section>
     </main>

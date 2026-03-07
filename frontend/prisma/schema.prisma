@@ -18,6 +18,7 @@ model User {
   updatedAt   DateTime    @default(now()) @updatedAt
   role        Role        @default(PATIENT)
   city        String?
+  address     String?
   latitude    Float?
   longitude   Float?
   region      String?
