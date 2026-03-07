@@ -37,7 +37,7 @@ const StartingDiagnosisForm = ({
       if (!hasSubmittedRef.current) return;
       hasSubmittedRef.current = false;
       if (data.success) {
-        form.setValue("chatId", "");
+        form.setValue("chatId", crypto.randomUUID());
         form.setValue("symptoms", "");
         router.push(`/diagnosis/${data.success.chatId}`);
       } else if (data.error) {
