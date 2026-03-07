@@ -53,6 +53,7 @@ export const createDiagnosis = actionClient
           province: dbUser.province,
           region: dbUser.region,
           barangay: dbUser.barangay,
+          district: dbUser.district,
           ...(explanation
             ? {
                 explanation: {
