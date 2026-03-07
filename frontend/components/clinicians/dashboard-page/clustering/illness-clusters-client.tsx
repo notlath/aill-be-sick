@@ -368,9 +368,6 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                 </label>
               </div>
 
-              {/* Vertical Divider */}
-              <div className="border-l border-base-300 h-8" />
-
               {/* Location Variable */}
               <div className="flex items-center gap-3">
                 <label
@@ -388,7 +385,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
             </div>
 
             {/* Diagnosis Date Filter */}
-            <div className="border-base-300 border-t pt-4">
+            <div className="">
               <DiagnosisDateFilter
                 onDateRangeChange={(start, end) => {
                   setDateRangeStart(start);

@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 interface DiagnosisDateFilterProps {
@@ -14,19 +15,11 @@ interface DiagnosisDateFilterProps {
   loading?: boolean;
 }
 
-type PresetType =
-  | "this-month"
-  | "last-month"
-  | "last-7-days"
-  | "last-3-months"
-  | "last-6-months"
-  | "year-to-date"
-  | "custom";
+type PresetType = "last-7-days" | "last-3-months" | "year-to-date" | "custom";
 
 interface DatePickerProps {
   selectedDate: Date | null;
   onDateChange: (date: Date) => void;
-  label: string;
   disabled?: boolean;
 }
 
@@ -53,18 +46,6 @@ const getDatePresetRange = (preset: PresetType): [Date, Date] => {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   switch (preset) {
-    case "this-month": {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = today;
-      return [start, end];
-    }
-
-    case "last-month": {
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const end = new Date(now.getFullYear(), now.getMonth(), 0);
-      return [start, end];
-    }
-
     case "last-7-days": {
       const start = new Date(today);
       start.setDate(start.getDate() - 7);
@@ -73,12 +54,6 @@ const getDatePresetRange = (preset: PresetType): [Date, Date] => {
 
     case "last-3-months": {
       const start = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-      const end = today;
-      return [start, end];
-    }
-
-    case "last-6-months": {
-      const start = new Date(now.getFullYear(), now.getMonth() - 6, 1);
       const end = today;
       return [start, end];
     }
@@ -100,7 +75,6 @@ const getDatePresetRange = (preset: PresetType): [Date, Date] => {
 const MonthYearPicker: React.FC<DatePickerProps> = ({
   selectedDate,
   onDateChange,
-  label,
   disabled,
 }) => {
   const [activeYear, setActiveYear] = useState<number>(
@@ -156,7 +130,7 @@ const MonthYearPicker: React.FC<DatePickerProps> = ({
   };
 
   return (
-    <div className="relative w-[260px]" ref={ref}>
+    <div className="relative w-65" ref={ref}>
       <button
         type="button"
         className="flex h-8 w-full items-center justify-between gap-2 rounded-[10px] border border-success/40 bg-white/50 px-4 py-2.5 text-xs text-base-content transition-all duration-200 hover:border-base-300/70 hover:bg-white/70 focus:border-primary/40 focus:ring-2 focus:ring-primary/20 focus:outline-none disabled:opacity-50"
@@ -168,7 +142,7 @@ const MonthYearPicker: React.FC<DatePickerProps> = ({
       </button>
 
       {isOpen && (
-        <div className="bg-base-100 border-base-300 absolute left-0 z-40 mt-2 w-full rounded-[12px] border p-3 shadow-lg">
+        <div className="bg-base-100 border-base-300 absolute left-0 z-40 mt-2 w-full rounded-xl border p-3 shadow-lg">
           <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
               <span className="text-xs font-semibold uppercase text-base-content/70">
@@ -229,13 +203,13 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
   onDateRangeChange,
   loading,
 }) => {
-  const [activePreset, setActivePreset] = useState<PresetType>("this-month");
+  const [activePreset, setActivePreset] = useState<PresetType>("last-3-months");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
-  // Initialize with "This month" preset
+  // Initialize with the default quick range.
   useEffect(() => {
-    const [start, end] = getDatePresetRange("this-month");
+    const [start, end] = getDatePresetRange("last-3-months");
     setStartDate(start);
     setEndDate(end);
     onDateRangeChange(start, end);
@@ -273,32 +247,35 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
   };
 
   const presets: Array<{ id: PresetType; label: string }> = [
-    { id: "this-month", label: "This month" },
-    { id: "last-month", label: "Last month" },
     { id: "last-7-days", label: "Last 7 days" },
     { id: "last-3-months", label: "Last 3 months" },
-    { id: "last-6-months", label: "Last 6 months" },
     { id: "year-to-date", label: "Year to date" },
-    { id: "custom", label: "Custom" },
+    { id: "custom", label: "Custom range" },
   ];
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Preset buttons */}
-      <div className="flex flex-wrap gap-2">
-        {presets.map((preset) => (
-          <button
-            key={preset.id}
-            type="button"
-            className={`btn btn-sm font-normal ${
-              activePreset === preset.id ? "btn-success btn-soft" : "btn-ghost"
-            }`}
-            disabled={loading}
-            onClick={() => handlePresetClick(preset.id)}
+      {/* Compact preset selector to reduce button clutter. */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium">Date range:</span>
+        <Select
+          value={activePreset}
+          onValueChange={(value) => handlePresetClick(value as PresetType)}
+        >
+          <SelectTrigger
+            className="h-8 w-52 text-xs"
+            disabled={Boolean(loading)}
           >
-            {preset.label}
-          </button>
-        ))}
+            <SelectValue placeholder="Select date range" />
+          </SelectTrigger>
+          <SelectContent>
+            {presets.map((preset) => (
+              <SelectItem key={preset.id} value={preset.id}>
+                {preset.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Custom date range pickers */}
@@ -309,7 +286,6 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
             <MonthYearPicker
               selectedDate={startDate}
               onDateChange={(date) => handleCustomDateChange("start", date)}
-              label="Start month"
               disabled={loading}
             />
           </div>
@@ -319,7 +295,6 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
             <MonthYearPicker
               selectedDate={endDate}
               onDateChange={(date) => handleCustomDateChange("end", date)}
-              label="End month"
               disabled={loading}
             />
           </div>
