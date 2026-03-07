@@ -3,7 +3,7 @@
 import prisma from "@/prisma/prisma";
 import { DeleteChatSchema } from "@/schemas/DeleteChatSchema";
 import { getCurrentDbUser } from "@/utils/user";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 
 export const deleteChat = actionClient
@@ -43,10 +43,10 @@ export const deleteChat = actionClient
         },
       });
 
-      updateTag(`chats-${dbUser.id}`);
-      updateTag(`chat-${chat.chatId}`);
-      updateTag(`messages-${chat.chatId}`);
-      updateTag(`diagnosis-${chat.chatId}`);
+      revalidateTag(`chats-${dbUser.id}`, { expire: 0 });
+      revalidateTag(`chat-${chat.chatId}`, { expire: 0 });
+      revalidateTag(`messages-${chat.chatId}`, { expire: 0 });
+      revalidateTag(`diagnosis-${chat.chatId}`, { expire: 0 });
       revalidatePath("/history", "page");
       revalidatePath(`/diagnosis/${chat.chatId}`, "page");
 

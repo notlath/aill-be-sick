@@ -4,30 +4,39 @@ import { useId, useRef } from "react";
 import type { GeoJsonObject } from "geojson";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import ChoroplethLayer from "./choropleth-layer";
-import ChoroplethLegend from "./choropleth-legend";
-import { Diagnosis } from "@/lib/generated/prisma";
+import ClusterChoroplethLayer from "./cluster-choropleth-layer";
+import ClusterChoroplethLegend from "./cluster-choropleth-legend";
+import type { IllnessRecord } from "@/types";
+import type { ClusterLegendBin } from "@/utils/cluster-heatmap";
 
-// Hoist static primitives outside the component so they are never recreated on re-renders
-const MAP_CENTER: [number, number] = [14.71, 121.113]; // Brgy. Bagong Silangan
+const MAP_CENTER: [number, number] = [14.71, 121.113];
 const MAP_ZOOM = 14;
 const MAP_STYLE = { height: "600px", width: "100%" };
 
-type ChoroplethMapProps = {
+type ClusterChoroplethMapProps = {
   casesData: Record<string, number>;
   geoData: GeoJsonObject;
-  diagnoses: Diagnosis[];
+  illnesses: IllnessRecord[];
+  legendBins: ClusterLegendBin[];
+  legendTitle: string;
+  zeroColor: string;
   onFeatureClick?: (featureName: string) => void;
+  selectedGroupLabel: string;
 };
 
-const ChoroplethMap = ({ casesData, geoData, diagnoses, onFeatureClick }: ChoroplethMapProps) => {
-  // Generate a unique, stable key per mount cycle so each navigation produces
-  // a fresh MapContainer and avoids the "container is being reused" error.
+const ClusterChoroplethMap = ({
+  casesData,
+  geoData,
+  illnesses,
+  legendBins,
+  legendTitle,
+  zeroColor,
+  onFeatureClick,
+  selectedGroupLabel,
+}: ClusterChoroplethMapProps) => {
   const id = useId();
   const mountRef = useRef(0);
-
   mountRef.current += 1;
-
   const mapKey = `${id}-${mountRef.current}`;
 
   return (
@@ -43,16 +52,19 @@ const ChoroplethMap = ({ casesData, geoData, diagnoses, onFeatureClick }: Chorop
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <ChoroplethLayer
+        <ClusterChoroplethLayer
           casesData={casesData}
           geoData={geoData}
-          diagnoses={diagnoses}
+          illnesses={illnesses}
+          legendBins={legendBins}
+          zeroColor={zeroColor}
+          selectedGroupLabel={selectedGroupLabel}
           onFeatureClick={onFeatureClick}
         />
-        <ChoroplethLegend />
+        <ClusterChoroplethLegend title={legendTitle} bins={legendBins} zeroColor={zeroColor} />
       </MapContainer>
     </div>
   );
 };
 
-export default ChoroplethMap;
+export default ClusterChoroplethMap;

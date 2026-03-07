@@ -1,33 +1,46 @@
-
-
-import { getColor } from "@/utils/map-helpers";
 import { Feature, GeoJsonObject } from "geojson";
 import { Layer, LeafletMouseEvent, PathOptions } from "leaflet";
 import { useRef } from "react";
 import { GeoJSON, useMap } from "react-leaflet";
-import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
-import { Diagnosis } from "@/lib/generated/prisma/wasm";
+import type { IllnessRecord } from "@/types";
+import {
+  getClusterColorForCount,
+  type ClusterLegendBin,
+} from "@/utils/cluster-heatmap";
 
-interface ChoroplethLayerProps {
+interface ClusterChoroplethLayerProps {
   geoData: GeoJsonObject;
   casesData: Record<string, number>;
-  diagnoses: Diagnosis[];
+  illnesses: IllnessRecord[];
+  legendBins: ClusterLegendBin[];
+  zeroColor: string;
+  selectedGroupLabel: string;
   onFeatureClick?: (featureName: string) => void;
 }
 
-export default function ChoroplethLayer({ geoData, casesData, diagnoses, onFeatureClick }: ChoroplethLayerProps) {
+export default function ClusterChoroplethLayer({
+  geoData,
+  casesData,
+  illnesses,
+  legendBins,
+  zeroColor,
+  selectedGroupLabel,
+  onFeatureClick,
+}: ClusterChoroplethLayerProps) {
   const geoJsonRef = useRef<L.GeoJSON | null>(null);
   const map = useMap();
-  const { selectedDisease } = useSelectedDiseaseStore();
 
-  // Determine the style for each feature based on its case count
+  void illnesses;
+
   function style(feature?: Feature): PathOptions {
     const name = feature?.properties?.name as string | undefined;
     const count = name ? (casesData[name] ?? 0) : 0;
     const isBoundary = !name;
 
     return {
-      fillColor: isBoundary ? "transparent" : getColor(count, selectedDisease),
+      fillColor: isBoundary
+        ? "transparent"
+        : getClusterColorForCount(count, legendBins, zeroColor),
       weight: isBoundary ? 2 : 2,
       opacity: 1,
       color: isBoundary ? "#9CA3AF" : "white",
@@ -36,7 +49,6 @@ export default function ChoroplethLayer({ geoData, casesData, diagnoses, onFeatu
     };
   }
 
-  // On hover (mirrors the Leaflet choropleth example)
   function highlightFeature(e: LeafletMouseEvent) {
     const layer = e.target;
 
@@ -49,12 +61,10 @@ export default function ChoroplethLayer({ geoData, casesData, diagnoses, onFeatu
     layer.bringToFront();
   }
 
-  // On hover out, reset style
   function resetHighlight(e: LeafletMouseEvent) {
     geoJsonRef.current?.resetStyle(e.target);
   }
 
-  // On click, zoom to feature or pwedeng i-display yung patients belonging in that zone
   function zoomToFeature(e: LeafletMouseEvent) {
     const layer = e.target;
     const name = layer.feature?.properties?.name;
@@ -66,25 +76,21 @@ export default function ChoroplethLayer({ geoData, casesData, diagnoses, onFeatu
     map.fitBounds(e.target.getBounds());
   }
 
-  // For each feature, bind a tooltip and hover events
   function onEachFeature(feature: Feature, layer: Layer) {
     const name = feature.properties?.name as string | undefined;
     const count = name ? (casesData[name] ?? 0) : 0;
     const isBoundary = !name;
 
-    // If it's a boundary feature (like the main Barangay Bagong Silangan), make it non-interactive and skip tooltip/events
     if (isBoundary) {
       (layer as L.Path).options.interactive = false;
       return;
     }
 
-    // Bind a tooltip showing zone name + case count
     (layer as L.Path).bindTooltip(
-      `<strong>${name ?? "Unknown"}</strong><br/>${count} case${count !== 1 ? "s" : ""}`,
-      { sticky: true }
+      `<strong>${name ?? "Unknown"}</strong><br/>${count} illness${count !== 1 ? "es" : ""} in Group ${selectedGroupLabel}`,
+      { sticky: true },
     );
 
-    // Add hover events
     layer.on({
       mouseover: highlightFeature,
       mouseout: resetHighlight,
@@ -94,7 +100,7 @@ export default function ChoroplethLayer({ geoData, casesData, diagnoses, onFeatu
 
   return (
     <GeoJSON
-      key={selectedDisease}
+      key={selectedGroupLabel}
       data={geoData}
       style={style}
       onEachFeature={onEachFeature}

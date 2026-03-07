@@ -8,8 +8,8 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUp } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter } from "nextjs-toploader/app";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
 type StartingDiagnosisFormProps = {
@@ -28,30 +28,18 @@ const StartingDiagnosisForm = ({
     resolver: zodResolver(CreateChatSchema),
   });
   const router = useRouter();
-
-  useEffect(() => {
-    if (!isNavigating) return;
-
-    // Guard against permanent loading when navigation fails or stalls.
-    const timeout = setTimeout(() => {
-      setIsNavigating(false);
-      onPendingSymptomsChange?.("");
-    }, 10000);
-
-    return () => clearTimeout(timeout);
-  }, [isNavigating, onPendingSymptomsChange]);
-
+  // Guard: only navigate on an intentional submission within this lifecycle.
+  // Prevents stale onSuccess callbacks (from router cache or re-renders) from
+  // spuriously navigating to the previously created chat.
+  const hasSubmittedRef = useRef(false);
   const { execute, isExecuting } = useAction(createChat, {
     onSuccess: ({ data }) => {
+      if (!hasSubmittedRef.current) return;
+      hasSubmittedRef.current = false;
       if (data.success) {
-        setIsNavigating(true);
-        // Keep query payload short to avoid URL-size issues on long symptom text.
-        const pendingSymptoms = encodeURIComponent(
-          data.success.symptoms.slice(0, 180),
-        );
-        router.push(
-          `/diagnosis/${data.success.chatId}?symptoms=${pendingSymptoms}`,
-        );
+        form.setValue("chatId", "");
+        form.setValue("symptoms", "");
+        router.push(`/diagnosis/${data.success.chatId}`);
       } else if (data.error) {
         setIsNavigating(false);
         onPendingSymptomsChange?.("");
@@ -68,7 +56,7 @@ const StartingDiagnosisForm = ({
   const isLoading = isExecuting || isNavigating;
 
   const handleSubmit = (data: CreateChatSchemaType) => {
-    onPendingSymptomsChange?.(data.symptoms);
+    hasSubmittedRef.current = true;
     execute(data);
   };
 

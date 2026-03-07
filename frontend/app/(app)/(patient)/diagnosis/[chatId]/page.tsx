@@ -1,5 +1,7 @@
+import ChatHistoryView from "@/components/patient/diagnosis-page/chat-history-view";
 import ChatWindow from "@/components/patient/diagnosis-page/chat-window";
 import ThreadTransition from "@/components/patient/diagnosis-page/thread-transition";
+import { Chat } from "@/lib/generated/prisma";
 import { getChatById } from "@/utils/chat";
 import { getDiagnosisByChatId } from "@/utils/diagnosis";
 import { getExplanationByDiagnosisId } from "@/utils/explanation";
@@ -7,7 +9,6 @@ import { getMessagesByChatId } from "@/utils/message";
 import { getCurrentDbUser } from "@/utils/user";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { Chat } from "@/lib/generated/prisma";
 
 const ChatSkeleton = ({ pendingSymptoms }: { pendingSymptoms?: string }) => {
   return (
@@ -25,7 +26,15 @@ const ChatSkeleton = ({ pendingSymptoms }: { pendingSymptoms?: string }) => {
   );
 };
 
-const ChatDataLoader = async ({ chatId, chat, userRole }: { chatId: string; chat: Chat; userRole?: string }) => {
+const ChatDataLoader = async ({
+  chatId,
+  chat,
+  userRole,
+}: {
+  chatId: string;
+  chat: Chat;
+  userRole?: string;
+}) => {
   const [
     { success: messages, error: messagesError },
     { success: diagnosis, error: diagnosisError },
@@ -38,11 +47,19 @@ const ChatDataLoader = async ({ chatId, chat, userRole }: { chatId: string; chat
   ]);
 
   if (!messages || messagesError) {
-    throw new Error(typeof messagesError === "string" ? messagesError : "Failed to load messages");
+    throw new Error(
+      typeof messagesError === "string"
+        ? messagesError
+        : "Failed to load messages",
+    );
   }
 
   if (diagnosisError) {
-    throw new Error(typeof diagnosisError === "string" ? diagnosisError : "Failed to load diagnosis");
+    throw new Error(
+      typeof diagnosisError === "string"
+        ? diagnosisError
+        : "Failed to load diagnosis",
+    );
   }
 
   const { success: explanation, error: explanationError } = diagnosis
@@ -50,7 +67,30 @@ const ChatDataLoader = async ({ chatId, chat, userRole }: { chatId: string; chat
     : { success: null, error: null };
 
   if (explanationError) {
-    throw new Error(typeof explanationError === "string" ? explanationError : "Failed to load explanation");
+    throw new Error(
+      typeof explanationError === "string"
+        ? explanationError
+        : "Failed to load explanation",
+    );
+  }
+
+  // Decide rendering mode: if the chat already has a recorded diagnosis OR
+  // messages contain a final DIAGNOSIS from the AI, render the lightweight
+  // read-only history view. This component has zero diagnosis/follow-up logic
+  // so it can never re-trigger the diagnosis engine.
+  const isCompleted = chat.hasDiagnosis;
+
+  if (isCompleted) {
+    return (
+      <ChatHistoryView
+        key={chatId}
+        dbExplanation={explanation ?? null}
+        chatId={chatId}
+        messages={messages}
+        chat={chat}
+        userRole={userRole}
+      />
+    );
   }
 
   return (
@@ -80,7 +120,9 @@ const ChatPage = async ({
   const { success: dbUser, error: authError } = await getCurrentDbUser();
 
   if (authError || !dbUser) {
-    throw new Error(typeof authError === "string" ? authError : "Not authenticated");
+    throw new Error(
+      typeof authError === "string" ? authError : "Not authenticated",
+    );
   }
 
   // We await ONLY the chat to confirm it exists and quickly get layout.
@@ -92,7 +134,9 @@ const ChatPage = async ({
   }
 
   if (chatError) {
-    throw new Error(typeof chatError === "string" ? chatError : "Failed to load chat");
+    throw new Error(
+      typeof chatError === "string" ? chatError : "Failed to load chat",
+    );
   }
 
   return (

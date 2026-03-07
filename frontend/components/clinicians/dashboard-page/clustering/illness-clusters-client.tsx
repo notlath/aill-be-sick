@@ -22,20 +22,14 @@ interface IllnessClustersClientProps {
 type ClusterVariableSelection = {
   age: boolean;
   gender: boolean;
-  city: boolean;
-  region: boolean;
-  barangay: boolean;
-  province: boolean;
+  district: boolean;
   time: boolean;
 };
 
 const DEFAULT_SELECTED_VARIABLES: ClusterVariableSelection = {
   age: true,
   gender: true,
-  city: true,
-  region: false,
-  barangay: false,
-  province: false,
+  district: true,
   time: false,
 };
 
@@ -119,10 +113,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
           range: "2-25",
           age: String(selectedVariables.age),
           gender: String(selectedVariables.gender),
-          city: String(selectedVariables.city),
-          region: String(selectedVariables.region),
-          barangay: String(selectedVariables.barangay),
-          province: String(selectedVariables.province),
+          district: String(selectedVariables.district),
           time: String(selectedVariables.time),
           ...buildDiagnosisDateFilterParams(),
         });
@@ -204,10 +195,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
       n_clusters: String(clusterCount),
       age: String(variables.age),
       gender: String(variables.gender),
-      city: String(variables.city),
-      region: String(variables.region),
-      barangay: String(variables.barangay),
-      province: String(variables.province),
+      district: String(variables.district),
       time: String(variables.time),
       ...buildDiagnosisDateFilterParams(),
     });
@@ -292,41 +280,6 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
       ...prev,
       [variable]: !prev[variable],
     }));
-  };
-
-  const handleLocationVariableChange = (
-    variable: "city" | "region" | "barangay" | "province",
-  ) => {
-    setSelectedVariables((prev) => {
-      // If selecting this location variable, deselect all other location variables
-      if (!prev[variable]) {
-        return {
-          ...prev,
-          city: variable === "city",
-          region: variable === "region",
-          barangay: variable === "barangay",
-          province: variable === "province",
-        };
-      }
-
-      // If deselecting, check if at least one variable would remain
-      const wouldHaveOtherLocationVar =
-        (variable !== "city" && prev.city) ||
-        (variable !== "region" && prev.region) ||
-        (variable !== "barangay" && prev.barangay) ||
-        (variable !== "province" && prev.province);
-
-      const wouldHaveNonLocationVar = prev.age || prev.gender || prev.time;
-
-      if (!wouldHaveOtherLocationVar && !wouldHaveNonLocationVar) {
-        return prev; // Don't deselect if it would leave no variables selected
-      }
-
-      return {
-        ...prev,
-        [variable]: false,
-      };
-    });
   };
 
   const modalRoot = isMounted ? document.body : null;
@@ -418,51 +371,18 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
               {/* Vertical Divider */}
               <div className="border-l border-base-300 h-8" />
 
-              {/* Place Variables */}
+              {/* Location Variable */}
               <div className="flex items-center gap-3">
                 <label
-                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.region ? "btn-primary btn-soft" : ""}`}
+                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary btn-soft" : ""}`}
                 >
                   <input
                     type="checkbox"
                     className="hidden"
-                    checked={selectedVariables.region}
-                    onChange={() => handleLocationVariableChange("region")}
+                    checked={selectedVariables.district}
+                    onChange={() => handleVariableChange("district")}
                   />
-                  <span>Region</span>
-                </label>
-                <label
-                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.province ? "btn-primary btn-soft" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={selectedVariables.province}
-                    onChange={() => handleLocationVariableChange("province")}
-                  />
-                  <span>Province/District</span>
-                </label>
-                <label
-                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.city ? "btn-primary btn-soft" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={selectedVariables.city}
-                    onChange={() => handleLocationVariableChange("city")}
-                  />
-                  <span>City</span>
-                </label>
-                <label
-                  className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.barangay ? "btn-primary btn-soft" : ""}`}
-                >
-                  <input
-                    type="checkbox"
-                    className="hidden"
-                    checked={selectedVariables.barangay}
-                    onChange={() => handleLocationVariableChange("barangay")}
-                  />
-                  <span>Barangay</span>
+                  <span>District</span>
                 </label>
               </div>
             </div>

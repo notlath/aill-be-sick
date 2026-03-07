@@ -176,6 +176,7 @@ export interface IllnessRecord {
   province: string | null;
   barangay: string | null;
   region: string | null;
+  district: string | null;
   latitude: number | null;
   longitude: number | null;
   diagnosed_at: string | null;
@@ -200,6 +201,7 @@ export interface IllnessClusterStatistics {
   top_provinces?: ProvinceCount[];
   top_cities: CityCount[];
   top_barangays?: BarangayCount[];
+  top_districts?: { district: string; count: number }[];
   temporal_distribution?: Record<string, number>;
 }
 
