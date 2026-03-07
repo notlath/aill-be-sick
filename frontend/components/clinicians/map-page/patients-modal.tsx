@@ -10,9 +10,18 @@ interface PatientsModalProps {
   onClose: () => void;
   patients: IllnessRecord[];
   clusterDisplay: string;
+  title?: string;
+  subtitle?: string;
 }
 
-export default function PatientsModal({ isOpen, onClose, patients, clusterDisplay }: PatientsModalProps) {
+export default function PatientsModal({
+  isOpen,
+  onClose,
+  patients,
+  clusterDisplay,
+  title,
+  subtitle,
+}: PatientsModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -76,9 +85,14 @@ export default function PatientsModal({ isOpen, onClose, patients, clusterDispla
       >
         <div className="p-6 border-b border-border flex justify-between items-center bg-base-100">
           <div>
-            <h3 className="font-bold text-lg">Cluster {clusterDisplay} Patients</h3>
+            <h3 className="font-bold text-lg">
+              {title ?? `Cluster ${clusterDisplay} Patients`}
+            </h3>
             <p className="text-sm text-base-content/70">
-              Showing {uniquePatients.length} unique patient{uniquePatients.length !== 1 ? 's' : ''}
+              {subtitle ??
+                `Showing ${uniquePatients.length} unique patient${
+                  uniquePatients.length !== 1 ? "s" : ""
+                }`}
             </p>
           </div>
           <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>✕</button>

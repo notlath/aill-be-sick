@@ -12,13 +12,12 @@ def fetch_diagnosis_data(
     db_url=None,
     include_age=True,
     include_gender=True,
-    include_city=True,
-    include_province=False,
-    include_barangay=False,
-    include_region=True,
+    include_district=True,
     include_time=False,
     diagnosis_month=None,
     diagnosis_week=None,
+    start_date=None,
+    end_date=None,
 ):
     """
     Fetch diagnosis data from PostgreSQL database with linked patient demographics.
@@ -34,6 +33,8 @@ def fetch_diagnosis_data(
     month_end = None
     week_start = None
     week_end = None
+    start_datetime = None
+    end_datetime = None
 
     if diagnosis_month:
         try:
@@ -63,6 +64,24 @@ def fetch_diagnosis_data(
                 "Invalid week filter format. Expected YYYY-Www."
             ) from exc
 
+    if start_date:
+        try:
+            start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
+        except ValueError as exc:
+            raise ValueError(
+                "Invalid start_date format. Expected YYYY-MM-DD."
+            ) from exc
+
+    if end_date:
+        try:
+            end_datetime = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(
+                days=1
+            )
+        except ValueError as exc:
+            raise ValueError(
+                "Invalid end_date format. Expected YYYY-MM-DD."
+            ) from exc
+
     query_str = """
         SELECT 
             d.id,
@@ -73,6 +92,7 @@ def fetch_diagnosis_data(
             d.province,
             d.barangay,
             d.region,
+            d.district,
             d.latitude,
             d.longitude,
             d."createdAt" AS diagnosed_at,
@@ -105,6 +125,14 @@ def fetch_diagnosis_data(
         params["diagnosis_week_start"] = week_start
         params["diagnosis_week_end"] = week_end
 
+    if start_datetime:
+        query_str += ' AND d."createdAt" >= :diagnosis_start_date '
+        params["diagnosis_start_date"] = start_datetime
+
+    if end_datetime:
+        query_str += ' AND d."createdAt" < :diagnosis_end_date '
+        params["diagnosis_end_date"] = end_datetime
+
     query_str += ' ORDER BY d."createdAt" DESC '
 
     with engine.connect() as conn:
@@ -116,19 +144,10 @@ def fetch_diagnosis_data(
 
     # Build deterministic one-hot vocabularies for categorical values
     disease_values = sorted({(row[1] or "UNKNOWN") for row in data})
-    city_values = []
-    province_values = []
-    barangay_values = []
-    region_values = []
-    
-    if include_city:
-        city_values = sorted({(row[4] or "UNKNOWN") for row in data})
-    if include_province:
-        province_values = sorted({(row[5] or "UNKNOWN") for row in data})
-    if include_barangay:
-        barangay_values = sorted({(row[6] or "UNKNOWN") for row in data})
-    if include_region:
-        region_values = sorted({(row[7] or "UNKNOWN") for row in data})
+    district_values = []
+
+    if include_district:
+        district_values = sorted({(row[8] or "UNKNOWN") for row in data})
 
     # Encode data for clustering and store illness info
     encoded_data = []
@@ -144,6 +163,7 @@ def fetch_diagnosis_data(
             province,
             barangay,
             region,
+            district,
             latitude,
             longitude,
             diagnosed_at,
@@ -165,15 +185,8 @@ def fetch_diagnosis_data(
         disease_one_hot = [1 if disease == d else 0 for d in disease_values]
 
         # One-hot encode city, province, barangay, and region
-        city_value = city or "UNKNOWN"
-        province_value = province or "UNKNOWN"
-        barangay_value = barangay or "UNKNOWN"
-        region_value = region or "UNKNOWN"
-        
-        city_one_hot = [1 if city_value == v else 0 for v in city_values]
-        province_one_hot = [1 if province_value == v else 0 for v in province_values]
-        barangay_one_hot = [1 if barangay_value == v else 0 for v in barangay_values]
-        region_one_hot = [1 if region_value == v else 0 for v in region_values]
+        district_value = district or "UNKNOWN"
+        district_one_hot = [1 if district_value == v else 0 for v in district_values]
 
         # Time-based features (month of diagnosis for seasonal patterns)
         time_features = []
@@ -195,14 +208,8 @@ def fetch_diagnosis_data(
             features.append(age_normalized)
         if include_gender:
             features.append(gender_encoded)
-        if include_city:
-            features.extend(city_one_hot)
-        if include_province:
-            features.extend(province_one_hot)
-        if include_barangay:
-            features.extend(barangay_one_hot)
-        if include_region:
-            features.extend(region_one_hot)
+        if include_district:
+            features.extend(district_one_hot)
         if include_time and time_features:
             features.extend(time_features)
 
@@ -219,6 +226,7 @@ def fetch_diagnosis_data(
                 "province": province,
                 "barangay": barangay,
                 "region": region,
+                "district": district,
                 "latitude": latitude,
                 "longitude": longitude,
                 "diagnosed_at": diagnosed_at.isoformat() if diagnosed_at else None,
@@ -280,6 +288,7 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
                     "top_provinces": [],
                     "top_cities": [],
                     "top_barangays": [],
+                    "top_districts": [],
                     "temporal_distribution": {},
                 }
             )
@@ -311,16 +320,18 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
         for p in cluster_illnesses:
             gender_dist[p["patient_gender"]] = gender_dist.get(p["patient_gender"], 0) + 1
 
-        # Top regions, provinces, cities, barangays
+        # Top regions, provinces, cities, barangays, districts
         regions = [p["region"] for p in cluster_illnesses if p["region"]]
         provinces = [p["province"] for p in cluster_illnesses if p["province"]]
         cities = [p["city"] for p in cluster_illnesses if p["city"]]
         barangays = [p["barangay"] for p in cluster_illnesses if p["barangay"]]
+        districts = [p["district"] for p in cluster_illnesses if p["district"]]
 
         top_regions = Counter(regions).most_common()
         top_provinces = Counter(provinces).most_common()
         top_cities = Counter(cities).most_common()
         top_barangays = Counter(barangays).most_common()
+        top_districts = Counter(districts).most_common()
 
         # Temporal distribution (month-wise)
         temporal_dist = {}
@@ -346,6 +357,9 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
                 "top_provinces": [{"province": p, "count": c} for p, c in top_provinces],
                 "top_cities": [{"city": c, "count": cnt} for c, cnt in top_cities],
                 "top_barangays": [{"barangay": b, "count": c} for b, c in top_barangays],
+                "top_districts": [
+                    {"district": d, "count": c} for d, c in top_districts
+                ],
                 "temporal_distribution": temporal_dist,
             }
         )
