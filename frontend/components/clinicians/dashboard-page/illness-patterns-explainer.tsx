@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 const IllnessPatternsExplainer = () => {
   const [showDetails, setShowDetails] = useState(false);
+  const detailsId = "illness-patterns-details";
 
   return (
     <div className="max-w-3xl">
@@ -12,30 +13,37 @@ const IllnessPatternsExplainer = () => {
         View patients grouped by similar symptoms and diagnoses.
       </p>
 
-      {showDetails ? (
-        <p className="text-base-content/60 text-sm mt-3 pl-4 border-l-2 border-base-content/20">
+      <div
+        id={detailsId}
+        aria-hidden={!showDetails}
+        className={`grid overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          showDetails
+            ? "mt-3 grid-rows-[1fr] opacity-100"
+            : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <p className="text-base-content/60 text-sm pl-4 border-l-2 border-base-content/20 min-h-0">
           Regular filters are still useful when you already know what to look
           for. This grouping view helps with the opposite: finding hidden
           patterns across many symptoms at once. It can surface early outbreak
           signals or unusual case mixes that are harder to spot when reviewing
           patients one by one.
         </p>
-      ) : null}
+      </div>
 
       <button
         type="button"
         onClick={() => setShowDetails((prev) => !prev)}
-        className="btn btn-ghost btn-xs mt-2 gap-1"
+        aria-expanded={showDetails}
+        aria-controls={detailsId}
+        className="btn btn-ghost btn-xs mt-2 gap-1 bg-base-200 hover:bg-base-300"
       >
-        {showDetails ? (
-          <>
-            Show less <ChevronUp className="size-3" />
-          </>
-        ) : (
-          <>
-            Why not regular filters? <ChevronDown className="size-3" />
-          </>
-        )}
+        <span>{showDetails ? "Show less" : "Why not regular filters?"}</span>
+        <ChevronDown
+          className={`size-3 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            showDetails ? "rotate-180" : "rotate-0"
+          }`}
+        />
       </button>
     </div>
   );
