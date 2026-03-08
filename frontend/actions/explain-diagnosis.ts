@@ -23,12 +23,26 @@ export const explainDiagnosis = actionClient
         ? `session=${sessionCookie.value}`
         : "";
 
+      // Flatten meanProbs if it's nested (backend expects flat array)
+      const flattenedMeanProbs = Array.isArray(meanProbs)
+        ? meanProbs.length > 0 && Array.isArray(meanProbs[0])
+          ? meanProbs[0] // Nested format [[p1, p2, ...]] -> [p1, p2, ...]
+          : meanProbs // Already flat [p1, p2, ...]
+        : meanProbs;
+
+      console.log(
+        "[explainDiagnosis] Requesting explanation for message",
+        messageId,
+        "meanProbs shape:",
+        Array.isArray(flattenedMeanProbs) ? flattenedMeanProbs.length : typeof flattenedMeanProbs,
+      );
+
       const {
         data: { symptoms: text, tokens },
       } = await axios.post(
         `${BACKEND_URL}/diagnosis/explain`,
         {
-          mean_probs: meanProbs,
+          mean_probs: flattenedMeanProbs,
           symptoms,
         },
         {
@@ -119,6 +133,15 @@ export const explainDiagnosis = actionClient
           diagnosisId: diagnosisId ?? undefined,
         },
       });
+
+      // Revalidate cache for explanation queries
+      if (messageWithDiagnosis?.chatId) {
+        revalidateTag(`explanation-chat-${messageWithDiagnosis.chatId}`, { expire: 0 });
+      }
+      if (diagnosisId) {
+        revalidateTag(`explanation-${diagnosisId}`, { expire: 0 });
+      }
+      revalidateTag(`messages-${messageWithDiagnosis?.chatId || "unknown"}`, { expire: 0 });
 
       return {
         success: "Successfully retrieved explanation.",
