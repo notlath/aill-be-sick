@@ -7,7 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangeFilter } from "../date-range-filter";
 import useDateRangeStore from "@/stores/use-date-range-store";
 import { getClusterBaseColor } from "@/utils/cluster-colors";
-import { buildClusterLegendBins, type ClusterLegendBin } from "@/utils/cluster-heatmap";
+import {
+  buildClusterLegendBins,
+  type ClusterLegendBin,
+} from "@/utils/cluster-heatmap";
 import PatientsModal from "../patients-modal";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,14 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertCircle,
-  Loader2,
-} from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import ViewSelect from "../view-select";
 import SelectedClusterDetails from "./selected-cluster-details";
 import StatisticsCards from "./statistics-cards";
-import { MapSkeleton, StatsSkeletonCards, ClusterSelectSkeleton, ClusterDetailsSkeleton } from "./skeleton-loaders";
+import {
+  MapSkeleton,
+  StatsSkeletonCards,
+  ClusterSelectSkeleton,
+  ClusterDetailsSkeleton,
+} from "./skeleton-loaders";
 import { useIllnessClusterData } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-data";
 import { useIllnessClusterRecommendation } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-recommendation";
 import { useClusterDisplay } from "../../../../hooks/illness-cluster-hooks/use-cluster-display";
@@ -54,28 +59,36 @@ const DEFAULT_K = 4;
 
 const ByClusterTab = () => {
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
-  const { geoData, loading: geoLoading, error: geoError } = useGeoJsonData(
-    "/geojson/bagong_silangan.geojson",
-  );
+  const {
+    geoData,
+    loading: geoLoading,
+    error: geoError,
+  } = useGeoJsonData("/geojson/bagong_silangan.geojson");
   const [k, setK] = useState<number>(DEFAULT_K);
   const [kInput, setKInput] = useState<string>(String(DEFAULT_K));
   const [selectedVariables, setSelectedVariables] =
     useState<ClusterVariableSelection>(DEFAULT_SELECTED_VARIABLES);
   const [appliedVariables, setAppliedVariables] =
     useState<ClusterVariableSelection>(DEFAULT_SELECTED_VARIABLES);
-  const { recommendedK, loading: loadingRecommendation, message: recommendationMessage } =
-    useIllnessClusterRecommendation({
-      variables: selectedVariables,
-      startDate,
-      endDate,
-    });
-  const [selectedClusterDisplay, setSelectedClusterDisplay] = useState<string>("1");
+  const {
+    recommendedK,
+    loading: loadingRecommendation,
+    message: recommendationMessage,
+  } = useIllnessClusterRecommendation({
+    variables: selectedVariables,
+    startDate,
+    endDate,
+  });
+  const [selectedClusterDisplay, setSelectedClusterDisplay] =
+    useState<string>("1");
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [view, setView] = useState<"coordinates" | "district">("coordinates");
-  const [coordinatesModal, setCoordinatesModal] = useState<"total" | "pinned" | "unpinned" | null>(null);
+  const [coordinatesModal, setCoordinatesModal] = useState<
+    "total" | "pinned" | "unpinned" | null
+  >(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -101,40 +114,50 @@ const ByClusterTab = () => {
     }
   }, [recommendedK]);
 
-  const handleVariableChange = useCallback((variable: keyof ClusterVariableSelection) => {
-    const selectedCount = Object.values(selectedVariables).filter(Boolean).length;
+  const handleVariableChange = useCallback(
+    (variable: keyof ClusterVariableSelection) => {
+      const selectedCount =
+        Object.values(selectedVariables).filter(Boolean).length;
 
-    if (selectedVariables[variable] && selectedCount === 1) {
-      return;
-    }
+      if (selectedVariables[variable] && selectedCount === 1) {
+        return;
+      }
 
-    setSelectedVariables((prev) => ({
-      ...prev,
-      [variable]: !prev[variable],
-    }));
-  }, [selectedVariables]);
+      setSelectedVariables((prev) => ({
+        ...prev,
+        [variable]: !prev[variable],
+      }));
+    },
+    [selectedVariables],
+  );
 
-  const onSubmitK = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    const nextK = clampK(parseInt(kInput, 10));
+  const onSubmitK = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const nextK = clampK(parseInt(kInput, 10));
 
-    if (loadingRecommendation) {
-      setPendingK(nextK);
-      setShowConfirmModal(true);
-      return;
-    }
+      if (loadingRecommendation) {
+        setPendingK(nextK);
+        setShowConfirmModal(true);
+        return;
+      }
 
-    applyClusteringWithK(nextK);
-  }, [kInput, loadingRecommendation]);
+      applyClusteringWithK(nextK);
+    },
+    [kInput, loadingRecommendation],
+  );
 
-  const applyClusteringWithK = useCallback((clusterCount: number) => {
-    const nextK = clampK(clusterCount);
-    const nextVariables = { ...selectedVariables };
+  const applyClusteringWithK = useCallback(
+    (clusterCount: number) => {
+      const nextK = clampK(clusterCount);
+      const nextVariables = { ...selectedVariables };
 
-    setK(nextK);
-    setKInput(String(nextK));
-    setAppliedVariables(nextVariables);
-  }, [selectedVariables]);
+      setK(nextK);
+      setKInput(String(nextK));
+      setAppliedVariables(nextVariables);
+    },
+    [selectedVariables],
+  );
 
   const handleConfirmModal = useCallback(() => {
     if (pendingK !== null) {
@@ -167,12 +190,15 @@ const ByClusterTab = () => {
   }, [clusterData, selectedClusterId]);
 
   const casesData = useMemo(() => {
-    return filteredIllnesses.reduce((acc, illness) => {
-      if (illness.district) {
-        acc[illness.district] = (acc[illness.district] || 0) + 1;
-      }
-      return acc;
-    }, {} as Record<string, number>);
+    return filteredIllnesses.reduce(
+      (acc, illness) => {
+        if (illness.district) {
+          acc[illness.district] = (acc[illness.district] || 0) + 1;
+        }
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
   }, [filteredIllnesses]);
 
   const clusterColorIndex = selectedClusterIndex;
@@ -195,27 +221,39 @@ const ByClusterTab = () => {
     );
   }, [filteredIllnesses, selectedFeature]);
 
-  const { pinnedCases, totalAllCases, unpinnedCases, coveragePercent } = useMemo(() => {
-    const totalAllCases = filteredIllnesses.length;
-    const pinnedIllnesses = filteredIllnesses.filter(
-      (illness) => illness.latitude != null && illness.longitude != null
-    );
-    const pinnedCases = pinnedIllnesses.length;
-    const unpinnedCases = totalAllCases - pinnedCases;
-    const coveragePercent = totalAllCases > 0 ? Math.round((pinnedCases / totalAllCases) * 100) : 0;
-    return { pinnedCases, totalAllCases, unpinnedCases, coveragePercent };
-  }, [filteredIllnesses]);
+  const { pinnedCases, totalAllCases, unpinnedCases, coveragePercent } =
+    useMemo(() => {
+      const totalAllCases = filteredIllnesses.length;
+      const pinnedIllnesses = filteredIllnesses.filter(
+        (illness) => illness.latitude != null && illness.longitude != null,
+      );
+      const pinnedCases = pinnedIllnesses.length;
+      const unpinnedCases = totalAllCases - pinnedCases;
+      const coveragePercent =
+        totalAllCases > 0 ? Math.round((pinnedCases / totalAllCases) * 100) : 0;
+      return { pinnedCases, totalAllCases, unpinnedCases, coveragePercent };
+    }, [filteredIllnesses]);
 
   const coordinatesModalPatients = useMemo(() => {
     if (coordinatesModal === "total") return filteredIllnesses;
-    if (coordinatesModal === "pinned") return filteredIllnesses.filter(d => d.latitude != null && d.longitude != null);
-    if (coordinatesModal === "unpinned") return filteredIllnesses.filter(d => d.latitude == null || d.longitude == null);
+    if (coordinatesModal === "pinned")
+      return filteredIllnesses.filter(
+        (d) => d.latitude != null && d.longitude != null,
+      );
+    if (coordinatesModal === "unpinned")
+      return filteredIllnesses.filter(
+        (d) => d.latitude == null || d.longitude == null,
+      );
     return [];
   }, [coordinatesModal, filteredIllnesses]);
 
   const selectedClusterStat = useMemo(() => {
     if (selectedClusterId === null || !clusterData) return null;
-    return clusterData.cluster_statistics.find(s => s.cluster_id === selectedClusterId) ?? null;
+    return (
+      clusterData.cluster_statistics.find(
+        (s) => s.cluster_id === selectedClusterId,
+      ) ?? null
+    );
   }, [clusterData, selectedClusterId]);
 
   const isMapLoading = geoLoading || loading;
@@ -277,7 +315,7 @@ const ByClusterTab = () => {
                     checked={selectedVariables.age}
                     onChange={() => handleVariableChange("age")}
                   />
-                  <span>Patient age</span>
+                  <span>Age</span>
                 </label>
                 <label
                   className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary btn-soft" : ""}`}
@@ -288,7 +326,7 @@ const ByClusterTab = () => {
                     checked={selectedVariables.gender}
                     onChange={() => handleVariableChange("gender")}
                   />
-                  <span>Patient gender</span>
+                  <span>Gender</span>
                 </label>
                 <label
                   className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary btn-soft" : ""}`}
@@ -299,7 +337,7 @@ const ByClusterTab = () => {
                     checked={selectedVariables.time}
                     onChange={() => handleVariableChange("time")}
                   />
-                  <span>Date of diagnosis (seasonal)</span>
+                  <span>Diagnosis date</span>
                 </label>
               </div>
 

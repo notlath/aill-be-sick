@@ -27,10 +27,10 @@ type ClusterVariableSelection = {
 };
 
 const VARIABLE_LABELS: Record<keyof ClusterVariableSelection, string> = {
-  age: "patient age",
-  gender: "patient gender",
-  district: "district",
-  time: "date of diagnosis (seasonal patterns)",
+  age: "Age",
+  gender: "Gender",
+  district: "District",
+  time: "Diagnosis date",
 };
 
 const DEFAULT_SELECTED_VARIABLES: ClusterVariableSelection = {
@@ -380,7 +380,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                       checked={selectedVariables.age}
                       onChange={() => handleVariableChange("age")}
                     />
-                    <span>Patient age</span>
+                    <span>Age</span>
                   </label>
                   <label
                     className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary btn-soft" : ""}`}
@@ -391,23 +391,10 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                       checked={selectedVariables.gender}
                       onChange={() => handleVariableChange("gender")}
                     />
-                    <span>Patient gender</span>
+                    <span>Gender</span>
                   </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary btn-soft" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.time}
-                      onChange={() => handleVariableChange("time")}
-                    />
-                    <span>Date of diagnosis (seasonal)</span>
-                  </label>
-                </div>
+                  {/* Location Variable */}
 
-                {/* Location Variable */}
-                <div className="flex items-center gap-3">
                   <label
                     className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary btn-soft" : ""}`}
                   >
@@ -418,6 +405,18 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                       onChange={() => handleVariableChange("district")}
                     />
                     <span>District</span>
+                  </label>
+
+                  <label
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary btn-soft" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={selectedVariables.time}
+                      onChange={() => handleVariableChange("time")}
+                    />
+                    <span>Diagnosis date</span>
                   </label>
                 </div>
               </div>
