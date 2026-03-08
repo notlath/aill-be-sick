@@ -102,7 +102,7 @@ function ChatHistorySkeleton() {
         </div>
       </div>
       {/* Mobile Card Skeletons */}
-      <div className="md:hidden space-y-3">
+      <div className="lg:hidden space-y-3">
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="border border-border/60 rounded-2xl p-4 space-y-3">
             <div className="flex items-start justify-between">
@@ -126,7 +126,7 @@ function ChatHistorySkeleton() {
         ))}
       </div>
       {/* Desktop Table Skeleton */}
-      <div className="hidden md:block border border-border rounded-xl">
+      <div className="hidden lg:block border border-border rounded-xl">
         <div className="h-12 border-b border-border bg-base-200/50" />
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-16 border-b border-border/50 px-6 py-4 flex items-center justify-between">
@@ -143,12 +143,12 @@ function ChatHistorySkeleton() {
 
 const HistoryPage = async () => {
   return (
-    <main className="space-y-8 md:space-y-10 mx-auto p-4 pt-8 md:p-8 md:pt-12 max-w-5xl">
+    <main className="space-y-8 lg:space-y-10 mx-auto p-4 pt-8 lg:p-8 lg:pt-12 max-w-5xl">
       <div className="space-y-2">
-        <h1 className="mb-1 font-semibold text-base-content text-3xl md:text-4xl tracking-tight">
+        <h1 className="mb-1 font-semibold text-base-content text-3xl lg:text-4xl tracking-tight">
           Diagnosis history
         </h1>
-        <p className="text-muted text-base md:text-lg">
+        <p className="text-muted text-base lg:text-lg">
           You can view all your previous diagnoses and their details here.
         </p>
       </div>

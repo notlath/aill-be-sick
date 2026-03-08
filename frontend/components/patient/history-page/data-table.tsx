@@ -167,8 +167,8 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
 
-      {/* ===== Mobile Card View (below md) ===== */}
-      <div className="md:hidden space-y-3">
+      {/* ===== Mobile Card View (below lg) ===== */}
+      <div className="lg:hidden space-y-3">
         {table.getRowModel().rows?.length ? (
           table.getRowModel().rows.map((row) => {
             const original = row.original as any;
@@ -273,8 +273,8 @@ export function DataTable<TData, TValue>({
         )}
       </div>
 
-      {/* ===== Desktop Table View (md and above) ===== */}
-      <div className="hidden md:block bg-base-100 border border-border rounded-xl mx-auto overflow-hidden">
+      {/* ===== Desktop Table View (lg and above) ===== */}
+      <div className="hidden lg:block bg-base-100 border border-border rounded-xl mx-auto overflow-hidden">
         <div className="overflow-x-auto w-full">
           <table className="table w-full whitespace-nowrap lg:whitespace-normal">
             <thead>
