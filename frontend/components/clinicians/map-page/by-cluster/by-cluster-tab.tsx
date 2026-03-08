@@ -1,11 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangeFilter } from "../date-range-filter";
 import useDateRangeStore from "@/stores/use-date-range-store";
+import useMapStore from "@/stores/use-map-store";
 import { getClusterBaseColor } from "@/utils/cluster-colors";
 import {
   buildClusterLegendBins,
@@ -34,6 +36,14 @@ import { useIllnessClusterData } from "../../../../hooks/illness-cluster-hooks/u
 import { useIllnessClusterRecommendation } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-recommendation";
 import { useClusterDisplay } from "../../../../hooks/illness-cluster-hooks/use-cluster-display";
 import { useGeoJsonData } from "../../../../hooks/map-hooks/use-geojson-data";
+import {
+  clampClusterCount,
+  type ClusterVariableSelection,
+} from "@/types/illness-cluster-settings";
+import {
+  parseIllnessClusterNavigationQuery,
+  serializeIllnessClusterNavigationQuery,
+} from "@/utils/illness-cluster-navigation";
 
 const ClusterChoroplethMap = dynamic(
   () => import("../map/cluster-choropleth-map"),
@@ -41,71 +51,125 @@ const ClusterChoroplethMap = dynamic(
 );
 const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
 
-export type ClusterVariableSelection = {
-  age: boolean;
-  gender: boolean;
-  district: boolean;
-  time: boolean;
+const VARIABLE_LABELS: Record<keyof ClusterVariableSelection, string> = {
+  age: "Age",
+  gender: "Gender",
+  district: "District",
+  time: "Diagnosis date",
 };
 
-const DEFAULT_SELECTED_VARIABLES: ClusterVariableSelection = {
-  age: true,
-  gender: true,
-  district: true,
-  time: false,
-};
+const toVariableLabelList = (variables: ClusterVariableSelection) =>
+  (Object.keys(variables) as Array<keyof ClusterVariableSelection>)
+    .filter((key) => variables[key])
+    .map((key) => VARIABLE_LABELS[key]);
 
-const DEFAULT_K = 4;
+const formatReadableList = (items: string[]) => {
+  if (items.length === 0) {
+    return "your selected variables";
+  }
+
+  if (items.length === 1) {
+    return items[0];
+  }
+
+  if (items.length === 2) {
+    return `${items[0]} and ${items[1]}`;
+  }
+
+  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+};
 
 const ByClusterTab = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { activeTab } = useMapStore();
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
+
+  const initialNavigationStateRef = useRef<
+    ReturnType<typeof parseIllnessClusterNavigationQuery> | undefined
+  >(undefined);
+  if (!initialNavigationStateRef.current) {
+    initialNavigationStateRef.current =
+      parseIllnessClusterNavigationQuery(searchParams);
+  }
+  const initialNavigationState = initialNavigationStateRef.current;
+
   const {
     geoData,
     loading: geoLoading,
     error: geoError,
   } = useGeoJsonData("/geojson/bagong_silangan.geojson");
-  const [k, setK] = useState<number>(DEFAULT_K);
-  const [kInput, setKInput] = useState<string>(String(DEFAULT_K));
+  const [k, setK] = useState<number>(initialNavigationState.k);
+  const [kInput, setKInput] = useState<string>(
+    String(initialNavigationState.k),
+  );
   const [selectedVariables, setSelectedVariables] =
-    useState<ClusterVariableSelection>(DEFAULT_SELECTED_VARIABLES);
+    useState<ClusterVariableSelection>({ ...initialNavigationState.variables });
   const [appliedVariables, setAppliedVariables] =
-    useState<ClusterVariableSelection>(DEFAULT_SELECTED_VARIABLES);
-  const {
-    recommendedK,
-    loading: loadingRecommendation,
-    message: recommendationMessage,
-  } = useIllnessClusterRecommendation({
-    variables: selectedVariables,
-    startDate,
-    endDate,
-  });
-  const [selectedClusterDisplay, setSelectedClusterDisplay] =
-    useState<string>("1");
+    useState<ClusterVariableSelection>({ ...initialNavigationState.variables });
+  const [selectedClusterDisplay, setSelectedClusterDisplay] = useState<string>(
+    initialNavigationState.clusterDisplay,
+  );
+  const [hasHydratedUrlDates, setHasHydratedUrlDates] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
   const [view, setView] = useState<"coordinates" | "district">("coordinates");
   const [coordinatesModal, setCoordinatesModal] = useState<
     "total" | "pinned" | "unpinned" | null
   >(null);
+
+  const effectiveStartDate = hasHydratedUrlDates
+    ? startDate
+    : (initialNavigationState.startDate ?? startDate);
+  const effectiveEndDate = hasHydratedUrlDates
+    ? endDate
+    : (initialNavigationState.endDate ?? endDate);
+
+  useEffect(() => {
+    if (hasHydratedUrlDates) {
+      return;
+    }
+
+    if (initialNavigationState.startDate && initialNavigationState.endDate) {
+      setStartDate(initialNavigationState.startDate);
+      setEndDate(initialNavigationState.endDate);
+    }
+
+    setHasHydratedUrlDates(true);
+  }, [
+    hasHydratedUrlDates,
+    initialNavigationState.endDate,
+    initialNavigationState.startDate,
+    setEndDate,
+    setStartDate,
+  ]);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   const clampK = (val: number) => {
-    if (Number.isNaN(val)) return k;
-    if (val < 2) return 2;
-    if (val > 25) return 25;
-    return val;
+    return clampClusterCount(val, k);
   };
+
+  const {
+    recommendedK,
+    loading: loadingRecommendation,
+    message: recommendationMessage,
+  } = useIllnessClusterRecommendation({
+    variables: selectedVariables,
+    startDate: effectiveStartDate,
+    endDate: effectiveEndDate,
+  });
 
   const { clusterData, loading, error } = useIllnessClusterData({
     k,
     variables: appliedVariables,
-    startDate,
-    endDate,
+    startDate: effectiveStartDate,
+    endDate: effectiveEndDate,
   });
 
   useEffect(() => {
@@ -182,6 +246,45 @@ const ByClusterTab = () => {
     selectedClusterDisplay,
     setSelectedClusterDisplay,
   );
+
+  const appliedVariableSummary = formatReadableList(
+    toVariableLabelList(appliedVariables),
+  );
+  const hasPendingVariableChanges = (
+    Object.keys(selectedVariables) as Array<keyof ClusterVariableSelection>
+  ).some((key) => selectedVariables[key] !== appliedVariables[key]);
+
+  useEffect(() => {
+    if (activeTab !== "by-cluster") {
+      return;
+    }
+
+    const nextQuery = serializeIllnessClusterNavigationQuery({
+      tab: "by-cluster",
+      clusterDisplay: selectedClusterDisplay,
+      k,
+      variables: appliedVariables,
+      startDate: effectiveStartDate || undefined,
+      endDate: effectiveEndDate || undefined,
+    });
+
+    if (nextQuery === searchParams.toString()) {
+      return;
+    }
+
+    const nextHref = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+    router.replace(nextHref, { scroll: false });
+  }, [
+    activeTab,
+    appliedVariables,
+    effectiveEndDate,
+    effectiveStartDate,
+    k,
+    pathname,
+    router,
+    searchParams,
+    selectedClusterDisplay,
+  ]);
 
   const filteredIllnesses = useMemo(() => {
     return (clusterData?.illnesses || []).filter(
@@ -362,8 +465,8 @@ const ByClusterTab = () => {
               <div className="flex flex-wrap items-center gap-3">
                 <ViewSelect value={view} onValueChange={setView} />
                 <DateRangeFilter
-                  startDate={startDate}
-                  endDate={endDate}
+                  startDate={effectiveStartDate}
+                  endDate={effectiveEndDate}
                   onStartDateChange={setStartDate}
                   onEndDateChange={setEndDate}
                 />
@@ -400,6 +503,23 @@ const ByClusterTab = () => {
                   {!loadingRecommendation && recommendationMessage ? (
                     <span className="text-warning text-xs font-medium">
                       {recommendationMessage}
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="text-muted text-xs font-normal">
+                  <span>
+                    These groups are currently based on{" "}
+                    <span className="font-medium">
+                      {appliedVariableSummary}
+                    </span>
+                    . Patients with similar details in these areas are placed in
+                    the same group
+                  </span>
+                  {hasPendingVariableChanges ? (
+                    <span className="block mt-1">
+                      The groups have not been updated. Click Apply to rebuild
+                      the groups using the new variable picks
                     </span>
                   ) : null}
                 </div>

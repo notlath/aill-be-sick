@@ -6,31 +6,30 @@ import { Badge } from "@/components/ui/badge";
 import { Users, MapPin, HeartPulse, Calendar } from "lucide-react";
 import type { IllnessClusterStatistics, IllnessRecord } from "@/types";
 import PatientsModal from "@/components/clinicians/map-page/patients-modal";
+import {
+  DEFAULT_CLUSTER_VARIABLES,
+  type ClusterVariableSelection,
+} from "@/types/illness-cluster-settings";
+import {
+  buildIllnessClusterMapHref,
+  type IllnessClusterMapNavigationContext,
+} from "@/utils/illness-cluster-navigation";
+import { CLUSTER_THEMES } from "../../../../constants/cluster-themes";
 
 interface IllnessClusterOverviewCardsProps {
   statistics: IllnessClusterStatistics[];
   illnesses: IllnessRecord[];
-  selectedVariables?: {
-    age: boolean;
-    gender: boolean;
-    district: boolean;
-    time: boolean;
-  };
+  selectedVariables?: ClusterVariableSelection;
+  mapNavigationContext?: IllnessClusterMapNavigationContext;
 }
-
-import { CLUSTER_THEMES } from "../../../../constants/cluster-themes";
 
 const IllnessClusterOverviewCards: React.FC<
   IllnessClusterOverviewCardsProps
 > = ({
   statistics,
   illnesses,
-  selectedVariables = {
-    age: true,
-    gender: true,
-    district: true,
-    time: false,
-  },
+  selectedVariables = DEFAULT_CLUSTER_VARIABLES,
+  mapNavigationContext,
 }) => {
   const router = useRouter();
   const [expandedClusters, setExpandedClusters] = React.useState<
@@ -112,9 +111,11 @@ const IllnessClusterOverviewCards: React.FC<
             key={stat.cluster_id}
             className={`relative overflow-hidden shadow-sm! transition-none! cursor-pointer hover:shadow-md! hover:border-opacity-100 ${theme.border} border-2 `}
             onClick={() => {
-              router.push(
-                `/map?tab=illness-cluster&cluster=${String(index + 1)}`,
-              );
+              const mapHref = buildIllnessClusterMapHref(index + 1, {
+                ...mapNavigationContext,
+                variables: mapNavigationContext?.variables ?? selectedVariables,
+              });
+              router.push(mapHref);
             }}
           >
             {/* Gradient Background Overlay */}
@@ -131,7 +132,8 @@ const IllnessClusterOverviewCards: React.FC<
                     <button
                       type="button"
                       className="btn btn-xs btn-outline border-border"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setSelectedClusterId(stat.cluster_id);
                         setSelectedClusterDisplay(String(index + 1));
                       }}
@@ -285,14 +287,18 @@ const IllnessClusterOverviewCards: React.FC<
                           expandedClusters[`${stat.cluster_id}-diseases`] ||
                           false
                         }
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          e.stopPropagation();
                           setExpandedClusters({
                             ...expandedClusters,
                             [`${stat.cluster_id}-diseases`]: e.target.checked,
-                          })
-                        }
+                          });
+                        }}
                       />
-                      <div className="collapse-title p-0">
+                      <div
+                        className="collapse-title p-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="text-base-content/80 mb-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <HeartPulse
@@ -435,14 +441,18 @@ const IllnessClusterOverviewCards: React.FC<
                           expandedClusters[`${stat.cluster_id}-districts`] ||
                           false
                         }
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          e.stopPropagation();
                           setExpandedClusters({
                             ...expandedClusters,
                             [`${stat.cluster_id}-districts`]: e.target.checked,
-                          })
-                        }
+                          });
+                        }}
                       />
-                      <div className="collapse-title p-0">
+                      <div
+                        className="collapse-title p-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="text-base-content/80 mb-3 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <MapPin

@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { IllnessClusterTimelineChart } from "./illness-cluster-timeline-chart";
 import SelectedClusterSummary from "./selected-cluster-summary";
-import type { ClusterVariableSelection } from "./by-cluster-tab";
+import type { ClusterVariableSelection } from "@/types/illness-cluster-settings";
 import type { IllnessClusterStatistics } from "@/types";
 
 interface SelectedClusterDetailsProps {

@@ -2,13 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { IllnessClusterData } from "@/types";
-
-type ClusterVariableSelection = {
-  age: boolean;
-  gender: boolean;
-  district: boolean;
-  time: boolean;
-};
+import type { ClusterVariableSelection } from "@/types/illness-cluster-settings";
 
 type UseIllnessClusterDataParams = {
   k: number;
@@ -23,7 +17,8 @@ type UseIllnessClusterDataResult = {
   error: string | null;
 };
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
 
 export const useIllnessClusterData = ({
   k,
@@ -31,7 +26,9 @@ export const useIllnessClusterData = ({
   startDate,
   endDate,
 }: UseIllnessClusterDataParams): UseIllnessClusterDataResult => {
-  const [clusterData, setClusterData] = useState<IllnessClusterData | null>(null);
+  const [clusterData, setClusterData] = useState<IllnessClusterData | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,7 +64,8 @@ export const useIllnessClusterData = ({
         }
       } catch (err) {
         if (!isMounted || controller.signal.aborted) return;
-        const message = err instanceof Error ? err.message : "An unknown error occurred";
+        const message =
+          err instanceof Error ? err.message : "An unknown error occurred";
         setError(message);
         setClusterData(null);
       } finally {

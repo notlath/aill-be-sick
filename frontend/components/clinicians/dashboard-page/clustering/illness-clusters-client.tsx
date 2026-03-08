@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import {
   Card,
@@ -13,31 +14,28 @@ import IllnessClusterOverviewCards from "./illness-cluster-overview-cards";
 import DiagnosisDateFilter from "./diagnosis-date-filter";
 import type { IllnessClusterData } from "@/types";
 import { Input } from "@/components/ui/input";
+import {
+  DEFAULT_CLUSTER_COUNT,
+  DEFAULT_CLUSTER_VARIABLES,
+  clampClusterCount,
+  type ClusterVariableSelection,
+} from "@/types/illness-cluster-settings";
+import type { IllnessClusterMapNavigationContext } from "@/utils/illness-cluster-navigation";
+import {
+  serializeIllnessClusterNavigationQuery,
+  parseIllnessClusterNavigationQuery,
+} from "@/utils/illness-cluster-navigation";
 
 interface IllnessClustersClientProps {
   initialData?: IllnessClusterData;
   initialK?: number;
 }
 
-type ClusterVariableSelection = {
-  age: boolean;
-  gender: boolean;
-  district: boolean;
-  time: boolean;
-};
-
 const VARIABLE_LABELS: Record<keyof ClusterVariableSelection, string> = {
   age: "Age",
   gender: "Gender",
   district: "District",
   time: "Diagnosis date",
-};
-
-const DEFAULT_SELECTED_VARIABLES: ClusterVariableSelection = {
-  age: true,
-  gender: true,
-  district: true,
-  time: false,
 };
 
 const toVariableLabelList = (variables: ClusterVariableSelection) =>
@@ -63,37 +61,76 @@ const formatReadableList = (items: string[]) => {
 
 const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   initialData,
-  initialK = 4,
+  initialK = DEFAULT_CLUSTER_COUNT,
 }) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Hydrate initial state from URL on mount (similar to map component)
+  const initialNavigationStateRef = useRef(
+    parseIllnessClusterNavigationQuery(searchParams),
+  );
+  const initialNavigationState = initialNavigationStateRef.current;
+
   const [clusterData, setClusterData] = useState<IllnessClusterData | null>(
     initialData || null,
   );
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
-  const [k, setK] = useState<number>(initialK);
-  const [kInput, setKInput] = useState<string>(String(initialK));
+  const [k, setK] = useState<number>(initialNavigationState.k ?? initialK);
+  const [kInput, setKInput] = useState<string>(
+    String(initialNavigationState.k ?? initialK),
+  );
   const [recommendedK, setRecommendedK] = useState<number | null>(null);
   const [loadingRecommendation, setLoadingRecommendation] =
     useState<boolean>(true);
   const [recommendationMessage, setRecommendationMessage] =
     useState<string>("");
   const [selectedVariables, setSelectedVariables] =
-    useState<ClusterVariableSelection>(DEFAULT_SELECTED_VARIABLES);
+    useState<ClusterVariableSelection>({
+      ...initialNavigationState.variables,
+    });
   const [appliedVariables, setAppliedVariables] =
-    useState<ClusterVariableSelection>(DEFAULT_SELECTED_VARIABLES);
-  const [dateRangeStart, setDateRangeStart] = useState<Date | null>(null);
-  const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(null);
+    useState<ClusterVariableSelection>({
+      ...initialNavigationState.variables,
+    });
+
+  // Parse dates from URL strings to Date objects
+  const parseDateFromString = (dateString?: string): Date | null => {
+    if (!dateString) return null;
+    const parsed = new Date(`${dateString}T00:00:00`);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const [dateRangeStart, setDateRangeStart] = useState<Date | null>(
+    parseDateFromString(initialNavigationState.startDate),
+  );
+  const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(
+    parseDateFromString(initialNavigationState.endDate),
+  );
+  const [appliedDateRangeStart, setAppliedDateRangeStart] =
+    useState<Date | null>(
+      parseDateFromString(initialNavigationState.startDate),
+    );
+  const [appliedDateRangeEnd, setAppliedDateRangeEnd] = useState<Date | null>(
+    parseDateFromString(initialNavigationState.endDate),
+  );
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const hasFetchedInitialDataRef = useRef(false);
+  const hasHydratedFromUrlRef = useRef(false);
   const [isMounted, setIsMounted] = useState(false);
 
   const BACKEND_URL =
     process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
 
-  const buildDiagnosisDateFilterParams = (): Record<string, string> => {
-    if (dateRangeStart && dateRangeEnd) {
+  const buildDiagnosisDateFilterParams = (
+    startDate: Date | null = dateRangeStart,
+    endDate: Date | null = dateRangeEnd,
+  ): Record<string, string> => {
+    if (startDate && endDate) {
       // Send start_date and end_date in YYYY-MM-DD format for date range filtering
       const formatDate = (date: Date) => {
         const year = date.getFullYear();
@@ -103,8 +140,8 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
       };
 
       return {
-        start_date: formatDate(dateRangeStart),
-        end_date: formatDate(dateRangeEnd),
+        start_date: formatDate(startDate),
+        end_date: formatDate(endDate),
       };
     }
 
@@ -129,6 +166,26 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
 
   // Fetch silhouette analysis to determine recommended k
   useEffect(() => {
+    // Skip recommendation on initial URL hydration if we have applied settings from URL
+    // This avoids unnecessary recalculation when navigating from map to dashboard
+    if (!hasHydratedFromUrlRef.current) {
+      const hasUrlParams =
+        initialNavigationState.k !== undefined ||
+        initialNavigationState.startDate !== undefined;
+      const hasMatchingAppliedSettings =
+        k === initialNavigationState.k &&
+        JSON.stringify(appliedVariables) ===
+          JSON.stringify(initialNavigationState.variables);
+
+      if (hasUrlParams && hasMatchingAppliedSettings && clusterData) {
+        // We hydrated from URL with existing data, skip recommendation
+        hasHydratedFromUrlRef.current = true;
+        setLoadingRecommendation(false);
+        return;
+      }
+      hasHydratedFromUrlRef.current = true;
+    }
+
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
@@ -193,6 +250,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
         clearTimeout(debounceTimerRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedVariables, dateRangeStart, dateRangeEnd, BACKEND_URL]);
 
   // Keep the groups input aligned with the latest recommendation
@@ -207,15 +265,14 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   }, []);
 
   const clampK = (val: number) => {
-    if (Number.isNaN(val)) return k;
-    if (val < 2) return 2;
-    if (val > 25) return 25;
-    return val;
+    return clampClusterCount(val, k);
   };
 
   const fetchClusterData = (
     clusterCount: number,
     variables: ClusterVariableSelection,
+    startDate: Date | null = dateRangeStart,
+    endDate: Date | null = dateRangeEnd,
   ) => {
     setLoading(true);
     setError(null);
@@ -225,7 +282,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
       gender: String(variables.gender),
       district: String(variables.district),
       time: String(variables.time),
-      ...buildDiagnosisDateFilterParams(),
+      ...buildDiagnosisDateFilterParams(startDate, endDate),
     });
     fetch(`${BACKEND_URL}/api/illness-clusters?${params.toString()}`)
       .then((res) => {
@@ -269,11 +326,20 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   const applyClusteringWithK = (clusterCount: number) => {
     const nextK = clampK(clusterCount);
     const nextVariables = { ...selectedVariables };
+    const nextDateRangeStart = dateRangeStart;
+    const nextDateRangeEnd = dateRangeEnd;
 
     setK(nextK);
     setKInput(String(nextK));
     setAppliedVariables(nextVariables);
-    fetchClusterData(nextK, nextVariables);
+    setAppliedDateRangeStart(nextDateRangeStart);
+    setAppliedDateRangeEnd(nextDateRangeEnd);
+    fetchClusterData(
+      nextK,
+      nextVariables,
+      nextDateRangeStart,
+      nextDateRangeEnd,
+    );
 
     try {
       sessionStorage.setItem("illnessClusters.k", String(nextK));
@@ -313,12 +379,59 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   const appliedVariableSummary = formatReadableList(
     toVariableLabelList(appliedVariables),
   );
-  const selectedVariableSummary = formatReadableList(
-    toVariableLabelList(selectedVariables),
-  );
   const hasPendingVariableChanges = (
     Object.keys(selectedVariables) as Array<keyof ClusterVariableSelection>
   ).some((key) => selectedVariables[key] !== appliedVariables[key]);
+
+  // Create navigation context using the ACTUAL dates that were used to fetch cluster data
+  const mapNavigationContext =
+    React.useMemo<IllnessClusterMapNavigationContext>(() => {
+      // Use applied dates directly - these are the dates that were passed to fetchClusterData
+      // If applied dates are null, the data was fetched with no date filter
+      const dateFilterParams = buildDiagnosisDateFilterParams(
+        appliedDateRangeStart,
+        appliedDateRangeEnd,
+      );
+
+      return {
+        tab: "by-cluster",
+        k,
+        variables: appliedVariables,
+        startDate: dateFilterParams.start_date,
+        endDate: dateFilterParams.end_date,
+      };
+    }, [k, appliedVariables, appliedDateRangeStart, appliedDateRangeEnd]);
+
+  // Sync dashboard clustering settings to URL for shareable links
+  useEffect(() => {
+    // Don't sync until we have actual applied data
+    if (!clusterData) {
+      return;
+    }
+
+    const nextQuery = serializeIllnessClusterNavigationQuery({
+      k,
+      variables: appliedVariables,
+      startDate: mapNavigationContext.startDate,
+      endDate: mapNavigationContext.endDate,
+    });
+
+    if (nextQuery === searchParams.toString()) {
+      return;
+    }
+
+    const nextHref = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+    router.replace(nextHref, { scroll: false });
+  }, [
+    k,
+    appliedVariables,
+    mapNavigationContext.startDate,
+    mapNavigationContext.endDate,
+    clusterData,
+    pathname,
+    router,
+    searchParams,
+  ]);
 
   const modalRoot = isMounted ? document.body : null;
   const confirmModal = (
@@ -550,6 +663,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
             statistics={clusterData.cluster_statistics}
             selectedVariables={appliedVariables}
             illnesses={clusterData.illnesses}
+            mapNavigationContext={mapNavigationContext}
           />
         </div>
       ) : null}

@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
-type ClusterVariableSelection = {
-  age: boolean;
-  gender: boolean;
-  district: boolean;
-  time: boolean;
-};
+import type { ClusterVariableSelection } from "@/types/illness-cluster-settings";
 
 type UseIllnessClusterRecommendationParams = {
   variables: ClusterVariableSelection;
@@ -21,7 +15,8 @@ type UseIllnessClusterRecommendationResult = {
   message: string;
 };
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
 
 export const useIllnessClusterRecommendation = ({
   variables,
@@ -66,7 +61,9 @@ export const useIllnessClusterRecommendation = ({
           setMessage("");
         } else {
           setRecommendedK(null);
-          setMessage("Recommendation is unavailable for the current date filter.");
+          setMessage(
+            "Recommendation is unavailable for the current date filter.",
+          );
         }
       } catch (err) {
         const errorMessage =
