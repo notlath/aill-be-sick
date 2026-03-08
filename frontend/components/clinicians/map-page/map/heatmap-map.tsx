@@ -4,14 +4,18 @@ import { useId, useRef } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import HeatmapLayer from "./heatmap-layer";
-import { Diagnosis } from "@/lib/generated/prisma";
+
+type GeoPoint = {
+  latitude: number | null;
+  longitude: number | null;
+};
 
 const MAP_CENTER: [number, number] = [14.71, 121.113]; // Brgy. Bagong Silangan
 const MAP_ZOOM = 14;
 const MAP_STYLE = { height: "600px", width: "100%" };
 
 type HeatmapMapProps = {
-  diagnoses: Diagnosis[];
+  diagnoses: GeoPoint[];
 };
 
 const HeatmapMap = ({ diagnoses }: HeatmapMapProps) => {

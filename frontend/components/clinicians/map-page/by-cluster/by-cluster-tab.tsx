@@ -8,7 +8,6 @@ import { DateRangeFilter } from "../date-range-filter";
 import useDateRangeStore from "@/stores/use-date-range-store";
 import { getClusterBaseColor } from "@/utils/cluster-colors";
 import { buildClusterLegendBins, type ClusterLegendBin } from "@/utils/cluster-heatmap";
-import IllnessClusterOverviewCards from "@/components/clinicians/dashboard-page/clustering/illness-cluster-overview-cards";
 import PatientsModal from "../patients-modal";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,7 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Activity, MapPin, AlertTriangle, TrendingUp } from "lucide-react";
+import ViewSelect from "../view-select";
+import SelectedClusterSummary from "./selected-cluster-summary";
 import { useIllnessClusterData } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-data";
 import { useIllnessClusterRecommendation } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-recommendation";
 import { useClusterDisplay } from "../../../../hooks/illness-cluster-hooks/use-cluster-display";
@@ -28,6 +29,7 @@ const ClusterChoroplethMap = dynamic(
   () => import("../map/cluster-choropleth-map"),
   { ssr: false },
 );
+const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
 
 type ClusterVariableSelection = {
   age: boolean;
@@ -67,6 +69,8 @@ const ByClusterTab = () => {
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [view, setView] = useState<"coordinates" | "district">("coordinates");
+  const [coordinatesModal, setCoordinatesModal] = useState<"total" | "pinned" | "unpinned" | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -186,6 +190,26 @@ const ByClusterTab = () => {
     );
   }, [filteredIllnesses, selectedFeature]);
 
+  const { pinnedCases, totalAllCases, unpinnedCases, coveragePercent } = useMemo(() => {
+    const totalAllCases = filteredIllnesses.length;
+    let pinnedCases = 0;
+    for (let i = 0; i < totalAllCases; i++) {
+      if (filteredIllnesses[i].latitude != null && filteredIllnesses[i].longitude != null) {
+        pinnedCases++;
+      }
+    }
+    const unpinnedCases = totalAllCases - pinnedCases;
+    const coveragePercent = totalAllCases > 0 ? Math.round((pinnedCases / totalAllCases) * 100) : 0;
+    return { pinnedCases, totalAllCases, unpinnedCases, coveragePercent };
+  }, [filteredIllnesses]);
+
+  const coordinatesModalPatients = useMemo(() => {
+    if (coordinatesModal === "total") return filteredIllnesses;
+    if (coordinatesModal === "pinned") return filteredIllnesses.filter(d => d.latitude != null && d.longitude != null);
+    if (coordinatesModal === "unpinned") return filteredIllnesses.filter(d => d.latitude == null || d.longitude == null);
+    return [];
+  }, [coordinatesModal, filteredIllnesses]);
+
   const isMapLoading = geoLoading || loading;
 
   const modalRoot = isMounted ? document.body : null;
@@ -289,12 +313,15 @@ const ByClusterTab = () => {
             </div>
 
             <div className="flex flex-col gap-3">
-              <DateRangeFilter
-                startDate={startDate}
-                endDate={endDate}
-                onStartDateChange={setStartDate}
-                onEndDateChange={setEndDate}
-              />
+              <div className="flex flex-wrap items-center gap-3">
+                <ViewSelect value={view} onValueChange={setView} />
+                <DateRangeFilter
+                  startDate={startDate}
+                  endDate={endDate}
+                  onStartDateChange={setStartDate}
+                  onEndDateChange={setEndDate}
+                />
+              </div>
 
               <form onSubmit={onSubmitK} className="space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
@@ -396,7 +423,7 @@ const ByClusterTab = () => {
               <div className="rounded-xl overflow-hidden" aria-label="Loading map">
                 <div className="skeleton h-[600px] w-full" />
               </div>
-            ) : (
+            ) : view === "district" ? (
               <ClusterChoroplethMap
                 geoData={geoData}
                 casesData={casesData}
@@ -407,19 +434,116 @@ const ByClusterTab = () => {
                 onFeatureClick={(name) => setSelectedFeature(name)}
                 selectedGroupLabel={selectedClusterLabel}
               />
+            ) : (
+              <HeatmapMap diagnoses={filteredIllnesses as any} />
             )}
           </CardContent>
         </Card>
       </div>
 
       {!loading && clusterData ? (
-        <div className="space-y-6">
-          <IllnessClusterOverviewCards
-            statistics={clusterData.cluster_statistics}
-            selectedVariables={appliedVariables}
-            illnesses={clusterData.illnesses}
-          />
-        </div>
+        view === "district" ? (
+          <div className="space-y-6">
+            {/* Added Selected Cluster Summary Span for district view */}
+            {selectedClusterId !== null && clusterData?.cluster_statistics.find(s => s.cluster_id === selectedClusterId) && (
+              <div className="mt-2">
+                <SelectedClusterSummary
+                  stat={clusterData.cluster_statistics.find(s => s.cluster_id === selectedClusterId)!}
+                  clusterIndex={clusterColorIndex}
+                  selectedVariables={appliedVariables}
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
+              onClick={() => setCoordinatesModal("total")}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Total Cases
+                </CardTitle>
+                <Activity className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="text-2xl font-bold">
+                  {totalAllCases.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  For the selected group and period
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
+              onClick={() => setCoordinatesModal("pinned")}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Pinned Cases
+                </CardTitle>
+                <MapPin className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="text-2xl font-bold">
+                  {pinnedCases.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cases with recorded coordinates
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card
+              className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
+              onClick={() => setCoordinatesModal("unpinned")}
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Unpinned Cases
+                </CardTitle>
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="text-2xl font-bold">
+                  {unpinnedCases.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cases without location data
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Coverage
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="text-2xl font-bold">{coveragePercent}%</div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Of cases have coordinates
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Added Selected Cluster Summary Span */}
+            {selectedClusterId !== null && clusterData?.cluster_statistics.find(s => s.cluster_id === selectedClusterId) && (
+              <div className="col-span-1 md:col-span-2 lg:col-span-4 mt-2">
+                <SelectedClusterSummary
+                  stat={clusterData.cluster_statistics.find(s => s.cluster_id === selectedClusterId)!}
+                  clusterIndex={clusterColorIndex}
+                  selectedVariables={appliedVariables}
+                />
+              </div>
+            )}
+          </div>
+        )
       ) : null}
 
       <PatientsModal
@@ -429,6 +553,21 @@ const ByClusterTab = () => {
         clusterDisplay={selectedClusterLabel}
         title={`District ${selectedFeature ?? ""} — Group ${selectedClusterLabel}`}
         subtitle={`Showing ${selectedDistrictPatients.length} diagnosis record${selectedDistrictPatients.length !== 1 ? "s" : ""}`}
+      />
+
+      <PatientsModal
+        isOpen={!!coordinatesModal}
+        onClose={() => setCoordinatesModal(null)}
+        patients={coordinatesModalPatients}
+        clusterDisplay={selectedClusterLabel}
+        title={
+          coordinatesModal === "total"
+            ? `All Cases — Group ${selectedClusterLabel}`
+            : coordinatesModal === "pinned"
+              ? `Pinned Cases — Group ${selectedClusterLabel}`
+              : `Unpinned Cases — Group ${selectedClusterLabel}`
+        }
+        subtitle={`Showing ${coordinatesModalPatients.length} diagnosis record${coordinatesModalPatients.length !== 1 ? "s" : ""}`}
       />
 
       {modalRoot ? createPortal(confirmModal, modalRoot) : null}

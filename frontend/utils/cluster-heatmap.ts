@@ -20,17 +20,6 @@ const formatRangeLabel = (min: number, max?: number) => {
   return `${min}\u2013${max}`;
 };
 
-const quantile = (values: number[], q: number) => {
-  if (values.length === 0) return 0;
-  const pos = (values.length - 1) * q;
-  const base = Math.floor(pos);
-  const rest = pos - base;
-  if (values[base + 1] !== undefined) {
-    return values[base] + rest * (values[base + 1] - values[base]);
-  }
-  return values[base];
-};
-
 export const buildClusterLegendBins = (
   counts: number[],
   baseColor: string,
@@ -45,30 +34,41 @@ export const buildClusterLegendBins = (
     return { bins: [], zeroColor };
   }
 
+  const maxValue = nonZero[nonZero.length - 1] ?? 0;
   const thresholds = Array.from({ length: safeSteps }, (_, idx) => {
-    const q = idx / safeSteps;
-    return Math.round(quantile(nonZero, q));
+    const step = maxValue / safeSteps;
+    return Math.round(idx * step);
   });
 
-  thresholds.push(Math.round(nonZero[nonZero.length - 1]));
+  thresholds.push(maxValue);
 
   const bins: ClusterLegendBin[] = [];
   for (let i = 0; i < safeSteps; i += 1) {
-    const min = thresholds[i];
-    const max = thresholds[i + 1];
-    if (min === 0 && max === 0) {
-      continue;
+    let min = i === 0 ? 1 : thresholds[i] + 1;
+    let max = i === safeSteps - 1 ? maxValue : thresholds[i + 1];
+
+    if (min > max) {
+      if (i === safeSteps - 1) {
+        min = max;
+      } else {
+        continue;
+      }
     }
+
     const color = ramp[i] ?? baseColor;
     bins.push({
       min,
-      max: i === safeSteps - 1 ? undefined : max,
+      max,
       color,
-      label: formatRangeLabel(min, i === safeSteps - 1 ? undefined : max),
+      label: formatRangeLabel(min, max),
     });
   }
 
-  return { bins, zeroColor };
+  const uniqueBins = bins.filter((bin, index, self) => 
+    index === self.findIndex((b) => b.min === bin.min && b.max === bin.max)
+  );
+
+  return { bins: uniqueBins, zeroColor };
 };
 
 export const getClusterColorForCount = (
