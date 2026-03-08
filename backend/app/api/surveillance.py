@@ -18,6 +18,8 @@ def surveillance_outbreaks():
       - contamination: Expected proportion of outliers (default: 0.05 = 5%)
       - summary: If 'true', return aggregated summary instead of full details
       - disease: Filter by disease name (optional)
+      - start_date: Filter records on or after this date, e.g. 2025-01-01 (optional)
+      - end_date: Filter records on or before this date, e.g. 2025-12-31 (optional)
     Returns JSON with anomalies, statistics, and outbreak alert status.
     """
     try:
@@ -42,12 +44,26 @@ def surveillance_outbreaks():
         # Optional disease filter
         disease = request.args.get("disease", None)
 
+        # Optional date range filters
+        start_date = request.args.get("start_date", None)
+        end_date = request.args.get("end_date", None)
+
         if summary_mode:
             # Return aggregated summary for dashboard
-            result = get_outbreak_summary(contamination=contamination, disease=disease)
+            result = get_outbreak_summary(
+                contamination=contamination,
+                disease=disease,
+                start_date=start_date,
+                end_date=end_date,
+            )
         else:
             # Return full details
-            result = detect_outbreaks(contamination=contamination, disease=disease)
+            result = detect_outbreaks(
+                contamination=contamination,
+                disease=disease,
+                start_date=start_date,
+                end_date=end_date,
+            )
 
         print(
             f"[SURVEILLANCE] Analyzed {result['total_analyzed']} diagnoses, found {result['anomaly_count']} anomalies (contamination={contamination})"
