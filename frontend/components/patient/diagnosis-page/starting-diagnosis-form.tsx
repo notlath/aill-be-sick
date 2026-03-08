@@ -2,8 +2,8 @@
 
 import { createChat } from "@/actions/create-chat";
 import {
-  CreateChatSchema,
-  CreateChatSchemaType,
+    CreateChatSchema,
+    CreateChatSchemaType,
 } from "@/schemas/CreateChatSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUp } from "lucide-react";
@@ -67,7 +67,7 @@ const StartingDiagnosisForm = ({
           <div className="space-y-8">
             <div className="flex justify-between items-start shadow-xl bg-base-100/90 border border-base-300/30 rounded-2xl outline-none w-full h-auto px-4 py-3 backdrop-blur-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]">
               <textarea
-                className="flex-1 pl-1 border-none outline-none bg-transparent resize-none   text-base-content placeholder:text-muted transition-all duration-300 min-h-[40px]"
+                className="flex-1 pl-1 border-none outline-none bg-transparent resize-none text-base text-base-content placeholder:text-muted transition-all duration-300 min-h-[40px] md:min-h-[48px] py-1 md:py-2"
                 placeholder="I'm feeling..."
                 suppressHydrationWarning
                 disabled={isLoading}

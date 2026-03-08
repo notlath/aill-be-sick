@@ -1,27 +1,27 @@
 "use client";
 
 import {
-  ColumnDef,
-  ColumnFiltersState,
-  PaginationState,
-  SortingState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
+    ColumnDef,
+    ColumnFiltersState,
+    PaginationState,
+    SortingState,
+    flexRender,
+    getCoreRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    useReactTable,
 } from "@tanstack/react-table";
 import { Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
 
 interface DataTableProps<TData, TValue> {
@@ -101,7 +101,7 @@ export function DataTable<TData, TValue>({
   return (
     <div className="space-y-4">
       {/* Search and Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
@@ -128,9 +128,9 @@ export function DataTable<TData, TValue>({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
           <Select className="w-auto" value={currentSortLabel} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Sort by..." />
             </SelectTrigger>
             <SelectContent>
@@ -149,7 +149,7 @@ export function DataTable<TData, TValue>({
               table.setPageIndex(0);
             }}
           >
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue placeholder="All Diseases" />
             </SelectTrigger>
             <SelectContent>
@@ -167,8 +167,114 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
 
-      {/* Data Table */}
-      <div className="bg-base-100 border border-border rounded-xl mx-auto overflow-hidden">
+      {/* ===== Mobile Card View (below lg) ===== */}
+      <div className="lg:hidden space-y-3">
+        {table.getRowModel().rows?.length ? (
+          table.getRowModel().rows.map((row) => {
+            const original = row.original as any;
+            const diagnosis = original.diagnosis as string;
+            const uncertainty = original.uncertainty as number | null;
+            const confidence = original.confidence as number | null;
+            const modelUsed = original.modelUsed as string | null;
+            const createdAt = original.createdAt as Date;
+
+            return (
+              <div
+                key={row.id}
+                className="bg-base-100 border border-border/60 rounded-2xl p-4 space-y-3 transition-colors active:bg-base-200/50"
+              >
+                {/* Top row: Diagnosis + Model */}
+                <div className="flex flex-col xs:flex-row xs:items-start xs:justify-between gap-1.5 xs:gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-base-content text-base leading-snug truncate">
+                      {diagnosis}
+                    </p>
+                    <p className="text-muted text-xs mt-0.5">
+                      {createdAt.toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      })}{" "}
+                      ·{" "}
+                      {createdAt.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </p>
+                  </div>
+                  {modelUsed && (
+                    <span className="badge badge-sm badge-ghost shrink-0 w-fit">
+                      {modelUsed}
+                    </span>
+                  )}
+                </div>
+
+                {/* Stats row */}
+                {(confidence !== null || uncertainty !== null) && (
+                  <div className="flex gap-3">
+                    {confidence !== null && (
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted">Confidence</span>
+                          <span className="text-xs font-medium text-base-content">
+                            {(confidence * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-base-300 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-success rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(confidence * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {uncertainty !== null && (
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted">Uncertainty</span>
+                          <span className="text-xs font-medium text-base-content">
+                            {(uncertainty * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-base-300 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-warning rounded-full transition-all duration-500"
+                            style={{ width: `${Math.min(uncertainty * 100, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Actions row */}
+                <div className="flex justify-end pt-1">
+                  {row.getVisibleCells().map((cell) => {
+                    if (cell.column.id === "actions") {
+                      return (
+                        <div key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center py-12 text-muted">
+            {globalFilter || columnFilters.length > 0
+              ? "No results match your filters."
+              : "No results."}
+          </div>
+        )}
+      </div>
+
+      {/* ===== Desktop Table View (lg and above) ===== */}
+      <div className="hidden lg:block bg-base-100 border border-border rounded-xl mx-auto overflow-hidden">
         <div className="overflow-x-auto w-full">
           <table className="table w-full whitespace-nowrap lg:whitespace-normal">
             <thead>
@@ -217,9 +323,9 @@ export function DataTable<TData, TValue>({
 
       {/* Pagination Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between py-2">
-        <div className="flex items-center gap-2 whitespace-nowrap">
+        <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto whitespace-nowrap">
           <span className="text-sm text-muted">Rows per page:</span>
-          <Select
+          <Select className="!w-auto"
             value={String(pagination.pageSize)}
             onValueChange={(value) => {
               table.setPageSize(Number(value));
@@ -239,8 +345,8 @@ export function DataTable<TData, TValue>({
           </Select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="text-sm text-muted text-center sm:text-left">
             {table.getFilteredRowModel().rows.length > 0
               ? `${pagination.pageIndex * pagination.pageSize + 1} - ${Math.min(
                 (pagination.pageIndex + 1) * pagination.pageSize,
@@ -248,34 +354,36 @@ export function DataTable<TData, TValue>({
               )} of ${table.getFilteredRowModel().rows.length}`
               : "0 of 0"}
           </span>
-          <button
-            className="btn btn-sm"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            First
-          </button>
-          <button
-            className="btn btn-sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </button>
-          <button
-            className="btn btn-sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </button>
-          <button
-            className="btn btn-sm"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            Last
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <button
+              className="btn btn-sm hidden sm:inline-flex"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+            >
+              First
+            </button>
+            <button
+              className="btn btn-sm w-full sm:w-auto"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </button>
+            <button
+              className="btn btn-sm w-full sm:w-auto"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </button>
+            <button
+              className="btn btn-sm hidden sm:inline-flex"
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+            >
+              Last
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -39,7 +39,7 @@ const ClinicianLayoutContent = async ({ children }: { children: ReactNode }) => 
 function ClinicianLayoutSkeleton() {
   return (
     <LayoutWrapper>
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-3 md:p-6">
         <div className="h-8 w-56 rounded bg-base-300 animate-pulse" />
       </div>
     </LayoutWrapper>
