@@ -12,18 +12,18 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
     """
     Fetch diagnosis data with temporal and spatial information.
     Uses DATABASE_URL environment variable if db_url not provided.
-    
+
     Args:
         db_url: Database connection string (optional)
         start_date: Filter records after this date (inclusive, optional)
         end_date: Filter records before this date (inclusive, optional)
         disease: Filter by disease name (optional)
-    
+
     Returns: tuple of (encoded_data, diagnosis_info)
     """
     # Get SQLAlchemy engine
     engine = get_db_engine(db_url)
-    
+
     # Build query with parameters for safety
     query_str = """
         SELECT 
@@ -36,6 +36,7 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
             COALESCE(d.province, u.province) as province,
             COALESCE(d.barangay, u.barangay) as barangay,
             COALESCE(d.region, u.region) as region,
+            d.district,
             d.confidence,
             d.uncertainty,
             u.id as user_id,
@@ -45,23 +46,23 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
         WHERE COALESCE(d.latitude, u.latitude) IS NOT NULL
           AND COALESCE(d.longitude, u.longitude) IS NOT NULL
     """
-    
+
     params = {}
-    
+
     if start_date:
         query_str += ' AND d."createdAt" >= :start_date '
         params["start_date"] = start_date
-        
+
     if end_date:
         query_str += ' AND d."createdAt" <= :end_date '
         params["end_date"] = end_date
 
     if disease:
-        query_str += ' AND d.disease = :disease '
+        query_str += " AND d.disease = :disease "
         params["disease"] = disease
-        
+
     query_str += ' ORDER BY d."createdAt" DESC'
-    
+
     # Execute query using SQLAlchemy connection with SAFE parameter binding
     with engine.connect() as conn:
         result = conn.execute(text(query_str), params)
@@ -78,12 +79,14 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
     timestamps = [row[2] for row in data]
     min_timestamp = min(timestamps).timestamp()
     max_timestamp = max(timestamps).timestamp()
-    timestamp_range = max_timestamp - min_timestamp if max_timestamp > min_timestamp else 1
+    timestamp_range = (
+        max_timestamp - min_timestamp if max_timestamp > min_timestamp else 1
+    )
 
     for row in data:
         (
             diagnosis_id,
-            disease,
+            disease_name,
             created_at,
             latitude,
             longitude,
@@ -91,6 +94,7 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
             province,
             barangay,
             region,
+            district,
             confidence,
             uncertainty,
             user_id,
@@ -102,7 +106,9 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
 
         # Encode disease as numeric (one-hot would create too many dimensions)
         disease_list = ["Dengue", "Pneumonia", "Typhoid", "Impetigo"]
-        disease_encoded = disease_list.index(disease) if disease in disease_list else -1
+        disease_encoded = (
+            disease_list.index(disease_name) if disease_name in disease_list else -1
+        )
 
         # Features for anomaly detection: [latitude, longitude, timestamp_normalized, disease_encoded]
         encoded_data.append(
@@ -118,7 +124,7 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
         diagnosis_info.append(
             {
                 "id": diagnosis_id,
-                "disease": disease,
+                "disease": disease_name,
                 "created_at": created_at.isoformat(),
                 "latitude": latitude,
                 "longitude": longitude,
@@ -126,6 +132,7 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
                 "province": province,
                 "barangay": barangay,
                 "region": region,
+                "district": district,
                 "confidence": confidence,
                 "uncertainty": uncertainty,
                 "user_id": user_id,
@@ -136,15 +143,19 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
     return np.array(encoded_data), diagnosis_info
 
 
-def detect_outbreaks(contamination=0.05, db_url=None, disease=None):
+def detect_outbreaks(
+    contamination=0.05, db_url=None, disease=None, start_date=None, end_date=None
+):
     """
     Run Isolation Forest to detect anomalous diagnosis patterns.
-    
+
     Args:
         contamination: Expected proportion of outliers (default 0.05 = 5%)
         db_url: Database URL (optional, uses env var if not provided)
         disease: Filter by disease name (optional)
-    
+        start_date: Filter records after this date (inclusive, optional)
+        end_date: Filter records before this date (inclusive, optional)
+
     Returns: dict with:
         - anomalies: List of anomalous diagnosis records
         - normal: List of normal diagnosis records
@@ -153,7 +164,9 @@ def detect_outbreaks(contamination=0.05, db_url=None, disease=None):
         - outbreak_alert: Boolean (True if anomaly count exceeds threshold)
     """
     # Fetch data
-    data, diagnosis_info = fetch_diagnosis_data(db_url, disease=disease)
+    data, diagnosis_info = fetch_diagnosis_data(
+        db_url, start_date=start_date, end_date=end_date, disease=disease
+    )
 
     if data.size == 0:
         return {
@@ -214,13 +227,17 @@ def detect_outbreaks(contamination=0.05, db_url=None, disease=None):
     }
 
 
-def get_outbreak_summary(contamination=0.05, db_url=None, disease=None):
+def get_outbreak_summary(
+    contamination=0.05, db_url=None, disease=None, start_date=None, end_date=None
+):
     """
     Get a summary of outbreak detection suitable for dashboard display.
-    
+
     Returns: dict with aggregated statistics
     """
-    result = detect_outbreaks(contamination, db_url, disease=disease)
+    result = detect_outbreaks(
+        contamination, db_url, disease=disease, start_date=start_date, end_date=end_date
+    )
 
     if result["total_analyzed"] == 0:
         return result
@@ -228,10 +245,10 @@ def get_outbreak_summary(contamination=0.05, db_url=None, disease=None):
     # Aggregate anomalies by disease
     disease_anomalies = {}
     for anomaly in result["anomalies"]:
-        disease = anomaly["disease"]
-        if disease not in disease_anomalies:
-            disease_anomalies[disease] = []
-        disease_anomalies[disease].append(anomaly)
+        d = anomaly["disease"]
+        if d not in disease_anomalies:
+            disease_anomalies[d] = []
+        disease_anomalies[d].append(anomaly)
 
     # Aggregate anomalies by region
     region_anomalies = {}
@@ -247,9 +264,7 @@ def get_outbreak_summary(contamination=0.05, db_url=None, disease=None):
         "total_analyzed": result["total_analyzed"],
         "anomaly_count": result["anomaly_count"],
         "contamination": contamination,
-        "disease_breakdown": {
-            disease: len(cases) for disease, cases in disease_anomalies.items()
-        },
+        "disease_breakdown": {d: len(cases) for d, cases in disease_anomalies.items()},
         "region_breakdown": {
             region: len(cases) for region, cases in region_anomalies.items()
         },

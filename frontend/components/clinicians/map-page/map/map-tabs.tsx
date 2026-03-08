@@ -3,6 +3,7 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ByDiseaseTab from "../by-disease/by-disease-tab";
 import ByClusterTab from "../by-cluster/by-cluster-tab";
+import ByAnomalyTab from "../by-anomaly/by-anomaly-tab";
 import useMapStore from "@/stores/use-map-store";
 
 const MapTabs = () => {
@@ -25,7 +26,7 @@ const MapTabs = () => {
       </TabsContent>
 
       <TabsContent value="by-anomaly">
-        {/* Content for By anomaly tab */}
+        <ByAnomalyTab />
       </TabsContent>
     </Tabs>
   )
