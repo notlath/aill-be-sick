@@ -36,8 +36,8 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
 
 const MainContentFallback = ({ children }: { children: ReactNode }) => {
   return (
-    <div className="flex-1 p-3 md:p-6 md:pl-20 w-full max-w-[100vw]">
-      <div className="bg-base-100 shadow-sm rounded-2xl md:rounded-3xl w-full h-[calc(100dvh-1.5rem)] md:h-[calc(100vh-3rem)] overflow-y-auto border border-border/50">
+    <div className="flex-1 p-3 sidebar:p-6 sidebar:pl-20 w-full max-w-[100vw]">
+      <div className="bg-base-100 shadow-sm rounded-2xl sidebar:rounded-3xl w-full h-[calc(100dvh-1.5rem)] sidebar:h-[calc(100vh-3rem)] overflow-y-auto border border-border/50">
         {children}
       </div>
     </div>

@@ -16,8 +16,8 @@ const MainContentWrapper = ({ children }: MainContentWrapperProps) => {
   return (
     <div
       className={cn(
-        "flex-1 p-3 md:p-6 w-full max-w-[100vw] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        !isOpen && "md:pl-20"
+        "flex-1 p-3 sidebar:p-6 w-full max-w-[100vw] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        !isOpen && "sidebar:pl-20"
       )}
       style={{
         transitionProperty: "padding-left, margin-left",
@@ -25,7 +25,7 @@ const MainContentWrapper = ({ children }: MainContentWrapperProps) => {
     >
       <div
         className={cn(
-          "bg-base-100 shadow-sm rounded-2xl md:rounded-3xl w-full h-[calc(100dvh-1.5rem)] md:h-[calc(100vh-3rem)] overflow-y-auto",
+          "bg-base-100 shadow-sm rounded-2xl sidebar:rounded-3xl w-full h-[calc(100dvh-1.5rem)] sidebar:h-[calc(100vh-3rem)] overflow-y-auto",
           pathname !== "/diagnosis" && "border border-border/50"
         )}
         style={{
