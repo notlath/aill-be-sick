@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { SurveillanceAnomaly } from "@/types";
 
 export type AnomalyTimelineChartProps = {
@@ -68,37 +69,6 @@ function formatMonth(monthKey: string): string {
   return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(
     "en-US",
     { month: "short", year: "numeric" },
-  );
-}
-
-// ─── Custom Tooltip ──────────────────────────────────────────────────────────
-
-type AnomalyTooltipProps = {
-  active?: boolean;
-  payload?: ReadonlyArray<{ payload: TimeBucket }>;
-  label?: string | number;
-  granularity: TimeGranularity;
-};
-
-function AnomalyChartTooltip({
-  active,
-  payload,
-  label,
-  granularity,
-}: AnomalyTooltipProps) {
-  if (!active || !payload?.length) return null;
-  const bucket = payload[0].payload;
-  return (
-    <div className="bg-white border border-base-300 rounded shadow-sm px-3 py-2 text-xs">
-      <p className="mb-1 font-medium">
-        {granularity === "week"
-          ? `${bucket.periodStart} – ${bucket.periodEnd}`
-          : label}
-      </p>
-      <p>
-        {bucket.count} anomal{bucket.count === 1 ? "y" : "ies"}
-      </p>
-    </div>
   );
 }
 
@@ -159,89 +129,100 @@ export function AnomalyTimelineChart({
 
   if (chartData.length === 0) {
     return (
-      <div className="bg-base-200 rounded-box p-4 text-center text-sm text-base-content/70">
-        No temporal data available for {disease} anomalies
-      </div>
+      <Card className="relative overflow-hidden border">
+        <div className="absolute inset-0 bg-base-100 opacity-90" />
+        <CardContent className="relative py-8 text-center text-sm text-base-content/70">
+          No temporal data available for {disease} anomalies
+        </CardContent>
+      </Card>
     );
   }
 
   const gradientId = `anomalyGradient-${diseaseColor.replace("#", "")}`;
 
   return (
-    <div className="bg-base-200 rounded-box p-4">
-      <div className="flex items-center justify-between mb-3">
-        <p className="font-semibold text-sm">{disease} — Anomalies Over Time</p>
+    <Card className="relative overflow-hidden border">
+      <div className="absolute inset-0 bg-base-100 opacity-90" />
+
+      <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
+        <p className="font-semibold text-base">
+          {disease === "all" ? "All Diseases" : disease} — Anomalies Over Time
+        </p>
         <Select
-          className="w-auto"
           value={granularity}
           onValueChange={(v) => setGranularity(v as TimeGranularity)}
+          className="w-auto"
         >
-          <SelectTrigger className="w-28 h-7 text-xs bg-white">
+          <SelectTrigger className="w-28 h-8 text-xs">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="right-0 left-auto">
             <SelectItem value="day">By day</SelectItem>
             <SelectItem value="week">By week</SelectItem>
             <SelectItem value="month">By month</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+      </CardHeader>
 
-      {/* Container pattern: explicit height wrapper + ResponsiveContainer */}
-      <div className="w-full h-[220px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
-            data={chartData}
-            margin={{ top: 5, right: 10, bottom: 5, left: -10 }}
-          >
-            <defs>
-              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor={diseaseColor}
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor={diseaseColor}
-                  stopOpacity={0}
-                />
-              </linearGradient>
-            </defs>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="hsl(var(--heroui-default-200))"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
-              tickLine={false}
-              axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
-            />
-            <YAxis
-              allowDecimals={false}
-              tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
-              tickLine={false}
-              axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
-            />
-            <Tooltip
-              content={(props) => (
-                <AnomalyChartTooltip {...props} granularity={granularity} />
-              )}
-            />
-            <Area
-              type="monotone"
-              dataKey="count"
-              stroke={diseaseColor}
-              strokeWidth={2}
-              fillOpacity={1}
-              fill={`url(#${gradientId})`}
-              isAnimationActive={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+      <CardContent className="relative pt-2">
+        <div className="w-full h-[220px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
+            >
+              <defs>
+                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={diseaseColor} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={diseaseColor} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="hsl(var(--heroui-default-200))"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+                tickLine={false}
+                axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+              />
+              <YAxis
+                allowDecimals={false}
+                tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+                tickLine={false}
+                axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+              />
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload?.length) return null;
+                  const bucket = payload[0].payload as TimeBucket;
+                  return (
+                    <div className="bg-white border border-base-300 rounded shadow-sm px-3 py-2 text-xs">
+                      <p className="font-semibold mb-1">
+                        {granularity === "week"
+                          ? `${bucket.periodStart} – ${bucket.periodEnd}`
+                          : label}
+                      </p>
+                      <p>
+                        {bucket.count} anomal{bucket.count === 1 ? "y" : "ies"}
+                      </p>
+                    </div>
+                  );
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="count"
+                stroke={diseaseColor}
+                fillOpacity={1}
+                fill={`url(#${gradientId})`}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
