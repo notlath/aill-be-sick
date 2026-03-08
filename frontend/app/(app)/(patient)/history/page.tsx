@@ -1,8 +1,8 @@
-import { Suspense } from "react";
-import { getChats } from "@/utils/chat";
-import { getCurrentDbUser } from "@/utils/user";
 import { columns, HistoryRow } from "@/components/patient/history-page/columns";
 import { DataTable } from "@/components/patient/history-page/data-table";
+import { getChats } from "@/utils/chat";
+import { getCurrentDbUser } from "@/utils/user";
+import { Suspense } from "react";
 
 async function ChatHistoryList() {
   const { success: dbUser, error: userError } = await getCurrentDbUser();
@@ -94,12 +94,39 @@ function ChatHistorySkeleton() {
   return (
     <div className="space-y-4">
       {/* Search Bar Skeleton */}
-      <div className="flex gap-4">
-        <div className="skeleton h-10 w-72 rounded-lg" />
-        <div className="skeleton h-10 w-48 rounded-lg" />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="skeleton h-10 w-full sm:w-72 rounded-lg" />
+        <div className="flex gap-2">
+          <div className="skeleton h-10 w-full sm:w-48 rounded-lg" />
+          <div className="skeleton h-10 w-full sm:w-40 rounded-lg" />
+        </div>
       </div>
-      {/* Table Skeleton */}
-      <div className="border border-border rounded-xl">
+      {/* Mobile Card Skeletons */}
+      <div className="md:hidden space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="border border-border/60 rounded-2xl p-4 space-y-3">
+            <div className="flex items-start justify-between">
+              <div className="space-y-1.5">
+                <div className="skeleton h-5 w-40" />
+                <div className="skeleton h-3 w-28" />
+              </div>
+              <div className="skeleton h-5 w-14 rounded" />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1 space-y-1">
+                <div className="skeleton h-3 w-full" />
+                <div className="skeleton h-1.5 w-full rounded-full" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <div className="skeleton h-3 w-full" />
+                <div className="skeleton h-1.5 w-full rounded-full" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {/* Desktop Table Skeleton */}
+      <div className="hidden md:block border border-border rounded-xl">
         <div className="h-12 border-b border-border bg-base-200/50" />
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="h-16 border-b border-border/50 px-6 py-4 flex items-center justify-between">
@@ -116,12 +143,12 @@ function ChatHistorySkeleton() {
 
 const HistoryPage = async () => {
   return (
-    <main className="space-y-10 mx-auto p-8 pt-12 max-w-5xl">
+    <main className="space-y-8 md:space-y-10 mx-auto p-4 pt-8 md:p-8 md:pt-12 max-w-5xl">
       <div className="space-y-2">
-        <h1 className="mb-1 font-semibold text-base-content text-4xl tracking-tight">
+        <h1 className="mb-1 font-semibold text-base-content text-3xl md:text-4xl tracking-tight">
           Diagnosis history
         </h1>
-        <p className="text-muted text-lg">
+        <p className="text-muted text-base md:text-lg">
           You can view all your previous diagnoses and their details here.
         </p>
       </div>
