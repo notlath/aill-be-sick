@@ -106,7 +106,7 @@ const IllnessClusterOverviewCards: React.FC<
             }
           }
 
-<<<<<<< HEAD
+
         return (
           <Card
             key={stat.cluster_id}
@@ -529,49 +529,17 @@ const IllnessClusterOverviewCards: React.FC<
           );
         })}
 
-<<<<<<< HEAD
-              {selectedVariables.time &&
-                stat.temporal_distribution &&
-                Object.keys(stat.temporal_distribution).length > 0 && (
-                  <div>
-                    <div className="mb-3 flex items-center gap-2">
-                      <Calendar className={`size-3.5 ${theme.accentText}`} />
-                      <span className="text-base-content/80 text-xs font-semibold tracking-wide">
-                        Temporal Pattern
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {Object.entries(stat.temporal_distribution)
-                        .sort((a, b) => a[0].localeCompare(b[0]))
-                        .slice(0, 6)
-                        .map(([month, count], idx) => (
-                          <Badge
-                            key={idx}
-                            variant="outline"
-                            className="text-xs font-medium"
-                          >
-                            {month} ({count})
-                          </Badge>
-                        ))}
-                    </div>
-                  </div>
-                )}
-            </CardContent>
-          </Card>
-        );
-      })}
-
-      <PatientsModal
-        isOpen={selectedClusterId !== null}
-        onClose={() => {
-          setSelectedClusterId(null);
-          setSelectedClusterDisplay("");
-        }}
-        patients={selectedClusterPatients}
-        clusterDisplay={selectedClusterDisplay}
-      />
-    </div>
-  );
-};
+        <PatientsModal
+          isOpen={selectedClusterId !== null}
+          onClose={() => {
+            setSelectedClusterId(null);
+            setSelectedClusterDisplay("");
+          }}
+          patients={selectedClusterPatients}
+          clusterDisplay={selectedClusterDisplay}
+        />
+      </div>
+    );
+  };
 
 export default IllnessClusterOverviewCards;
