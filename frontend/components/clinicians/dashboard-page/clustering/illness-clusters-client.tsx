@@ -472,14 +472,15 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
             {/* Description */}
             <div className="text-muted text-xs font-normal">
               <span>
-                The generated groups are currently based on{" "}
+                These groups are currently based on{" "}
                 <span className="font-medium">{appliedVariableSummary}</span>.
                 Patients with similar details in these areas are placed in the
                 same group
               </span>
               {hasPendingVariableChanges ? (
                 <span className="block mt-1">
-                  Click Apply to rebuild the groups using the new variable picks
+                  The groups have not been updated. Click Apply to rebuild the
+                  groups using the new variable picks
                 </span>
               ) : null}
             </div>

@@ -282,7 +282,7 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
       {activePreset === "custom" && (
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium">From:</span>
+            <span className="text-xs ">From:</span>
             <MonthYearPicker
               selectedDate={startDate}
               onDateChange={(date) => handleCustomDateChange("start", date)}
