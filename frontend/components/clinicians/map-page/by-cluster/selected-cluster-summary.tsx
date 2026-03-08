@@ -125,14 +125,14 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
   }
 
   return (
-    <Card className={`relative overflow-hidden shadow-sm transition-none border `}>
+    <Card className={`relative overflow-hidden border `}>
       {/* Subtle background color based on theme */}
       <div className={`absolute inset-0 bg-base-100 opacity-90`} />
 
-      <CardHeader className="relative pb-4 flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-border">
+      <CardHeader className="relative pb-4 flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="flex-1">
           <div className="font-semibold text-lg mb-2 flex items-center gap-2">
-            Group {clusterIndex + 1} Selected Summary
+            Group {clusterIndex + 1} Summary
             <div className={`w-3 h-3 rounded-full ${theme.iconBg}`} />
           </div>
 
@@ -165,7 +165,7 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="relative pt-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+      <CardContent className="relative pt-4 grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Top Diseases */}
         {stat.top_diseases && stat.top_diseases.length > 0 ? (
           <div>
