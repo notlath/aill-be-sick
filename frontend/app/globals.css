@@ -39,6 +39,7 @@
 }
 
 @theme inline {
+  --breakpoint-xs: 360px;
   --breakpoint-sidebar: 1180px;
   --color-muted: #86868b;
   --color-border: #e8e8ed;

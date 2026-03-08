@@ -183,9 +183,9 @@ export function DataTable<TData, TValue>({
                 key={row.id}
                 className="bg-base-100 border border-border/60 rounded-2xl p-4 space-y-3 transition-colors active:bg-base-200/50"
               >
-                {/* Top row: Diagnosis + Date */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
+                {/* Top row: Diagnosis + Model */}
+                <div className="flex flex-col xs:flex-row xs:items-start xs:justify-between gap-1.5 xs:gap-3">
+                  <div className="min-w-0">
                     <p className="font-semibold text-base-content text-base leading-snug truncate">
                       {diagnosis}
                     </p>
@@ -204,7 +204,7 @@ export function DataTable<TData, TValue>({
                     </p>
                   </div>
                   {modelUsed && (
-                    <span className="badge badge-sm badge-ghost shrink-0 mt-0.5">
+                    <span className="badge badge-sm badge-ghost shrink-0 w-fit">
                       {modelUsed}
                     </span>
                   )}
