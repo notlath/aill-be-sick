@@ -293,10 +293,10 @@ class MCDClassifierWithSHAP:
 # In a larger app we might want to lazy-load them.
 print("[ML] Initializing Classifiers...")
 eng_classifier = MCDClassifierWithSHAP(
-    config.ENG_MODEL_PATH, n_iterations=25, inference_dropout_rate=0.05
+    config.ENG_MODEL_PATH, n_iterations=50, inference_dropout_rate=0.1
 )
 fil_classifier = MCDClassifierWithSHAP(
-    config.FIL_MODEL_PATH, n_iterations=25, inference_dropout_rate=0.05
+    config.FIL_MODEL_PATH, n_iterations=50, inference_dropout_rate=0.1
 )
 print("[ML] Classifiers Initialized")
 
