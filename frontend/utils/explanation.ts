@@ -15,7 +15,8 @@ export const getExplanationByDiagnosisId = async (diagnosisId: number) => {
     });
 
     // Fallback: If not found by diagnosisId, try fetching by messageId
-    // This handles legacy explanations that were only linked to messages
+    // This handles explanations created before Diagnosis record exists
+    // (i.e., when only TempDiagnosis is present during active chat)
     if (!explanation) {
       const diagnosis = await prisma.diagnosis.findUnique({
         where: { id: diagnosisId },
@@ -41,6 +42,41 @@ export const getExplanationByDiagnosisId = async (diagnosisId: number) => {
 
     return {
       error: `Could not fetch explanation for diagnosisId ${diagnosisId}`,
+    };
+  }
+};
+
+/**
+ * Fetch explanation by chatId - useful for active chats where Diagnosis
+ * record may not exist yet (only TempDiagnosis).
+ * This queries explanations linked to DIAGNOSIS-type messages in the chat.
+ */
+export const getExplanationByChatId = async (chatId: string) => {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("explanation", `explanation-chat-${chatId}`);
+
+  try {
+    // Find the DIAGNOSIS message in this chat and get its explanation
+    const diagnosisMessage = await prisma.message.findFirst({
+      where: {
+        chatId,
+        type: "DIAGNOSIS",
+      },
+      include: {
+        explanation: true,
+      },
+    });
+
+    return { success: diagnosisMessage?.explanation ?? null };
+  } catch (error) {
+    console.error(
+      `Error fetching explanation for chatId ${chatId}:`,
+      error
+    );
+
+    return {
+      error: `Could not fetch explanation for chatId ${chatId}`,
     };
   }
 };

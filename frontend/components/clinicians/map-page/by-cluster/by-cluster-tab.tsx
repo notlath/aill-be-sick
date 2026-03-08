@@ -1,14 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangeFilter } from "../date-range-filter";
 import useDateRangeStore from "@/stores/use-date-range-store";
 import { getClusterBaseColor } from "@/utils/cluster-colors";
 import { buildClusterLegendBins, type ClusterLegendBin } from "@/utils/cluster-heatmap";
-import IllnessClusterOverviewCards from "@/components/clinicians/dashboard-page/clustering/illness-cluster-overview-cards";
 import PatientsModal from "../patients-modal";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,7 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import ViewSelect from "../view-select";
+import SelectedClusterDetails from "./selected-cluster-details";
+import StatisticsCards from "./statistics-cards";
+import { MapSkeleton, StatsSkeletonCards, ClusterSelectSkeleton, ClusterDetailsSkeleton } from "./skeleton-loaders";
 import { useIllnessClusterData } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-data";
 import { useIllnessClusterRecommendation } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-recommendation";
 import { useClusterDisplay } from "../../../../hooks/illness-cluster-hooks/use-cluster-display";
@@ -28,8 +34,9 @@ const ClusterChoroplethMap = dynamic(
   () => import("../map/cluster-choropleth-map"),
   { ssr: false },
 );
+const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
 
-type ClusterVariableSelection = {
+export type ClusterVariableSelection = {
   age: boolean;
   gender: boolean;
   district: boolean;
@@ -67,6 +74,8 @@ const ByClusterTab = () => {
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [view, setView] = useState<"coordinates" | "district">("coordinates");
+  const [coordinatesModal, setCoordinatesModal] = useState<"total" | "pinned" | "unpinned" | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -92,7 +101,7 @@ const ByClusterTab = () => {
     }
   }, [recommendedK]);
 
-  const handleVariableChange = (variable: keyof ClusterVariableSelection) => {
+  const handleVariableChange = useCallback((variable: keyof ClusterVariableSelection) => {
     const selectedCount = Object.values(selectedVariables).filter(Boolean).length;
 
     if (selectedVariables[variable] && selectedCount === 1) {
@@ -103,9 +112,9 @@ const ByClusterTab = () => {
       ...prev,
       [variable]: !prev[variable],
     }));
-  };
+  }, [selectedVariables]);
 
-  const onSubmitK = (e: React.FormEvent) => {
+  const onSubmitK = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     const nextK = clampK(parseInt(kInput, 10));
 
@@ -116,29 +125,29 @@ const ByClusterTab = () => {
     }
 
     applyClusteringWithK(nextK);
-  };
+  }, [kInput, loadingRecommendation]);
 
-  const applyClusteringWithK = (clusterCount: number) => {
+  const applyClusteringWithK = useCallback((clusterCount: number) => {
     const nextK = clampK(clusterCount);
     const nextVariables = { ...selectedVariables };
 
     setK(nextK);
     setKInput(String(nextK));
     setAppliedVariables(nextVariables);
-  };
+  }, [selectedVariables]);
 
-  const handleConfirmModal = () => {
+  const handleConfirmModal = useCallback(() => {
     if (pendingK !== null) {
       applyClusteringWithK(pendingK);
     }
     setShowConfirmModal(false);
     setPendingK(null);
-  };
+  }, [pendingK, applyClusteringWithK]);
 
-  const handleCancelModal = () => {
+  const handleCancelModal = useCallback(() => {
     setShowConfirmModal(false);
     setPendingK(null);
-  };
+  }, []);
 
   const {
     clusterDisplayOptions,
@@ -185,6 +194,29 @@ const ByClusterTab = () => {
       (illness) => illness.district === selectedFeature,
     );
   }, [filteredIllnesses, selectedFeature]);
+
+  const { pinnedCases, totalAllCases, unpinnedCases, coveragePercent } = useMemo(() => {
+    const totalAllCases = filteredIllnesses.length;
+    const pinnedIllnesses = filteredIllnesses.filter(
+      (illness) => illness.latitude != null && illness.longitude != null
+    );
+    const pinnedCases = pinnedIllnesses.length;
+    const unpinnedCases = totalAllCases - pinnedCases;
+    const coveragePercent = totalAllCases > 0 ? Math.round((pinnedCases / totalAllCases) * 100) : 0;
+    return { pinnedCases, totalAllCases, unpinnedCases, coveragePercent };
+  }, [filteredIllnesses]);
+
+  const coordinatesModalPatients = useMemo(() => {
+    if (coordinatesModal === "total") return filteredIllnesses;
+    if (coordinatesModal === "pinned") return filteredIllnesses.filter(d => d.latitude != null && d.longitude != null);
+    if (coordinatesModal === "unpinned") return filteredIllnesses.filter(d => d.latitude == null || d.longitude == null);
+    return [];
+  }, [coordinatesModal, filteredIllnesses]);
+
+  const selectedClusterStat = useMemo(() => {
+    if (selectedClusterId === null || !clusterData) return null;
+    return clusterData.cluster_statistics.find(s => s.cluster_id === selectedClusterId) ?? null;
+  }, [clusterData, selectedClusterId]);
 
   const isMapLoading = geoLoading || loading;
 
@@ -289,12 +321,15 @@ const ByClusterTab = () => {
             </div>
 
             <div className="flex flex-col gap-3">
-              <DateRangeFilter
-                startDate={startDate}
-                endDate={endDate}
-                onStartDateChange={setStartDate}
-                onEndDateChange={setEndDate}
-              />
+              <div className="flex flex-wrap items-center gap-3">
+                <ViewSelect value={view} onValueChange={setView} />
+                <DateRangeFilter
+                  startDate={startDate}
+                  endDate={endDate}
+                  onStartDateChange={setStartDate}
+                  onEndDateChange={setEndDate}
+                />
+              </div>
 
               <form onSubmit={onSubmitK} className="space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
@@ -351,7 +386,9 @@ const ByClusterTab = () => {
         </div>
       </div>
 
-      {clusterDisplayOptions.length > 0 ? (
+      {loading ? (
+        <ClusterSelectSkeleton />
+      ) : clusterDisplayOptions.length > 0 ? (
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-base-content/70">
             Select group:
@@ -393,10 +430,8 @@ const ByClusterTab = () => {
         <Card>
           <CardContent className="p-8">
             {isMapLoading || !geoData ? (
-              <div className="rounded-xl overflow-hidden" aria-label="Loading map">
-                <div className="skeleton h-[600px] w-full" />
-              </div>
-            ) : (
+              <MapSkeleton />
+            ) : view === "district" ? (
               <ClusterChoroplethMap
                 geoData={geoData}
                 casesData={casesData}
@@ -407,19 +442,59 @@ const ByClusterTab = () => {
                 onFeatureClick={(name) => setSelectedFeature(name)}
                 selectedGroupLabel={selectedClusterLabel}
               />
+            ) : (
+              <HeatmapMap diagnoses={filteredIllnesses as any} />
             )}
           </CardContent>
         </Card>
       </div>
 
-      {!loading && clusterData ? (
-        <div className="space-y-6">
-          <IllnessClusterOverviewCards
-            statistics={clusterData.cluster_statistics}
-            selectedVariables={appliedVariables}
-            illnesses={clusterData.illnesses}
-          />
-        </div>
+      {loading ? (
+        <>
+          <StatsSkeletonCards />
+          <ClusterDetailsSkeleton />
+        </>
+      ) : clusterData ? (
+        view === "district" ? (
+          <div className="space-y-6">
+            {selectedClusterStat ? (
+              <SelectedClusterDetails
+                stat={selectedClusterStat}
+                clusterIndex={clusterColorIndex}
+                selectedVariables={appliedVariables}
+                illnesses={filteredIllnesses}
+                nClusters={k}
+                selectedCluster={selectedClusterId}
+                loading={loading}
+              />
+            ) : null}
+          </div>
+        ) : (
+          <>
+            <StatisticsCards
+              totalAllCases={totalAllCases}
+              pinnedCases={pinnedCases}
+              unpinnedCases={unpinnedCases}
+              coveragePercent={coveragePercent}
+              onTotalClick={() => setCoordinatesModal("total")}
+              onPinnedClick={() => setCoordinatesModal("pinned")}
+              onUnpinnedClick={() => setCoordinatesModal("unpinned")}
+            />
+            {selectedClusterStat ? (
+              <div className="col-span-1 md:col-span-2 lg:col-span-4 mt-2">
+                <SelectedClusterDetails
+                  stat={selectedClusterStat}
+                  clusterIndex={clusterColorIndex}
+                  selectedVariables={appliedVariables}
+                  illnesses={filteredIllnesses}
+                  nClusters={k}
+                  selectedCluster={selectedClusterId}
+                  loading={loading}
+                />
+              </div>
+            ) : null}
+          </>
+        )
       ) : null}
 
       <PatientsModal
@@ -429,6 +504,21 @@ const ByClusterTab = () => {
         clusterDisplay={selectedClusterLabel}
         title={`District ${selectedFeature ?? ""} — Group ${selectedClusterLabel}`}
         subtitle={`Showing ${selectedDistrictPatients.length} diagnosis record${selectedDistrictPatients.length !== 1 ? "s" : ""}`}
+      />
+
+      <PatientsModal
+        isOpen={!!coordinatesModal}
+        onClose={() => setCoordinatesModal(null)}
+        patients={coordinatesModalPatients}
+        clusterDisplay={selectedClusterLabel}
+        title={
+          coordinatesModal === "total"
+            ? `All Cases — Group ${selectedClusterLabel}`
+            : coordinatesModal === "pinned"
+              ? `Pinned Cases — Group ${selectedClusterLabel}`
+              : `Unpinned Cases — Group ${selectedClusterLabel}`
+        }
+        subtitle={`Showing ${coordinatesModalPatients.length} diagnosis record${coordinatesModalPatients.length !== 1 ? "s" : ""}`}
       />
 
       {modalRoot ? createPortal(confirmModal, modalRoot) : null}

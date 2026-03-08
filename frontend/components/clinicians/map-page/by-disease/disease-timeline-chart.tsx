@@ -18,14 +18,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import type { SurveillanceAnomaly } from "@/types";
+import { Diagnosis } from "@/lib/generated/prisma";
+import { getDiseaseColorScale } from "@/utils/map-helpers";
+import type { DiseaseType } from "@/stores/use-selected-disease-store";
 
-export type AnomalyTimelineChartProps = {
-  /** Anomalies already filtered to the selected disease by the caller */
-  anomalies: SurveillanceAnomaly[];
-  disease: string;
-  /** Hex colour derived from getClusterBaseColor for the selected disease */
-  diseaseColor: string;
+type DiseaseTimelineChartProps = {
+  diagnoses: Diagnosis[];
+  disease: DiseaseType;
 };
 
 type TimeGranularity = "day" | "week" | "month";
@@ -37,10 +36,9 @@ type TimeBucket = {
   count: number;
 };
 
-// ─── Date helpers (mirrors illness-cluster-timeline-chart) ───────────────────
-
 function getDayKey(dateStr: string): string {
-  return new Date(dateStr).toISOString().slice(0, 10);
+  const d = new Date(dateStr);
+  return d.toISOString().slice(0, 10);
 }
 
 function getISOWeekKey(dateStr: string): string {
@@ -58,44 +56,42 @@ function getMonthKey(dateStr: string): string {
 }
 
 function formatShortDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function formatMonth(monthKey: string): string {
   const [year, month] = monthKey.split("-");
-  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(
-    "en-US",
-    { month: "short", year: "numeric" },
-  );
+  const d = new Date(Number(year), Number(month) - 1, 1);
+  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
-export function AnomalyTimelineChart({
-  anomalies,
+export function DiseaseTimelineChart({
+  diagnoses,
   disease,
-  diseaseColor,
-}: AnomalyTimelineChartProps) {
+}: DiseaseTimelineChartProps) {
   const [granularity, setGranularity] = useState<TimeGranularity>("month");
 
+  const diseaseColor = useMemo(() => {
+    const scale = getDiseaseColorScale(disease);
+    return scale(70).hex();
+  }, [disease]);
+
   const chartData = useMemo<TimeBucket[]>(() => {
-    const withDates = anomalies.filter((a) => !!a.created_at);
+    const withDates = diagnoses.filter((d) => d.createdAt);
     if (withDates.length === 0) return [];
 
     const bucketMap = new Map<string, number>();
 
-    for (const anomaly of withDates) {
+    for (const diagnosis of withDates) {
       const key =
         granularity === "day"
-          ? getDayKey(anomaly.created_at)
+          ? getDayKey(diagnosis.createdAt.toISOString())
           : granularity === "week"
-            ? getISOWeekKey(anomaly.created_at)
-            : getMonthKey(anomaly.created_at);
+            ? getISOWeekKey(diagnosis.createdAt.toISOString())
+            : getMonthKey(diagnosis.createdAt.toISOString());
 
-      bucketMap.set(key, (bucketMap.get(key) ?? 0) + 1);
+      bucketMap.set(key, (bucketMap.get(key) || 0) + 1);
     }
 
     const sorted = [...bucketMap.entries()].sort((a, b) =>
@@ -113,7 +109,7 @@ export function AnomalyTimelineChart({
         periodEnd = label;
       } else if (granularity === "week") {
         label = formatShortDate(periodKey);
-        periodStart = label;
+        periodStart = formatShortDate(periodKey);
         const endDate = new Date(periodKey);
         endDate.setDate(endDate.getDate() + 6);
         periodEnd = formatShortDate(endDate.toISOString().slice(0, 10));
@@ -123,22 +119,27 @@ export function AnomalyTimelineChart({
         periodEnd = label;
       }
 
-      return { label, periodStart, periodEnd, count };
+      return {
+        label,
+        periodStart,
+        periodEnd,
+        count,
+      };
     });
-  }, [anomalies, granularity]);
+  }, [diagnoses, granularity]);
 
   if (chartData.length === 0) {
     return (
       <Card className="relative overflow-hidden border">
         <div className="absolute inset-0 bg-base-100 opacity-90" />
         <CardContent className="relative py-8 text-center text-sm text-base-content/70">
-          No temporal data available for {disease} anomalies
+          No temporal data available for this disease
         </CardContent>
       </Card>
     );
   }
 
-  const gradientId = `anomalyGradient-${diseaseColor.replace("#", "")}`;
+  const gradientId = `diseaseColorGradient-${disease.replace("#", "")}`;
 
   return (
     <Card className="relative overflow-hidden border">
@@ -146,7 +147,7 @@ export function AnomalyTimelineChart({
 
       <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
         <p className="font-semibold text-base">
-          {disease === "all" ? "All Diseases" : disease} — Anomalies Over Time
+          {disease === "all" ? "All Diseases" : disease} — Cases Over Time
         </p>
         <Select
           value={granularity}
@@ -196,17 +197,17 @@ export function AnomalyTimelineChart({
               />
               <Tooltip
                 content={({ active, payload, label }) => {
-                  if (!active || !payload?.length) return null;
-                  const bucket = payload[0].payload as TimeBucket;
+                  if (!active || !payload || !payload.length) return null;
+                  const data = payload[0].payload as TimeBucket;
                   return (
                     <div className="bg-white border border-base-300 rounded shadow-sm px-3 py-2 text-xs">
                       <p className="font-semibold mb-1">
                         {granularity === "week"
-                          ? `${bucket.periodStart} – ${bucket.periodEnd}`
+                          ? `${data.periodStart} – ${data.periodEnd}`
                           : label}
                       </p>
                       <p>
-                        {bucket.count} anomal{bucket.count === 1 ? "y" : "ies"}
+                        {data.count} case{data.count === 1 ? "" : "s"}
                       </p>
                     </div>
                   );

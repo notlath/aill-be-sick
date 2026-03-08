@@ -88,6 +88,7 @@ export interface SurveillanceAnomaly {
   province: string | null;
   barangay: string | null;
   region: string | null;
+  district: string | null;
   confidence: number;
   uncertainty: number;
   user_id: number;

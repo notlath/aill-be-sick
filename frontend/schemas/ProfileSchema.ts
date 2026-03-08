@@ -1,10 +1,8 @@
 import { z } from "zod";
 
-export const OnboardingSchema = z.object({
+export const ProfileSchema = z.object({
   birthday: z.string().min(1, "Birthday is required"),
-  gender: z.enum(["MALE", "FEMALE", "OTHER"], {
-    errorMap: () => ({ message: "Please select a gender" }),
-  } as any),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).nullable().optional(),
   address: z.string().min(1, "Address is required"),
   district: z.string().min(1, "District or zone is required"),
   city: z.string().min(1),
@@ -14,3 +12,5 @@ export const OnboardingSchema = z.object({
   latitude: z.number().optional(),
   longitude: z.number().optional(),
 });
+
+export type ProfileSchemaType = z.infer<typeof ProfileSchema>;

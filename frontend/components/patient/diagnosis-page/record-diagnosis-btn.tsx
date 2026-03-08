@@ -35,7 +35,10 @@ const RecordDiagnosisBtn = ({
       uncertainty: tempDiagnosis.uncertainty,
       symptoms: tempDiagnosis.symptoms,
       messageId: tempDiagnosis.messageId,
-      location: location,
+      location: {
+        latitude: location.lat,
+        longitude: location.lng,
+      },
     });
   };
 

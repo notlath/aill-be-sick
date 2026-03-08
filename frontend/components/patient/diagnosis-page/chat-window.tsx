@@ -287,8 +287,30 @@ const ChatWindow = ({
                 importances: data.explanation.importances,
               } as Explanation,
             }));
+            console.log(
+              "[ChatWindow] Explanation stored for message",
+              messageId,
+            );
+          } else {
+            console.warn(
+              "[ChatWindow] Explanation received but messageId is null",
+            );
           }
+        } else if (data?.error) {
+          console.error(
+            "[ChatWindow] Explanation error:",
+            data.error,
+            data.message,
+          );
+        } else {
+          console.warn(
+            "[ChatWindow] Explanation response missing success/explanation",
+            data,
+          );
         }
+      },
+      onError: ({ error }) => {
+        console.error("[ChatWindow] Explanation request failed:", error);
       },
     });
 
@@ -498,18 +520,28 @@ const ChatWindow = ({
           const symptomsText = lastDiagnosisRef.current?.symptoms;
           const meanProbs = lastDiagnosisRef.current?.mean_probs;
 
-          if (
-            meanProbs &&
-            Array.isArray(meanProbs) &&
-            !explanationRequestedRef.current.has(created.id)
-          ) {
+          if (!explanationRequestedRef.current.has(created.id)) {
             explanationRequestedRef.current.add(created.id);
             lastExplanationMessageIdRef.current = created.id;
-            getExplanations({
-              symptoms: symptomsText,
-              meanProbs,
-              messageId: created.id,
-            });
+
+            if (
+              meanProbs &&
+              Array.isArray(meanProbs)
+            ) {
+              getExplanations({
+                symptoms: symptomsText,
+                meanProbs,
+                messageId: created.id,
+              });
+            } else {
+              // Fallback: try to get explanation without mean_probs
+              // This can happen if the diagnosis data doesn't include mean_probs
+              console.warn(
+                "[ChatWindow] mean_probs not available for explanation, attempting fallback",
+              );
+              // The explanation action requires meanProbs, so we can't call it here
+              // The explanation will need to be fetched on page reload via getExplanationByChatId
+            }
           }
         }
       } else if (data.error) {

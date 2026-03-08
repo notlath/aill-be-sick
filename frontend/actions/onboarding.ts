@@ -17,19 +17,32 @@ export const completeOnboarding = actionClient
     }
 
     try {
-      const { birthday, gender, region, province, district, city, barangay } =
-        parsedInput;
+      const {
+        birthday,
+        gender,
+        address,
+        region,
+        province,
+        district,
+        city,
+        barangay,
+        latitude,
+        longitude,
+      } = parsedInput;
 
       const updatedUser = await prisma.user.update({
         where: { authId: authUser.id },
         data: {
           birthday: new Date(birthday),
           gender,
+          address,
           region,
           province,
-          ...(district && { district }),
+          district: district || null,
           city,
           barangay,
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
           isOnboarded: true,
         },
       });

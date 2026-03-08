@@ -869,6 +869,13 @@ def explain_diagnosis():
         if mean_probs is None:
             return jsonify({"error": "mean_probs is required"}), 400
 
+        # Flatten nested mean_probs if needed (handle both [p1, p2, ...] and [[p1, p2, ...]])
+        if isinstance(mean_probs, list) and len(mean_probs) > 0:
+            if isinstance(mean_probs[0], list):
+                # Nested list format [[p1, p2, ...]] - flatten to [p1, p2, ...]
+                mean_probs = mean_probs[0]
+                print(f"[EXPLAIN] Flattened mean_probs from nested to {len(mean_probs)} classes")
+
         result = explainer(text, mean_probs)
 
         return (

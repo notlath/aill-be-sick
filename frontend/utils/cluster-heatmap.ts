@@ -17,18 +17,7 @@ const DEFAULT_BIN_COUNT = 5;
 
 const formatRangeLabel = (min: number, max?: number) => {
   if (max == null || min === max) return `${min}`;
-  return `${min}\u2013${max}`;
-};
-
-const quantile = (values: number[], q: number) => {
-  if (values.length === 0) return 0;
-  const pos = (values.length - 1) * q;
-  const base = Math.floor(pos);
-  const rest = pos - base;
-  if (values[base + 1] !== undefined) {
-    return values[base] + rest * (values[base + 1] - values[base]);
-  }
-  return values[base];
+  return `${min}–${max}`;
 };
 
 export const buildClusterLegendBins = (
@@ -36,39 +25,44 @@ export const buildClusterLegendBins = (
   baseColor: string,
   steps: number = DEFAULT_BIN_COUNT,
 ): ClusterLegendResult => {
-  const nonZero = counts.filter((value) => value > 0).sort((a, b) => a - b);
   const safeSteps = Math.max(3, steps);
   const ramp = buildClusterRamp(baseColor, safeSteps);
   const zeroColor = chroma.mix(ramp[0] ?? baseColor, "#ffffff", 0.65).hex();
+
+  const nonZero = counts.filter((value) => value > 0);
 
   if (nonZero.length === 0) {
     return { bins: [], zeroColor };
   }
 
-  const thresholds = Array.from({ length: safeSteps }, (_, idx) => {
-    const q = idx / safeSteps;
-    return Math.round(quantile(nonZero, q));
-  });
-
-  thresholds.push(Math.round(nonZero[nonZero.length - 1]));
+  const maxValue = Math.max(...nonZero);
+  const stepSize = Math.ceil(maxValue / safeSteps);
 
   const bins: ClusterLegendBin[] = [];
   for (let i = 0; i < safeSteps; i += 1) {
-    const min = thresholds[i];
-    const max = thresholds[i + 1];
-    if (min === 0 && max === 0) {
-      continue;
-    }
+    const min = i === 0 ? 1 : i * stepSize + 1;
+    const max = i === safeSteps - 1 ? maxValue : (i + 1) * stepSize;
+
+    if (min > max) continue;
+
     const color = ramp[i] ?? baseColor;
     bins.push({
       min,
-      max: i === safeSteps - 1 ? undefined : max,
+      max,
       color,
-      label: formatRangeLabel(min, i === safeSteps - 1 ? undefined : max),
+      label: formatRangeLabel(min, max),
     });
   }
 
-  return { bins, zeroColor };
+  const seen = new Set<string>();
+  const uniqueBins = bins.filter((bin) => {
+    const key = `${bin.min}-${bin.max}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return { bins: uniqueBins, zeroColor };
 };
 
 export const getClusterColorForCount = (

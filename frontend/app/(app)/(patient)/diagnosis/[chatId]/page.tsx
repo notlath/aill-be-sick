@@ -4,7 +4,7 @@ import ThreadTransition from "@/components/patient/diagnosis-page/thread-transit
 import { Chat } from "@/lib/generated/prisma";
 import { getChatById } from "@/utils/chat";
 import { getDiagnosisByChatId } from "@/utils/diagnosis";
-import { getExplanationByDiagnosisId } from "@/utils/explanation";
+import { getExplanationByChatId, getExplanationByDiagnosisId } from "@/utils/explanation";
 import { getMessagesByChatId } from "@/utils/message";
 import { getCurrentDbUser } from "@/utils/user";
 import { notFound } from "next/navigation";
@@ -62,16 +62,32 @@ const ChatDataLoader = async ({
     );
   }
 
-  const { success: explanation, error: explanationError } = diagnosis
-    ? await getExplanationByDiagnosisId(diagnosis.id)
-    : { success: null, error: null };
-
-  if (explanationError) {
-    throw new Error(
-      typeof explanationError === "string"
-        ? explanationError
-        : "Failed to load explanation",
+  // For completed chats (hasDiagnosis=true), fetch explanation by diagnosis ID
+  // For active chats (hasDiagnosis=false), fetch explanation by chat ID
+  // (explanation may exist but Diagnosis record doesn't yet)
+  let explanation = null;
+  if (diagnosis) {
+    const { success: exp, error: expError } = await getExplanationByDiagnosisId(
+      diagnosis.id,
     );
+    if (expError) {
+      throw new Error(
+        typeof expError === "string" ? expError : "Failed to load explanation",
+      );
+    }
+    explanation = exp;
+  } else {
+    // Active chat: try to fetch explanation by chat ID
+    // This handles the case where explanation exists but Diagnosis isn't recorded yet
+    const { success: exp, error: expError } = await getExplanationByChatId(
+      chatId,
+    );
+    if (expError) {
+      throw new Error(
+        typeof expError === "string" ? expError : "Failed to load explanation",
+      );
+    }
+    explanation = exp;
   }
 
   // Decide rendering mode: if the chat already has a recorded diagnosis OR

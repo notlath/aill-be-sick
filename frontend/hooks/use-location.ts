@@ -1,11 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import {
-  LocationData,
-  getLocationDetails,
-  getLocationFromIP,
-} from "@/utils/location";
+import { getLocationDetails, LocationData } from "@/utils/location";
 
 export const useUserLocation = () => {
   const [location, setLocation] = useState<LocationData | null>(null);
@@ -22,6 +18,8 @@ export const useUserLocation = () => {
         async (position) => {
           const { latitude, longitude } = position.coords;
 
+          await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate network delay
+
           // Get location details from coordinates using server action
           try {
             const result = await getLocationDetails(latitude, longitude);
@@ -30,53 +28,48 @@ export const useUserLocation = () => {
               setLocation(result.success);
             } else {
               // Fallback: just use coordinates
-              setLocation({ latitude, longitude });
+              setLocation({
+                lat: latitude,
+                lng: longitude,
+              });
             }
           } catch (err) {
-            console.error("Error getting location details:", err);
+            console.error("Error getting location coordinate details:", err);
             // Fallback: just use coordinates
-            setLocation({ latitude, longitude });
+            setLocation({ lat: latitude, lng: longitude });
           }
 
           setLoading(false);
         },
         async (err) => {
           console.error("Geolocation error:", err);
-          // Fallback to IP-based location
-          try {
-            const result = await getLocationFromIP();
 
-            if (result.success) {
-              setLocation(result.success);
-            } else {
-              setError(result.error || "Could not determine location");
-            }
-          } catch (ipErr) {
-            console.error("IP location error:", ipErr);
-            setError("Could not determine location");
+          switch (err.code) {
+            case err.PERMISSION_DENIED:
+              setError("Permission denied. Please allow location access.");
+              break;
+            case err.POSITION_UNAVAILABLE:
+              setError("Position unavailable. Please try again.");
+              break;
+            case err.TIMEOUT:
+              setError("Location request timed out. Please try again.");
+              break;
+            default:
+              setError("An unknown error occurred while fetching location.");
           }
+
           setLoading(false);
         },
         {
           enableHighAccuracy: true,
           timeout: 10000,
           maximumAge: 0,
-        }
+        },
       );
     } else {
-      // Browser doesn't support geolocation, use IP fallback
-      try {
-        const result = await getLocationFromIP();
-
-        if (result.success) {
-          setLocation(result.success);
-        } else {
-          setError(result.error || "Geolocation not supported");
-        }
-      } catch (err) {
-        console.error("IP location error:", err);
-        setError("Geolocation not supported");
-      }
+      // Browser doesn't support geolocation
+      console.error("Geolocation not supported");
+      setError("Geolocation not supported");
       setLoading(false);
     }
   }, []);
