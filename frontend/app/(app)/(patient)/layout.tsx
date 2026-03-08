@@ -1,6 +1,6 @@
-import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import Sidebar from "@/components/patient/layout/sidebar";
 import OnboardingModal from "@/components/patient/onboarding/onboarding-modal";
+import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
 import { forbidden, redirect, unauthorized } from "next/navigation";
 import { ReactNode, Suspense } from "react";
@@ -46,7 +46,7 @@ function PatientLayoutSkeleton() {
   return (
     <LayoutWrapper>
       <aside
-        className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/60 backdrop-blur-xl border-r border-border/50 w-64 opacity-100"
+        className="hidden md:block overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/60 backdrop-blur-xl border-r border-border/50 w-64 opacity-100"
         style={{
           boxShadow: "0 0 0 1px rgb(0 0 0 / 0.02)",
         }}

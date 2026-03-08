@@ -1,9 +1,9 @@
 "use client";
 
+import { Children, ReactNode, Suspense } from "react";
+import MainContentWrapper from "./main-content-wrapper";
 import { SidebarProvider } from "./sidebar-provider";
 import SidebarToggleButton from "./sidebar-toggle-button";
-import MainContentWrapper from "./main-content-wrapper";
-import { ReactNode, Children, Suspense } from "react";
 
 type LayoutWrapperProps = {
   /**
@@ -36,8 +36,8 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
 
 const MainContentFallback = ({ children }: { children: ReactNode }) => {
   return (
-    <div className="flex-1 p-6 pl-20">
-      <div className="bg-base-100 shadow-sm rounded-3xl w-full h-[calc(100vh-3rem)] overflow-y-auto border border-border/50">
+    <div className="flex-1 p-3 sidebar:p-6 sidebar:pl-20 w-full max-w-[100vw]">
+      <div className="bg-base-100 shadow-sm rounded-2xl sidebar:rounded-3xl w-full h-[calc(100dvh-1.5rem)] sidebar:h-[calc(100vh-3rem)] overflow-y-auto border border-border/50">
         {children}
       </div>
     </div>
