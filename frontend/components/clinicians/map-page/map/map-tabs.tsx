@@ -3,10 +3,10 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ByDiseaseTab from "../by-disease/by-disease-tab";
 import ByClusterTab from "../by-cluster/by-cluster-tab";
-import useChoroplethMapStore from "@/stores/use-choropleth-map-store";
+import useMapStore from "@/stores/use-map-store";
 
-const ChoroplethMapTabs = () => {
-  const { activeTab, setActiveTab } = useChoroplethMapStore();
+const MapTabs = () => {
+  const { activeTab, setActiveTab } = useMapStore();
 
   return (
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'by-disease' | 'by-cluster' | 'by-anomaly')}>
@@ -31,4 +31,4 @@ const ChoroplethMapTabs = () => {
   )
 }
 
-export default ChoroplethMapTabs
+export default MapTabs
