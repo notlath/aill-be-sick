@@ -2,10 +2,13 @@
 
 import { useMap } from "react-leaflet";
 import { useEffect } from "react";
-import { Diagnosis } from "@/lib/generated/prisma";
+interface GeoPoint {
+  latitude: number | null;
+  longitude: number | null;
+}
 
 interface HeatmapLayerProps {
-  diagnoses: Diagnosis[];
+  diagnoses: GeoPoint[];
 }
 
 const HeatmapLayer = ({ diagnoses }: HeatmapLayerProps) => {
