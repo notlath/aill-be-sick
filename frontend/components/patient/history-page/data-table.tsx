@@ -128,7 +128,7 @@ export function DataTable<TData, TValue>({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
           <Select className="w-auto" value={currentSortLabel} onValueChange={handleSortChange}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Sort by..." />
@@ -323,9 +323,9 @@ export function DataTable<TData, TValue>({
 
       {/* Pagination Controls */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between py-2">
-        <div className="flex items-center gap-2 whitespace-nowrap">
+        <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto whitespace-nowrap">
           <span className="text-sm text-muted">Rows per page:</span>
-          <Select
+          <Select className="!w-auto"
             value={String(pagination.pageSize)}
             onValueChange={(value) => {
               table.setPageSize(Number(value));
@@ -345,8 +345,8 @@ export function DataTable<TData, TValue>({
           </Select>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          <span className="text-sm text-muted text-center sm:text-left">
             {table.getFilteredRowModel().rows.length > 0
               ? `${pagination.pageIndex * pagination.pageSize + 1} - ${Math.min(
                 (pagination.pageIndex + 1) * pagination.pageSize,
@@ -354,35 +354,36 @@ export function DataTable<TData, TValue>({
               )} of ${table.getFilteredRowModel().rows.length}`
               : "0 of 0"}
           </span>
-          {/* First/Last hidden on mobile for compactness */}
-          <button
-            className="btn btn-sm hidden sm:inline-flex"
-            onClick={() => table.setPageIndex(0)}
-            disabled={!table.getCanPreviousPage()}
-          >
-            First
-          </button>
-          <button
-            className="btn btn-sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            Previous
-          </button>
-          <button
-            className="btn btn-sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            Next
-          </button>
-          <button
-            className="btn btn-sm hidden sm:inline-flex"
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-            disabled={!table.getCanNextPage()}
-          >
-            Last
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <button
+              className="btn btn-sm hidden sm:inline-flex"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+            >
+              First
+            </button>
+            <button
+              className="btn btn-sm w-full sm:w-auto"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              Previous
+            </button>
+            <button
+              className="btn btn-sm w-full sm:w-auto"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              Next
+            </button>
+            <button
+              className="btn btn-sm hidden sm:inline-flex"
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+            >
+              Last
+            </button>
+          </div>
         </div>
       </div>
     </div>
