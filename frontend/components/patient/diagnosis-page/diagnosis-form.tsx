@@ -10,12 +10,17 @@ type DiagnosisFormProps = {
   disabled?: boolean;
 };
 
+const MIN_CHARACTERS = 20;
+
 const DiagnosisForm = ({
   createMessageExecute,
   isPending,
   disabled = false,
 }: DiagnosisFormProps) => {
   const form = useFormContext<CreateChatSchemaType>();
+  const symptomsValue = form.watch("symptoms");
+  const symptomsLength = symptomsValue?.length || 0;
+  const isBelowMin = symptomsLength > 0 && symptomsLength < MIN_CHARACTERS;
 
   const handleSubmit = (data: CreateChatSchemaType) => {
     createMessageExecute({
@@ -35,7 +40,7 @@ const DiagnosisForm = ({
             <div
               className={`flex justify-between items-start py-3 border rounded-xl outline-none w-full h-auto input ${
                 disabled ? "bg-base-200 opacity-70 cursor-not-allowed" : ""
-              }`}
+              } ${isBelowMin ? "border-warning" : ""}`}
             >
               <textarea
                 className="flex-1 pl-1 border-none outline-none disabled:bg-transparent"
@@ -64,11 +69,22 @@ const DiagnosisForm = ({
               <button
                 type="submit"
                 className="w-auto min-w-10 h-10 px-3 aspect-square btn btn-primary"
-                disabled={disabled || isPending}
+                disabled={disabled || isPending || isBelowMin}
               >
                 <ArrowUp className="size-4" />
               </button>
             </div>
+            {symptomsLength > 0 && (
+              <div className="text-xs text-right">
+                <span
+                  className={
+                    isBelowMin ? "text-warning" : "text-success"
+                  }
+                >
+                  {symptomsLength}/{MIN_CHARACTERS} characters
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </form>
