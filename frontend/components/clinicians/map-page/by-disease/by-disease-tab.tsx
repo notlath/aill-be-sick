@@ -13,6 +13,7 @@ import { Diagnosis } from "@/lib/generated/prisma";
 import FeaturePatientsModal from "../map/feature-patients-modal";
 import { useGeoJsonData } from "@/hooks/map-hooks/use-geojson-data";
 import ViewSelect from "../view-select";
+import { DiseaseTimelineChart } from "./disease-timeline-chart";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), { ssr: false });
 const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
@@ -386,6 +387,26 @@ const ByDiseaseTab = () => {
               </CardContent>
             </Card>
           </>
+        )}
+      </div>
+
+      <div className="mt-6">
+        {isLoading ? (
+          <Card className="relative overflow-hidden border">
+            <div className="absolute inset-0 bg-base-100 opacity-90" />
+            <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
+              <div className="skeleton h-6 w-48" />
+              <div className="skeleton h-8 w-28" />
+            </CardHeader>
+            <CardContent className="relative pt-2">
+              <div className="skeleton h-[220px] w-full" />
+            </CardContent>
+          </Card>
+        ) : (
+          <DiseaseTimelineChart
+            diagnoses={view === "district" ? diagnoses : [...heatmapDiagnoses, ...unpinnedDiagnoses]}
+            disease={selectedDisease}
+          />
         )}
       </div>
 

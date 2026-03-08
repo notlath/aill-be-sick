@@ -17,9 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Loader2, Activity, MapPin, AlertTriangle, TrendingUp } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  Activity,
+  MapPin,
+  AlertTriangle,
+  TrendingUp,
+} from "lucide-react";
 import ViewSelect from "../view-select";
 import SelectedClusterSummary from "./selected-cluster-summary";
+import { IllnessClusterTimelineChart } from "./illness-cluster-timeline-chart";
 import { useIllnessClusterData } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-data";
 import { useIllnessClusterRecommendation } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-recommendation";
 import { useClusterDisplay } from "../../../../hooks/illness-cluster-hooks/use-cluster-display";
@@ -452,6 +460,29 @@ const ByClusterTab = () => {
                   clusterIndex={clusterColorIndex}
                   selectedVariables={appliedVariables}
                 />
+                {loading ? (
+                  <div className="mt-4">
+                    <Card className="relative overflow-hidden border">
+                      <div className="absolute inset-0 bg-base-100 opacity-90" />
+                      <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
+                        <div className="skeleton h-6 w-48" />
+                        <div className="skeleton h-8 w-28" />
+                      </CardHeader>
+                      <CardContent className="relative pt-2">
+                        <div className="skeleton h-[220px] w-full" />
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <IllnessClusterTimelineChart
+                      illnesses={filteredIllnesses}
+                      nClusters={k}
+                      selectedCluster={selectedClusterId}
+                      clusterColorIndex={clusterColorIndex}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -540,6 +571,29 @@ const ByClusterTab = () => {
                   clusterIndex={clusterColorIndex}
                   selectedVariables={appliedVariables}
                 />
+                {loading ? (
+                  <div className="mt-4">
+                    <Card className="relative overflow-hidden border">
+                      <div className="absolute inset-0 bg-base-100 opacity-90" />
+                      <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
+                        <div className="skeleton h-6 w-48" />
+                        <div className="skeleton h-8 w-28" />
+                      </CardHeader>
+                      <CardContent className="relative pt-2">
+                        <div className="skeleton h-[220px] w-full" />
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <IllnessClusterTimelineChart
+                      illnesses={filteredIllnesses}
+                      nClusters={k}
+                      selectedCluster={selectedClusterId}
+                      clusterColorIndex={clusterColorIndex}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
