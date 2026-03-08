@@ -172,3 +172,82 @@ export const getDiseaseDiagnosesByDistricts = async (
     return { error: `Could not fetch diagnoses for disease ${disease}` };
   }
 }
+
+export const getDiagnosesWithCoordinates = async (
+  disease: string,
+  startDate?: string,
+  endDate?: string
+) => {
+  try {
+    const dateFilter = {
+      gte: startDate ? new Date(startDate) : undefined,
+      lte: endDate ? new Date(endDate) : undefined,
+    };
+
+    if (disease === "all") {
+      const [diagnoses, unpinnedDiagnoses, totalCount] = await Promise.all([
+        prisma.diagnosis.findMany({
+          where: {
+            latitude: { not: null },
+            longitude: { not: null },
+            createdAt: dateFilter,
+          },
+          include: { user: true },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.diagnosis.findMany({
+          where: {
+            OR: [{ latitude: null }, { longitude: null }],
+            createdAt: dateFilter,
+          },
+          include: { user: true },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.diagnosis.count({
+          where: { createdAt: dateFilter },
+        }),
+      ]);
+
+      return { success: { diagnoses, unpinnedDiagnoses, totalCount } };
+    }
+
+    const [diagnoses, unpinnedDiagnoses, totalCount] = await Promise.all([
+      prisma.diagnosis.findMany({
+        where: {
+          disease: disease.toUpperCase() as any,
+          latitude: { not: null },
+          longitude: { not: null },
+          createdAt: dateFilter,
+        },
+        include: { user: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.diagnosis.findMany({
+        where: {
+          disease: disease.toUpperCase() as any,
+          OR: [{ latitude: null }, { longitude: null }],
+          createdAt: dateFilter,
+        },
+        include: { user: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.diagnosis.count({
+        where: {
+          disease: disease.toUpperCase() as any,
+          createdAt: dateFilter,
+        },
+      }),
+    ]);
+
+    return { success: { diagnoses, unpinnedDiagnoses, totalCount } };
+  } catch (error) {
+    console.error(
+      `Error fetching diagnoses with coordinates for disease ${disease}`,
+      error
+    );
+
+    return {
+      error: `Could not fetch diagnoses with coordinates for disease ${disease}`,
+    };
+  }
+};

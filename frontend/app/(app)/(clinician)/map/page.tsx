@@ -1,4 +1,4 @@
-import ChoroplethMapTabs from "@/components/clinicians/map-page/map/choropleth-map-tabs";
+import MapTabs from "@/components/clinicians/map-page/map/map-tabs";
 
 export default async function MapPage() {
   return (
@@ -13,7 +13,7 @@ export default async function MapPage() {
           </p>
         </div>
       </div>
-      <ChoroplethMapTabs />
+      <MapTabs />
     </main>
   );
 }
