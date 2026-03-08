@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRangeFilter } from "../date-range-filter";
@@ -17,9 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, Loader2, Activity, MapPin, AlertTriangle, TrendingUp } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
 import ViewSelect from "../view-select";
-import SelectedClusterSummary from "./selected-cluster-summary";
+import SelectedClusterDetails from "./selected-cluster-details";
+import StatisticsCards from "./statistics-cards";
+import { MapSkeleton, StatsSkeletonCards, ClusterSelectSkeleton, ClusterDetailsSkeleton } from "./skeleton-loaders";
 import { useIllnessClusterData } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-data";
 import { useIllnessClusterRecommendation } from "../../../../hooks/illness-cluster-hooks/use-illness-cluster-recommendation";
 import { useClusterDisplay } from "../../../../hooks/illness-cluster-hooks/use-cluster-display";
@@ -31,7 +36,7 @@ const ClusterChoroplethMap = dynamic(
 );
 const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
 
-type ClusterVariableSelection = {
+export type ClusterVariableSelection = {
   age: boolean;
   gender: boolean;
   district: boolean;
@@ -96,7 +101,7 @@ const ByClusterTab = () => {
     }
   }, [recommendedK]);
 
-  const handleVariableChange = (variable: keyof ClusterVariableSelection) => {
+  const handleVariableChange = useCallback((variable: keyof ClusterVariableSelection) => {
     const selectedCount = Object.values(selectedVariables).filter(Boolean).length;
 
     if (selectedVariables[variable] && selectedCount === 1) {
@@ -107,9 +112,9 @@ const ByClusterTab = () => {
       ...prev,
       [variable]: !prev[variable],
     }));
-  };
+  }, [selectedVariables]);
 
-  const onSubmitK = (e: React.FormEvent) => {
+  const onSubmitK = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     const nextK = clampK(parseInt(kInput, 10));
 
@@ -120,29 +125,29 @@ const ByClusterTab = () => {
     }
 
     applyClusteringWithK(nextK);
-  };
+  }, [kInput, loadingRecommendation]);
 
-  const applyClusteringWithK = (clusterCount: number) => {
+  const applyClusteringWithK = useCallback((clusterCount: number) => {
     const nextK = clampK(clusterCount);
     const nextVariables = { ...selectedVariables };
 
     setK(nextK);
     setKInput(String(nextK));
     setAppliedVariables(nextVariables);
-  };
+  }, [selectedVariables]);
 
-  const handleConfirmModal = () => {
+  const handleConfirmModal = useCallback(() => {
     if (pendingK !== null) {
       applyClusteringWithK(pendingK);
     }
     setShowConfirmModal(false);
     setPendingK(null);
-  };
+  }, [pendingK, applyClusteringWithK]);
 
-  const handleCancelModal = () => {
+  const handleCancelModal = useCallback(() => {
     setShowConfirmModal(false);
     setPendingK(null);
-  };
+  }, []);
 
   const {
     clusterDisplayOptions,
@@ -192,12 +197,10 @@ const ByClusterTab = () => {
 
   const { pinnedCases, totalAllCases, unpinnedCases, coveragePercent } = useMemo(() => {
     const totalAllCases = filteredIllnesses.length;
-    let pinnedCases = 0;
-    for (let i = 0; i < totalAllCases; i++) {
-      if (filteredIllnesses[i].latitude != null && filteredIllnesses[i].longitude != null) {
-        pinnedCases++;
-      }
-    }
+    const pinnedIllnesses = filteredIllnesses.filter(
+      (illness) => illness.latitude != null && illness.longitude != null
+    );
+    const pinnedCases = pinnedIllnesses.length;
     const unpinnedCases = totalAllCases - pinnedCases;
     const coveragePercent = totalAllCases > 0 ? Math.round((pinnedCases / totalAllCases) * 100) : 0;
     return { pinnedCases, totalAllCases, unpinnedCases, coveragePercent };
@@ -209,6 +212,11 @@ const ByClusterTab = () => {
     if (coordinatesModal === "unpinned") return filteredIllnesses.filter(d => d.latitude == null || d.longitude == null);
     return [];
   }, [coordinatesModal, filteredIllnesses]);
+
+  const selectedClusterStat = useMemo(() => {
+    if (selectedClusterId === null || !clusterData) return null;
+    return clusterData.cluster_statistics.find(s => s.cluster_id === selectedClusterId) ?? null;
+  }, [clusterData, selectedClusterId]);
 
   const isMapLoading = geoLoading || loading;
 
@@ -378,7 +386,9 @@ const ByClusterTab = () => {
         </div>
       </div>
 
-      {clusterDisplayOptions.length > 0 ? (
+      {loading ? (
+        <ClusterSelectSkeleton />
+      ) : clusterDisplayOptions.length > 0 ? (
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-base-content/70">
             Select group:
@@ -420,9 +430,7 @@ const ByClusterTab = () => {
         <Card>
           <CardContent className="p-8">
             {isMapLoading || !geoData ? (
-              <div className="rounded-xl overflow-hidden" aria-label="Loading map">
-                <div className="skeleton h-[600px] w-full" />
-              </div>
+              <MapSkeleton />
             ) : view === "district" ? (
               <ClusterChoroplethMap
                 geoData={geoData}
@@ -441,108 +449,51 @@ const ByClusterTab = () => {
         </Card>
       </div>
 
-      {!loading && clusterData ? (
+      {loading ? (
+        <>
+          <StatsSkeletonCards />
+          <ClusterDetailsSkeleton />
+        </>
+      ) : clusterData ? (
         view === "district" ? (
           <div className="space-y-6">
-            {/* Added Selected Cluster Summary Span for district view */}
-            {selectedClusterId !== null && clusterData?.cluster_statistics.find(s => s.cluster_id === selectedClusterId) && (
-              <div className="mt-2">
-                <SelectedClusterSummary
-                  stat={clusterData.cluster_statistics.find(s => s.cluster_id === selectedClusterId)!}
-                  clusterIndex={clusterColorIndex}
-                  selectedVariables={appliedVariables}
-                />
-              </div>
-            )}
+            {selectedClusterStat ? (
+              <SelectedClusterDetails
+                stat={selectedClusterStat}
+                clusterIndex={clusterColorIndex}
+                selectedVariables={appliedVariables}
+                illnesses={filteredIllnesses}
+                nClusters={k}
+                selectedCluster={selectedClusterId}
+                loading={loading}
+              />
+            ) : null}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-            <Card
-              className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-              onClick={() => setCoordinatesModal("total")}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Cases
-                </CardTitle>
-                <Activity className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <div className="text-2xl font-bold">
-                  {totalAllCases.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  For the selected group and period
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-              onClick={() => setCoordinatesModal("pinned")}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Pinned Cases
-                </CardTitle>
-                <MapPin className="h-4 w-4 text-emerald-500" />
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <div className="text-2xl font-bold">
-                  {pinnedCases.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Cases with recorded coordinates
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-              onClick={() => setCoordinatesModal("unpinned")}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Unpinned Cases
-                </CardTitle>
-                <AlertTriangle className="h-4 w-4 text-orange-500" />
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <div className="text-2xl font-bold">
-                  {unpinnedCases.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Cases without location data
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Coverage
-                </CardTitle>
-                <TrendingUp className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <div className="text-2xl font-bold">{coveragePercent}%</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Of cases have coordinates
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Added Selected Cluster Summary Span */}
-            {selectedClusterId !== null && clusterData?.cluster_statistics.find(s => s.cluster_id === selectedClusterId) && (
+          <>
+            <StatisticsCards
+              totalAllCases={totalAllCases}
+              pinnedCases={pinnedCases}
+              unpinnedCases={unpinnedCases}
+              coveragePercent={coveragePercent}
+              onTotalClick={() => setCoordinatesModal("total")}
+              onPinnedClick={() => setCoordinatesModal("pinned")}
+              onUnpinnedClick={() => setCoordinatesModal("unpinned")}
+            />
+            {selectedClusterStat ? (
               <div className="col-span-1 md:col-span-2 lg:col-span-4 mt-2">
-                <SelectedClusterSummary
-                  stat={clusterData.cluster_statistics.find(s => s.cluster_id === selectedClusterId)!}
+                <SelectedClusterDetails
+                  stat={selectedClusterStat}
                   clusterIndex={clusterColorIndex}
                   selectedVariables={appliedVariables}
+                  illnesses={filteredIllnesses}
+                  nClusters={k}
+                  selectedCluster={selectedClusterId}
+                  loading={loading}
                 />
               </div>
-            )}
-          </div>
+            ) : null}
+          </>
         )
       ) : null}
 

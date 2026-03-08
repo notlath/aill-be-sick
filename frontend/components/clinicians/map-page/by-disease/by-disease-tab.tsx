@@ -2,17 +2,19 @@
 
 import { DiseaseSelect } from "../disease-select";
 import { DateRangeFilter } from "../date-range-filter";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import dynamic from "next/dynamic";
 import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
 import useDateRangeStore from "@/stores/use-date-range-store";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { getDiseaseDiagnosesByDistricts, getDiagnosesWithCoordinates } from "@/utils/diagnosis";
-import { Activity, MapPin, TrendingUp, AlertTriangle } from "lucide-react";
 import { Diagnosis } from "@/lib/generated/prisma";
 import FeaturePatientsModal from "../map/feature-patients-modal";
 import { useGeoJsonData } from "@/hooks/map-hooks/use-geojson-data";
 import ViewSelect from "../view-select";
+import { DiseaseTimelineChart } from "./disease-timeline-chart";
+import { DistrictStatsCards, CoordinatesStatsCards } from "./disease-stats-cards";
+import { StatsSkeletonCards, TimelineSkeleton } from "./skeleton-loaders";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), { ssr: false });
 const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
@@ -37,6 +39,18 @@ const ByDiseaseTab = () => {
   const { geoData, loading: geoLoading, error: geoError } = useGeoJsonData(
     "/geojson/bagong_silangan.geojson",
   );
+
+  const handleFeatureClick = useCallback((name: string) => {
+    setSelectedFeature(name);
+  }, []);
+
+  const handleCloseFeature = useCallback(() => {
+    setSelectedFeature(null);
+  }, []);
+
+  const handleCoordinatesModalClose = useCallback(() => {
+    setCoordinatesModal(null);
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -112,7 +126,7 @@ const ByDiseaseTab = () => {
     };
   }, [selectedDisease, startDate, endDate, view]);
 
-  // District view stats (optimized with single pass iteration)
+  // District view stats (single pass iteration)
   const {
     totalCases,
     affectedDistrictsCount,
@@ -150,12 +164,15 @@ const ByDiseaseTab = () => {
     };
   }, [casesData]);
 
-  // Coordinates view stats (removed useMemo for primitive O(1) ops)
-  const pinnedCases = heatmapDiagnoses.length;
-  const totalAllCases = totalDiagnosesCount;
-  const unpinnedCases = totalAllCases - pinnedCases;
-  const coveragePercent =
-    totalAllCases > 0 ? Math.round((pinnedCases / totalAllCases) * 100) : 0;
+  // Coordinates view stats
+  const { pinnedCases, totalAllCases, unpinnedCases, coveragePercent } = useMemo(() => {
+    const pinnedCases = heatmapDiagnoses.length;
+    const totalAllCases = totalDiagnosesCount;
+    const unpinnedCases = totalAllCases - pinnedCases;
+    const coveragePercent =
+      totalAllCases > 0 ? Math.round((pinnedCases / totalAllCases) * 100) : 0;
+    return { pinnedCases, totalAllCases, unpinnedCases, coveragePercent };
+  }, [heatmapDiagnoses, totalDiagnosesCount]);
 
   // Memoize modal diagnoses arrays to prevent recreation on every render
   const selectedFeatureDiagnoses = useMemo(() => {
@@ -208,7 +225,7 @@ const ByDiseaseTab = () => {
                 geoData={geoData!}
                 casesData={casesData}
                 diagnoses={diagnoses}
-                onFeatureClick={(name) => setSelectedFeature(name)}
+                onFeatureClick={handleFeatureClick}
               />
             ) : (
               <HeatmapMap diagnoses={heatmapDiagnoses} />
@@ -220,185 +237,51 @@ const ByDiseaseTab = () => {
       {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
         {isLoading ? (
-          <>
-            {[...Array(4)].map((_, i) => (
-              <Card key={i} className="border-border">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                  <div className="skeleton h-4 w-24" />
-                  <div className="skeleton h-4 w-4" />
-                </CardHeader>
-                <CardContent className="p-6 pt-0">
-                  <div className="skeleton h-8 w-32 mb-2" />
-                  <div className="skeleton h-3 w-40" />
-                </CardContent>
-              </Card>
-            ))}
-          </>
+          <StatsSkeletonCards />
         ) : view === "district" ? (
           Object.keys(casesData).length > 0 ? (
-            <>
-              <Card className="hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Total Cases
-                  </CardTitle>
-                  <Activity className="h-4 w-4 text-primary" />
-                </CardHeader>
-                <CardContent className="p-6 pt-0">
-                  <div className="text-2xl font-bold">
-                    {totalCases.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    For the selected disease and period
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Most Affected Area
-                  </CardTitle>
-                  <AlertTriangle className="h-4 w-4 text-destructive" />
-                </CardHeader>
-                <CardContent className="p-6 pt-0">
-                  <div
-                    className="text-2xl font-bold truncate"
-                    title={highestDistrict}
-                  >
-                    {highestDistrict}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    With {highestCases.toLocaleString()} reported cases
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Affected Districts
-                  </CardTitle>
-                  <MapPin className="h-4 w-4 text-orange-500" />
-                </CardHeader>
-                <CardContent className="p-6 pt-0">
-                  <div className="text-2xl font-bold">
-                    {affectedDistrictsCount.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Areas with at least 1 case
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="hover:shadow-md transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Average Cases
-                  </CardTitle>
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
-                </CardHeader>
-                <CardContent className="p-6 pt-0">
-                  <div className="text-2xl font-bold">
-                    {averageCases.toLocaleString()}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Per affected district
-                  </p>
-                </CardContent>
-              </Card>
-            </>
+            <DistrictStatsCards
+              totalCases={totalCases}
+              highestDistrict={highestDistrict}
+              highestCases={highestCases}
+              affectedDistrictsCount={affectedDistrictsCount}
+              averageCases={averageCases}
+            />
           ) : null
         ) : (
-          <>
-            <Card
-              className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-              onClick={() => setCoordinatesModal("total")}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Total Cases
-                </CardTitle>
-                <Activity className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <div className="text-2xl font-bold">
-                  {totalAllCases.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  For the selected disease and period
-                </p>
-              </CardContent>
-            </Card>
+          <CoordinatesStatsCards
+            totalAllCases={totalAllCases}
+            pinnedCases={pinnedCases}
+            unpinnedCases={unpinnedCases}
+            coveragePercent={coveragePercent}
+            onTotalClick={() => setCoordinatesModal("total")}
+            onPinnedClick={() => setCoordinatesModal("pinned")}
+            onUnpinnedClick={() => setCoordinatesModal("unpinned")}
+          />
+        )}
+      </div>
 
-            <Card
-              className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-              onClick={() => setCoordinatesModal("pinned")}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Pinned Cases
-                </CardTitle>
-                <MapPin className="h-4 w-4 text-emerald-500" />
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <div className="text-2xl font-bold">
-                  {pinnedCases.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Cases with recorded coordinates
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-              onClick={() => setCoordinatesModal("unpinned")}
-            >
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Unpinned Cases
-                </CardTitle>
-                <AlertTriangle className="h-4 w-4 text-orange-500" />
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <div className="text-2xl font-bold">
-                  {unpinnedCases.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Cases without location data
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  Coverage
-                </CardTitle>
-                <TrendingUp className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <div className="text-2xl font-bold">{coveragePercent}%</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Of cases have coordinates
-                </p>
-              </CardContent>
-            </Card>
-          </>
+      <div className="mt-6">
+        {isLoading ? (
+          <TimelineSkeleton />
+        ) : (
+          <DiseaseTimelineChart
+            diagnoses={view === "district" ? diagnoses : [...heatmapDiagnoses, ...unpinnedDiagnoses]}
+            disease={selectedDisease}
+          />
         )}
       </div>
 
       <FeaturePatientsModal
         isOpen={!!selectedFeature}
-        onClose={() => setSelectedFeature(null)}
+        onClose={handleCloseFeature}
         featureName={selectedFeature ?? ""}
         diagnoses={selectedFeatureDiagnoses}
       />
 
       <FeaturePatientsModal
         isOpen={!!coordinatesModal}
-        onClose={() => setCoordinatesModal(null)}
+        onClose={handleCoordinatesModalClose}
         featureName={
           coordinatesModal === "total"
             ? "All"

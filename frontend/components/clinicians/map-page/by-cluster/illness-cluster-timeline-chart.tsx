@@ -17,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { IllnessRecord } from "@/types";
 import { getClusterBaseColor } from "@/utils/cluster-colors";
 
@@ -68,7 +69,6 @@ function formatMonth(monthKey: string): string {
 
 export function IllnessClusterTimelineChart({
   illnesses,
-  nClusters,
   selectedCluster,
   clusterColorIndex,
 }: IllnessClusterTimelineChartProps) {
@@ -137,9 +137,12 @@ export function IllnessClusterTimelineChart({
 
   if (chartData.length === 0) {
     return (
-      <div className="bg-base-200 rounded-box p-4 text-center text-sm text-base-content/70">
-        No temporal data available for this cluster
-      </div>
+      <Card className="relative overflow-hidden border">
+        <div className="absolute inset-0 bg-base-100 opacity-90" />
+        <CardContent className="relative py-8 text-center text-sm text-base-content/70">
+          No temporal data available for this cluster
+        </CardContent>
+      </Card>
     );
   }
 
@@ -147,29 +150,33 @@ export function IllnessClusterTimelineChart({
   const gradientId = `colorGradient-${clusterColor.replace("#", "")}`;
 
   return (
-    <div className="bg-base-200 rounded-box p-4">
-      <div className="flex items-center justify-between mb-3">
-        <p className="font-semibold text-sm">
-          Cluster {selectedCluster} — Illnesses Over Time
+    <Card className="relative overflow-hidden border">
+      <div className="absolute inset-0 bg-base-100 opacity-90" />
+
+      <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
+        <p className="font-semibold text-base">
+          Illnesses Over Time
         </p>
         <Select
           value={granularity}
           onValueChange={(v) => setGranularity(v as TimeGranularity)}
           className="w-auto"
         >
-          <SelectTrigger className="w-28 h-7 text-xs bg-white">
+          <SelectTrigger className="w-28 h-8 text-xs">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="right-0 left-auto">
             <SelectItem value="day">By day</SelectItem>
             <SelectItem value="week">By week</SelectItem>
             <SelectItem value="month">By month</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-      <div className="w-full h-[220px]">
+      </CardHeader>
+
+      <CardContent className="relative pt-2">
+        <div className="w-full h-[220px]">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
+            <AreaChart
             data={chartData}
             margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
           >
@@ -220,6 +227,7 @@ export function IllnessClusterTimelineChart({
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
