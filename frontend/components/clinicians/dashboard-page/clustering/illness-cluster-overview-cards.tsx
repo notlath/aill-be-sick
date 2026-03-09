@@ -98,10 +98,16 @@ const IllnessClusterOverviewCards: React.FC<
             key={stat.cluster_id}
             className={`group relative overflow-hidden shadow-sm! transition-none! cursor-pointer hover:shadow-md! hover:border-opacity-100 ${theme.border} border-2 `}
             onClick={() => {
+              console.log("[Card Click] Navigating to map with context", {
+                clusterDisplay: index + 1,
+                mapNavigationContext,
+                selectedVariables,
+              });
               const mapHref = buildIllnessClusterMapHref(index + 1, {
                 ...mapNavigationContext,
                 variables: mapNavigationContext?.variables ?? selectedVariables,
               });
+              console.log("[Card Click] Generated href:", mapHref);
               router.push(mapHref);
             }}
           >

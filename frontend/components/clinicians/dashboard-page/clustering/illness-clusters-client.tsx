@@ -1,8 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { createPortal } from "react-dom";
+import React, { useMemo } from "react";
 import {
   Card,
   CardDescription,
@@ -11,696 +9,104 @@ import {
 } from "@/components/ui/card";
 import { AlertCircle, Loader2 } from "lucide-react";
 import IllnessClusterOverviewCards from "./illness-cluster-overview-cards";
-import DiagnosisDateFilter from "./diagnosis-date-filter";
+import ClusteringControlPanel from "../../clustering/clustering-control-panel";
 import type { IllnessClusterData } from "@/types";
-import { Input } from "@/components/ui/input";
-import {
-  DEFAULT_CLUSTER_COUNT,
-  DEFAULT_CLUSTER_VARIABLES,
-  clampClusterCount,
-  type ClusterVariableSelection,
-} from "@/types/illness-cluster-settings";
+import { DEFAULT_CLUSTER_COUNT } from "@/types/illness-cluster-settings";
 import type { IllnessClusterMapNavigationContext } from "@/utils/illness-cluster-navigation";
-import {
-  serializeIllnessClusterNavigationQuery,
-  parseIllnessClusterNavigationQuery,
-} from "@/utils/illness-cluster-navigation";
 
 interface IllnessClustersClientProps {
   initialData?: IllnessClusterData;
   initialK?: number;
 }
 
-const VARIABLE_LABELS: Record<keyof ClusterVariableSelection, string> = {
-  age: "Age",
-  gender: "Gender",
-  district: "District",
-  time: "Diagnosis date",
-};
-
-const toVariableLabelList = (variables: ClusterVariableSelection) =>
-  (Object.keys(variables) as Array<keyof ClusterVariableSelection>)
-    .filter((key) => variables[key])
-    .map((key) => VARIABLE_LABELS[key]);
-
-const formatReadableList = (items: string[]) => {
-  if (items.length === 0) {
-    return "your selected variables";
-  }
-
-  if (items.length === 1) {
-    return items[0];
-  }
-
-  if (items.length === 2) {
-    return `${items[0]} and ${items[1]}`;
-  }
-
-  return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
-};
-
 const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   initialData,
   initialK = DEFAULT_CLUSTER_COUNT,
 }) => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  // Hydrate initial state from URL on mount (similar to map component)
-  const initialNavigationStateRef = useRef(
-    parseIllnessClusterNavigationQuery(searchParams),
-  );
-  const initialNavigationState = initialNavigationStateRef.current;
-  const initialHasExplicitKRef = useRef(searchParams.get("k") !== null);
-
-  const [clusterData, setClusterData] = useState<IllnessClusterData | null>(
-    initialData || null,
-  );
-  const [loading, setLoading] = useState(!initialData);
-  const [error, setError] = useState<string | null>(null);
-  const [k, setK] = useState<number>(initialNavigationState.k ?? initialK);
-  const [kInput, setKInput] = useState<string>(
-    String(initialNavigationState.k ?? initialK),
-  );
-  const [recommendedK, setRecommendedK] = useState<number | null>(null);
-  const [loadingRecommendation, setLoadingRecommendation] =
-    useState<boolean>(true);
-  const [recommendationMessage, setRecommendationMessage] =
-    useState<string>("");
-  const [selectedVariables, setSelectedVariables] =
-    useState<ClusterVariableSelection>({
-      ...initialNavigationState.variables,
-    });
-  const [appliedVariables, setAppliedVariables] =
-    useState<ClusterVariableSelection>({
-      ...initialNavigationState.variables,
-    });
-
-  // Parse dates from URL strings to Date objects
-  const parseDateFromString = (dateString?: string): Date | null => {
-    if (!dateString) return null;
-    const parsed = new Date(`${dateString}T00:00:00`);
-    return isNaN(parsed.getTime()) ? null : parsed;
-  };
-
-  const [dateRangeStart, setDateRangeStart] = useState<Date | null>(
-    parseDateFromString(initialNavigationState.startDate),
-  );
-  const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(
-    parseDateFromString(initialNavigationState.endDate),
-  );
-  const [appliedDateRangeStart, setAppliedDateRangeStart] =
-    useState<Date | null>(
-      parseDateFromString(initialNavigationState.startDate),
-    );
-  const [appliedDateRangeEnd, setAppliedDateRangeEnd] = useState<Date | null>(
-    parseDateFromString(initialNavigationState.endDate),
-  );
-  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-  const [pendingK, setPendingK] = useState<number | null>(null);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const hasFetchedInitialDataRef = useRef(false);
-  const hasHydratedFromUrlRef = useRef(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  const BACKEND_URL =
-    process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
-
-  const buildDiagnosisDateFilterParams = (
-    startDate: Date | null = dateRangeStart,
-    endDate: Date | null = dateRangeEnd,
-  ): Record<string, string> => {
-    if (startDate && endDate) {
-      // Send start_date and end_date in YYYY-MM-DD format for date range filtering
-      const formatDate = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      };
-
-      return {
-        start_date: formatDate(startDate),
-        end_date: formatDate(endDate),
-      };
-    }
-
-    return {};
-  };
-
-  const extractErrorMessage = async (response: Response) => {
-    try {
-      const payload = await response.json();
-      if (payload && typeof payload.error === "string") {
-        return payload.error;
-      }
-      if (payload && typeof payload.message === "string") {
-        return payload.message;
-      }
-    } catch (_) {
-      // Fall through to generic status message.
-    }
-
-    return `Request failed with status ${response.status}`;
-  };
-
-  // Fetch silhouette analysis to determine recommended k
-  useEffect(() => {
-    // Skip recommendation on initial URL hydration if we have applied settings from URL
-    // This avoids unnecessary recalculation when navigating from map to dashboard
-    if (!hasHydratedFromUrlRef.current) {
-      const hasUrlParams =
-        initialNavigationState.k !== undefined ||
-        initialNavigationState.startDate !== undefined;
-      const hasMatchingAppliedSettings =
-        k === initialNavigationState.k &&
-        JSON.stringify(appliedVariables) ===
-          JSON.stringify(initialNavigationState.variables);
-
-      if (hasUrlParams && hasMatchingAppliedSettings && clusterData) {
-        // We hydrated from URL with existing data, skip recommendation
-        hasHydratedFromUrlRef.current = true;
-        setLoadingRecommendation(false);
-        return;
-      }
-      hasHydratedFromUrlRef.current = true;
-    }
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    const fetchRecommendedK = async () => {
-      try {
-        setLoadingRecommendation(true);
-        setRecommendationMessage("");
-        const params = new URLSearchParams({
-          range: "2-25",
-          age: String(selectedVariables.age),
-          gender: String(selectedVariables.gender),
-          district: String(selectedVariables.district),
-          time: String(selectedVariables.time),
-          ...buildDiagnosisDateFilterParams(),
-        });
-        const res = await fetch(
-          `${BACKEND_URL}/api/illness-clusters/silhouette?${params.toString()}`,
-        );
-        if (!res.ok) {
-          const apiError = await extractErrorMessage(res);
-          throw new Error(apiError);
-        }
-        const data = await res.json();
-        if (data.best && data.best.k) {
-          setRecommendedK(data.best.k);
-          setKInput(String(data.best.k));
-          setRecommendationMessage("");
-        } else {
-          setRecommendedK(null);
-          setRecommendationMessage(
-            "Recommendation is unavailable for the current date filter.",
-          );
-        }
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : "Failed to fetch silhouette analysis";
-
-        setRecommendedK(null);
-
-        if (/Not enough samples/i.test(errorMessage)) {
-          setRecommendationMessage(
-            "Not enough diagnosis records in this date range to calculate a recommendation.",
-          );
-        } else {
-          setRecommendationMessage(
-            "Recommendation is temporarily unavailable. You can still choose groups manually.",
-          );
-          console.warn("Error fetching recommended k:", errorMessage);
-        }
-      } finally {
-        setLoadingRecommendation(false);
-      }
-    };
-
-    debounceTimerRef.current = setTimeout(fetchRecommendedK, 300);
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedVariables, dateRangeStart, dateRangeEnd, BACKEND_URL]);
-
-  // Keep the groups input aligned with the latest recommendation
-  useEffect(() => {
-    if (recommendedK) {
-      setKInput(String(recommendedK));
-    }
-  }, [recommendedK]);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const clampK = (val: number) => {
-    return clampClusterCount(val, k);
-  };
-
-  const fetchClusterData = (
-    clusterCount: number,
-    variables: ClusterVariableSelection,
-    startDate: Date | null = dateRangeStart,
-    endDate: Date | null = dateRangeEnd,
-  ) => {
-    setLoading(true);
-    setError(null);
-    const params = new URLSearchParams({
-      n_clusters: String(clusterCount),
-      age: String(variables.age),
-      gender: String(variables.gender),
-      district: String(variables.district),
-      time: String(variables.time),
-      ...buildDiagnosisDateFilterParams(startDate, endDate),
-    });
-    fetch(`${BACKEND_URL}/api/illness-clusters?${params.toString()}`)
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Failed to fetch updated cluster data");
-        }
-        return res.json();
-      })
-      .then((data: IllnessClusterData) => {
-        setClusterData(data);
-      })
-      .catch((err) => {
-        setError(err.message || "An unknown error occurred");
-        setClusterData(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    if (hasFetchedInitialDataRef.current || initialData) {
-      return;
-    }
-
-    const shouldUseExplicitUrlK = initialHasExplicitKRef.current;
-    if (!shouldUseExplicitUrlK && loadingRecommendation) {
-      return;
-    }
-
-    const nextK = clampK(shouldUseExplicitUrlK ? k : (recommendedK ?? k));
-    const nextVariables = { ...selectedVariables };
-    const nextDateRangeStart = dateRangeStart;
-    const nextDateRangeEnd = dateRangeEnd;
-
-    hasFetchedInitialDataRef.current = true;
-    setK(nextK);
-    setKInput(String(nextK));
-    setAppliedVariables(nextVariables);
-    setAppliedDateRangeStart(nextDateRangeStart);
-    setAppliedDateRangeEnd(nextDateRangeEnd);
-    fetchClusterData(
-      nextK,
-      nextVariables,
-      nextDateRangeStart,
-      nextDateRangeEnd,
-    );
-  }, [
-    initialData,
-    k,
-    selectedVariables,
-    dateRangeStart,
-    dateRangeEnd,
-    loadingRecommendation,
-    recommendedK,
-  ]);
-
-  const onSubmitK = (e: React.FormEvent) => {
-    e.preventDefault();
-    const nextK = clampK(parseInt(kInput, 10));
-
-    if (loadingRecommendation) {
-      setPendingK(nextK);
-      setShowConfirmModal(true);
-      return;
-    }
-
-    applyClusteringWithK(nextK);
-  };
-
-  const applyClusteringWithK = (clusterCount: number) => {
-    const nextK = clampK(clusterCount);
-    const nextVariables = { ...selectedVariables };
-    const nextDateRangeStart = dateRangeStart;
-    const nextDateRangeEnd = dateRangeEnd;
-
-    setK(nextK);
-    setKInput(String(nextK));
-    setAppliedVariables(nextVariables);
-    setAppliedDateRangeStart(nextDateRangeStart);
-    setAppliedDateRangeEnd(nextDateRangeEnd);
-    fetchClusterData(
-      nextK,
-      nextVariables,
-      nextDateRangeStart,
-      nextDateRangeEnd,
-    );
-
-    try {
-      sessionStorage.setItem("illnessClusters.k", String(nextK));
-    } catch (_) {
-      // Ignore session storage errors
-    }
-  };
-
-  const handleConfirmModal = () => {
-    if (pendingK !== null) {
-      applyClusteringWithK(pendingK);
-    }
-    setShowConfirmModal(false);
-    setPendingK(null);
-  };
-
-  const handleCancelModal = () => {
-    setShowConfirmModal(false);
-    setPendingK(null);
-  };
-
-  const handleVariableChange = (variable: keyof typeof selectedVariables) => {
-    const selectedCount =
-      Object.values(selectedVariables).filter(Boolean).length;
-
-    if (selectedVariables[variable] && selectedCount === 1) {
-      return;
-    }
-
-    // Update draft selections only; clusters regenerate when Apply is clicked
-    setSelectedVariables((prev) => ({
-      ...prev,
-      [variable]: !prev[variable],
-    }));
-  };
-
-  const appliedVariableSummary = formatReadableList(
-    toVariableLabelList(appliedVariables),
-  );
-  const hasPendingVariableChanges = (
-    Object.keys(selectedVariables) as Array<keyof ClusterVariableSelection>
-  ).some((key) => selectedVariables[key] !== appliedVariables[key]);
-
-  // Create navigation context using the ACTUAL dates that were used to fetch cluster data
-  const mapNavigationContext =
-    React.useMemo<IllnessClusterMapNavigationContext>(() => {
-      // Use applied dates directly - these are the dates that were passed to fetchClusterData
-      // If applied dates are null, the data was fetched with no date filter
-      const dateFilterParams = buildDiagnosisDateFilterParams(
-        appliedDateRangeStart,
-        appliedDateRangeEnd,
-      );
-
-      return {
-        tab: "by-cluster",
-        k,
-        variables: appliedVariables,
-        startDate: dateFilterParams.start_date,
-        endDate: dateFilterParams.end_date,
-      };
-    }, [k, appliedVariables, appliedDateRangeStart, appliedDateRangeEnd]);
-
-  // Sync dashboard clustering settings to URL for shareable links
-  useEffect(() => {
-    // Don't sync until we have actual applied data
-    if (!clusterData) {
-      return;
-    }
-
-    const nextQuery = serializeIllnessClusterNavigationQuery({
-      k,
-      variables: appliedVariables,
-      startDate: mapNavigationContext.startDate,
-      endDate: mapNavigationContext.endDate,
-    });
-
-    if (nextQuery === searchParams.toString()) {
-      return;
-    }
-
-    const nextHref = nextQuery ? `${pathname}?${nextQuery}` : pathname;
-    router.replace(nextHref, { scroll: false });
-  }, [
-    k,
-    appliedVariables,
-    mapNavigationContext.startDate,
-    mapNavigationContext.endDate,
-    clusterData,
-    pathname,
-    router,
-    searchParams,
-  ]);
-
-  const modalRoot = isMounted ? document.body : null;
-  const confirmModal = (
-    <div className={`modal ${showConfirmModal ? "modal-open" : ""}`}>
-      <div className="modal-box">
-        <h3 className="text-lg font-semibold">Confirm Group Settings</h3>
-        <p className="text-base-content/80 py-4 text-sm">
-          You&apos;re about to create{" "}
-          <span className="font-semibold">{pendingK}</span> groups, but the
-          recommended number is still{" "}
-          <span className="font-semibold">being calculated</span>. Do you want
-          to continue?
-        </p>
-        <div className="modal-action">
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={handleConfirmModal}
-          >
-            Proceed
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={handleCancelModal}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-      <form
-        method="dialog"
-        className="modal-backdrop"
-        onClick={handleCancelModal}
-      >
-        <button>close</button>
-      </form>
-    </div>
-  );
-
   return (
-    <div className="space-y-6">
-      {/* Variable Selection Row */}
-      <div className="card card-body bg-base-100 border-base-300 border">
-        <div className="flex items-start justify-between">
-          <form onSubmit={onSubmitK} className="flex flex-col gap-4">
-            {/* Variable Selection */}
-            <div>
-              <h2 className="text-base font-semibold">Select variables</h2>
-              <div className="flex flex-wrap items-center gap-3 mt-1.5">
-                {/* Demographic Variables */}
-                <div className="flex items-center gap-3">
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary btn-soft" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.age}
-                      onChange={() => handleVariableChange("age")}
-                    />
-                    <span>Age</span>
-                  </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary btn-soft" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.gender}
-                      onChange={() => handleVariableChange("gender")}
-                    />
-                    <span>Gender</span>
-                  </label>
-                  {/* Location Variable */}
+    <ClusteringControlPanel
+      enableViewToggle={false}
+      enableUrlSync={true}
+      showClusterSelector={false}
+      initialK={initialK}
+    >
+      {({
+        clusterData,
+        loading,
+        error,
+        appliedVariables,
+        k,
+        appliedStartDate,
+        appliedEndDate,
+      }) => {
+        // Create navigation context for "View on map" links using render prop data
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        const mapNavigationContext =
+          useMemo<IllnessClusterMapNavigationContext>(() => {
+            return {
+              tab: "by-cluster",
+              k,
+              variables: appliedVariables,
+              startDate: appliedStartDate || undefined,
+              endDate: appliedEndDate || undefined,
+            };
+          }, [k, appliedVariables, appliedStartDate, appliedEndDate]);
 
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary btn-soft" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.district}
-                      onChange={() => handleVariableChange("district")}
-                    />
-                    <span>District</span>
-                  </label>
-
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary btn-soft" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.time}
-                      onChange={() => handleVariableChange("time")}
-                    />
-                    <span>Diagnosis date</span>
-                  </label>
+        return (
+          <div className="space-y-6">
+            {loading ? (
+              <div className="flex w-full flex-col gap-4">
+                <div className="flex items-center justify-center gap-3">
+                  <Loader2 className="text-primary size-8 animate-spin" />
+                  <p className="text-muted-foreground text-sm font-medium">
+                    Recalculating clusters...
+                  </p>
+                </div>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  {[0, 1, 2, 3].map((index) => (
+                    <Card key={index} className="border-border h-130">
+                      <CardHeader className="space-y-3">
+                        <div className="skeleton h-6 w-20" />
+                        <div className="skeleton h-20 w-full" />
+                        <div className="skeleton h-3 w-32" />
+                        <div className="skeleton h-3 w-24" />
+                      </CardHeader>
+                    </Card>
+                  ))}
                 </div>
               </div>
-            </div>
+            ) : null}
 
-            {/* Diagnosis Date Filter */}
-            <div>
-              <DiagnosisDateFilter
-                onDateRangeChange={(start, end) => {
-                  setDateRangeStart(start);
-                  setDateRangeEnd(end);
-                }}
-                loading={loading}
-              />
-            </div>
-
-            {/* Groups Input */}
-            <div className="flex items-center gap-3">
-              <label htmlFor="illness-cluster-k" className="text-xs">
-                Groups:
-              </label>
-              <Input
-                id="illness-cluster-k"
-                type="number"
-                className="input h-7 w-17 text-xs font-medium"
-                min={2}
-                max={25}
-                value={kInput}
-                onChange={(e) => setKInput(e.target.value)}
-                disabled={loading}
-              />
-
-              <span className="text-muted flex items-center gap-1.5 text-xs font-normal">
-                {loadingRecommendation ? (
-                  <>
-                    <Loader2 className="size-3 animate-spin" />
-                    Calculating recommendation...
-                  </>
-                ) : recommendedK ? (
-                  <>Recommended: {recommendedK} groups</>
-                ) : (
-                  <>Recommended: 2-25 groups</>
-                )}
-              </span>
-              {!loadingRecommendation && recommendationMessage ? (
-                <span className="text-warning text-xs font-medium">
-                  {recommendationMessage}
-                </span>
-              ) : null}
-            </div>
-
-            {/* Description */}
-            <div className="text-muted text-xs font-normal">
-              <span>
-                These groups are currently based on{" "}
-                <span className="font-medium">{appliedVariableSummary}</span>.
-                Patients with similar details in these areas are placed in the
-                same group
-              </span>
-              {hasPendingVariableChanges ? (
-                <span className="block mt-1">
-                  The groups have not been updated. Click Apply to rebuild the
-                  groups using the new variable picks
-                </span>
-              ) : null}
-            </div>
-
-            {/* Apply Button */}
-            <div>
-              <button
-                type="submit"
-                className="btn btn-primary btn-sm w-fit"
-                title="Apply group settings"
-                disabled={loading}
-              >
-                {loading ? "Applying..." : "Apply"}
-              </button>
-            </div>
-          </form>
-          <div className="space-y-1 text-right">
-            <div className="from-primary to-primary/70 bg-gradient-to-br bg-clip-text text-5xl font-semibold tracking-tight text-transparent tabular-nums">
-              {clusterData?.total_illnesses.toLocaleString() ?? "N/A"}
-            </div>
-            <div className="text-muted text-sm font-medium">Diagnoses</div>
-          </div>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex w-full flex-col gap-4">
-          <div className="flex items-center justify-center gap-3">
-            <Loader2 className="text-primary size-8 animate-spin" />
-            <p className="text-muted-foreground text-sm font-medium">
-              Recalculating clusters...
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {[0, 1, 2, 3].map((index) => (
-              <Card key={index} className="border-border h-[520px]">
-                <CardHeader className="space-y-3">
-                  <div className="skeleton h-6 w-20" />
-                  <div className="skeleton h-20 w-full" />
-                  <div className="skeleton h-3 w-32" />
-                  <div className="skeleton h-3 w-24" />
+            {!loading && (error || !clusterData) ? (
+              <Card className="col-span-2 border-red-200/50 bg-red-50/50">
+                <CardHeader className="py-20 text-center">
+                  <div className="mx-auto w-fit rounded-xl bg-red-100 p-3">
+                    <AlertCircle className="size-8 text-red-700" />
+                  </div>
+                  <CardTitle className="mt-4 text-red-700">
+                    Error Loading Cluster Data
+                  </CardTitle>
+                  <CardDescription className="text-red-600">
+                    {error || "Could not retrieve illness cluster information."}
+                  </CardDescription>
                 </CardHeader>
               </Card>
-            ))}
+            ) : null}
+
+            {!loading && !error && clusterData ? (
+              <div className="space-y-6">
+                <IllnessClusterOverviewCards
+                  statistics={clusterData.cluster_statistics}
+                  selectedVariables={appliedVariables}
+                  illnesses={clusterData.illnesses}
+                  mapNavigationContext={mapNavigationContext}
+                />
+              </div>
+            ) : null}
           </div>
-        </div>
-      ) : null}
-
-      {!loading && (error || !clusterData) ? (
-        <Card className="col-span-2 border-red-200/50 bg-red-50/50">
-          <CardHeader className="py-20 text-center">
-            <div className="mx-auto w-fit rounded-[12px] bg-red-100 p-3">
-              <AlertCircle className="size-8 text-red-700" />
-            </div>
-            <CardTitle className="mt-4 text-red-700">
-              Error Loading Cluster Data
-            </CardTitle>
-            <CardDescription className="text-red-600">
-              {error || "Could not retrieve illness cluster information."}
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      ) : null}
-
-      {!loading && !error && clusterData ? (
-        <div className="space-y-6">
-          <IllnessClusterOverviewCards
-            statistics={clusterData.cluster_statistics}
-            selectedVariables={appliedVariables}
-            illnesses={clusterData.illnesses}
-            mapNavigationContext={mapNavigationContext}
-          />
-        </div>
-      ) : null}
-
-      {modalRoot ? createPortal(confirmModal, modalRoot) : null}
-    </div>
+        );
+      }}
+    </ClusteringControlPanel>
   );
 };
 

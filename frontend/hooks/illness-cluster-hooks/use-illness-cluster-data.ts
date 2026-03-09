@@ -50,15 +50,25 @@ export const useIllnessClusterData = ({
       if (startDate) params.set("start_date", startDate);
       if (endDate) params.set("end_date", endDate);
 
+      const url = `${BACKEND_URL}/api/illness-clusters?${params.toString()}`;
+      console.log("[useIllnessClusterData] Fetching:", {
+        k,
+        variables,
+        startDate,
+        endDate,
+        url,
+      });
+
       try {
-        const res = await fetch(
-          `${BACKEND_URL}/api/illness-clusters?${params.toString()}`,
-          { signal: controller.signal },
-        );
+        const res = await fetch(url, { signal: controller.signal });
         if (!res.ok) {
           throw new Error("Failed to fetch cluster data");
         }
         const data = (await res.json()) as IllnessClusterData;
+        console.log("[useIllnessClusterData] Success:", {
+          total_illnesses: data.total_illnesses,
+          n_clusters: data.n_clusters,
+        });
         if (isMounted) {
           setClusterData(data);
         }
