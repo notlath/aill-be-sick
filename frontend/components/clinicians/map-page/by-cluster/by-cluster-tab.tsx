@@ -116,6 +116,7 @@ const ByClusterTab = () => {
   const [coordinatesModal, setCoordinatesModal] = useState<
     "total" | "pinned" | "unpinned" | null
   >(null);
+  const [showAllPatientsModal, setShowAllPatientsModal] = useState(false);
   const lastSyncedUrlRef = useRef<string>(searchParams.toString());
 
   const effectiveStartDate = hasHydratedUrlDates
@@ -652,6 +653,7 @@ const ByClusterTab = () => {
                 nClusters={k}
                 selectedCluster={selectedClusterId}
                 loading={loading}
+                onViewAllPatients={() => setShowAllPatientsModal(true)}
               />
             ) : null}
           </div>
@@ -676,6 +678,7 @@ const ByClusterTab = () => {
                   nClusters={k}
                   selectedCluster={selectedClusterId}
                   loading={loading}
+                  onViewAllPatients={() => setShowAllPatientsModal(true)}
                 />
               </div>
             ) : null}
@@ -705,6 +708,15 @@ const ByClusterTab = () => {
               : `Unpinned Cases — Group ${selectedClusterLabel}`
         }
         subtitle={`Showing ${coordinatesModalPatients.length} diagnosis record${coordinatesModalPatients.length !== 1 ? "s" : ""}`}
+      />
+
+      <PatientsModal
+        isOpen={showAllPatientsModal}
+        onClose={() => setShowAllPatientsModal(false)}
+        patients={filteredIllnesses}
+        clusterDisplay={selectedClusterLabel}
+        title={`All Patients — Group ${selectedClusterLabel}`}
+        subtitle={`Showing ${filteredIllnesses.length} diagnosis record${filteredIllnesses.length !== 1 ? "s" : ""}`}
       />
 
       {modalRoot ? createPortal(confirmModal, modalRoot) : null}

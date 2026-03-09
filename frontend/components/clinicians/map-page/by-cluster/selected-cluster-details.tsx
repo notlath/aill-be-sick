@@ -14,6 +14,7 @@ interface SelectedClusterDetailsProps {
   nClusters: number;
   selectedCluster: number | null;
   loading: boolean;
+  onViewAllPatients?: () => void;
 }
 
 const SelectedClusterDetails = ({
@@ -24,6 +25,7 @@ const SelectedClusterDetails = ({
   nClusters,
   selectedCluster,
   loading,
+  onViewAllPatients,
 }: SelectedClusterDetailsProps) => {
   if (selectedCluster === null) return null;
 
@@ -33,6 +35,7 @@ const SelectedClusterDetails = ({
         stat={stat}
         clusterIndex={clusterIndex}
         selectedVariables={selectedVariables}
+        onViewAllPatients={onViewAllPatients}
       />
       {loading ? (
         <div className="mt-4">

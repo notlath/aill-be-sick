@@ -3,7 +3,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, MapPin, HeartPulse, Calendar } from "lucide-react";
+import { Users, MapPin, HeartPulse, Calendar, ArrowRight } from "lucide-react";
 import type { IllnessClusterStatistics, IllnessRecord } from "@/types";
 import PatientsModal from "@/components/clinicians/map-page/patients-modal";
 import {
@@ -35,11 +35,6 @@ const IllnessClusterOverviewCards: React.FC<
   const [expandedClusters, setExpandedClusters] = React.useState<
     Record<string, boolean>
   >({});
-  const [selectedClusterId, setSelectedClusterId] = React.useState<
-    number | null
-  >(null);
-  const [selectedClusterDisplay, setSelectedClusterDisplay] =
-    React.useState("");
 
   const sortedStatistics = React.useMemo(() => {
     return [...statistics].sort((a, b) => {
@@ -47,14 +42,6 @@ const IllnessClusterOverviewCards: React.FC<
       return b.count - a.count;
     });
   }, [statistics]);
-
-  const selectedClusterPatients = React.useMemo(() => {
-    if (selectedClusterId === null) {
-      return [];
-    }
-
-    return illnesses.filter((illness) => illness.cluster === selectedClusterId);
-  }, [illnesses, selectedClusterId]);
 
   return (
     <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -109,7 +96,7 @@ const IllnessClusterOverviewCards: React.FC<
         return (
           <Card
             key={stat.cluster_id}
-            className={`relative overflow-hidden shadow-sm! transition-none! cursor-pointer hover:shadow-md! hover:border-opacity-100 ${theme.border} border-2 `}
+            className={`group relative overflow-hidden shadow-sm! transition-none! cursor-pointer hover:shadow-md! hover:border-opacity-100 ${theme.border} border-2 `}
             onClick={() => {
               const mapHref = buildIllnessClusterMapHref(index + 1, {
                 ...mapNavigationContext,
@@ -127,19 +114,8 @@ const IllnessClusterOverviewCards: React.FC<
               {/* Header: Cluster Name */}
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="mb-2">
                     <div className="font-semibold">Group {index + 1}</div>
-                    <button
-                      type="button"
-                      className="btn btn-xs btn-outline border-border"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedClusterId(stat.cluster_id);
-                        setSelectedClusterDisplay(String(index + 1));
-                      }}
-                    >
-                      View patients
-                    </button>
                   </div>
                   {/* Clinical Notes - Minimal Card */}
                   <div className="">
@@ -540,19 +516,15 @@ const IllnessClusterOverviewCards: React.FC<
                   </div>
                 )}
             </CardContent>
+
+            {/* Hover indicator */}
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 text-xs opacity-0 group-hover:opacity-60 transition-opacity duration-200">
+              <span className="font-medium">View map</span>
+              <ArrowRight className="size-3.5" />
+            </div>
           </Card>
         );
       })}
-
-      <PatientsModal
-        isOpen={selectedClusterId !== null}
-        onClose={() => {
-          setSelectedClusterId(null);
-          setSelectedClusterDisplay("");
-        }}
-        patients={selectedClusterPatients}
-        clusterDisplay={selectedClusterDisplay}
-      />
     </div>
   );
 };
