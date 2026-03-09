@@ -45,7 +45,9 @@ const ReasonBadge = ({ code }: { code: string }) => {
         ? "badge-info"
         : code.startsWith("CONFIDENCE") || code.startsWith("UNCERTAINTY")
           ? "badge-error"
-          : "badge-secondary";
+          : code.startsWith("AGE") || code.startsWith("GENDER")
+            ? "badge-accent"
+            : "badge-secondary";
 
   return (
     <span
@@ -184,6 +186,41 @@ const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
     },
   },
   {
+    id: "user_age",
+    accessorFn: (row) => row.user?.age ?? null,
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Age
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const age = row.getValue("user_age") as number | null;
+      return <span>{age != null ? age : "—"}</span>;
+    },
+  },
+  {
+    id: "user_gender",
+    accessorFn: (row) => row.user?.gender ?? null,
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Gender
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const gender = row.getValue("user_gender") as string | null;
+      if (!gender) return <span>—</span>;
+      return <span>{gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase()}</span>;
+    },
+  },
+  {
     accessorKey: "district",
     header: ({ column }) => (
       <button
@@ -302,6 +339,41 @@ const normalColumns: ColumnDef<SurveillanceAnomaly>[] = [
     },
   },
   {
+    id: "user_age",
+    accessorFn: (row) => row.user?.age ?? null,
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Age
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const age = row.getValue("user_age") as number | null;
+      return <span>{age != null ? age : "—"}</span>;
+    },
+  },
+  {
+    id: "user_gender",
+    accessorFn: (row) => row.user?.gender ?? null,
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Gender
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const gender = row.getValue("user_gender") as string | null;
+      if (!gender) return <span>—</span>;
+      return <span>{gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase()}</span>;
+    },
+  },
+  {
     accessorKey: "district",
     header: ({ column }) => (
       <button
@@ -355,6 +427,10 @@ const sortOptions: SortOption[] = [
   { value: "createdAt",      label: "Date (Newest)",                 desc: true  },
   { value: "userId",         label: "ID (Low-High)",                 desc: false },
   { value: "userId",         label: "ID (High-Low)",                 desc: true  },
+  { value: "user_age",       label: "Age (Low-High)",                desc: false },
+  { value: "user_age",       label: "Age (High-Low)",                desc: true  },
+  { value: "user_gender",    label: "Gender (A-Z)",                  desc: false },
+  { value: "user_gender",    label: "Gender (Z-A)",                  desc: true  },
 ];
 
 const AnomalyDataTable = ({
@@ -623,7 +699,7 @@ const AnomalyPatientsModal = ({
       onClick={onClose}
     >
       <div
-        className="modal-box w-11/12 max-w-7xl bg-base-100 p-0 overflow-hidden flex flex-col max-h-[90vh]"
+        className="modal-box w-11/12 max-w-[1500px] bg-base-100 p-0 overflow-hidden flex flex-col max-h-[90vh]"
         onClick={handleContentClick}
       >
         <div className="p-6 border-b border-border flex justify-between items-center bg-base-100">

@@ -106,6 +106,16 @@ export const REASON_CODES = {
     description:
       "Two or more independent factors contributed to this record being flagged. Please review all contributing reasons.",
   },
+  "AGE:RARE": {
+    label: "Unusual age",
+    description:
+      "This patient's age is outside the typical range for people diagnosed with this disease. The age may warrant further consideration.",
+  },
+  "GENDER:RARE": {
+    label: "Unusual gender",
+    description:
+      "This patient's gender is uncommon among people diagnosed with this disease. This pattern may be worth noting during review.",
+  },
 } as const;
 
 export type ReasonCode = keyof typeof REASON_CODES;

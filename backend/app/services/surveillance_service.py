@@ -20,6 +20,8 @@ REASON_CLUSTER_SPATIAL = "CLUSTER:SPATIAL"
 REASON_CONFIDENCE_LOW = "CONFIDENCE:LOW"
 REASON_UNCERTAINTY_HIGH = "UNCERTAINTY:HIGH"
 REASON_COMBINED_MULTI = "COMBINED:MULTI"
+REASON_AGE_RARE = "AGE:RARE"
+REASON_GENDER_RARE = "GENDER:RARE"
 
 
 def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=None):
@@ -102,7 +104,7 @@ def _build_feature_matrix(records):
     """
     Convert raw DB rows into a numeric feature matrix.
 
-    Features (7):
+    Features (9):
         0 - latitude
         1 - longitude
         2 - disease (label-encoded)
@@ -110,11 +112,14 @@ def _build_feature_matrix(records):
         4 - month (1-12)
         5 - confidence
         6 - uncertainty
+        7 - age (raw float, median-imputed)
+        8 - gender (label-encoded)
 
     Returns:
-        X           (np.ndarray, shape [n, 7])
+        X           (np.ndarray, shape [n, 9])
         disease_enc (LabelEncoder fitted on disease column)
         district_enc(LabelEncoder fitted on district column)
+        gender_enc  (LabelEncoder fitted on gender column)
         medians     (dict of per-feature median for imputation reference)
     """
     # Extract raw columns
@@ -139,6 +144,11 @@ def _build_feature_matrix(records):
         [r.uncertainty if r.uncertainty is not None else np.nan for r in records],
         dtype=float,
     )
+    ages = np.array(
+        [r.user_age if r.user_age is not None else np.nan for r in records],
+        dtype=float,
+    )
+    genders = np.array([r.user_gender if r.user_gender else "Unknown" for r in records])
 
     # Impute numeric NaNs with column median
     def _fill_median(arr):
@@ -148,12 +158,15 @@ def _build_feature_matrix(records):
 
     confidences, conf_med = _fill_median(confidences)
     uncertainties, unc_med = _fill_median(uncertainties)
+    ages, age_med = _fill_median(ages)
 
     # Label-encode categorical columns
     disease_enc = LabelEncoder()
     district_enc = LabelEncoder()
+    gender_enc = LabelEncoder()
     disease_nums = disease_enc.fit_transform(diseases).astype(float)
     district_nums = district_enc.fit_transform(districts).astype(float)
+    gender_nums = gender_enc.fit_transform(genders).astype(float)
 
     X = np.column_stack(
         [
@@ -164,14 +177,18 @@ def _build_feature_matrix(records):
             months,
             confidences,
             uncertainties,
+            ages,
+            gender_nums,
         ]
     )
 
-    medians = {"confidence": conf_med, "uncertainty": unc_med}
-    return X, disease_enc, district_enc, medians
+    medians = {"confidence": conf_med, "uncertainty": unc_med, "age": age_med}
+    return X, disease_enc, district_enc, gender_enc, medians
 
 
-def _compute_reason_codes(record, X_row, X_all, scaler, disease_enc, district_enc):
+def _compute_reason_codes(
+    record, X_row, X_all, scaler, disease_enc, district_enc, gender_enc
+):
     """
     Determine which reason codes apply to an anomalous record.
 
@@ -180,6 +197,10 @@ def _compute_reason_codes(record, X_row, X_all, scaler, disease_enc, district_en
           that is normal for *that* disease is not wrongly flagged just because
           other diseases cluster elsewhere.
         - Temporal rarity: month is an outlier for that disease's distribution.
+        - Age rarity: patient age is an outlier for that disease's typical age range.
+        - Gender rarity: patient gender is a minority for that disease (proportion
+          below 20% for this disease) — uses per-disease proportion, not 2σ, to
+          avoid over-firing on small datasets with only 2-3 gender values.
         - Confidence/uncertainty: compared against the global population because
           these metrics are disease-agnostic (they reflect model certainty, not
           disease geography).
@@ -187,11 +208,12 @@ def _compute_reason_codes(record, X_row, X_all, scaler, disease_enc, district_en
 
     Args:
         record:      Raw DB row for this anomaly
-        X_row:       Scaled feature vector (shape [7])
-        X_all:       All scaled feature vectors (shape [n, 7])
+        X_row:       Scaled feature vector (shape [9])
+        X_all:       All scaled feature vectors (shape [n, 9])
         scaler:      Fitted StandardScaler
         disease_enc: Fitted LabelEncoder for disease
         district_enc:Fitted LabelEncoder for district
+        gender_enc:  Fitted LabelEncoder for gender
 
     Returns:
         Pipe-separated reason code string, e.g. "GEOGRAPHIC:RARE|TEMPORAL:RARE|COMBINED:MULTI"
@@ -206,15 +228,17 @@ def _compute_reason_codes(record, X_row, X_all, scaler, disease_enc, district_en
     IDX_MONTH = 4
     IDX_CONF = 5
     IDX_UNC = 6
+    IDX_AGE = 7
+    IDX_GENDER = 8
 
     THRESHOLD = 2.0  # standard deviations
 
     disease_label = record.disease if record.disease else "Unknown"
 
     # ── Per-disease population ────────────────────────────────────────────────
-    # All geographic / temporal checks are relative to same-disease peers so
-    # that records are only flagged when they deviate from *their own disease's*
-    # normal distribution, not the global mix of all diseases.
+    # All geographic / temporal / demographic checks are relative to same-disease
+    # peers so that records are only flagged when they deviate from *their own
+    # disease's* normal distribution, not the global mix of all diseases.
     try:
         disease_code = disease_enc.transform([disease_label])[0]
         same_disease_mask = X_all[:, IDX_DIS] == disease_code
@@ -253,6 +277,34 @@ def _compute_reason_codes(record, X_row, X_all, scaler, disease_enc, district_en
     else:
         # Only one record for this disease — inherently rare in time
         reasons.add(REASON_TEMPORAL_RARE)
+
+    # ── Age rarity (per-disease baseline) ─────────────────────────────────────
+    if n_same > 1:
+        disease_ages = same_disease_rows[:, IDX_AGE]
+        age_mean = disease_ages.mean()
+        age_std = disease_ages.std() + 1e-8
+        if abs(X_row[IDX_AGE] - age_mean) > THRESHOLD * age_std:
+            reasons.add(REASON_AGE_RARE)
+    # If only one same-disease record, skip — single-record age is not meaningful
+
+    # ── Gender rarity (per-disease proportion check) ──────────────────────────
+    # With only 2-3 distinct gender values, a 2σ threshold is very easy to
+    # trigger. Instead, flag when the record's gender represents fewer than 20%
+    # of patients with the same disease (i.e. it is a clear minority gender for
+    # that disease's population).
+    GENDER_MINORITY_THRESHOLD = 0.20
+    patient_gender = record.user_gender if record.user_gender else "Unknown"
+    try:
+        patient_gender_code = gender_enc.transform([patient_gender])[0]
+        if n_same > 1:
+            disease_gender_codes = same_disease_rows[:, IDX_GENDER]
+            gender_proportion = (
+                np.sum(disease_gender_codes == patient_gender_code) / n_same
+            )
+            if gender_proportion < GENDER_MINORITY_THRESHOLD:
+                reasons.add(REASON_GENDER_RARE)
+    except Exception:
+        pass
 
     # ── Confidence / uncertainty (global baseline) ────────────────────────────
     # These reflect model certainty and are not disease-specific.
@@ -360,7 +412,7 @@ def detect_anomalies(
         }
 
     # Build feature matrix
-    X_raw, disease_enc, district_enc, medians = _build_feature_matrix(data)
+    X_raw, disease_enc, district_enc, gender_enc, medians = _build_feature_matrix(data)
 
     # Scale features
     scaler = StandardScaler()
@@ -390,7 +442,13 @@ def detect_anomalies(
 
         if is_anomaly:
             reason = _compute_reason_codes(
-                record, X_scaled[i], X_scaled, scaler, disease_enc, district_enc
+                record,
+                X_scaled[i],
+                X_scaled,
+                scaler,
+                disease_enc,
+                district_enc,
+                gender_enc,
             )
 
         entry = _row_to_dict(record, is_anomaly, score, reason)

@@ -22,7 +22,7 @@ The Anomaly Detection system identifies unusual diagnosis records using machine 
 
 ### Core Functionality
 
-The system uses **scikit-learn's Isolation Forest** algorithm to detect anomalies based on 7 features: latitude, longitude, disease, district, month, confidence, and uncertainty. Each flagged anomaly receives reason codes explaining the deviation.
+The system uses **scikit-learn's Isolation Forest** algorithm to detect anomalies based on 9 features: latitude, longitude, disease, district, month, confidence, uncertainty, age, and gender. Each flagged anomaly receives reason codes explaining the deviation.
 
 #### Data Flow
 ```
@@ -46,7 +46,7 @@ The system uses **scikit-learn's Isolation Forest** algorithm to detect anomalie
 │  fetch_diagnosis_   │     ┌──────────────────────┐     ┌─────────────────────┐
 │  data()             │────▶│  _build_feature_    │────▶│  StandardScaler     │
 │  (SQL query)        │     │  matrix()           │     │  (normalization)    │
-└─────────────────────┘     │  (7 features)       │     └─────────────────────┘
+└─────────────────────┘     │  (9 features)       │     └─────────────────────┘
                             └──────────────────────┘               │
                                                                  ▼
                             ┌──────────────────────┐     ┌─────────────────────┐
@@ -213,12 +213,12 @@ export const useAnomalyData = ({
 // Two column variants based on isAnomaly prop
 const anomalyColumns = [  // isAnomaly={true}
   "Patient ID", "Name", "Diagnosis", "Anomaly Score",
-  "Confidence", "Uncertainty", "Reason Flags", "District", "Date"
+  "Confidence", "Uncertainty", "Reason Flags", "Age", "Gender", "District", "Date"
 ];
 
 const normalColumns = [   // isAnomaly={false}
   "Patient ID", "Name", "Diagnosis",
-  "Confidence", "Uncertainty", "District", "Date"
+  "Confidence", "Uncertainty", "Age", "Gender", "District", "Date"
 ];
 ```
 
@@ -239,6 +239,7 @@ const ReasonBadge = ({ code }: { code: string }) => {
   // GEOGRAPHIC:* / CLUSTER:* → badge-warning (yellow)
   // TEMPORAL:* → badge-info (blue)
   // CONFIDENCE:* / UNCERTAINTY:* → badge-error (red)
+  // AGE:* / GENDER:* → badge-accent (teal)
   // COMBINED:* → badge-secondary (purple)
 };
 ```
@@ -270,13 +271,13 @@ const ReasonBadge = ({ code }: { code: string }) => {
 | Function | Purpose |
 |----------|---------|
 | `fetch_diagnosis_data()` | SQL query fetching diagnosis + user JOIN |
-| `_build_feature_matrix()` | Converts DB rows to 7-feature numpy array |
+| `_build_feature_matrix()` | Converts DB rows to 9-feature numpy array |
 | `detect_anomalies()` | Runs Isolation Forest, computes reason codes |
 | `_compute_reason_codes()` | Per-disease baseline comparisons |
 | `_row_to_dict()` | Serializes DB rows to JSON-serializable dict |
 | `analyze_surveillance()` | End-to-end entry point |
 
-#### Feature Matrix (7 features)
+#### Feature Matrix (9 features)
 | Index | Feature | Encoding |
 |-------|---------|----------|
 | 0 | latitude | raw float |
@@ -286,6 +287,8 @@ const ReasonBadge = ({ code }: { code: string }) => {
 | 4 | month (from createdAt) | raw float (1-12) |
 | 5 | confidence | raw float |
 | 6 | uncertainty | raw float |
+| 7 | age (from user) | raw float, median-imputed |
+| 8 | gender (from user) | LabelEncoder |
 
 ---
 
@@ -301,6 +304,8 @@ const ReasonBadge = ({ code }: { code: string }) => {
 | `CONFIDENCE:LOW` | Confidence < mean − 2σ | Global |
 | `UNCERTAINTY:HIGH` | Uncertainty > mean + 2σ | Global |
 | `COMBINED:MULTI` | ≥2 primary reasons triggered | — |
+| `AGE:RARE` | Patient age > 2σ from disease mean | Per-disease |
+| `GENDER:RARE` | Patient gender represents <20% of cases for this disease | Per-disease |
 
 ### Per-Disease vs Global Baselines
 

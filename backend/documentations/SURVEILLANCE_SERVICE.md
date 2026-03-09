@@ -2,12 +2,13 @@
 
 ## Overview
 
-The surveillance service uses **Isolation Forest** (scikit-learn) to detect anomalous diagnosis records. Each record is analyzed against 7 features and tagged with reason codes explaining why it was flagged.
+The surveillance service uses **Isolation Forest** (scikit-learn) to detect anomalous diagnosis records. Each record is analyzed against 9 features and tagged with reason codes explaining why it was flagged.
 
 ### Purpose
 - Detect potential disease outbreak indicators
 - Identify geographic anomalies per disease
 - Flag unusual temporal patterns
+- Flag unusual patient demographics (age, gender) relative to each disease's typical population
 - Highlight low-confidence or high-uncertainty diagnoses
 
 ---
@@ -157,7 +158,7 @@ ORDER BY d."createdAt" DESC
 
 Converts DB rows to numeric feature matrix.
 
-**Features (7):**
+**Features (9):**
 
 | Index | Feature | Encoding |
 |-------|---------|----------|
@@ -168,13 +169,16 @@ Converts DB rows to numeric feature matrix.
 | 4 | month (from createdAt) | raw float (1-12) |
 | 5 | confidence | raw float |
 | 6 | uncertainty | raw float |
+| 7 | age (from user) | raw float, median-imputed |
+| 8 | gender (from user) | LabelEncoder |
 
-**Returns:** `(X, disease_enc, district_enc, medians)`
+**Returns:** `(X, disease_enc, district_enc, gender_enc, medians)`
 
-- `X`: numpy array shape [n, 7]
+- `X`: numpy array shape [n, 9]
 - `disease_enc`: fitted LabelEncoder
 - `district_enc`: fitted LabelEncoder
-- `medians`: dict with confidence/uncertainty medians for imputation
+- `gender_enc`: fitted LabelEncoder
+- `medians`: dict with confidence, uncertainty, and age medians for imputation
 
 ---
 
@@ -205,16 +209,16 @@ Runs Isolation Forest and computes reason codes.
 
 ---
 
-### `_compute_reason_codes(record, X_row, X_all, scaler, disease_enc, district_enc)`
+### `_compute_reason_codes(record, X_row, X_all, scaler, disease_enc, district_enc, gender_enc)`
 
 Determines why a record was flagged as anomalous.
 
 #### Algorithm
 
 1. **Identify same-disease peers** — filter X_all to records with matching disease
-2. **Compute per-disease stats** — mean/std for lat, lng, month
+2. **Compute per-disease stats** — mean/std for lat, lng, month, age; proportion for gender
 3. **Compute global stats** — mean/std for confidence, uncertainty
-4. **Check thresholds** — 2σ from mean for each feature
+4. **Check thresholds** — 2σ from mean for geographic, temporal, age; <20% proportion for gender; 2σ for confidence/uncertainty
 5. **Build reason set** — add codes for triggered conditions
 6. **Add COMBINED** — if ≥2 primary reasons, add COMBINED:MULTI
 7. **Fallback** — if nothing triggered, add GEOGRAPHIC:RARE
@@ -229,6 +233,10 @@ Determines why a record was flagged as anomalous.
 | `CONFIDENCE:LOW` | confidence < mean − 2σ | Global |
 | `UNCERTAINTY:HIGH` | uncertainty > mean + 2σ | Global |
 | `COMBINED:MULTI` | ≥2 primary reasons | — |
+| `AGE:RARE` | patient age > 2σ from disease mean | Per-disease |
+| `GENDER:RARE` | patient gender proportion <20% for this disease | Per-disease |
+
+**Note on `GENDER:RARE`**: Because there are only 2–3 possible gender values, the standard 2σ threshold would fire too easily. Instead, the check is: if the patient's gender represents fewer than 20% of same-disease records, flag it as a minority gender for that disease.
 
 #### Why Per-Disease?
 
@@ -257,6 +265,8 @@ REASON_CLUSTER_SPATIAL = "CLUSTER:SPATIAL"
 REASON_CONFIDENCE_LOW = "CONFIDENCE:LOW"
 REASON_UNCERTAINTY_HIGH = "UNCERTAINTY:HIGH"
 REASON_COMBINED_MULTI = "COMBINED:MULTI"
+REASON_AGE_RARE = "AGE:RARE"
+REASON_GENDER_RARE = "GENDER:RARE"
 ```
 
 ---
