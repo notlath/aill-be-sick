@@ -1,4 +1,5 @@
 import Sidebar from "@/components/patient/layout/sidebar";
+import ClinicianHelpModal from "@/components/clinicians/dashboard-page/clinician-help-modal";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
 import { forbidden, unauthorized } from "next/navigation";
@@ -31,6 +32,7 @@ const ClinicianLayoutContent = async ({ children }: { children: ReactNode }) => 
   return (
     <LayoutWrapper>
       <Sidebar dbUser={dbUser} />
+      <ClinicianHelpModal />
       {children}
     </LayoutWrapper>
   );
