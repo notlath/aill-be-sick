@@ -271,12 +271,12 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     setAppliedVariables({ ...urlState.variables });
     setSelectedClusterDisplay(urlState.clusterDisplay);
 
-    if (urlState.startDate && urlState.endDate) {
-      setDateRangeStart(parseDateFromString(urlState.startDate));
-      setDateRangeEnd(parseDateFromString(urlState.endDate));
-      setAppliedDateRangeStart(parseDateFromString(urlState.startDate));
-      setAppliedDateRangeEnd(parseDateFromString(urlState.endDate));
-    }
+    const nextStartDate = parseDateFromString(urlState.startDate);
+    const nextEndDate = parseDateFromString(urlState.endDate);
+    setDateRangeStart(nextStartDate);
+    setDateRangeEnd(nextEndDate);
+    setAppliedDateRangeStart(nextStartDate);
+    setAppliedDateRangeEnd(nextEndDate);
   }, [searchParams, enableUrlSync]);
 
   const clampK = useCallback(
@@ -348,6 +348,14 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     setPendingK(null);
   }, []);
 
+  const handleDateRangeChange = useCallback(
+    (start: Date | null, end: Date | null) => {
+      setDateRangeStart(start);
+      setDateRangeEnd(end);
+    },
+    [],
+  );
+
   const appliedVariableSummary = useMemo(
     () => formatReadableList(toVariableLabelList(appliedVariables)),
     [appliedVariables],
@@ -360,6 +368,18 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       ).some((key) => selectedVariables[key] !== appliedVariables[key]),
     [selectedVariables, appliedVariables],
   );
+
+  const hasPendingDateRangeChanges = useMemo(
+    () =>
+      formatDateToString(dateRangeStart) !==
+        formatDateToString(appliedDateRangeStart) ||
+      formatDateToString(dateRangeEnd) !==
+        formatDateToString(appliedDateRangeEnd),
+    [dateRangeStart, dateRangeEnd, appliedDateRangeStart, appliedDateRangeEnd],
+  );
+
+  const hasPendingFilterChanges =
+    hasPendingVariableChanges || hasPendingDateRangeChanges;
 
   const modalRoot = isMounted ? document.body : null;
   const confirmModal = (
@@ -482,10 +502,9 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                 <ViewSelect value={view} onValueChange={setView} />
               ) : null}
               <DiagnosisDateFilter
-                onDateRangeChange={(start, end) => {
-                  setDateRangeStart(start);
-                  setDateRangeEnd(end);
-                }}
+                currentStartDate={dateRangeStart}
+                currentEndDate={dateRangeEnd}
+                onDateRangeChange={handleDateRangeChange}
                 loading={loading}
               />
 
@@ -532,10 +551,10 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                   Patients with similar details in these areas are placed in the
                   same group
                 </span>
-                {hasPendingVariableChanges ? (
+                {hasPendingFilterChanges ? (
                   <span className="block mt-1">
                     The groups have not been updated. Click Apply to rebuild the
-                    groups using the new variable picks
+                    groups using the updated filters
                   </span>
                 ) : null}
               </div>

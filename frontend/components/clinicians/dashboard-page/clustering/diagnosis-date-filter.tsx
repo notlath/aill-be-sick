@@ -13,6 +13,8 @@ import {
 interface DiagnosisDateFilterProps {
   onDateRangeChange: (startDate: Date | null, endDate: Date | null) => void;
   loading?: boolean;
+  currentStartDate?: Date | null;
+  currentEndDate?: Date | null;
 }
 
 type PresetType = "last-7-days" | "last-3-months" | "year-to-date" | "custom";
@@ -41,7 +43,7 @@ const buildMonthOptions = (count: number) => {
   return options;
 };
 
-const getDatePresetRange = (preset: PresetType): [Date, Date] => {
+const getDatePresetRange = (preset: PresetType): [Date | null, Date | null] => {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -65,11 +67,41 @@ const getDatePresetRange = (preset: PresetType): [Date, Date] => {
     }
 
     case "custom":
-      return [null as any, null as any];
+      return [null, null];
 
     default:
-      return [null as any, null as any];
+      return [null, null];
   }
+};
+
+const toDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const resolvePresetFromRange = (startDate: Date, endDate: Date): PresetType => {
+  const deterministicPresets: PresetType[] = [
+    "last-7-days",
+    "last-3-months",
+    "year-to-date",
+  ];
+
+  for (const preset of deterministicPresets) {
+    const [presetStart, presetEnd] = getDatePresetRange(preset);
+
+    if (
+      presetStart &&
+      presetEnd &&
+      toDateKey(presetStart) === toDateKey(startDate) &&
+      toDateKey(presetEnd) === toDateKey(endDate)
+    ) {
+      return preset;
+    }
+  }
+
+  return "custom";
 };
 
 const MonthYearPicker: React.FC<DatePickerProps> = ({
@@ -202,19 +234,29 @@ const MonthYearPicker: React.FC<DatePickerProps> = ({
 export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
   onDateRangeChange,
   loading,
+  currentStartDate,
+  currentEndDate,
 }) => {
   const [activePreset, setActivePreset] = useState<PresetType>("last-3-months");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
-  // Initialize with the default quick range.
+  // Hydrate the filter UI from parent state (URL-derived when available).
   useEffect(() => {
-    const [start, end] = getDatePresetRange("last-3-months");
-    setStartDate(start);
-    setEndDate(end);
-    onDateRangeChange(start, end);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (currentStartDate && currentEndDate) {
+      setActivePreset(resolvePresetFromRange(currentStartDate, currentEndDate));
+      setStartDate(currentStartDate);
+      setEndDate(currentEndDate);
+      onDateRangeChange(currentStartDate, currentEndDate);
+      return;
+    }
+
+    const [defaultStart, defaultEnd] = getDatePresetRange("last-3-months");
+    setActivePreset("last-3-months");
+    setStartDate(defaultStart);
+    setEndDate(defaultEnd);
+    onDateRangeChange(defaultStart, defaultEnd);
+  }, [currentStartDate, currentEndDate, onDateRangeChange]);
 
   const handlePresetClick = (preset: PresetType) => {
     setActivePreset(preset);
