@@ -72,6 +72,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
     parseIllnessClusterNavigationQuery(searchParams),
   );
   const initialNavigationState = initialNavigationStateRef.current;
+  const initialHasExplicitKRef = useRef(searchParams.get("k") !== null);
 
   const [clusterData, setClusterData] = useState<IllnessClusterData | null>(
     initialData || null,
@@ -304,11 +305,41 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   };
 
   useEffect(() => {
-    if (!initialData && !hasFetchedInitialDataRef.current) {
-      hasFetchedInitialDataRef.current = true;
-      fetchClusterData(k, appliedVariables);
+    if (hasFetchedInitialDataRef.current || initialData) {
+      return;
     }
-  }, [initialData, k, appliedVariables]);
+
+    const shouldUseExplicitUrlK = initialHasExplicitKRef.current;
+    if (!shouldUseExplicitUrlK && loadingRecommendation) {
+      return;
+    }
+
+    const nextK = clampK(shouldUseExplicitUrlK ? k : (recommendedK ?? k));
+    const nextVariables = { ...selectedVariables };
+    const nextDateRangeStart = dateRangeStart;
+    const nextDateRangeEnd = dateRangeEnd;
+
+    hasFetchedInitialDataRef.current = true;
+    setK(nextK);
+    setKInput(String(nextK));
+    setAppliedVariables(nextVariables);
+    setAppliedDateRangeStart(nextDateRangeStart);
+    setAppliedDateRangeEnd(nextDateRangeEnd);
+    fetchClusterData(
+      nextK,
+      nextVariables,
+      nextDateRangeStart,
+      nextDateRangeEnd,
+    );
+  }, [
+    initialData,
+    k,
+    selectedVariables,
+    dateRangeStart,
+    dateRangeEnd,
+    loadingRecommendation,
+    recommendedK,
+  ]);
 
   const onSubmitK = (e: React.FormEvent) => {
     e.preventDefault();
