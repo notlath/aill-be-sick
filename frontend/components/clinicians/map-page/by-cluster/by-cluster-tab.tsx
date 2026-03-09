@@ -86,13 +86,9 @@ const ByClusterTab = () => {
   const { activeTab } = useMapStore();
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
 
-  const initialNavigationStateRef = useRef<
-    ReturnType<typeof parseIllnessClusterNavigationQuery> | undefined
-  >(undefined);
-  if (!initialNavigationStateRef.current) {
-    initialNavigationStateRef.current =
-      parseIllnessClusterNavigationQuery(searchParams);
-  }
+  const initialNavigationStateRef = useRef(
+    parseIllnessClusterNavigationQuery(searchParams),
+  );
   const initialNavigationState = initialNavigationStateRef.current;
 
   const {
@@ -120,6 +116,7 @@ const ByClusterTab = () => {
   const [coordinatesModal, setCoordinatesModal] = useState<
     "total" | "pinned" | "unpinned" | null
   >(null);
+  const lastSyncedUrlRef = useRef<string>(searchParams.toString());
 
   const effectiveStartDate = hasHydratedUrlDates
     ? startDate
@@ -150,6 +147,33 @@ const ByClusterTab = () => {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Sync incoming URL parameters to state (for external navigation from dashboard)
+  useEffect(() => {
+    const currentUrl = searchParams.toString();
+
+    // Only sync if URL has actually changed from what we last processed
+    if (currentUrl === lastSyncedUrlRef.current) {
+      return;
+    }
+
+    lastSyncedUrlRef.current = currentUrl;
+    const urlState = parseIllnessClusterNavigationQuery(searchParams);
+
+    // Update state to match external URL parameters
+    setK(urlState.k);
+    setKInput(String(urlState.k));
+    setSelectedVariables({ ...urlState.variables });
+    setAppliedVariables({ ...urlState.variables });
+    setSelectedClusterDisplay(urlState.clusterDisplay);
+
+    // Update date store if URL has date parameters
+    if (urlState.startDate && urlState.endDate) {
+      setStartDate(urlState.startDate);
+      setEndDate(urlState.endDate);
+      setHasHydratedUrlDates(true);
+    }
+  }, [searchParams, setStartDate, setEndDate]);
 
   const clampK = (val: number) => {
     return clampClusterCount(val, k);
@@ -273,6 +297,10 @@ const ByClusterTab = () => {
     }
 
     const nextHref = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+
+    // Track that we're updating the URL to prevent sync effect from re-triggering
+    lastSyncedUrlRef.current = nextQuery;
+
     router.replace(nextHref, { scroll: false });
   }, [
     activeTab,
