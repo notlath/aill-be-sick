@@ -2,6 +2,10 @@
 
 import type { SurveillanceAnomaly } from "@/types";
 import React from "react";
+import {
+  getAnomalyLevelLabel,
+  getAnomalyLevelBadgeClass,
+} from "@/utils/anomaly-reasons";
 
 interface AnomaliesTableProps {
   anomalies: SurveillanceAnomaly[];
@@ -78,19 +82,14 @@ const AnomaliesTable: React.FC<AnomaliesTableProps> = ({ anomalies }) => {
                   </td>
                   <td>
                     <span
-                      className={`font-mono text-sm font-medium tabular-nums ${
-                        anomaly.anomaly_score < -0.1
-                          ? "text-error"
-                          : anomaly.anomaly_score < 0
-                            ? "text-warning"
-                            : "text-muted"
-                      }`}
+                      className={`badge ${getAnomalyLevelBadgeClass(anomaly.anomaly_score)} badge-md cursor-help`}
+                      title={`Score: ${anomaly.anomaly_score.toFixed(4)}`}
                     >
-                      {anomaly.anomaly_score.toFixed(4)}
+                      {getAnomalyLevelLabel(anomaly.anomaly_score)}
                     </span>
                   </td>
                   <td className="text-muted text-sm tabular-nums">
-                    {formatDate(anomaly.created_at)}
+                    {formatDate(anomaly.createdAt)}
                   </td>
                 </tr>
               ))}

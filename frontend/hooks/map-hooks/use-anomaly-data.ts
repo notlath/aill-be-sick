@@ -57,7 +57,7 @@ export const useAnomalyData = ({
           throw new Error("Failed to fetch anomaly data");
         }
 
-        const data = (await res.json()) as OutbreakFullResult;
+        const data = await res.json() as OutbreakFullResult;
 
         if (isMounted) {
           setAnomalyData(data);
