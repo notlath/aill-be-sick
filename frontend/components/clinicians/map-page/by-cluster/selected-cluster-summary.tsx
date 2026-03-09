@@ -15,7 +15,6 @@ interface SelectedClusterSummaryProps {
     district: boolean;
     time: boolean;
   };
-  onViewAllPatients?: () => void;
 }
 
 const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
@@ -27,7 +26,6 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
     district: true,
     time: false,
   },
-  onViewAllPatients,
 }) => {
   const theme = CLUSTER_THEMES[clusterIndex % CLUSTER_THEMES.length];
 
@@ -130,7 +128,7 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
       {/* Subtle background color based on theme */}
       <div className={`absolute inset-0 bg-base-100 opacity-90`} />
 
-      <CardHeader className="relative pb-4 flex flex-col md:flex-row md:items-start justify-between gap-4">
+      <CardHeader className="relative pb-4">
         <div className="flex-1">
           <div className="font-semibold text-lg mb-2 flex items-center gap-2">
             Group {clusterIndex + 1} Summary
@@ -164,15 +162,6 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
             </div>
           </div>
         </div>
-        {onViewAllPatients && (
-          <button
-            type="button"
-            className="btn btn-sm btn-outline"
-            onClick={onViewAllPatients}
-          >
-            View all patients
-          </button>
-        )}
       </CardHeader>
 
       <CardContent className="relative pt-4 grid grid-cols-1 md:grid-cols-3 gap-8">
