@@ -32,9 +32,9 @@ export const clinicianNavItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
-    name: "Users",
-    href: "/users",
-    icon: User,
+    name: "Map",
+    href: "/map",
+    icon: MapPin,
   },
   {
     name: "Alerts",
@@ -42,13 +42,13 @@ export const clinicianNavItems: NavItem[] = [
     icon: OctagonAlert,
   },
   {
-    name: "Map",
-    href: "/map",
-    icon: MapPin,
-  },
-  {
     name: "Healthcare Reports",
     href: "/healthcare-reports",
     icon: LayoutDashboard,
+  },
+  {
+    name: "Users",
+    href: "/users",
+    icon: User,
   },
 ];

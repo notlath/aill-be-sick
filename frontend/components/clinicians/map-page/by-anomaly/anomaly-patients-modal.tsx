@@ -24,12 +24,47 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { SurveillanceAnomaly } from "@/types";
+import {
+  parseReasonCodes,
+  getReasonLabel,
+  getReasonDescription,
+  getAnomalyLevelLabel,
+  getAnomalyLevelBadgeClass,
+} from "@/utils/anomaly-reasons";
+
+// ─── Reason badge ─────────────────────────────────────────────────────────────
+
+const ReasonBadge = ({ code }: { code: string }) => {
+  const label = getReasonLabel(code);
+  const description = getReasonDescription(code);
+
+  const colorClass =
+    code.startsWith("GEOGRAPHIC") || code.startsWith("CLUSTER")
+      ? "badge-warning"
+      : code.startsWith("TEMPORAL")
+        ? "badge-info"
+        : code.startsWith("CONFIDENCE") || code.startsWith("UNCERTAINTY")
+          ? "badge-error"
+          : code.startsWith("AGE") || code.startsWith("GENDER")
+            ? "badge-accent"
+            : "badge-secondary";
+
+  return (
+    <span
+      className={`badge badge-sm ${colorClass} cursor-help whitespace-nowrap`}
+      title={description}
+    >
+      {label}
+    </span>
+  );
+};
 
 // ─── Column definitions ───────────────────────────────────────────────────────
 
+// Columns for anomalies table (includes anomaly score, reason flags, excludes location)
 const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
   {
-    accessorKey: "user_id",
+    accessorKey: "userId",
     header: ({ column }) => (
       <button
         className="flex items-center gap-1 hover:text-primary"
@@ -39,10 +74,11 @@ const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
         <ArrowUpDown className="w-4 h-4" />
       </button>
     ),
-    cell: ({ row }) => <span>{row.getValue("user_id")}</span>,
+    cell: ({ row }) => <span>{row.getValue("userId")}</span>,
   },
   {
-    accessorKey: "user_name",
+    id: "user_name",
+    accessorFn: (row) => row.user?.name ?? null,
     header: ({ column }) => (
       <button
         className="flex items-center gap-1 hover:text-primary"
@@ -77,33 +113,111 @@ const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
         className="flex items-center gap-1 hover:text-primary"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Anomaly Score
+        Anomaly Level
         <ArrowUpDown className="w-4 h-4" />
       </button>
     ),
     cell: ({ row }) => {
       const score = row.getValue("anomaly_score") as number;
-      return <span>{score.toFixed(4)}</span>;
+      const label = getAnomalyLevelLabel(score);
+      const badgeClass = getAnomalyLevelBadgeClass(score);
+      return (
+        <span
+          className={`badge ${badgeClass} badge-md cursor-help`}
+          title={`Score: ${score.toFixed(4)}`}
+        >
+          {label}
+        </span>
+      );
     },
   },
   {
-    id: "location",
-    header: "Location",
-    accessorFn: (row) => {
-      return [row.barangay, row.city, row.region].filter(Boolean).join(", ");
-    },
-    filterFn: (row, columnId, filterValue) => {
-      const search = (filterValue as string).toLowerCase();
-      const value = row.getValue(columnId) as string;
-      return value.toLowerCase().includes(search);
-    },
+    accessorKey: "confidence",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Confidence
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
     cell: ({ row }) => {
-      const display = row.getValue("location") as string;
+      const val = row.getValue("confidence") as number | null;
+      if (val == null) return <span>—</span>;
       return (
-        <div className="max-w-sm truncate" title={display || "—"}>
-          {display || "—"}
+        <span className="tabular-nums">{(val * 100).toFixed(1)}%</span>
+      );
+    },
+  },
+  {
+    accessorKey: "uncertainty",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Uncertainty
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const val = row.getValue("uncertainty") as number | null;
+      if (val == null) return <span>—</span>;
+      return (
+        <span className="tabular-nums">{(val * 100).toFixed(1)}%</span>
+      );
+    },
+  },
+  {
+    accessorKey: "reason",
+    header: "Reason Flags",
+    cell: ({ row }) => {
+      const reason = row.getValue("reason") as string | null;
+      const codes = parseReasonCodes(reason);
+      if (codes.length === 0) return <span className="text-muted">—</span>;
+      return (
+        <div className="flex flex-wrap gap-1 max-w-48">
+          {codes.map((code) => (
+            <ReasonBadge key={code} code={code} />
+          ))}
         </div>
       );
+    },
+  },
+  {
+    id: "user_age",
+    accessorFn: (row) => row.user?.age ?? null,
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Age
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const age = row.getValue("user_age") as number | null;
+      return <span>{age != null ? age : "—"}</span>;
+    },
+  },
+  {
+    id: "user_gender",
+    accessorFn: (row) => row.user?.gender ?? null,
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Gender
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const gender = row.getValue("user_gender") as string | null;
+      if (!gender) return <span>—</span>;
+      return <span>{gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase()}</span>;
     },
   },
   {
@@ -123,7 +237,7 @@ const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
     },
   },
   {
-    accessorKey: "created_at",
+    accessorKey: "createdAt",
     header: ({ column }) => (
       <button
         className="flex items-center gap-1 hover:text-primary"
@@ -134,7 +248,160 @@ const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
       </button>
     ),
     cell: ({ row }) => {
-      const dateStr = row.getValue("created_at") as string | null;
+      const dateStr = row.getValue("createdAt") as string | null;
+      if (!dateStr) return <span>—</span>;
+      return <span>{new Date(dateStr).toLocaleDateString()}</span>;
+    },
+  },
+];
+
+// Columns for normal diagnoses table (excludes anomaly score and reason flags)
+const normalColumns: ColumnDef<SurveillanceAnomaly>[] = [
+  {
+    accessorKey: "userId",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Patient ID
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => <span>{row.getValue("userId")}</span>,
+  },
+  {
+    id: "user_name",
+    accessorFn: (row) => row.user?.name ?? null,
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Name
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const name = row.getValue("user_name") as string | null;
+      return <span>{name || "—"}</span>;
+    },
+  },
+  {
+    accessorKey: "disease",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Diagnosis
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => <span>{row.getValue("disease")}</span>,
+  },
+  {
+    accessorKey: "confidence",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Confidence
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const val = row.getValue("confidence") as number | null;
+      if (val == null) return <span>—</span>;
+      return (
+        <span className="tabular-nums">{(val * 100).toFixed(1)}%</span>
+      );
+    },
+  },
+  {
+    accessorKey: "uncertainty",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Uncertainty
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const val = row.getValue("uncertainty") as number | null;
+      if (val == null) return <span>—</span>;
+      return (
+        <span className="tabular-nums">{(val * 100).toFixed(1)}%</span>
+      );
+    },
+  },
+  {
+    id: "user_age",
+    accessorFn: (row) => row.user?.age ?? null,
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Age
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const age = row.getValue("user_age") as number | null;
+      return <span>{age != null ? age : "—"}</span>;
+    },
+  },
+  {
+    id: "user_gender",
+    accessorFn: (row) => row.user?.gender ?? null,
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Gender
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const gender = row.getValue("user_gender") as string | null;
+      if (!gender) return <span>—</span>;
+      return <span>{gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase()}</span>;
+    },
+  },
+  {
+    accessorKey: "district",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        District
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const district = row.getValue("district") as string | null;
+      return <span>{district || "—"}</span>;
+    },
+  },
+  {
+    accessorKey: "createdAt",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Diagnosis Date
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const dateStr = row.getValue("createdAt") as string | null;
       if (!dateStr) return <span>—</span>;
       return <span>{new Date(dateStr).toLocaleDateString()}</span>;
     },
@@ -146,19 +413,33 @@ const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
 type SortOption = { value: string; label: string; desc: boolean };
 
 const sortOptions: SortOption[] = [
-  { value: "user_name", label: "Name (A-Z)", desc: false },
-  { value: "user_name", label: "Name (Z-A)", desc: true },
-  { value: "anomaly_score", label: "Anomaly Score (Low-High)", desc: false },
-  { value: "anomaly_score", label: "Anomaly Score (High-Low)", desc: true },
-  { value: "disease", label: "Diagnosis (A-Z)", desc: false },
-  { value: "disease", label: "Diagnosis (Z-A)", desc: true },
-  { value: "created_at", label: "Date (Oldest)", desc: false },
-  { value: "created_at", label: "Date (Newest)", desc: true },
-  { value: "user_id", label: "ID (Low-High)", desc: false },
-  { value: "user_id", label: "ID (High-Low)", desc: true },
+  { value: "user_name",      label: "Name (A-Z)",                    desc: false },
+  { value: "user_name",      label: "Name (Z-A)",                    desc: true  },
+  { value: "anomaly_score",  label: "Anomaly Score (Low-High)",      desc: false },
+  { value: "anomaly_score",  label: "Anomaly Score (High-Low)",      desc: true  },
+  { value: "confidence",     label: "Confidence (Low-High)",         desc: false },
+  { value: "confidence",     label: "Confidence (High-Low)",         desc: true  },
+  { value: "uncertainty",    label: "Uncertainty (Low-High)",        desc: false },
+  { value: "uncertainty",    label: "Uncertainty (High-Low)",        desc: true  },
+  { value: "disease",        label: "Diagnosis (A-Z)",               desc: false },
+  { value: "disease",        label: "Diagnosis (Z-A)",               desc: true  },
+  { value: "createdAt",      label: "Date (Oldest)",                 desc: false },
+  { value: "createdAt",      label: "Date (Newest)",                 desc: true  },
+  { value: "userId",         label: "ID (Low-High)",                 desc: false },
+  { value: "userId",         label: "ID (High-Low)",                 desc: true  },
+  { value: "user_age",       label: "Age (Low-High)",                desc: false },
+  { value: "user_age",       label: "Age (High-Low)",                desc: true  },
+  { value: "user_gender",    label: "Gender (A-Z)",                  desc: false },
+  { value: "user_gender",    label: "Gender (Z-A)",                  desc: true  },
 ];
 
-const AnomalyDataTable = ({ data }: { data: SurveillanceAnomaly[] }) => {
+const AnomalyDataTable = ({
+  data,
+  isAnomaly = true,
+}: {
+  data: SurveillanceAnomaly[];
+  isAnomaly?: boolean;
+}) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -167,9 +448,11 @@ const AnomalyDataTable = ({ data }: { data: SurveillanceAnomaly[] }) => {
     pageSize: 10,
   });
 
+  const columns = isAnomaly ? anomalyColumns : normalColumns;
+
   const table = useReactTable({
     data,
-    columns: anomalyColumns,
+    columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -179,14 +462,6 @@ const AnomalyDataTable = ({ data }: { data: SurveillanceAnomaly[] }) => {
       const value = row.getValue(columnId);
       if (value != null && String(value).toLowerCase().includes(search)) {
         return true;
-      }
-      if (columnId === "location") {
-        const original = row.original as SurveillanceAnomaly;
-        const loc = [original.barangay, original.city, original.region]
-          .filter(Boolean)
-          .join(", ")
-          .toLowerCase();
-        if (loc.includes(search)) return true;
       }
       return false;
     },
@@ -223,7 +498,7 @@ const AnomalyDataTable = ({ data }: { data: SurveillanceAnomaly[] }) => {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted z-10" />
           <Input
             type="text"
-            placeholder="Search anomalies..."
+            placeholder="Search records..."
             value={globalFilter ?? ""}
             onChange={(e) => {
               setGlobalFilter(e.target.value);
@@ -299,7 +574,7 @@ const AnomalyDataTable = ({ data }: { data: SurveillanceAnomaly[] }) => {
               ) : (
                 <tr>
                   <td
-                    colSpan={anomalyColumns.length}
+                    colSpan={isAnomaly ? anomalyColumns.length : normalColumns.length}
                     className="h-24 text-center"
                   >
                     {globalFilter || columnFilters.length > 0
@@ -387,6 +662,7 @@ interface AnomalyPatientsModalProps {
   onClose: () => void;
   title: string;
   anomalies: SurveillanceAnomaly[];
+  isAnomaly?: boolean;
 }
 
 const AnomalyPatientsModal = ({
@@ -394,6 +670,7 @@ const AnomalyPatientsModal = ({
   onClose,
   title,
   anomalies,
+  isAnomaly = true,
 }: AnomalyPatientsModalProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -422,15 +699,15 @@ const AnomalyPatientsModal = ({
       onClick={onClose}
     >
       <div
-        className="modal-box w-11/12 max-w-7xl bg-base-100 p-0 overflow-hidden flex flex-col max-h-[90vh]"
+        className="modal-box w-11/12 max-w-[1500px] bg-base-100 p-0 overflow-hidden flex flex-col max-h-[90vh]"
         onClick={handleContentClick}
       >
         <div className="p-6 border-b border-border flex justify-between items-center bg-base-100">
           <div>
             <h3 className="font-bold text-lg">{title}</h3>
             <p className="text-sm text-base-content/70">
-              Showing {anomalies.length} anomal
-              {anomalies.length !== 1 ? "ies" : "y"}
+              Showing {anomalies.length} record
+              {anomalies.length !== 1 ? "s" : ""}
             </p>
           </div>
           <button
@@ -445,10 +722,10 @@ const AnomalyPatientsModal = ({
         <div className="p-6 overflow-y-auto bg-base-100 flex-1">
           {anomalies.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center h-48">
-              <p>No anomalies found for the selected filters.</p>
+              <p>No records found for the selected filters.</p>
             </div>
           ) : (
-            <AnomalyDataTable data={anomalies} />
+            <AnomalyDataTable data={anomalies} isAnomaly={isAnomaly} />
           )}
         </div>
       </div>

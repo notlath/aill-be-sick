@@ -82,7 +82,7 @@ export function AnomalyTimelineChart({
   const [granularity, setGranularity] = useState<TimeGranularity>("month");
 
   const chartData = useMemo<TimeBucket[]>(() => {
-    const withDates = anomalies.filter((a) => !!a.created_at);
+    const withDates = anomalies.filter((a) => !!a.createdAt);
     if (withDates.length === 0) return [];
 
     const bucketMap = new Map<string, number>();
@@ -90,10 +90,10 @@ export function AnomalyTimelineChart({
     for (const anomaly of withDates) {
       const key =
         granularity === "day"
-          ? getDayKey(anomaly.created_at)
+          ? getDayKey(anomaly.createdAt)
           : granularity === "week"
-            ? getISOWeekKey(anomaly.created_at)
-            : getMonthKey(anomaly.created_at);
+            ? getISOWeekKey(anomaly.createdAt)
+            : getMonthKey(anomaly.createdAt);
 
       bucketMap.set(key, (bucketMap.get(key) ?? 0) + 1);
     }

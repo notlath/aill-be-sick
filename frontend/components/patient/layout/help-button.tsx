@@ -5,11 +5,17 @@ import { cn } from "@/utils/lib";
 
 const HelpButton = () => {
   const handleClick = () => {
-    (document.querySelector('.onboarding-dialog') as any).showModal();
+    // Open the active role's help dialog without navigation.
+    (
+      document.querySelector(
+        ".help-dialog, .onboarding-dialog",
+      ) as HTMLDialogElement | null
+    )?.showModal();
   };
 
   return (
     <button
+      type="button"
       onClick={handleClick}
       className={cn(
         "group flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] relative overflow-hidden w-full",

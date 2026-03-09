@@ -78,10 +78,27 @@ export interface PatientClusterData {
 }
 
 // Types for surveillance / outbreak detection
+
+export interface SurveillanceUser {
+  id: number;
+  name: string | null;
+  email: string | null;
+  role: string;
+  city: string | null;
+  region: string | null;
+  province: string | null;
+  barangay: string | null;
+  district: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  age: number | null;
+  gender: string | null;
+}
+
 export interface SurveillanceAnomaly {
   id: number;
   disease: string;
-  created_at: string;
+  createdAt: string;
   latitude: number;
   longitude: number;
   city: string | null;
@@ -91,9 +108,19 @@ export interface SurveillanceAnomaly {
   district: string | null;
   confidence: number;
   uncertainty: number;
-  user_id: number;
-  user_name: string;
+  userId: number;
+  user: SurveillanceUser;
+  is_anomaly: boolean;
   anomaly_score: number;
+  /** Pipe-separated reason codes, e.g. "GEOGRAPHIC:RARE|COMBINED:MULTI". Null for normal records. */
+  reason: string | null;
+}
+
+export interface OutbreakSummaryStats {
+  total_records: number;
+  anomaly_count: number;
+  normal_count: number;
+  contamination_used: number;
 }
 
 export interface OutbreakSummary {
@@ -108,11 +135,13 @@ export interface OutbreakSummary {
 
 export interface OutbreakFullResult {
   anomalies: SurveillanceAnomaly[];
-  normal: SurveillanceAnomaly[];
+  normal_diagnoses: SurveillanceAnomaly[];
+  summary: OutbreakSummaryStats;
+  // Legacy top-level aliases (still present in backend response for backwards compat)
   total_analyzed: number;
   anomaly_count: number;
+  normal_count: number;
   outbreak_alert: boolean;
-  contamination: number;
 }
 
 export type HeatmapLegendBin = {
