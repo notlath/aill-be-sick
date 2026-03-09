@@ -2,7 +2,7 @@ import Sidebar from "@/components/patient/layout/sidebar";
 import ClinicianHelpModal from "@/components/clinicians/dashboard-page/clinician-help-modal";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
-import { forbidden, unauthorized } from "next/navigation";
+import { redirect } from "next/navigation";
 import { ReactNode, Suspense } from "react";
 
 const Layout = ({ children }: { children: ReactNode }) => {
@@ -13,20 +13,32 @@ const Layout = ({ children }: { children: ReactNode }) => {
   );
 };
 
-const ClinicianLayoutContent = async ({ children }: { children: ReactNode }) => {
-  const { success: dbUser, error } = await getCurrentDbUser();
+const ClinicianLayoutContent = async ({
+  children,
+}: {
+  children: ReactNode;
+}) => {
+  const { success: dbUser, error, code } = await getCurrentDbUser();
 
   if (error) {
+    if (code === "NOT_AUTHENTICATED") {
+      redirect("/clinician-login");
+    }
+
+    if (code === "USER_NOT_FOUND") {
+      redirect("/auth/sync-error");
+    }
+
     throw new Error(typeof error === "string" ? error : JSON.stringify(error));
   }
 
   if (!dbUser) {
-    unauthorized();
+    redirect("/clinician-login");
   }
 
-  // Allow CLINICIAN and DEVELOPER roles to access clinician views
+  // Keep invalid-role users out of clinician routes without falling back to 404.
   if (dbUser.role !== "CLINICIAN" && dbUser.role !== ("DEVELOPER" as any)) {
-    forbidden();
+    redirect("/");
   }
 
   return (
