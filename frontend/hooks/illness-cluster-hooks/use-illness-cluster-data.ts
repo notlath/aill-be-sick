@@ -35,16 +35,17 @@ export const useIllnessClusterData = ({
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
+    const { age, gender, district, time } = variables;
 
     const fetchClusterData = async () => {
       setLoading(true);
       setError(null);
       const params = new URLSearchParams({
         n_clusters: String(k),
-        age: String(variables.age),
-        gender: String(variables.gender),
-        district: String(variables.district),
-        time: String(variables.time),
+        age: String(age),
+        gender: String(gender),
+        district: String(district),
+        time: String(time),
       });
 
       if (startDate) params.set("start_date", startDate);
@@ -53,7 +54,7 @@ export const useIllnessClusterData = ({
       const url = `${BACKEND_URL}/api/illness-clusters?${params.toString()}`;
       console.log("[useIllnessClusterData] Fetching:", {
         k,
-        variables,
+        variables: { age, gender, district, time },
         startDate,
         endDate,
         url,
@@ -91,7 +92,15 @@ export const useIllnessClusterData = ({
       isMounted = false;
       controller.abort();
     };
-  }, [k, variables, startDate, endDate]);
+  }, [
+    k,
+    variables.age,
+    variables.gender,
+    variables.district,
+    variables.time,
+    startDate,
+    endDate,
+  ]);
 
   return { clusterData, loading, error };
 };

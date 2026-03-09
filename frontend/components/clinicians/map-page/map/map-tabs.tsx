@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ByDiseaseTab from "../by-disease/by-disease-tab";
@@ -15,21 +15,31 @@ const MapTabs = () => {
   const searchParams = useSearchParams();
   const { activeTab, setActiveTab } = useMapStore();
 
-  useEffect(() => {
+  const urlTab = useMemo(() => {
     const rawTab = searchParams.get("tab");
     if (
       rawTab !== "by-disease" &&
       rawTab !== "by-cluster" &&
       rawTab !== "by-anomaly"
     ) {
-      return;
+      return null;
     }
 
     const { tab } = parseIllnessClusterNavigationQuery(searchParams);
-    if (tab !== activeTab) {
-      setActiveTab(tab);
+    return tab;
+  }, [searchParams]);
+
+  const resolvedActiveTab = urlTab ?? activeTab;
+
+  useEffect(() => {
+    if (!urlTab) {
+      return;
     }
-  }, [activeTab, searchParams, setActiveTab]);
+
+    if (urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [activeTab, setActiveTab, urlTab]);
 
   const handleTabChange = (value: string) => {
     const nextTab = value as "by-disease" | "by-cluster" | "by-anomaly";
@@ -44,7 +54,7 @@ const MapTabs = () => {
   };
 
   return (
-    <Tabs value={activeTab} onValueChange={handleTabChange}>
+    <Tabs value={resolvedActiveTab} onValueChange={handleTabChange}>
       <TabsList>
         <TabsTrigger value="by-disease">By disease</TabsTrigger>
         <TabsTrigger value="by-cluster">By illness cluster</TabsTrigger>

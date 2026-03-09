@@ -33,16 +33,18 @@ export const useIllnessClusterRecommendation = ({
       clearTimeout(debounceTimerRef.current);
     }
 
+    const { age, gender, district, time } = variables;
+
     const fetchRecommendation = async () => {
       try {
         setLoading(true);
         setMessage("");
         const params = new URLSearchParams({
           range: "2-25",
-          age: String(variables.age),
-          gender: String(variables.gender),
-          district: String(variables.district),
-          time: String(variables.time),
+          age: String(age),
+          gender: String(gender),
+          district: String(district),
+          time: String(time),
         });
 
         if (startDate) params.set("start_date", startDate);
@@ -91,7 +93,14 @@ export const useIllnessClusterRecommendation = ({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [variables, startDate, endDate]);
+  }, [
+    variables.age,
+    variables.gender,
+    variables.district,
+    variables.time,
+    startDate,
+    endDate,
+  ]);
 
   return { recommendedK, loading, message };
 };

@@ -77,6 +77,22 @@ const parseDateFromString = (dateString?: string): Date | null => {
   return isNaN(parsed.getTime()) ? null : parsed;
 };
 
+const areVariablesEqual = (
+  left: ClusterVariableSelection,
+  right: ClusterVariableSelection,
+): boolean => {
+  return (
+    left.age === right.age &&
+    left.gender === right.gender &&
+    left.district === right.district &&
+    left.time === right.time
+  );
+};
+
+const areSameDateValue = (left: Date | null, right: Date | null): boolean => {
+  return formatDateToString(left) === formatDateToString(right);
+};
+
 export interface ClusteringControlPanelProps {
   enableViewToggle?: boolean;
   enableUrlSync?: boolean;
@@ -264,19 +280,47 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
 
     lastSyncedUrlRef.current = currentUrl;
     const urlState = parseIllnessClusterNavigationQuery(searchParams);
+    const normalizedVariables = { ...urlState.variables };
+    const nextKInput = String(urlState.k);
 
-    setK(urlState.k);
-    setKInput(String(urlState.k));
-    setSelectedVariables({ ...urlState.variables });
-    setAppliedVariables({ ...urlState.variables });
-    setSelectedClusterDisplay(urlState.clusterDisplay);
+    setK((previousK) => (previousK === urlState.k ? previousK : urlState.k));
+    setKInput((previousKInput) =>
+      previousKInput === nextKInput ? previousKInput : nextKInput,
+    );
+    setSelectedVariables((previousVariables) =>
+      areVariablesEqual(previousVariables, normalizedVariables)
+        ? previousVariables
+        : normalizedVariables,
+    );
+    setAppliedVariables((previousVariables) =>
+      areVariablesEqual(previousVariables, normalizedVariables)
+        ? previousVariables
+        : normalizedVariables,
+    );
+    setSelectedClusterDisplay((previousClusterDisplay) =>
+      previousClusterDisplay === urlState.clusterDisplay
+        ? previousClusterDisplay
+        : urlState.clusterDisplay,
+    );
 
     const nextStartDate = parseDateFromString(urlState.startDate);
     const nextEndDate = parseDateFromString(urlState.endDate);
-    setDateRangeStart(nextStartDate);
-    setDateRangeEnd(nextEndDate);
-    setAppliedDateRangeStart(nextStartDate);
-    setAppliedDateRangeEnd(nextEndDate);
+    setDateRangeStart((previousDate) =>
+      areSameDateValue(previousDate, nextStartDate)
+        ? previousDate
+        : nextStartDate,
+    );
+    setDateRangeEnd((previousDate) =>
+      areSameDateValue(previousDate, nextEndDate) ? previousDate : nextEndDate,
+    );
+    setAppliedDateRangeStart((previousDate) =>
+      areSameDateValue(previousDate, nextStartDate)
+        ? previousDate
+        : nextStartDate,
+    );
+    setAppliedDateRangeEnd((previousDate) =>
+      areSameDateValue(previousDate, nextEndDate) ? previousDate : nextEndDate,
+    );
   }, [searchParams, enableUrlSync]);
 
   const clampK = useCallback(
