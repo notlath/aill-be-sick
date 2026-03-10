@@ -12,12 +12,14 @@ const statusLabel: Record<Alert["status"], string> = {
   NEW: "New",
   ACKNOWLEDGED: "Acknowledged",
   DISMISSED: "Dismissed",
+  RESOLVED: "Resolved",
 };
 
 const statusBadgeClass: Record<Alert["status"], string> = {
   NEW: "badge-error",
   ACKNOWLEDGED: "badge-success",
   DISMISSED: "badge-ghost",
+  RESOLVED: "badge-info",
 };
 
 const typeLabel: Record<Alert["type"], string> = {

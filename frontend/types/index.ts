@@ -246,7 +246,7 @@ export interface IllnessClusterData {
 // Types for the real-time alert system
 
 export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-export type AlertStatus = "NEW" | "ACKNOWLEDGED" | "DISMISSED";
+export type AlertStatus = "NEW" | "ACKNOWLEDGED" | "RESOLVED" | "DISMISSED";
 export type AlertType = "ANOMALY" | "LOW_CONFIDENCE" | "HIGH_UNCERTAINTY";
 
 export type AlertMetadata = {
@@ -265,6 +265,16 @@ export type AlertMetadata = {
   uncertainty?: number;
 };
 
+export type AlertNote = {
+  id: number;
+  alertId: number;
+  authorId: number;
+  authorName: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Alert = {
   id: number;
   type: AlertType;
@@ -277,4 +287,7 @@ export type Alert = {
   createdAt: string;
   acknowledgedAt: string | null;
   acknowledgedBy: number | null;
+  resolvedAt: string | null;
+  resolvedBy: number | null;
+  notes: AlertNote[];
 };

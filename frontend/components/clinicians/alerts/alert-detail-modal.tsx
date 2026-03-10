@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import type { Alert } from "@/types";
+import { useEffect, useRef, useState } from "react";
+import type { Alert, AlertNote } from "@/types";
 import { getReasonLabel, getReasonDescription } from "@/utils/anomaly-reasons";
 import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity";
 
@@ -15,54 +15,77 @@ const statusLabel: Record<Alert["status"], string> = {
   NEW: "New",
   ACKNOWLEDGED: "Acknowledged",
   DISMISSED: "Dismissed",
+  RESOLVED: "Resolved",
 };
 
 const statusBadgeClass: Record<Alert["status"], string> = {
   NEW: "badge-error",
   ACKNOWLEDGED: "badge-success",
   DISMISSED: "badge-ghost",
+  RESOLVED: "badge-info",
 };
 
 interface AlertDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   alert: Alert | null;
+  currentUserId: number | null;
   onAcknowledge: (id: number) => Promise<void>;
   onDismiss: (id: number) => Promise<void>;
+  onResolve: (id: number) => Promise<void>;
+  onAddNote: (alertId: number, content: string) => Promise<{ error?: string }>;
+  onEditNote: (noteId: number, content: string) => Promise<{ error?: string }>;
 }
 
 export function AlertDetailModal({
   isOpen,
   onClose,
   alert,
+  currentUserId,
   onAcknowledge,
   onDismiss,
+  onResolve,
+  onAddNote,
+  onEditNote,
 }: AlertDetailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+
+  // Notes state
+  const [newNoteContent, setNewNoteContent] = useState("");
+  const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
+
+  // Inline edit state
+  const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
     if (isOpen) {
-      if (!dialog.open) {
-        dialog.showModal();
-      }
+      if (!dialog.open) dialog.showModal();
     } else {
-      if (dialog.open) {
-        dialog.close();
-      }
+      if (dialog.open) dialog.close();
     }
   }, [isOpen]);
 
-  // Prevent closing when clicking inside the modal content
+  // Reset note form when the modal is closed or a different alert is opened.
+  useEffect(() => {
+    if (!isOpen) {
+      setNewNoteContent("");
+      setNoteError(null);
+      setEditingNoteId(null);
+      setEditingContent("");
+    }
+  }, [isOpen]);
+
   const handleContentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
-  const handleClose = async () => {
-    onClose();
-  };
+  const handleClose = () => onClose();
 
   const handleAcknowledge = async () => {
     if (!alert) return;
@@ -76,7 +99,51 @@ export function AlertDetailModal({
     handleClose();
   };
 
+  const handleResolve = async () => {
+    if (!alert) return;
+    await onResolve(alert.id);
+    handleClose();
+  };
+
+  const handleAddNote = async () => {
+    if (!alert || !newNoteContent.trim()) return;
+    setIsSubmittingNote(true);
+    setNoteError(null);
+    const result = await onAddNote(alert.id, newNoteContent.trim());
+    setIsSubmittingNote(false);
+    if (result.error) {
+      setNoteError(result.error);
+    } else {
+      setNewNoteContent("");
+    }
+  };
+
+  const handleStartEdit = (note: AlertNote) => {
+    setEditingNoteId(note.id);
+    setEditingContent(note.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNoteId(null);
+    setEditingContent("");
+  };
+
+  const handleSaveEdit = async () => {
+    if (editingNoteId === null || !editingContent.trim()) return;
+    setIsSavingEdit(true);
+    const result = await onEditNote(editingNoteId, editingContent.trim());
+    setIsSavingEdit(false);
+    if (!result.error) {
+      setEditingNoteId(null);
+      setEditingContent("");
+    }
+  };
+
   if (!isOpen || !alert) return null;
+
+  const notes: AlertNote[] = alert.notes ?? [];
+  const isPending = alert.status === "NEW";
+  const isAcknowledged = alert.status === "ACKNOWLEDGED";
 
   return (
     <dialog
@@ -97,6 +164,7 @@ export function AlertDetailModal({
         <h3 className="font-bold text-2xl mb-6">Alert Details</h3>
 
         <div className="space-y-4">
+          {/* Core fields */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-base-200/50 p-4 rounded-lg">
               <p className="text-sm text-base-content/60 mb-1">Type</p>
@@ -104,17 +172,13 @@ export function AlertDetailModal({
             </div>
             <div className="bg-base-200/50 p-4 rounded-lg">
               <p className="text-sm text-base-content/60 mb-1">Severity</p>
-              <span
-                className={`badge ${getSeverityBadgeClass(alert.severity)}`}
-              >
+              <span className={`badge ${getSeverityBadgeClass(alert.severity)}`}>
                 {getSeverityLabel(alert.severity)}
               </span>
             </div>
             <div className="bg-base-200/50 p-4 rounded-lg">
               <p className="text-sm text-base-content/60 mb-1">Status</p>
-              <span
-                className={`badge ${statusBadgeClass[alert.status]}`}
-              >
+              <span className={`badge ${statusBadgeClass[alert.status]}`}>
                 {statusLabel[alert.status]}
               </span>
             </div>
@@ -220,22 +284,132 @@ export function AlertDetailModal({
                 </p>
               </div>
             )}
+            {alert.resolvedAt && (
+              <div className="text-right">
+                <p className="text-sm text-base-content/60 mb-1">Resolved At</p>
+                <p className="font-medium">
+                  {new Date(alert.resolvedAt).toLocaleString()}
+                </p>
+              </div>
+            )}
           </div>
 
-          {alert.status === "NEW" && (
+          {/* ── Notes section ────────────────────────────────── */}
+          <div className="bg-base-200/50 p-4 rounded-lg space-y-3">
+            <p className="text-sm text-base-content/60 font-medium">
+              Notes {notes.length > 0 && `(${notes.length})`}
+            </p>
+
+            {notes.length === 0 && (
+              <p className="text-sm text-base-content/40">No notes yet.</p>
+            )}
+
+            {notes.map((note) => (
+              <div key={note.id} className="bg-base-100 rounded-lg p-3 text-sm space-y-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{note.authorName ?? "Clinician"}</span>
+                  <span className="text-xs text-base-content/40">
+                    {new Date(note.updatedAt).toLocaleString()}
+                    {note.updatedAt !== note.createdAt && " (edited)"}
+                  </span>
+                </div>
+
+                {editingNoteId === note.id ? (
+                  <div className="space-y-2 mt-2">
+                    <textarea
+                      className="textarea textarea-bordered w-full text-sm resize-none"
+                      rows={3}
+                      value={editingContent}
+                      onChange={(e) => setEditingContent(e.target.value)}
+                      maxLength={2000}
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <button
+                        className="btn btn-ghost btn-xs"
+                        onClick={handleCancelEdit}
+                        disabled={isSavingEdit}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="btn btn-primary btn-xs"
+                        onClick={handleSaveEdit}
+                        disabled={isSavingEdit || !editingContent.trim()}
+                      >
+                        {isSavingEdit ? "Saving…" : "Save"}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-base-content/80 leading-relaxed whitespace-pre-wrap flex-1">
+                      {note.content}
+                    </p>
+                    {currentUserId !== null && note.authorId === currentUserId && (
+                      <button
+                        className="btn btn-ghost btn-xs text-base-content/40 shrink-0"
+                        onClick={() => handleStartEdit(note)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Add note form */}
+            <div className="space-y-2 pt-1">
+              <textarea
+                className="textarea textarea-bordered w-full text-sm resize-none"
+                rows={3}
+                placeholder="Add a note…"
+                value={newNoteContent}
+                onChange={(e) => setNewNoteContent(e.target.value)}
+                maxLength={2000}
+              />
+              {noteError && (
+                <p className="text-xs text-error">{noteError}</p>
+              )}
+              <div className="flex justify-end">
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleAddNote}
+                  disabled={isSubmittingNote || !newNoteContent.trim()}
+                >
+                  {isSubmittingNote ? "Adding…" : "Add Note"}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Action buttons ───────────────────────────────── */}
+          {(isPending || isAcknowledged) && (
             <div className="flex gap-2 justify-end pt-2">
-              <button
-                className="btn btn-success btn-sm"
-                onClick={handleAcknowledge}
-              >
-                Acknowledge
-              </button>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={handleDismiss}
-              >
-                Dismiss
-              </button>
+              {(isPending || isAcknowledged) && (
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleResolve}
+                >
+                  Mark as Resolved
+                </button>
+              )}
+              {isPending && (
+                <>
+                  <button
+                    className="btn btn-outline border-border btn-sm"
+                    onClick={handleAcknowledge}
+                  >
+                    Acknowledge
+                  </button>
+                  <button
+                    className="btn btn-outline border-border btn-sm"
+                    onClick={handleDismiss}
+                  >
+                    Dismiss
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
