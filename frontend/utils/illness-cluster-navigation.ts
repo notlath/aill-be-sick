@@ -191,6 +191,25 @@ const toSearchParams = (
   return searchParams;
 };
 
+const CLUSTER_NAVIGATION_PARAM_KEYS = [
+  "k",
+  "age",
+  "gender",
+  "district",
+  "time",
+  "start_date",
+  "end_date",
+  "cluster",
+] as const;
+
+export const hasIllnessClusterNavigationQuery = (
+  input?: URLSearchParams | SearchParams,
+): boolean => {
+  const searchParams = toSearchParams(input);
+
+  return CLUSTER_NAVIGATION_PARAM_KEYS.some((key) => searchParams.has(key));
+};
+
 export const serializeIllnessClusterNavigationQuery = (
   input: IllnessClusterNavigationQueryInput = {},
 ): string => {

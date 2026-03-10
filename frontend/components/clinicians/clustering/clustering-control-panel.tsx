@@ -25,14 +25,18 @@ import { useIllnessClusterRecommendation } from "@/hooks/illness-cluster-hooks/u
 import { useClusterDisplay } from "@/hooks/illness-cluster-hooks/use-cluster-display";
 import {
   clampClusterCount,
+  DEFAULT_CLUSTER_VARIABLES,
+  normalizeClusterVariables,
   type ClusterVariableSelection,
   DEFAULT_CLUSTER_COUNT,
 } from "@/types/illness-cluster-settings";
 import {
+  hasIllnessClusterNavigationQuery,
   parseIllnessClusterNavigationQuery,
   serializeIllnessClusterNavigationQuery,
 } from "@/utils/illness-cluster-navigation";
 import type { IllnessClusterData } from "@/types";
+import useClusteringPreferencesStore from "@/stores/use-clustering-preferences-store";
 
 const VARIABLE_LABELS: Record<keyof ClusterVariableSelection, string> = {
   age: "Age",
@@ -93,6 +97,99 @@ const areSameDateValue = (left: Date | null, right: Date | null): boolean => {
   return formatDateToString(left) === formatDateToString(right);
 };
 
+type ControlPanelResolvedState = {
+  k: number;
+  variables: ClusterVariableSelection;
+  startDate?: string;
+  endDate?: string;
+  clusterDisplay: string;
+};
+
+const normalizeClusterDisplayValue = (
+  clusterDisplay: string | undefined,
+  maxCluster: number,
+): string => {
+  if (!clusterDisplay || !/^\d+$/.test(clusterDisplay)) {
+    return "1";
+  }
+
+  const parsedClusterDisplay = Number(clusterDisplay);
+  const normalizedValue = Math.max(1, Math.floor(parsedClusterDisplay));
+
+  return String(Math.min(normalizedValue, maxCluster));
+};
+
+const resolveControlPanelState = ({
+  hasExplicitClusterQuery,
+  urlState,
+  initialK,
+  hasSavedPreferences,
+  savedK,
+  savedVariables,
+  savedStartDate,
+  savedEndDate,
+  savedClusterDisplay,
+}: {
+  hasExplicitClusterQuery: boolean;
+  urlState: ReturnType<typeof parseIllnessClusterNavigationQuery>;
+  initialK: number;
+  hasSavedPreferences: boolean;
+  savedK: number;
+  savedVariables: ClusterVariableSelection;
+  savedStartDate?: string;
+  savedEndDate?: string;
+  savedClusterDisplay?: string;
+}): ControlPanelResolvedState => {
+  if (hasExplicitClusterQuery) {
+    return {
+      k: urlState.k,
+      variables: { ...urlState.variables },
+      startDate: urlState.startDate,
+      endDate: urlState.endDate,
+      clusterDisplay: normalizeClusterDisplayValue(
+        urlState.clusterDisplay,
+        urlState.k,
+      ),
+    };
+  }
+
+  if (hasSavedPreferences) {
+    const normalizedK = clampClusterCount(
+      savedK,
+      clampClusterCount(initialK, DEFAULT_CLUSTER_COUNT),
+    );
+    const normalizedVariables = normalizeClusterVariables(
+      savedVariables,
+      DEFAULT_CLUSTER_VARIABLES,
+    );
+
+    return {
+      k: normalizedK,
+      variables: normalizedVariables,
+      startDate: savedStartDate,
+      endDate: savedEndDate,
+      clusterDisplay: normalizeClusterDisplayValue(
+        savedClusterDisplay,
+        normalizedK,
+      ),
+    };
+  }
+
+  const fallbackK = clampClusterCount(initialK, DEFAULT_CLUSTER_COUNT);
+  const fallbackVariables = normalizeClusterVariables(
+    urlState.variables,
+    DEFAULT_CLUSTER_VARIABLES,
+  );
+
+  return {
+    k: fallbackK,
+    variables: fallbackVariables,
+    startDate: undefined,
+    endDate: undefined,
+    clusterDisplay: "1",
+  };
+};
+
 export interface ClusteringControlPanelProps {
   enableViewToggle?: boolean;
   enableUrlSync?: boolean;
@@ -131,58 +228,100 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const {
+    hasSavedPreferences,
+    k: savedK,
+    variables: savedVariables,
+    startDate: savedStartDate,
+    endDate: savedEndDate,
+    clusterDisplay: savedClusterDisplay,
+    savePreferences,
+  } = useClusteringPreferencesStore();
 
-  // Parse initial state from URL if URL sync is enabled
-  const initialNavigationStateRef = useRef(
-    enableUrlSync ? parseIllnessClusterNavigationQuery(searchParams) : null,
+  const [hasHydratedPreferences, setHasHydratedPreferences] = useState(
+    useClusteringPreferencesStore.persist.hasHydrated(),
   );
-  const initialNavigationState = initialNavigationStateRef.current;
+
+  useEffect(() => {
+    const onHydrateStart = () => setHasHydratedPreferences(false);
+    const onHydrateFinish = () => setHasHydratedPreferences(true);
+
+    const unsubscribeOnHydrate =
+      useClusteringPreferencesStore.persist.onHydrate(onHydrateStart);
+    const unsubscribeOnFinishHydration =
+      useClusteringPreferencesStore.persist.onFinishHydration(onHydrateFinish);
+
+    setHasHydratedPreferences(useClusteringPreferencesStore.persist.hasHydrated());
+
+    return () => {
+      unsubscribeOnHydrate();
+      unsubscribeOnFinishHydration();
+    };
+  }, []);
+
+  const hasExplicitClusterQuery = useMemo(
+    () => hasIllnessClusterNavigationQuery(searchParams),
+    [searchParams],
+  );
+
+  const parsedUrlState = useMemo(
+    () => parseIllnessClusterNavigationQuery(searchParams),
+    [searchParams],
+  );
+
+  const initialResolvedStateRef = useRef<ControlPanelResolvedState | null>(
+    null,
+  );
+
+  if (!initialResolvedStateRef.current) {
+    initialResolvedStateRef.current = resolveControlPanelState({
+      hasExplicitClusterQuery,
+      urlState: parsedUrlState,
+      initialK,
+      hasSavedPreferences,
+      savedK,
+      savedVariables,
+      savedStartDate,
+      savedEndDate,
+      savedClusterDisplay,
+    });
+  }
+
+  const initialResolvedState = initialResolvedStateRef.current;
 
   // State management
-  const [k, setK] = useState<number>(initialNavigationState?.k ?? initialK);
+  const [k, setK] = useState<number>(initialResolvedState.k);
   const [kInput, setKInput] = useState<string>(
-    String(initialNavigationState?.k ?? initialK),
+    String(initialResolvedState.k),
   );
   const [selectedVariables, setSelectedVariables] =
-    useState<ClusterVariableSelection>(
-      initialNavigationState?.variables ?? {
-        age: true,
-        gender: true,
-        district: true,
-        time: true,
-      },
-    );
+    useState<ClusterVariableSelection>(initialResolvedState.variables);
   const [appliedVariables, setAppliedVariables] =
-    useState<ClusterVariableSelection>(
-      initialNavigationState?.variables ?? {
-        age: true,
-        gender: true,
-        district: true,
-        time: true,
-      },
-    );
+    useState<ClusterVariableSelection>(initialResolvedState.variables);
   const [dateRangeStart, setDateRangeStart] = useState<Date | null>(
-    parseDateFromString(initialNavigationState?.startDate),
+    parseDateFromString(initialResolvedState.startDate),
   );
   const [dateRangeEnd, setDateRangeEnd] = useState<Date | null>(
-    parseDateFromString(initialNavigationState?.endDate),
+    parseDateFromString(initialResolvedState.endDate),
   );
   const [appliedDateRangeStart, setAppliedDateRangeStart] =
     useState<Date | null>(
-      parseDateFromString(initialNavigationState?.startDate),
+      parseDateFromString(initialResolvedState.startDate),
     );
   const [appliedDateRangeEnd, setAppliedDateRangeEnd] = useState<Date | null>(
-    parseDateFromString(initialNavigationState?.endDate),
+    parseDateFromString(initialResolvedState.endDate),
   );
   const [selectedClusterDisplay, setSelectedClusterDisplay] = useState<string>(
-    initialNavigationState?.clusterDisplay ?? "1",
+    initialResolvedState.clusterDisplay,
   );
   const [view, setView] = useState<"coordinates" | "district">("coordinates");
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
-  const lastSyncedUrlRef = useRef<string>(searchParams.toString());
+  const lastSyncedUrlRef = useRef<string>("");
+  const hasAppliedHydratedPreferencesRef = useRef<boolean>(false);
+  const hasSkippedInitialPreferenceSyncRef = useRef<boolean>(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -235,6 +374,89 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     }
   }, [recommendedK]);
 
+  // Rehydrate from persisted preferences when URL has no explicit clustering state.
+  useEffect(() => {
+    if (hasExplicitClusterQuery) {
+      hasAppliedHydratedPreferencesRef.current = true;
+      return;
+    }
+
+    if (!hasHydratedPreferences || !hasSavedPreferences) {
+      return;
+    }
+
+    if (hasAppliedHydratedPreferencesRef.current) {
+      return;
+    }
+
+    hasAppliedHydratedPreferencesRef.current = true;
+
+    const persistedState = resolveControlPanelState({
+      hasExplicitClusterQuery: false,
+      urlState: parsedUrlState,
+      initialK,
+      hasSavedPreferences,
+      savedK,
+      savedVariables,
+      savedStartDate,
+      savedEndDate,
+      savedClusterDisplay,
+    });
+
+    const nextStartDate = parseDateFromString(persistedState.startDate);
+    const nextEndDate = parseDateFromString(persistedState.endDate);
+    const nextKInput = String(persistedState.k);
+
+    setK((previousK) =>
+      previousK === persistedState.k ? previousK : persistedState.k,
+    );
+    setKInput((previousKInput) =>
+      previousKInput === nextKInput ? previousKInput : nextKInput,
+    );
+    setSelectedVariables((previousVariables) =>
+      areVariablesEqual(previousVariables, persistedState.variables)
+        ? previousVariables
+        : persistedState.variables,
+    );
+    setAppliedVariables((previousVariables) =>
+      areVariablesEqual(previousVariables, persistedState.variables)
+        ? previousVariables
+        : persistedState.variables,
+    );
+    setSelectedClusterDisplay((previousClusterDisplay) =>
+      previousClusterDisplay === persistedState.clusterDisplay
+        ? previousClusterDisplay
+        : persistedState.clusterDisplay,
+    );
+    setDateRangeStart((previousDate) =>
+      areSameDateValue(previousDate, nextStartDate)
+        ? previousDate
+        : nextStartDate,
+    );
+    setDateRangeEnd((previousDate) =>
+      areSameDateValue(previousDate, nextEndDate) ? previousDate : nextEndDate,
+    );
+    setAppliedDateRangeStart((previousDate) =>
+      areSameDateValue(previousDate, nextStartDate)
+        ? previousDate
+        : nextStartDate,
+    );
+    setAppliedDateRangeEnd((previousDate) =>
+      areSameDateValue(previousDate, nextEndDate) ? previousDate : nextEndDate,
+    );
+  }, [
+    hasExplicitClusterQuery,
+    hasHydratedPreferences,
+    hasSavedPreferences,
+    parsedUrlState,
+    initialK,
+    savedK,
+    savedVariables,
+    savedStartDate,
+    savedEndDate,
+    savedClusterDisplay,
+  ]);
+
   // URL sync effect (if enabled)
   useEffect(() => {
     if (!enableUrlSync || !clusterData) {
@@ -269,9 +491,11 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     searchParams,
   ]);
 
-  // Sync incoming URL parameters (for external navigation)
+  // Sync incoming URL parameters when explicit clustering query values exist.
   useEffect(() => {
-    if (!enableUrlSync) return;
+    if (!hasExplicitClusterQuery) {
+      return;
+    }
 
     const currentUrl = searchParams.toString();
     if (currentUrl === lastSyncedUrlRef.current) {
@@ -279,11 +503,16 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     }
 
     lastSyncedUrlRef.current = currentUrl;
-    const urlState = parseIllnessClusterNavigationQuery(searchParams);
-    const normalizedVariables = { ...urlState.variables };
-    const nextKInput = String(urlState.k);
+    const normalizedVariables = { ...parsedUrlState.variables };
+    const nextKInput = String(parsedUrlState.k);
+    const normalizedClusterDisplay = normalizeClusterDisplayValue(
+      parsedUrlState.clusterDisplay,
+      parsedUrlState.k,
+    );
 
-    setK((previousK) => (previousK === urlState.k ? previousK : urlState.k));
+    setK((previousK) =>
+      previousK === parsedUrlState.k ? previousK : parsedUrlState.k,
+    );
     setKInput((previousKInput) =>
       previousKInput === nextKInput ? previousKInput : nextKInput,
     );
@@ -298,13 +527,13 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
         : normalizedVariables,
     );
     setSelectedClusterDisplay((previousClusterDisplay) =>
-      previousClusterDisplay === urlState.clusterDisplay
+      previousClusterDisplay === normalizedClusterDisplay
         ? previousClusterDisplay
-        : urlState.clusterDisplay,
+        : normalizedClusterDisplay,
     );
 
-    const nextStartDate = parseDateFromString(urlState.startDate);
-    const nextEndDate = parseDateFromString(urlState.endDate);
+    const nextStartDate = parseDateFromString(parsedUrlState.startDate);
+    const nextEndDate = parseDateFromString(parsedUrlState.endDate);
     setDateRangeStart((previousDate) =>
       areSameDateValue(previousDate, nextStartDate)
         ? previousDate
@@ -321,7 +550,48 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     setAppliedDateRangeEnd((previousDate) =>
       areSameDateValue(previousDate, nextEndDate) ? previousDate : nextEndDate,
     );
-  }, [searchParams, enableUrlSync]);
+
+    savePreferences({
+      k: parsedUrlState.k,
+      variables: normalizedVariables,
+      startDate: parsedUrlState.startDate,
+      endDate: parsedUrlState.endDate,
+      clusterDisplay: normalizedClusterDisplay,
+    });
+  }, [searchParams, hasExplicitClusterQuery, parsedUrlState, savePreferences]);
+
+  // Persist the latest applied clustering state for non-URL-based navigation.
+  useEffect(() => {
+    if (!hasHydratedPreferences) {
+      return;
+    }
+
+    if (!hasSkippedInitialPreferenceSyncRef.current) {
+      hasSkippedInitialPreferenceSyncRef.current = true;
+
+      // Avoid storing defaults on first mount when URL does not explicitly carry clustering state.
+      if (!hasExplicitClusterQuery) {
+        return;
+      }
+    }
+
+    savePreferences({
+      k,
+      variables: appliedVariables,
+      startDate: startDateString || undefined,
+      endDate: endDateString || undefined,
+      clusterDisplay: selectedClusterDisplay,
+    });
+  }, [
+    hasHydratedPreferences,
+    hasExplicitClusterQuery,
+    savePreferences,
+    k,
+    appliedVariables,
+    startDateString,
+    endDateString,
+    selectedClusterDisplay,
+  ]);
 
   const clampK = useCallback(
     (val: number) => {
