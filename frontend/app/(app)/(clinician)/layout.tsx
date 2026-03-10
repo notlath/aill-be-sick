@@ -1,5 +1,7 @@
 import Sidebar from "@/components/patient/layout/sidebar";
 import ClinicianHelpModal from "@/components/clinicians/dashboard-page/clinician-help-modal";
+import AlertsStoreProvider from "@/components/clinicians/alerts/alerts-store-provider";
+import AlertsToastListener from "@/components/clinicians/alerts/alerts-toast-listener";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
 import { forbidden, unauthorized } from "next/navigation";
@@ -33,6 +35,8 @@ const ClinicianLayoutContent = async ({ children }: { children: ReactNode }) => 
     <LayoutWrapper>
       <Sidebar dbUser={dbUser} />
       <ClinicianHelpModal />
+      <AlertsStoreProvider />
+      <AlertsToastListener />
       {children}
     </LayoutWrapper>
   );
