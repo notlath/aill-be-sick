@@ -4,30 +4,30 @@ import { NavItem } from "@/constants/nav-items";
 import { cn } from "@/utils/lib";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 
 type NavLinkProps = {
   isActive: boolean;
+  badge?: ReactNode;
 } & NavItem;
 
-const NavLink = ({ name, href, icon: Icon, isActive }: NavLinkProps) => {
+const NavLink = ({ name, href, icon: Icon, isActive, badge }: NavLinkProps) => {
   const searchParams = useSearchParams();
   const isDashboardOrMap = href === "/dashboard" || href === "/map";
 
-  // Preserve URL parameters when navigating between Dashboard and Map
+  // Preserve query parameters when moving between dashboard and map.
   const preservedHref = useMemo(() => {
     if (!isDashboardOrMap || !searchParams || searchParams.toString() === "") {
       return href;
     }
 
-    // Preserve query parameters for Dashboard ↔ Map navigation
     return `${href}?${searchParams.toString()}`;
-  }, [href, searchParams]);
+  }, [href, isDashboardOrMap, searchParams]);
 
   return (
     <Link
       href={preservedHref}
-      // Avoid repeated background prefetches for frequently-changing query URLs.
+      // Avoid repetitive prefetches for highly dynamic query strings.
       prefetch={!isDashboardOrMap}
       className={cn(
         "group flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] relative overflow-hidden",
@@ -41,7 +41,6 @@ const NavLink = ({ name, href, icon: Icon, isActive }: NavLinkProps) => {
       }}
       key={href}
     >
-      {/* Subtle hover gradient overlay */}
       <div
         className={cn(
           "absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 transition-opacity duration-300",
@@ -50,16 +49,19 @@ const NavLink = ({ name, href, icon: Icon, isActive }: NavLinkProps) => {
         )}
       />
 
-      <div
-        className={cn(
-          "relative z-10 p-2.5 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-          "group-hover:scale-105",
-          isActive
-            ? "bg-primary text-primary-content shadow-md shadow-primary/20"
-            : "bg-base-100 text-muted group-hover:bg-base-200 group-hover:text-base-content",
-        )}
-      >
-        <Icon className="size-4.5" strokeWidth={2.5} />
+      <div className="relative z-10 flex-shrink-0">
+        <div
+          className={cn(
+            "relative p-2.5 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "group-hover:scale-105",
+            isActive
+              ? "bg-primary text-primary-content shadow-md shadow-primary/20"
+              : "bg-base-100 text-muted group-hover:bg-base-200 group-hover:text-base-content",
+          )}
+        >
+          <Icon className="size-4.5" strokeWidth={2.5} />
+          {badge}
+        </div>
       </div>
 
       <div

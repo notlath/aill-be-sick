@@ -20,7 +20,8 @@ const HeatmapLayer = ({ diagnoses }: HeatmapLayerProps) => {
 
     const points = diagnoses
       .filter((d) => d.latitude != null && d.longitude != null)
-      .map((d) => [d.latitude!, d.longitude!, 1.0] as [number, number, number]);
+      .map((d) => [Number(d.latitude), Number(d.longitude), 1.0] as [number, number, number])
+      .filter((p) => !isNaN(p[0]) && !isNaN(p[1]) && (p[0] !== 0 || p[1] !== 0));
 
     const heat = (L as any)
       .heatLayer(points, {

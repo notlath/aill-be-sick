@@ -36,17 +36,17 @@ export function DiseaseSelect({
   };
 
   return (
-      <Select value={value} onValueChange={handleChange} className="w-[300px]">
-        <SelectTrigger>
-          <SelectValue placeholder="Select disease" />
-        </SelectTrigger>
-        <SelectContent>
-          {DISEASES.map((disease) => (
-            <SelectItem key={disease.value} value={disease.value}>
-              {disease.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <Select value={value} onValueChange={handleChange} className="w-full sm:w-[300px]">
+      <SelectTrigger>
+        <SelectValue placeholder="Select disease" />
+      </SelectTrigger>
+      <SelectContent>
+        {DISEASES.map((disease) => (
+          <SelectItem key={disease.value} value={disease.value}>
+            {disease.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

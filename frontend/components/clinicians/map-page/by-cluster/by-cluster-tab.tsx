@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import useDateRangeStore from "@/stores/use-date-range-store";
 import useMapStore from "@/stores/use-map-store";
 import { getClusterBaseColor } from "@/utils/cluster-colors";
 import {
@@ -26,7 +25,6 @@ const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
 
 const ByClusterTab = () => {
   const { activeTab } = useMapStore();
-  const { startDate, endDate } = useDateRangeStore();
 
   const {
     geoData,
@@ -48,16 +46,14 @@ const ByClusterTab = () => {
         clusterData,
         loading,
         error,
-        selectedClusterDisplay,
         selectedClusterIndex,
         selectedClusterId,
         selectedClusterLabel,
         view,
-        setView,
         appliedVariables,
         k,
       }) => {
-        // Map-specific data calculations
+        // Map-specific data calculations.
         // eslint-disable-next-line react-hooks/rules-of-hooks
         const filteredIllnesses = useMemo(() => {
           return (clusterData?.illnesses || []).filter(
@@ -79,6 +75,7 @@ const ByClusterTab = () => {
         }, [filteredIllnesses]);
 
         const clusterColorIndex = selectedClusterIndex;
+
         // eslint-disable-next-line react-hooks/rules-of-hooks
         const clusterBaseColor = useMemo(
           () => getClusterBaseColor(clusterColorIndex),
@@ -129,14 +126,18 @@ const ByClusterTab = () => {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         const coordinatesModalPatients = useMemo(() => {
           if (coordinatesModal === "total") return filteredIllnesses;
-          if (coordinatesModal === "pinned")
+          if (coordinatesModal === "pinned") {
             return filteredIllnesses.filter(
-              (d) => d.latitude != null && d.longitude != null,
+              (diagnosis) =>
+                diagnosis.latitude != null && diagnosis.longitude != null,
             );
-          if (coordinatesModal === "unpinned")
+          }
+          if (coordinatesModal === "unpinned") {
             return filteredIllnesses.filter(
-              (d) => d.latitude == null || d.longitude == null,
+              (diagnosis) =>
+                diagnosis.latitude == null || diagnosis.longitude == null,
             );
+          }
           return [];
         }, [coordinatesModal, filteredIllnesses]);
 
@@ -145,7 +146,7 @@ const ByClusterTab = () => {
           if (selectedClusterId === null || !clusterData) return null;
           return (
             clusterData.cluster_statistics.find(
-              (s) => s.cluster_id === selectedClusterId,
+              (stat) => stat.cluster_id === selectedClusterId,
             ) ?? null
           );
         }, [clusterData, selectedClusterId]);
@@ -239,7 +240,7 @@ const ByClusterTab = () => {
               onClose={() => setSelectedFeature(null)}
               patients={selectedDistrictPatients}
               clusterDisplay={selectedClusterLabel}
-              title={`District ${selectedFeature ?? ""} — Group ${selectedClusterLabel}`}
+              title={`District ${selectedFeature ?? ""} - Group ${selectedClusterLabel}`}
               subtitle={`Showing ${selectedDistrictPatients.length} diagnosis record${selectedDistrictPatients.length !== 1 ? "s" : ""}`}
             />
 
@@ -250,10 +251,10 @@ const ByClusterTab = () => {
               clusterDisplay={selectedClusterLabel}
               title={
                 coordinatesModal === "total"
-                  ? `All Cases — Group ${selectedClusterLabel}`
+                  ? `All Cases - Group ${selectedClusterLabel}`
                   : coordinatesModal === "pinned"
-                    ? `Pinned Cases — Group ${selectedClusterLabel}`
-                    : `Unpinned Cases — Group ${selectedClusterLabel}`
+                    ? `Pinned Cases - Group ${selectedClusterLabel}`
+                    : `Unpinned Cases - Group ${selectedClusterLabel}`
               }
               subtitle={`Showing ${coordinatesModalPatients.length} diagnosis record${coordinatesModalPatients.length !== 1 ? "s" : ""}`}
             />

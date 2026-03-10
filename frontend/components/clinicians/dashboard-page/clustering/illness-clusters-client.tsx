@@ -20,7 +20,6 @@ interface IllnessClustersClientProps {
 }
 
 const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
-  initialData,
   initialK = DEFAULT_CLUSTER_COUNT,
 }) => {
   return (
@@ -39,7 +38,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
         appliedStartDate,
         appliedEndDate,
       }) => {
-        // Create navigation context for "View on map" links using render prop data
+        // Build context for map navigation links rendered in overview cards.
         // eslint-disable-next-line react-hooks/rules-of-hooks
         const mapNavigationContext =
           useMemo<IllnessClusterMapNavigationContext>(() => {

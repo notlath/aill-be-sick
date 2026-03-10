@@ -100,13 +100,13 @@ const AnomalySummary: React.FC<AnomalySummaryProps> = ({
   return (
     <Card className="relative overflow-hidden border">
       <CardHeader className="relative pb-4 flex flex-col md:flex-row md:items-start justify-between gap-4">
-        <div className="flex-1">
+        <div className="flex-1 w-full md:w-auto">
           <div className="font-semibold text-lg mb-2 flex items-center gap-2">
             <AlertTriangle className="size-5 text-error" />
             Anomaly Summary
           </div>
 
-          <div className="bg-amber-50 rounded-xl border border-amber-200 p-3.5 inline-block">
+          <div className="bg-amber-50 rounded-xl border border-amber-200 p-3.5 inline-block max-w-full">
             <div className="text-sm text-amber-950 leading-relaxed">
               {renderNarrative(narrative)}
             </div>
@@ -128,8 +128,8 @@ const AnomalySummary: React.FC<AnomalySummaryProps> = ({
               {stats.reason_distribution.slice(0, 5).map((reason, idx) => {
                 const Icon = getReasonIcon(reason.label);
                 return (
-                  <div 
-                    key={idx} 
+                  <div
+                    key={idx}
                     className="flex items-center justify-between text-sm"
                   >
                     <div className="flex items-center gap-2">
@@ -138,8 +138,8 @@ const AnomalySummary: React.FC<AnomalySummaryProps> = ({
                         {getReasonLabel(reason.label)}
                       </span>
                     </div>
-                    <Badge 
-                      variant="outline" 
+                    <Badge
+                      variant="outline"
                       className={`px-2 py-0.5 text-xs font-medium ${getReasonBadgeColor(reason.label)}`}
                     >
                       {reason.count} ({reason.percent}%)
@@ -162,8 +162,8 @@ const AnomalySummary: React.FC<AnomalySummaryProps> = ({
             </div>
             <div className="space-y-2">
               {stats.disease_distribution.slice(0, 5).map((disease, idx) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className="flex items-center justify-between text-sm"
                 >
                   <span className="text-base-content/80">{disease.label}</span>

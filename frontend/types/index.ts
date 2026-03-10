@@ -244,3 +244,52 @@ export interface IllnessClusterData {
 }
 
 export type SearchParams = Record<string, string | string[] | undefined>;
+
+// Types for the real-time alert system
+
+export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type AlertStatus = "NEW" | "ACKNOWLEDGED" | "RESOLVED" | "DISMISSED";
+export type AlertType = "ANOMALY" | "LOW_CONFIDENCE" | "HIGH_UNCERTAINTY";
+
+export type AlertMetadata = {
+  disease?: string;
+  city?: string;
+  province?: string;
+  region?: string;
+  barangay?: string;
+  district?: string;
+  latitude?: number;
+  longitude?: number;
+  patientAge?: number;
+  patientGender?: string;
+  anomalyScore?: number;
+  confidence?: number;
+  uncertainty?: number;
+};
+
+export type AlertNote = {
+  id: number;
+  alertId: number;
+  authorId: number;
+  authorName: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Alert = {
+  id: number;
+  type: AlertType;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  diagnosisId: number | null;
+  reasonCodes: string[];
+  message: string;
+  metadata: AlertMetadata | null;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  acknowledgedBy: number | null;
+  resolvedAt: string | null;
+  resolvedBy: number | null;
+  notes: AlertNote[];
+};

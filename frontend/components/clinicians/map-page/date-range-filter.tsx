@@ -19,7 +19,7 @@ export function DateRangeFilter({
 }: DateRangeFilterProps) {
   return (
     <div className={className}>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
         <div className="flex-1 min-w-0">
           <DatePicker
             value={startDate}
@@ -28,7 +28,7 @@ export function DateRangeFilter({
             placeholder="Start date"
           />
         </div>
-        <span className="text-base-content/60 text-sm shrink-0">→</span>
+        <span className="text-base-content/60 text-sm hidden sm:inline shrink-0">→</span>
         <div className="flex-1 min-w-0">
           <DatePicker
             value={endDate}
