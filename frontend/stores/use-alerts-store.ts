@@ -53,40 +53,24 @@ const useAlertsStore = create<AlertsState>()((set, get) => ({
     const supabase = createClient();
 
     // Initial fetch — load all alerts with their notes.
-    // Supabase browser client can't join across tables, so fetch both separately
-    // and merge.
+    // Fetch AlertNote with the author relationship to get authorName in a single query.
     try {
       const [alertsResult, notesResult] = await Promise.all([
         supabase.from("Alert").select("*").order("createdAt", { ascending: false }),
         supabase
           .from("AlertNote")
-          .select("id, alertId, authorId, content, createdAt, updatedAt"),
+          .select("id, alertId, authorId, author:User(name), content, createdAt, updatedAt"),
       ]);
 
       if (alertsResult.error) throw alertsResult.error;
       if (notesResult.error) throw notesResult.error;
 
-      // We don't have authorName from Supabase without a join — fetch User names
-      // for all unique authorIds encountered in notes.
-      const rawNotes = (notesResult.data ?? []) as Omit<AlertNote, "authorName">[];
-      const authorIds = [...new Set(rawNotes.map((n) => n.authorId))];
-
-      let nameMap: Record<number, string | null> = {};
-      if (authorIds.length > 0) {
-        const usersResult = await supabase
-          .from("User")
-          .select("id, name")
-          .in("id", authorIds);
-        if (!usersResult.error) {
-          for (const u of usersResult.data ?? []) {
-            nameMap[u.id] = u.name ?? null;
-          }
-        }
-      }
-
-      const notes: AlertNote[] = rawNotes.map((n) => ({
-        ...n,
-        authorName: nameMap[n.authorId] ?? null,
+      const notes: AlertNote[] = (notesResult.data ?? []).map((n: any) => ({
+        id: n.id,
+        alertId: n.alertId,
+        authorId: n.authorId,
+        authorName: n.author?.name ?? null,
+        content: n.content,
         createdAt:
           typeof n.createdAt === "string"
             ? n.createdAt
