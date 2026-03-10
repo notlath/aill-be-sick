@@ -5,16 +5,24 @@ import useAlertsStore from "@/stores/use-alerts-store";
 import { columns } from "./columns";
 import { AlertsTable } from "./alerts-table";
 
-const AlertsList = () => {
-  const { alerts, isLoading, error, acknowledge, dismiss } = useAlertsStore(
-    useShallow((s) => ({
-      alerts: s.alerts,
-      isLoading: s.isLoading,
-      error: s.error,
-      acknowledge: s.acknowledge,
-      dismiss: s.dismiss,
-    })),
-  );
+interface AlertsListProps {
+  currentUserId: number | null;
+}
+
+const AlertsList = ({ currentUserId }: AlertsListProps) => {
+  const { alerts, isLoading, error, acknowledge, dismiss, resolve, addNote, editNote } =
+    useAlertsStore(
+      useShallow((s) => ({
+        alerts: s.alerts,
+        isLoading: s.isLoading,
+        error: s.error,
+        acknowledge: s.acknowledge,
+        dismiss: s.dismiss,
+        resolve: s.resolve,
+        addNote: s.addNote,
+        editNote: s.editNote,
+      })),
+    );
 
   if (isLoading) {
     return <AlertsTableSkeleton />;
@@ -32,8 +40,12 @@ const AlertsList = () => {
     <AlertsTable
       columns={columns}
       data={alerts}
+      currentUserId={currentUserId}
       onAcknowledge={acknowledge}
       onDismiss={dismiss}
+      onResolve={resolve}
+      onAddNote={addNote}
+      onEditNote={editNote}
     />
   );
 };

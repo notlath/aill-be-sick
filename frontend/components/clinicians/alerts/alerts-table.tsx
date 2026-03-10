@@ -24,8 +24,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Alert } from "@/types";
-import { getReasonLabel, getReasonDescription } from "@/utils/anomaly-reasons";
-import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity";
 import { AlertDetailModal } from "./alert-detail-modal";
 
 const SORT_OPTIONS = [
@@ -38,8 +36,8 @@ const SORT_OPTIONS = [
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "All Statuses" },
   { value: "NEW", label: "New" },
-  { value: "READ", label: "Read" },
   { value: "ACKNOWLEDGED", label: "Acknowledged" },
+  { value: "RESOLVED", label: "Resolved" },
   { value: "DISMISSED", label: "Dismissed" },
 ];
 
@@ -54,15 +52,23 @@ const SEVERITY_OPTIONS: { value: string; label: string }[] = [
 interface AlertsTableProps {
   columns: ColumnDef<Alert, any>[];
   data: Alert[];
+  currentUserId: number | null;
   onAcknowledge: (id: number) => Promise<void>;
   onDismiss: (id: number) => Promise<void>;
+  onResolve: (id: number) => Promise<void>;
+  onAddNote: (alertId: number, content: string) => Promise<{ error?: string }>;
+  onEditNote: (noteId: number, content: string) => Promise<{ error?: string }>;
 }
 
 export function AlertsTable({
   columns,
   data,
+  currentUserId,
   onAcknowledge,
   onDismiss,
+  onResolve,
+  onAddNote,
+  onEditNote,
 }: AlertsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "createdAt", desc: true },
@@ -73,8 +79,14 @@ export function AlertsTable({
     pageIndex: 0,
     pageSize: 10,
   });
-  const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Derive the selected alert live from the data prop so the modal always
+  // reflects the latest store state (e.g. freshly added/edited notes).
+  const selectedAlert = selectedAlertId !== null
+    ? (data.find((a) => a.id === selectedAlertId) ?? null)
+    : null;
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -95,11 +107,12 @@ export function AlertsTable({
     state: { sorting, columnFilters, globalFilter, pagination },
     meta: {
       openDetailModal: (alert: Alert) => {
-        setSelectedAlert(alert);
+        setSelectedAlertId(alert.id);
         setIsModalOpen(true);
       },
       acknowledge: onAcknowledge,
       dismiss: onDismiss,
+      resolve: onResolve,
     },
   });
 
@@ -325,11 +338,15 @@ export function AlertsTable({
           isOpen={isModalOpen}
           onClose={() => {
             setIsModalOpen(false);
-            setSelectedAlert(null);
+            setSelectedAlertId(null);
           }}
           alert={selectedAlert}
+          currentUserId={currentUserId}
           onAcknowledge={onAcknowledge}
           onDismiss={onDismiss}
+          onResolve={onResolve}
+          onAddNote={onAddNote}
+          onEditNote={onEditNote}
         />,
         document.body
       ) : null}

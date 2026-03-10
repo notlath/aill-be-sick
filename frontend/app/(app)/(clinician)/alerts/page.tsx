@@ -1,6 +1,9 @@
 import AlertsList from "@/components/clinicians/alerts/alerts-list";
+import { getCurrentDbUser } from "@/utils/user";
 
 const AlertsPage = async () => {
+  const { success: dbUser } = await getCurrentDbUser();
+
   return (
     <main className="from-base-100 via-base-200/30 to-base-100 min-h-screen bg-gradient-to-br">
       {/* Hero Header Section */}
@@ -21,7 +24,7 @@ const AlertsPage = async () => {
       <div className="px-8 pb-16 md:px-16 lg:px-24">
         <div className="mx-auto max-w-[1600px] space-y-8">
           <div className="animate-slide-up" style={{ animationDelay: "200ms" }}>
-            <AlertsList />
+            <AlertsList currentUserId={dbUser?.id ?? null} />
           </div>
         </div>
       </div>
