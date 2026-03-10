@@ -397,7 +397,7 @@ export function AlertDetailModal({
               {isPending && (
                 <>
                   <button
-                    className="btn btn-outline border-border btn-sm"
+                    className="btn btn-sm btn-outline border-primary/30 hover:bg-primary hover:border-primary text-primary hover:text-primary-content h-8 min-h-0"
                     onClick={handleAcknowledge}
                   >
                     Acknowledge
