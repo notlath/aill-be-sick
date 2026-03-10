@@ -199,7 +199,6 @@ enum AlertSeverity {
 
 enum AlertStatus {
   NEW
-  READ
   ACKNOWLEDGED
   DISMISSED
 }

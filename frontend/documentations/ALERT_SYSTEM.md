@@ -299,8 +299,7 @@ enum AlertSeverity {
 }
 
 enum AlertStatus {
-  NEW           // Freshly created, not yet viewed
-  READ          // Viewed but no action taken (future use)
+  NEW           // Freshly created, not yet acted upon
   ACKNOWLEDGED  // Clinician has reviewed and acknowledged
   DISMISSED     // Clinician has dismissed as non-actionable
 }
@@ -622,7 +621,7 @@ Because the store fetches all statuses, the full alert history is always availab
 
 - **Search**: global filter across all columns
 - **Sort**: by date (newest/oldest) or severity (high-low / low-high)
-- **Status filter**: dropdown for NEW / READ / ACKNOWLEDGED / DISMISSED
+- **Status filter**: dropdown for NEW / ACKNOWLEDGED / DISMISSED
 - **Severity filter**: dropdown for CRITICAL / HIGH / MEDIUM / LOW
 - **Pagination**: configurable rows per page (10 / 25 / 50 / 100)
 - **Detail modal**: DaisyUI `<dialog>` showing full alert fields including reason code descriptions, metadata, and acknowledge/dismiss actions
@@ -716,7 +715,7 @@ Alert-related types are exported from `frontend/types/index.ts` alongside all ot
 
 ```typescript
 export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-export type AlertStatus = "NEW" | "READ" | "ACKNOWLEDGED" | "DISMISSED";
+export type AlertStatus = "NEW" | "ACKNOWLEDGED" | "DISMISSED";
 export type AlertType = "ANOMALY" | "LOW_CONFIDENCE" | "HIGH_UNCERTAINTY";
 export type AlertMetadata = { ... };
 export type Alert = { ... };
@@ -802,8 +801,8 @@ A Server Component page with the standard clinician gradient header layout. The 
 
 Action buttons per row:
 - **👁 View Details** — opens DaisyUI dialog with full alert information
-- **✓ Acknowledge** — only shown for `NEW` and `READ` alerts
-- **✕ Dismiss** — only shown for `NEW` and `READ` alerts
+- **✓ Acknowledge** — only shown for `NEW` alerts
+- **✕ Dismiss** — only shown for `NEW` alerts
 
 ---
 
@@ -865,14 +864,11 @@ This can be made configurable via an environment variable if different sensitivi
 - [ ] Check browser console shows `[useAlertsStore] channel status: SUBSCRIBED`
 - [ ] Verify only one channel is opened (no duplicate `"alerts-store"` entries in console)
 - [ ] Verify `/alerts` page loads without `42501 permission denied` error
-- [ ] Open detail modal — verify reason codes show human-readable descriptions
-- [ ] Verify metadata (disease, location, confidence) shows in detail modal
 
 ---
 
 ## Future Enhancements
 
-- [ ] **READ status**: Mark alerts as read automatically when clinician opens the detail modal
 - [ ] **Filtering by date range**: Add a date picker to the alerts table
 - [ ] **Bulk acknowledge/dismiss**: Checkbox selection + bulk action buttons
 - [ ] **Alert export**: CSV/PDF export of filtered alerts
@@ -1178,8 +1174,7 @@ enum AlertSeverity {
 }
 
 enum AlertStatus {
-  NEW           // Freshly created, not yet viewed
-  READ          // Viewed but no action taken (future use)
+  NEW           // Freshly created, not yet acted upon
   ACKNOWLEDGED  // Clinician has reviewed and acknowledged
   DISMISSED     // Clinician has dismissed as non-actionable
 }
@@ -1266,7 +1261,7 @@ The central hook that manages both the initial data fetch and the live Supabase 
 
 ```typescript
 export function useAlerts({
-  statuses = ["NEW", "READ"],
+  statuses = ["NEW"],
   channelName = "alerts-realtime",
 }: UseAlertsOptions = {}): UseAlertsReturn
 ```
@@ -1459,7 +1454,7 @@ The badge is passed as a `badge` prop to `NavLink` and rendered inside the icon 
 ```typescript
 const AlertsList = () => {
   const { alerts, isLoading, error, acknowledge, dismiss } = useAlerts({
-    statuses: ["NEW", "READ", "ACKNOWLEDGED", "DISMISSED"],
+    statuses: ["NEW", "ACKNOWLEDGED", "DISMISSED"],
     channelName: "alerts-list",
   });
   // ...
@@ -1470,7 +1465,7 @@ const AlertsList = () => {
 
 - **Search**: global filter across all columns
 - **Sort**: by date (newest/oldest) or severity (high-low / low-high)
-- **Status filter**: dropdown for NEW / READ / ACKNOWLEDGED / DISMISSED
+- **Status filter**: dropdown for NEW / ACKNOWLEDGED / DISMISSED
 - **Severity filter**: dropdown for CRITICAL / HIGH / MEDIUM / LOW
 - **Pagination**: configurable rows per page (10 / 25 / 50 / 100)
 - **Detail modal**: DaisyUI `<dialog>` showing full alert fields including reason code descriptions, metadata, and acknowledge/dismiss actions
@@ -1634,8 +1629,8 @@ A Server Component page with the standard clinician gradient header layout. The 
 
 Action buttons per row:
 - **👁 View Details** — opens DaisyUI dialog with full alert information
-- **✓ Acknowledge** — only shown for `NEW` and `READ` alerts
-- **✕ Dismiss** — only shown for `NEW` and `READ` alerts
+- **✓ Acknowledge** — only shown for `NEW` alerts
+- **✕ Dismiss** — only shown for `NEW` alerts
 
 ---
 
@@ -1693,7 +1688,7 @@ This can be made configurable via an environment variable if different sensitivi
 - [ ] Verify toast notification fires on any clinician page when alert is created
 - [ ] Verify sidebar badge increments on new alert
 - [ ] Acknowledge an alert — verify status changes to ACKNOWLEDGED on all open browser tabs
-- [ ] Dismiss an alert — verify it moves out of the NEW/READ filter
+- [ ] Dismiss an alert — verify it moves out of the NEW filter
 - [ ] Check browser console shows `[useAlerts] channel status: SUBSCRIBED` for all three channels
 - [ ] Verify no `mismatch between server and client bindings` errors in console
 - [ ] Verify `/alerts` page loads without `42501 permission denied` error
@@ -1704,7 +1699,6 @@ This can be made configurable via an environment variable if different sensitivi
 
 ## Future Enhancements
 
-- [ ] **READ status**: Mark alerts as read automatically when clinician opens the detail modal
 - [ ] **Filtering by date range**: Add a date picker to the alerts table
 - [ ] **Bulk acknowledge/dismiss**: Checkbox selection + bulk action buttons
 - [ ] **Alert export**: CSV/PDF export of filtered alerts

@@ -38,7 +38,6 @@ const SORT_OPTIONS = [
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "", label: "All Statuses" },
   { value: "NEW", label: "New" },
-  { value: "READ", label: "Read" },
   { value: "ACKNOWLEDGED", label: "Acknowledged" },
   { value: "DISMISSED", label: "Dismissed" },
 ];

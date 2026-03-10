@@ -10,14 +10,12 @@ import type { Alert } from "@/types";
 
 const statusLabel: Record<Alert["status"], string> = {
   NEW: "New",
-  READ: "Read",
   ACKNOWLEDGED: "Acknowledged",
   DISMISSED: "Dismissed",
 };
 
 const statusBadgeClass: Record<Alert["status"], string> = {
   NEW: "badge-error",
-  READ: "badge-warning",
   ACKNOWLEDGED: "badge-success",
   DISMISSED: "badge-ghost",
 };
@@ -116,8 +114,7 @@ export const columns: ColumnDef<Alert>[] = [
     id: "actions",
     cell: ({ row, table }) => {
       const alert = row.original;
-      const isPending =
-        alert.status === "NEW" || alert.status === "READ";
+      const isPending = alert.status === "NEW";
 
       return (
         <div className="flex items-center justify-end gap-1 relative z-10">

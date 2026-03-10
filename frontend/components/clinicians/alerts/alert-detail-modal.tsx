@@ -13,14 +13,12 @@ const typeLabel: Record<Alert["type"], string> = {
 
 const statusLabel: Record<Alert["status"], string> = {
   NEW: "New",
-  READ: "Read",
   ACKNOWLEDGED: "Acknowledged",
   DISMISSED: "Dismissed",
 };
 
 const statusBadgeClass: Record<Alert["status"], string> = {
   NEW: "badge-error",
-  READ: "badge-warning",
   ACKNOWLEDGED: "badge-success",
   DISMISSED: "badge-ghost",
 };
@@ -224,7 +222,7 @@ export function AlertDetailModal({
             )}
           </div>
 
-          {(alert.status === "NEW" || alert.status === "READ") && (
+          {alert.status === "NEW" && (
             <div className="flex gap-2 justify-end pt-2">
               <button
                 className="btn btn-success btn-sm"
