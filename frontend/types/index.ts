@@ -242,3 +242,39 @@ export interface IllnessClusterData {
   illnesses: IllnessRecord[];
   centers: number[][];
 }
+
+// Types for the real-time alert system
+
+export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type AlertStatus = "NEW" | "READ" | "ACKNOWLEDGED" | "DISMISSED";
+export type AlertType = "ANOMALY" | "LOW_CONFIDENCE" | "HIGH_UNCERTAINTY";
+
+export type AlertMetadata = {
+  disease?: string;
+  city?: string;
+  province?: string;
+  region?: string;
+  barangay?: string;
+  district?: string;
+  latitude?: number;
+  longitude?: number;
+  patientAge?: number;
+  patientGender?: string;
+  anomalyScore?: number;
+  confidence?: number;
+  uncertainty?: number;
+};
+
+export type Alert = {
+  id: number;
+  type: AlertType;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  diagnosisId: number | null;
+  reasonCodes: string[];
+  message: string;
+  metadata: AlertMetadata | null;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  acknowledgedBy: number | null;
+};
