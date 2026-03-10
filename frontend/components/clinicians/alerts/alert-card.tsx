@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Info, AlertOctagon, AlertTriangle, ShieldAlert } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,6 +42,29 @@ export function AlertCard({
   onAcknowledge,
   onDismiss,
 }: AlertCardProps) {
+  const [isAcknowledging, setIsAcknowledging] = useState(false);
+  const [isDismissing, setIsDismissing] = useState(false);
+
+  const handleAcknowledge = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsAcknowledging(true);
+    try {
+      await onAcknowledge(alert.id);
+    } finally {
+      setIsAcknowledging(false);
+    }
+  };
+
+  const handleDismiss = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDismissing(true);
+    try {
+      await onDismiss(alert.id);
+    } finally {
+      setIsDismissing(false);
+    }
+  };
+
   const isPending = alert.status === "NEW";
   const date = new Date(alert.createdAt);
   const timeAgo = formatDistanceToNow(date, { addSuffix: true });
@@ -57,12 +81,12 @@ export function AlertCard({
                 "bg-base-200 text-base-content/60"
             }`}>
             <Icon className="w-6 h-6" />
-            {alert.severity === "CRITICAL" && (
+            {alert.severity === "CRITICAL" ? (
               <span className="absolute top-0 right-0 w-3 h-3 bg-error rounded-full animate-ping opacity-75" />
-            )}
-            {alert.severity === "CRITICAL" && (
+            ) : null}
+            {alert.severity === "CRITICAL" ? (
               <span className="absolute top-0 right-0 w-3 h-3 bg-error rounded-full" />
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -75,11 +99,11 @@ export function AlertCard({
             <span className={`badge badge-sm border-none ${getSeverityBadgeClass(alert.severity)}`}>
               {getSeverityLabel(alert.severity)}
             </span>
-            {alert.diagnosisId && (
+            {alert.diagnosisId ? (
               <span className="text-xs text-base-content/50 bg-base-200 px-2 py-0.5 rounded">
                 Diagnosis ID: {alert.diagnosisId}
               </span>
-            )}
+            ) : null}
           </div>
 
           <p className="text-base font-medium text-base-content leading-snug line-clamp-2 title-tooltip" title={alert.message}>
@@ -92,29 +116,44 @@ export function AlertCard({
 
         {/* Actions Area */}
         <div className="flex sm:flex-row justify-end items-end gap-2 pt-1 sm:pl-4" onClick={(e) => e.stopPropagation()}>
+          {isPending ? (
+            <>
+              <button
+                onClick={handleAcknowledge}
+                disabled={isAcknowledging || isDismissing}
+                className="btn btn-sm btn-outline border-primary/30 hover:bg-primary hover:border-primary text-primary hover:text-primary-content h-8 min-h-0"
+              >
+                {isAcknowledging ? (
+                  <>
+                    <span className="loading loading-spinner loading-xs"></span>
+                    Wait...
+                  </>
+                ) : (
+                  "Acknowledge"
+                )}
+              </button>
+              <button
+                onClick={handleDismiss}
+                disabled={isAcknowledging || isDismissing}
+                className="btn btn-sm btn-outline border-border hover:bg-base-200 text-base-content/50 hover:text-base-content/80 h-8 min-h-0"
+              >
+                {isDismissing ? (
+                  <>
+                    <span className="loading loading-spinner loading-xs"></span>
+                    Wait...
+                  </>
+                ) : (
+                  "Dismiss"
+                )}
+              </button>
+            </>
+          ) : null}
           <button
             onClick={() => onViewDetails(alert)}
-            className="btn btn-ghost btn-sm text-base-content/70 hover:text-primary transition-colors h-8 min-h-0"
+            className="btn btn-sm btn-outline border-border hover:bg-base-200 text-base-content/50 hover:text-base-content/80 h-8 min-h-0"
           >
             View details
           </button>
-
-          {isPending && (
-            <>
-              <button
-                onClick={() => onAcknowledge(alert.id)}
-                className="btn btn-sm btn-outline border-primary/30 hover:bg-primary hover:border-primary text-primary hover:text-primary-content h-8 min-h-0"
-              >
-                Acknowledge
-              </button>
-              <button
-                onClick={() => onDismiss(alert.id)}
-                className="btn btn-sm btn-outline border-border hover:bg-base-200 text-base-content/50 hover:text-base-content/80 h-8 min-h-0"
-              >
-                Dismiss
-              </button>
-            </>
-          )}
         </div>
       </CardContent>
     </Card>

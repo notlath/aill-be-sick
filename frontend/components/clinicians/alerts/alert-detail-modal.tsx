@@ -60,6 +60,11 @@ export function AlertDetailModal({
   const [editingContent, setEditingContent] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  // Action loading states
+  const [isAcknowledging, setIsAcknowledging] = useState(false);
+  const [isDismissing, setIsDismissing] = useState(false);
+  const [isResolving, setIsResolving] = useState(false);
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
@@ -78,6 +83,9 @@ export function AlertDetailModal({
       setNoteError(null);
       setEditingNoteId(null);
       setEditingContent("");
+      setIsAcknowledging(false);
+      setIsDismissing(false);
+      setIsResolving(false);
     }
   }, [isOpen]);
 
@@ -89,20 +97,35 @@ export function AlertDetailModal({
 
   const handleAcknowledge = async () => {
     if (!alert) return;
-    await onAcknowledge(alert.id);
-    handleClose();
+    setIsAcknowledging(true);
+    try {
+      await onAcknowledge(alert.id);
+    } finally {
+      setIsAcknowledging(false);
+      handleClose();
+    }
   };
 
   const handleDismiss = async () => {
     if (!alert) return;
-    await onDismiss(alert.id);
-    handleClose();
+    setIsDismissing(true);
+    try {
+      await onDismiss(alert.id);
+    } finally {
+      setIsDismissing(false);
+      handleClose();
+    }
   };
 
   const handleResolve = async () => {
     if (!alert) return;
-    await onResolve(alert.id);
-    handleClose();
+    setIsResolving(true);
+    try {
+      await onResolve(alert.id);
+    } finally {
+      setIsResolving(false);
+      handleClose();
+    }
   };
 
   const handleAddNote = async () => {
@@ -193,7 +216,7 @@ export function AlertDetailModal({
             <p className="text-sm leading-relaxed">{alert.message}</p>
           </div>
 
-          {alert.reasonCodes.length > 0 && (
+          {alert.reasonCodes.length > 0 ? (
             <div className="bg-base-200/50 p-4 rounded-lg space-y-2">
               <p className="text-sm text-base-content/60 mb-2">Reason Codes</p>
               {alert.reasonCodes.map((code) => (
@@ -205,69 +228,69 @@ export function AlertDetailModal({
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
 
-          {alert.metadata && (
+          {alert.metadata ? (
             <div className="bg-base-200/50 p-4 rounded-lg">
               <p className="text-sm text-base-content/60 mb-2">Additional Info</p>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                {(alert.metadata as any).disease && (
+                {(alert.metadata as any).disease ? (
                   <>
                     <span className="text-base-content/60">Disease</span>
                     <span className="font-medium">{(alert.metadata as any).disease}</span>
                   </>
-                )}
-                {(alert.metadata as any).city && (
+                ) : null}
+                {(alert.metadata as any).city ? (
                   <>
                     <span className="text-base-content/60">City</span>
                     <span className="font-medium">{(alert.metadata as any).city}</span>
                   </>
-                )}
-                {(alert.metadata as any).district && (
+                ) : null}
+                {(alert.metadata as any).district ? (
                   <>
                     <span className="text-base-content/60">District</span>
                     <span className="font-medium">{(alert.metadata as any).district}</span>
                   </>
-                )}
-                {(alert.metadata as any).province && (
+                ) : null}
+                {(alert.metadata as any).province ? (
                   <>
                     <span className="text-base-content/60">Province</span>
                     <span className="font-medium">{(alert.metadata as any).province}</span>
                   </>
-                )}
-                {(alert.metadata as any).anomalyScore !== undefined && (
+                ) : null}
+                {(alert.metadata as any).anomalyScore !== undefined ? (
                   <>
                     <span className="text-base-content/60">Anomaly Score</span>
                     <span className="font-medium">
                       {Number((alert.metadata as any).anomalyScore).toFixed(4)}
                     </span>
                   </>
-                )}
-                {(alert.metadata as any).confidence !== undefined && (
+                ) : null}
+                {(alert.metadata as any).confidence !== undefined ? (
                   <>
                     <span className="text-base-content/60">Confidence</span>
                     <span className="font-medium">
                       {(Number((alert.metadata as any).confidence) * 100).toFixed(2)}%
                     </span>
                   </>
-                )}
-                {(alert.metadata as any).patientAge !== undefined && (
+                ) : null}
+                {(alert.metadata as any).patientAge !== undefined ? (
                   <>
                     <span className="text-base-content/60">Patient Age</span>
                     <span className="font-medium">{(alert.metadata as any).patientAge}</span>
                   </>
-                )}
-                {(alert.metadata as any).patientGender && (
+                ) : null}
+                {(alert.metadata as any).patientGender ? (
                   <>
                     <span className="text-base-content/60">Patient Gender</span>
                     <span className="font-medium capitalize">
                       {String((alert.metadata as any).patientGender).toLowerCase()}
                     </span>
                   </>
-                )}
+                ) : null}
               </div>
             </div>
-          )}
+          ) : null}
 
           <div className="bg-base-200/50 p-4 rounded-lg flex justify-between items-center">
             <div>
@@ -276,33 +299,33 @@ export function AlertDetailModal({
                 {new Date(alert.createdAt).toLocaleString()}
               </p>
             </div>
-            {alert.acknowledgedAt && (
+            {alert.acknowledgedAt ? (
               <div className="text-right">
                 <p className="text-sm text-base-content/60 mb-1">Acknowledged At</p>
                 <p className="font-medium">
                   {new Date(alert.acknowledgedAt).toLocaleString()}
                 </p>
               </div>
-            )}
-            {alert.resolvedAt && (
+            ) : null}
+            {alert.resolvedAt ? (
               <div className="text-right">
                 <p className="text-sm text-base-content/60 mb-1">Resolved At</p>
                 <p className="font-medium">
                   {new Date(alert.resolvedAt).toLocaleString()}
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
 
           {/* ── Notes section ────────────────────────────────── */}
           <div className="bg-base-200/50 p-4 rounded-lg space-y-3">
             <p className="text-sm text-base-content/60 font-medium">
-              Notes {notes.length > 0 && `(${notes.length})`}
+              Notes {notes.length > 0 ? `(${notes.length})` : null}
             </p>
 
-            {notes.length === 0 && (
+            {notes.length === 0 ? (
               <p className="text-sm text-base-content/40">No notes yet.</p>
-            )}
+            ) : null}
 
             {notes.map((note) => (
               <div key={note.id} className="bg-base-100 rounded-lg p-3 text-sm space-y-1">
@@ -310,7 +333,7 @@ export function AlertDetailModal({
                   <span className="font-medium">{note.authorName ?? "Clinician"}</span>
                   <span className="text-xs text-base-content/40">
                     {new Date(note.updatedAt).toLocaleString()}
-                    {note.updatedAt !== note.createdAt && " (edited)"}
+                    {note.updatedAt !== note.createdAt ? " (edited)" : null}
                   </span>
                 </div>
 
@@ -345,14 +368,14 @@ export function AlertDetailModal({
                     <p className="text-base-content/80 leading-relaxed whitespace-pre-wrap flex-1">
                       {note.content}
                     </p>
-                    {currentUserId !== null && note.authorId === currentUserId && (
+                    {currentUserId !== null && note.authorId === currentUserId ? (
                       <button
                         className="btn btn-ghost btn-xs text-base-content/40 shrink-0"
                         onClick={() => handleStartEdit(note)}
                       >
                         Edit
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -368,9 +391,9 @@ export function AlertDetailModal({
                 onChange={(e) => setNewNoteContent(e.target.value)}
                 maxLength={2000}
               />
-              {noteError && (
+              {noteError ? (
                 <p className="text-xs text-error">{noteError}</p>
-              )}
+              ) : null}
               <div className="flex justify-end">
                 <button
                   className="btn btn-primary btn-sm"
@@ -384,34 +407,56 @@ export function AlertDetailModal({
           </div>
 
           {/* ── Action buttons ───────────────────────────────── */}
-          {(isPending || isAcknowledged) && (
+          {(isPending || isAcknowledged) ? (
             <div className="flex gap-2 justify-end pt-2">
-              {(isPending || isAcknowledged) && (
-                <button
-                  className="btn btn-primary btn-sm"
-                  onClick={handleResolve}
-                >
-                  Mark as Resolved
-                </button>
-              )}
-              {isPending && (
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleResolve}
+                disabled={isResolving || isAcknowledging || isDismissing}
+              >
+                {isResolving ? (
+                  <>
+                    <span className="loading loading-spinner loading-xs"></span>
+                    Resolving...
+                  </>
+                ) : (
+                  "Mark as Resolved"
+                )}
+              </button>
+              {isPending ? (
                 <>
                   <button
                     className="btn btn-sm btn-outline border-primary/30 hover:bg-primary hover:border-primary text-primary hover:text-primary-content h-8 min-h-0"
                     onClick={handleAcknowledge}
+                    disabled={isResolving || isAcknowledging || isDismissing}
                   >
-                    Acknowledge
+                    {isAcknowledging ? (
+                      <>
+                        <span className="loading loading-spinner loading-xs"></span>
+                        Wait...
+                      </>
+                    ) : (
+                      "Acknowledge"
+                    )}
                   </button>
                   <button
                     className="btn btn-outline border-border btn-sm"
                     onClick={handleDismiss}
+                    disabled={isResolving || isAcknowledging || isDismissing}
                   >
-                    Dismiss
+                    {isDismissing ? (
+                      <>
+                        <span className="loading loading-spinner loading-xs"></span>
+                        Wait...
+                      </>
+                    ) : (
+                      "Dismiss"
+                    )}
                   </button>
                 </>
-              )}
+              ) : null}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">

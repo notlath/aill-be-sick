@@ -1,11 +1,9 @@
 "use client";
 
-import useAlertsStore from "@/stores/use-alerts-store";
+import { useUnreadAlertsCount } from "@/stores/use-alerts-store";
 
 const AlertsNavBadge = () => {
-  const unreadCount = useAlertsStore(
-    (s) => s.alerts.filter((a) => a.status === "NEW").length,
-  );
+  const unreadCount = useUnreadAlertsCount();
 
   if (unreadCount === 0) return null;
 
