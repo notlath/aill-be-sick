@@ -58,21 +58,22 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
   };
 
   const filteredAlerts = useMemo(() => {
+    if (!searchQuery) {
+      return alerts.filter((alert) => alert.status === activeTab);
+    }
+
+    const query = searchQuery.toLowerCase();
+
     return alerts.filter((alert) => {
       // Filter by tab
       if (alert.status !== activeTab) return false;
 
       // Filter by search query
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesMessage = alert.message.toLowerCase().includes(query);
-        const matchesType = alert.type.toLowerCase().includes(query);
-        const matchesSeverity = alert.severity.toLowerCase().includes(query);
-        const matchesId = alert.diagnosisId?.toString() === query;
-        return matchesMessage || matchesType || matchesSeverity || matchesId;
-      }
-
-      return true;
+      const matchesMessage = alert.message.toLowerCase().includes(query);
+      const matchesType = alert.type.toLowerCase().includes(query);
+      const matchesSeverity = alert.severity.toLowerCase().includes(query);
+      const matchesId = alert.diagnosisId?.toString() === query;
+      return matchesMessage || matchesType || matchesSeverity || matchesId;
     });
   }, [alerts, activeTab, searchQuery]);
 
@@ -89,10 +90,27 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
   }
 
   // Calculate counts for tabs
-  const tabCounts = TABS.reduce((acc, tab) => {
-    acc[tab.id] = alerts.filter(a => a.status === tab.id).length;
-    return acc;
-  }, {} as Record<string, number>);
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const tab of TABS) {
+      counts[tab.id] = 0;
+    }
+    for (const alert of alerts) {
+      if (counts[alert.status] !== undefined) {
+        counts[alert.status]++;
+      }
+    }
+    return counts;
+  }, [alerts]);
+
+  // Map for O(1) tab label lookups
+  const tabLabelMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const tab of TABS) {
+      map[tab.id] = tab.label;
+    }
+    return map;
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -103,14 +121,14 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
               <TabsTrigger key={tab.id} value={tab.id} className="gap-2 relative">
                 {tab.label}
                 <span className={`inline-flex items-center justify-center px-1.5 min-w-5 h-5 rounded-full text-xs font-semibold ${activeTab === tab.id
-                    ? "bg-base-content/10 text-base-content"
-                    : "bg-base-200/50 text-base-content/50"
+                  ? "bg-base-content/10 text-base-content"
+                  : "bg-base-200/50 text-base-content/50"
                   }`}>
                   {tabCounts[tab.id] || 0}
                 </span>
-                {tab.id === "NEW" && tabCounts[tab.id] > 0 && activeTab !== tab.id && (
+                {tab.id === "NEW" && tabCounts[tab.id] > 0 && activeTab !== tab.id ? (
                   <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full" />
-                )}
+                ) : null}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -125,7 +143,7 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-10 w-full"
           />
-          {searchQuery && (
+          {searchQuery ? (
             <button
               onClick={() => setSearchQuery("")}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content z-10 p-1"
@@ -133,7 +151,7 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
             >
               <X className="h-3 w-3" />
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -160,17 +178,17 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
             <h3 className="text-lg font-medium text-base-content mb-1">No alerts found</h3>
             <p className="text-sm text-base-content/60 max-w-sm">
               {searchQuery
-                ? `No ${TABS.find(t => t.id === activeTab)?.label.toLowerCase()} match your search "${searchQuery}".`
-                : `There are currently no ${TABS.find(t => t.id === activeTab)?.label.toLowerCase()}.`}
+                ? `No ${tabLabelMap[activeTab]?.toLowerCase()} match your search "${searchQuery}".`
+                : `There are currently no ${tabLabelMap[activeTab]?.toLowerCase()}.`}
             </p>
-            {searchQuery && (
+            {searchQuery ? (
               <button
                 onClick={() => setSearchQuery("")}
                 className="btn btn-ghost btn-sm mt-4 normal-case text-primary hover:bg-primary/10"
               >
                 Clear Search
               </button>
-            )}
+            ) : null}
           </div>
         )}
       </div>
