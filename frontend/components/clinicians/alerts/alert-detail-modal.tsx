@@ -292,26 +292,41 @@ export function AlertDetailModal({
             </div>
           ) : null}
 
-          <div className="bg-base-200/50 p-4 rounded-lg flex justify-between items-center">
+          <div className="bg-base-200/50 p-4 rounded-lg grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-base-content/60 mb-1">Date Created</p>
               <p className="font-medium">
-                {new Date(alert.createdAt).toLocaleString()}
+                {new Date(alert.createdAt).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit"
+                })}
               </p>
             </div>
             {alert.acknowledgedAt ? (
-              <div className="text-right">
+              <div>
                 <p className="text-sm text-base-content/60 mb-1">Acknowledged At</p>
                 <p className="font-medium">
-                  {new Date(alert.acknowledgedAt).toLocaleString()}
+                  {new Date(alert.acknowledgedAt).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit"
+                  })}
                 </p>
               </div>
             ) : null}
             {alert.resolvedAt ? (
-              <div className="text-right">
+              <div>
                 <p className="text-sm text-base-content/60 mb-1">Resolved At</p>
                 <p className="font-medium">
-                  {new Date(alert.resolvedAt).toLocaleString()}
+                  {new Date(alert.resolvedAt).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit"
+                  })}
                 </p>
               </div>
             ) : null}
