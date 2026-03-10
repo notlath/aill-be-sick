@@ -262,8 +262,8 @@ const ByClusterTab = () => {
   return (
     <div className="space-y-4">
       <div className="card card-body bg-base-100 border-base-300 border">
-        <div className="flex items-start justify-between">
-          <div className="space-y-3">
+        <div className="flex flex-col lg:flex-row items-start justify-between gap-6">
+          <div className="space-y-4 w-full lg:w-auto">
             <h2 className="text-base font-semibold">Select variables</h2>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -303,9 +303,9 @@ const ByClusterTab = () => {
                 </label>
               </div>
 
-              <div className="border-l border-base-300 h-8" />
+              <div className="hidden border-l border-base-300 h-8 sm:block" />
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <label
                   className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary btn-soft" : ""}`}
                 >
@@ -320,8 +320,8 @@ const ByClusterTab = () => {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <ViewSelect value={view} onValueChange={setView} />
                 <DateRangeFilter
                   startDate={startDate}
@@ -377,7 +377,7 @@ const ByClusterTab = () => {
               </form>
             </div>
           </div>
-          <div className="space-y-1 text-right">
+          <div className="space-y-1 text-left lg:text-right w-full lg:w-auto pb-2 border-t border-base-200 lg:border-none lg:pb-0 pt-4 lg:pt-0">
             <div className="text-4xl font-semibold tracking-tight tabular-nums text-primary">
               {clusterData?.total_illnesses.toLocaleString() ?? "N/A"}
             </div>
@@ -389,16 +389,15 @@ const ByClusterTab = () => {
       {loading ? (
         <ClusterSelectSkeleton />
       ) : clusterDisplayOptions.length > 0 ? (
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <span className="text-sm font-medium text-base-content/70">
             Select group:
           </span>
           <Select
-            className="w-auto"
             value={selectedClusterDisplay}
             onValueChange={(value) => setSelectedClusterDisplay(value)}
           >
-            <SelectTrigger className="w-[260px] h-9">
+            <SelectTrigger className="w-full sm:w-[260px] h-9">
               <SelectValue placeholder="Select group" />
             </SelectTrigger>
             <SelectContent>

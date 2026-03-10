@@ -13,7 +13,7 @@ type ViewSelectProps = {
 
 const ViewSelect = ({ value, onValueChange, className }: ViewSelectProps) => {
   return (
-    <Select value={value} onValueChange={onValueChange as any} className="w-[300px]">
+    <Select value={value} onValueChange={onValueChange as any} className="w-full sm:w-[300px]">
       <SelectTrigger>
         <SelectValue placeholder="Select view" />
       </SelectTrigger>
