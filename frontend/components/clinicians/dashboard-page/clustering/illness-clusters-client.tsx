@@ -362,9 +362,9 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   return (
     <div className="space-y-6">
       {/* Variable Selection Row */}
-      <div className="card card-body bg-base-100 border-base-300 border">
-        <div className="flex items-start justify-between">
-          <form onSubmit={onSubmitK} className="flex flex-col gap-4">
+      <div className="card card-body bg-base-100 border-base-300 border p-4 sm:p-6 sm:px-8">
+        <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6 xl:gap-4 relative">
+          <form onSubmit={onSubmitK} className="flex flex-col gap-4 w-full xl:w-auto">
             {/* Variable Selection */}
             <div>
               <h2 className="text-base font-semibold">Select variables</h2>
@@ -435,7 +435,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
             </div>
 
             {/* Groups Input */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <label htmlFor="illness-cluster-k" className="text-xs">
                 Groups:
               </label>
@@ -496,8 +496,8 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
               </button>
             </div>
           </form>
-          <div className="space-y-1 text-right">
-            <div className="from-primary to-primary/70 bg-gradient-to-br bg-clip-text text-5xl font-semibold tracking-tight text-transparent tabular-nums">
+          <div className="space-y-1 text-left xl:text-right mt-4 xl:mt-0 pt-4 xl:pt-0 border-t border-base-200 xl:border-none w-full xl:w-auto">
+            <div className="from-primary to-primary/70 bg-gradient-to-br bg-clip-text text-4xl sm:text-5xl font-semibold tracking-tight text-transparent tabular-nums">
               {clusterData?.total_illnesses.toLocaleString() ?? "N/A"}
             </div>
             <div className="text-muted text-sm font-medium">Diagnoses</div>

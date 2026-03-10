@@ -11,10 +11,10 @@ const MapTabs = () => {
 
   return (
     <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'by-disease' | 'by-cluster' | 'by-anomaly')}>
-      <TabsList>
-        <TabsTrigger value="by-disease">By disease</TabsTrigger>
-        <TabsTrigger value="by-cluster">By illness cluster</TabsTrigger>
-        <TabsTrigger value="by-anomaly">By anomaly</TabsTrigger>
+      <TabsList className="w-full flex sm:inline-flex sm:w-auto overflow-x-auto">
+        <TabsTrigger value="by-disease" className="flex-1 sm:flex-none">By disease</TabsTrigger>
+        <TabsTrigger value="by-cluster" className="flex-1 sm:flex-none">By illness cluster</TabsTrigger>
+        <TabsTrigger value="by-anomaly" className="flex-1 sm:flex-none">By anomaly</TabsTrigger>
       </TabsList>
 
       <TabsContent value="by-disease">

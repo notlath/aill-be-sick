@@ -5,7 +5,7 @@ const ClinicianHomePage = () => {
   return (
     <main className="from-base-100 via-base-200/30 to-base-100 min-h-screen bg-gradient-to-br">
       {/* Hero Header Section */}
-      <div className="px-4 pt-8 pb-6 md:px-8 lg:px-12">
+      <div className="px-4 pt-16 pb-6 md:px-8 lg:px-12 md:pt-10">
         <div className="mx-auto max-w-[1600px]">
           <div className="animate-fade-in space-y-3">
             <h1 className="from-base-content via-base-content to-base-content/70 bg-gradient-to-br bg-clip-text text-5xl md:text-6xl font-semibold tracking-tight text-transparent">
