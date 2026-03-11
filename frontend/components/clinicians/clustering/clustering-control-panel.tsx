@@ -38,6 +38,44 @@ import {
 import type { IllnessClusterData } from "@/types";
 import useClusteringPreferencesStore from "@/stores/use-clustering-preferences-store";
 
+type ClusteringPreferencesPersistApi = {
+  hasHydrated?: () => boolean;
+  onHydrate?: (listener: () => void) => (() => void) | void;
+  onFinishHydration?: (listener: () => void) => (() => void) | void;
+};
+
+const getClusteringPreferencesPersistApi = ():
+  | ClusteringPreferencesPersistApi
+  | undefined => {
+  const storeWithPersist = useClusteringPreferencesStore as typeof useClusteringPreferencesStore & {
+    persist?: ClusteringPreferencesPersistApi;
+  };
+
+  return storeWithPersist.persist;
+};
+
+const HYDRATION_DEBUG_ENABLED = process.env.NODE_ENV === "development";
+
+const debugHydration = (event: string, payload: Record<string, unknown>) => {
+  if (!HYDRATION_DEBUG_ENABLED) {
+    return;
+  }
+
+  console.debug(`[ClusteringHydration] ${event}`, payload);
+};
+
+const assertHydration = (
+  condition: boolean,
+  message: string,
+  payload: Record<string, unknown>,
+) => {
+  if (!HYDRATION_DEBUG_ENABLED || condition) {
+    return;
+  }
+
+  console.warn(`[ClusteringHydration] Assertion failed: ${message}`, payload);
+};
+
 const VARIABLE_LABELS: Record<keyof ClusterVariableSelection, string> = {
   age: "Age",
   gender: "Gender",
@@ -98,6 +136,7 @@ const areSameDateValue = (left: Date | null, right: Date | null): boolean => {
 };
 
 type ControlPanelResolvedState = {
+  source: "explicit-url" | "saved-preferences" | "defaults";
   k: number;
   variables: ClusterVariableSelection;
   startDate?: string;
@@ -142,6 +181,7 @@ const resolveControlPanelState = ({
 }): ControlPanelResolvedState => {
   if (hasExplicitClusterQuery) {
     return {
+      source: "explicit-url",
       k: urlState.k,
       variables: { ...urlState.variables },
       startDate: urlState.startDate,
@@ -164,6 +204,7 @@ const resolveControlPanelState = ({
     );
 
     return {
+      source: "saved-preferences",
       k: normalizedK,
       variables: normalizedVariables,
       startDate: savedStartDate,
@@ -182,6 +223,7 @@ const resolveControlPanelState = ({
   );
 
   return {
+    source: "defaults",
     k: fallbackK,
     variables: fallbackVariables,
     startDate: undefined,
@@ -237,25 +279,53 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     clusterDisplay: savedClusterDisplay,
     savePreferences,
   } = useClusteringPreferencesStore();
+  const clusteringPreferencesPersistApi = getClusteringPreferencesPersistApi();
 
-  const [hasHydratedPreferences, setHasHydratedPreferences] = useState(
-    useClusteringPreferencesStore.persist.hasHydrated(),
+  const [hasHydratedPreferences, setHasHydratedPreferences] = useState<boolean>(
+    () => {
+      if (typeof window === "undefined") {
+        return false;
+      }
+
+      return clusteringPreferencesPersistApi?.hasHydrated?.() ?? false;
+    },
   );
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const persistApi = getClusteringPreferencesPersistApi();
+    if (!persistApi) {
+      setHasHydratedPreferences(true);
+      debugHydration("persist-api-missing", {});
+      return;
+    }
+
     const onHydrateStart = () => setHasHydratedPreferences(false);
     const onHydrateFinish = () => setHasHydratedPreferences(true);
 
-    const unsubscribeOnHydrate =
-      useClusteringPreferencesStore.persist.onHydrate(onHydrateStart);
-    const unsubscribeOnFinishHydration =
-      useClusteringPreferencesStore.persist.onFinishHydration(onHydrateFinish);
+    const unsubscribeOnHydrate = persistApi.onHydrate?.(() => {
+      onHydrateStart();
+      debugHydration("persist-hydration-start", {});
+    });
+    const unsubscribeOnFinishHydration = persistApi.onFinishHydration?.(() => {
+      onHydrateFinish();
+      debugHydration("persist-hydration-finish", {});
+    });
 
-    setHasHydratedPreferences(useClusteringPreferencesStore.persist.hasHydrated());
+    const hydrated = persistApi.hasHydrated?.() ?? false;
+    setHasHydratedPreferences(hydrated);
+    debugHydration("persist-hydration-check", { hydrated });
 
     return () => {
-      unsubscribeOnHydrate();
-      unsubscribeOnFinishHydration();
+      if (typeof unsubscribeOnHydrate === "function") {
+        unsubscribeOnHydrate();
+      }
+      if (typeof unsubscribeOnFinishHydration === "function") {
+        unsubscribeOnFinishHydration();
+      }
     };
   }, []);
 
@@ -322,10 +392,40 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   const lastSyncedUrlRef = useRef<string>("");
   const hasAppliedHydratedPreferencesRef = useRef<boolean>(false);
   const hasSkippedInitialPreferenceSyncRef = useRef<boolean>(false);
+  const hasCompletedInitialUrlHydrationRef = useRef<boolean>(
+    !hasExplicitClusterQuery,
+  );
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  useEffect(() => {
+    debugHydration("initial-state-resolved", {
+      source: initialResolvedState.source,
+      k: initialResolvedState.k,
+      clusterDisplay: initialResolvedState.clusterDisplay,
+      hasStartDate: Boolean(initialResolvedState.startDate),
+      hasEndDate: Boolean(initialResolvedState.endDate),
+      variables: initialResolvedState.variables,
+    });
+  }, [
+    initialResolvedState.source,
+    initialResolvedState.k,
+    initialResolvedState.clusterDisplay,
+    initialResolvedState.startDate,
+    initialResolvedState.endDate,
+    initialResolvedState.variables,
+  ]);
+
+  useEffect(() => {
+    hasCompletedInitialUrlHydrationRef.current = !hasExplicitClusterQuery;
+    debugHydration("url-hydration-gate", {
+      hasExplicitClusterQuery,
+      allowOutboundUrlSync: hasCompletedInitialUrlHydrationRef.current,
+      query: searchParams.toString(),
+    });
+  }, [hasExplicitClusterQuery, searchParams]);
 
   // Convert dates to string format for hooks
   const startDateString = formatDateToString(appliedDateRangeStart);
@@ -359,6 +459,29 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     selectedClusterDisplay,
     setSelectedClusterDisplay,
   );
+
+  useEffect(() => {
+    if (clusterDisplayOptions.length === 0) {
+      return;
+    }
+
+    const currentClusterDisplay = Number(selectedClusterDisplay);
+    assertHydration(
+      !Number.isNaN(currentClusterDisplay) &&
+        currentClusterDisplay >= 1 &&
+        currentClusterDisplay <= clusterDisplayOptions.length,
+      "selected cluster display is out of bounds",
+      {
+        selectedClusterDisplay,
+        clusterOptionCount: clusterDisplayOptions.length,
+        hasExplicitClusterQuery,
+      },
+    );
+  }, [
+    selectedClusterDisplay,
+    clusterDisplayOptions,
+    hasExplicitClusterQuery,
+  ]);
 
   // Notify parent of cluster data changes
   useEffect(() => {
@@ -406,6 +529,15 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     const nextStartDate = parseDateFromString(persistedState.startDate);
     const nextEndDate = parseDateFromString(persistedState.endDate);
     const nextKInput = String(persistedState.k);
+
+    debugHydration("persisted-rehydrate-apply", {
+      k: persistedState.k,
+      clusterDisplay: persistedState.clusterDisplay,
+      hasDateRange: Boolean(
+        persistedState.startDate && persistedState.endDate,
+      ),
+      variables: persistedState.variables,
+    });
 
     setK((previousK) =>
       previousK === persistedState.k ? previousK : persistedState.k,
@@ -463,6 +595,13 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       return;
     }
 
+    if (!hasCompletedInitialUrlHydrationRef.current) {
+      debugHydration("url-sync-outbound-waiting-for-inbound", {
+        explicitClusterQuery: hasExplicitClusterQuery,
+      });
+      return;
+    }
+
     const nextQuery = serializeIllnessClusterNavigationQuery({
       k,
       variables: appliedVariables,
@@ -476,6 +615,12 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     }
 
     const nextHref = nextQuery ? `${pathname}?${nextQuery}` : pathname;
+    debugHydration("url-sync-outbound-replace", {
+      previousQuery: searchParams.toString(),
+      nextQuery,
+      selectedClusterDisplay,
+      k,
+    });
     lastSyncedUrlRef.current = nextQuery;
     router.replace(nextHref, { scroll: false });
   }, [
@@ -489,6 +634,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     pathname,
     router,
     searchParams,
+    hasExplicitClusterQuery,
   ]);
 
   // Sync incoming URL parameters when explicit clustering query values exist.
@@ -499,6 +645,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
 
     const currentUrl = searchParams.toString();
     if (currentUrl === lastSyncedUrlRef.current) {
+      hasCompletedInitialUrlHydrationRef.current = true;
       return;
     }
 
@@ -509,6 +656,14 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       parsedUrlState.clusterDisplay,
       parsedUrlState.k,
     );
+
+    debugHydration("url-sync-inbound-apply", {
+      currentUrl,
+      normalizedClusterDisplay,
+      k: parsedUrlState.k,
+      hasDateRange: Boolean(parsedUrlState.startDate && parsedUrlState.endDate),
+      variables: normalizedVariables,
+    });
 
     setK((previousK) =>
       previousK === parsedUrlState.k ? previousK : parsedUrlState.k,
@@ -558,6 +713,8 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       endDate: parsedUrlState.endDate,
       clusterDisplay: normalizedClusterDisplay,
     });
+
+    hasCompletedInitialUrlHydrationRef.current = true;
   }, [searchParams, hasExplicitClusterQuery, parsedUrlState, savePreferences]);
 
   // Persist the latest applied clustering state for non-URL-based navigation.
@@ -581,6 +738,13 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       startDate: startDateString || undefined,
       endDate: endDateString || undefined,
       clusterDisplay: selectedClusterDisplay,
+    });
+
+    debugHydration("persisted-save-applied-state", {
+      k,
+      clusterDisplay: selectedClusterDisplay,
+      hasDateRange: Boolean(startDateString && endDateString),
+      variables: appliedVariables,
     });
   }, [
     hasHydratedPreferences,
