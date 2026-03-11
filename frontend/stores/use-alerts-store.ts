@@ -38,6 +38,8 @@ interface AlertsState {
 
 // Channel reference lives outside the store so it's not reactive state.
 let _channel: RealtimeChannel | null = null;
+// Supabase client reference kept for teardown so the same instance is used.
+let _supabase: ReturnType<typeof createClient> | null = null;
 
 const useAlertsStore = create<AlertsState>()(
   immer((set, get) => ({
@@ -55,6 +57,7 @@ const useAlertsStore = create<AlertsState>()(
     });
 
     const supabase = createClient();
+    _supabase = supabase;
 
     // Initial fetch — load all alerts with their notes.
     // Fetch AlertNote with the author relationship to get authorName in a single query.
@@ -109,8 +112,11 @@ const useAlertsStore = create<AlertsState>()(
     }
 
     // Single Realtime channel shared by all consumers.
+    // A unique suffix prevents server/client binding collisions when React
+    // Strict Mode unmounts and remounts this store's provider in development.
+    const channelId = `alerts-store-${Math.random().toString(36).slice(2)}`;
     _channel = supabase
-      .channel("alerts-store")
+      .channel(channelId)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "Alert" },
@@ -148,10 +154,10 @@ const useAlertsStore = create<AlertsState>()(
   },
 
   teardown: () => {
-    if (_channel) {
-      const supabase = createClient();
-      supabase.removeChannel(_channel);
+    if (_channel && _supabase) {
+      _supabase.removeChannel(_channel);
       _channel = null;
+      _supabase = null;
     }
     set((state) => {
       state.isInitialized = false;
