@@ -13,7 +13,11 @@ import PatientsModal from "../patients-modal";
 import { AlertCircle } from "lucide-react";
 import SelectedClusterDetails from "./selected-cluster-details";
 import StatisticsCards from "./statistics-cards";
-import { MapSkeleton } from "./skeleton-loaders";
+import {
+  MapSkeleton,
+  StatsSkeletonCards,
+  ClusterDetailsSkeleton,
+} from "./skeleton-loaders";
 import { useGeoJsonData } from "../../../../hooks/map-hooks/use-geojson-data";
 import ClusteringControlPanel from "../../clustering/clustering-control-panel";
 
@@ -192,7 +196,19 @@ const ByClusterTab = () => {
               </Card>
             </div>
 
-            {!loading && clusterData ? (
+            {loading && clusterData === null ? (
+              view === "district" ? (
+                <div className="space-y-6">
+                  <StatsSkeletonCards />
+                  <ClusterDetailsSkeleton />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <StatsSkeletonCards />
+                  <ClusterDetailsSkeleton />
+                </div>
+              )
+            ) : clusterData ? (
               view === "district" ? (
                 <div className="space-y-6">
                   {selectedClusterStat ? (
