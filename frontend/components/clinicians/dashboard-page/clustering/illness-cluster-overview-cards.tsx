@@ -96,7 +96,7 @@ const IllnessClusterOverviewCards: React.FC<
         return (
           <Card
             key={stat.cluster_id}
-            className={`group relative overflow-hidden shadow-sm! transition-none! cursor-pointer hover:shadow-md! hover:border-opacity-100 ${theme.border} border-2 `}
+            className={`group relative overflow-hidden shadow-sm! transition-all duration-200 cursor-pointer hover:shadow-md! hover:border-opacity-100 ${theme.border} border-2 `}
             onClick={() => {
               console.log("[Card Click] Navigating to map with context", {
                 clusterDisplay: index + 1,
