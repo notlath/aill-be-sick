@@ -4,6 +4,10 @@ import { useId, useRef } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import HeatmapLayer from "./heatmap-layer";
+import { Marker, Tooltip } from "react-leaflet";
+import L from "leaflet";
+import type { SurveillanceAnomaly } from "@/types";
+import { getReasonLabel } from "@/utils/anomaly-reasons";
 
 type GeoPoint = {
   latitude: number | null;
@@ -16,13 +20,25 @@ const MAP_STYLE = { height: "600px", width: "100%" };
 
 type HeatmapMapProps = {
   diagnoses: GeoPoint[];
+  topAnomalies?: SurveillanceAnomaly[];
 };
 
-const HeatmapMap = ({ diagnoses }: HeatmapMapProps) => {
+const HeatmapMap = ({ diagnoses, topAnomalies = [] }: HeatmapMapProps) => {
   const id = useId();
   const mountRef = useRef(0);
   mountRef.current += 1;
   const mapKey = `${id}-${mountRef.current}`;
+
+  // Custom icon for critical anomalies
+  const criticalIcon = L.divIcon({
+    className: "bg-transparent border-none",
+    html: `<div class="relative flex h-6 w-6">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-6 w-6 bg-error shadow-lg shadow-error/50 border-2 border-base-100 flex items-center justify-center text-error-content text-[10px] font-bold">!</span>
+          </div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
 
   return (
     <div className="rounded-xl overflow-hidden">
@@ -38,6 +54,33 @@ const HeatmapMap = ({ diagnoses }: HeatmapMapProps) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <HeatmapLayer diagnoses={diagnoses} />
+        
+        {/* Render Critical Anomalies as pulsating markers */}
+        {topAnomalies.map((anomaly) => {
+          if (anomaly.latitude == null || anomaly.longitude == null) return null;
+          return (
+            <Marker 
+              key={`anomaly-${anomaly.id}`} 
+              position={[anomaly.latitude, anomaly.longitude]}
+              icon={criticalIcon}
+            >
+              <Tooltip className="bg-base-100 border-none shadow-xl rounded-lg text-base-content p-3" opacity={1}>
+                <div className="font-semibold">{anomaly.user?.name || `Patient ID: ${anomaly.userId?.toString().slice(-6).toUpperCase()}`}</div>
+                <div className="text-xs text-error font-medium mb-1">Score: {anomaly.anomaly_score.toFixed(3)}</div>
+                <div className="text-xs opacity-80 mb-2">{anomaly.disease}</div>
+                {anomaly.reason && (
+                  <div className="flex flex-col gap-1">
+                    {anomaly.reason.split("|").map((r, i) => (
+                      <div key={i} className="text-[10px] bg-base-200 px-1.5 py-0.5 rounded text-base-content/80">
+                        {getReasonLabel(r)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Tooltip>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </div>
   );

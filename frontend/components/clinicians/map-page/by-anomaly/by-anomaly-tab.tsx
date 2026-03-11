@@ -22,6 +22,7 @@ import { MapSkeleton, StatsSkeletonCards, TimelineSkeleton, AnomalySummarySkelet
 import AnomalyPatientsModal from "./anomaly-patients-modal";
 import { AnomalyTimelineChart } from "../anomaly-timeline-chart";
 import AnomalySummary from "./anomaly-summary";
+import TopCriticalAnomalies from "./top-critical-anomalies";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), {
   ssr: false,
@@ -81,6 +82,12 @@ const ByAnomalyTab = () => {
         : allNormalDiagnoses.filter((a) => a.disease === selectedDisease),
     [allNormalDiagnoses, selectedDisease],
   );
+
+  const topCriticalAnomalies: SurveillanceAnomaly[] = useMemo(() => {
+    return [...anomalies]
+      .sort((a, b) => a.anomaly_score - b.anomaly_score)
+      .slice(0, 5);
+  }, [anomalies]);
 
   // ─── District view derived data ─────────────────────────────────────────────
 
@@ -252,10 +259,11 @@ const ByAnomalyTab = () => {
                 geoData={geoData!}
                 casesData={districtCasesData}
                 diagnoses={[] as any}
+                topAnomalies={topCriticalAnomalies}
                 onFeatureClick={handleFeatureClick}
               />
             ) : (
-              <HeatmapMap diagnoses={pinnedAnomalies} />
+              <HeatmapMap diagnoses={pinnedAnomalies} topAnomalies={topCriticalAnomalies} />
             )}
           </CardContent>
         </Card>
@@ -308,6 +316,15 @@ const ByAnomalyTab = () => {
             disease={selectedDisease}
             diseaseColor={diseaseColor}
           />
+        )}
+      </div>
+
+      {/* Top Critical Cases Table below timeline */}
+      <div className="mt-6">
+        {loading ? (
+           <div className="animate-pulse bg-base-200 rounded-xl h-[400px]"></div>
+        ) : (
+          <TopCriticalAnomalies topAnomalies={topCriticalAnomalies} />
         )}
       </div>
 
