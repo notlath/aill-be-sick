@@ -1,31 +1,27 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-const VIEWS = [
-  { value: "coordinates", label: "Coordinates view" },
-  { value: "district", label: "District view" },
-]
-
 type ViewSelectProps = {
-  value: 'coordinates' | 'district';
-  onValueChange: (value: 'coordinates' | 'district') => void;
+  value: "coordinates" | "district";
+  onValueChange: (value: "coordinates" | "district") => void;
   className?: string;
-}
+};
 
 const ViewSelect = ({ value, onValueChange, className }: ViewSelectProps) => {
-  return (
-    <Select value={value} onValueChange={onValueChange as any} className="w-full sm:w-[300px]">
-      <SelectTrigger>
-        <SelectValue placeholder="Select view" />
-      </SelectTrigger>
-      <SelectContent>
-        {VIEWS.map((view) => (
-          <SelectItem key={view.value} value={view.value}>
-            {view.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
-}
+  const isDistrictView = value === "district";
+  const activeLabel = isDistrictView ? "District view" : "Coordinates view";
 
-export default ViewSelect
+  return (
+    <label className={`label cursor-pointer gap-3 ${className ?? ""}`}>
+      <span className="label-text font-medium">{activeLabel}</span>
+      <input
+        type="checkbox"
+        className="toggle toggle-primary"
+        checked={isDistrictView}
+        onChange={(event) =>
+          onValueChange(event.target.checked ? "district" : "coordinates")
+        }
+        aria-label="Toggle between coordinates and district view"
+      />
+    </label>
+  );
+};
+
+export default ViewSelect;

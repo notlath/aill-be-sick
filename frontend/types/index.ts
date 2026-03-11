@@ -1,4 +1,3 @@
-
 export type TempDiagnosis = {
   confidence: number;
   uncertainty: number;
@@ -242,6 +241,8 @@ export interface IllnessClusterData {
   illnesses: IllnessRecord[];
   centers: number[][];
 }
+
+export type SearchParams = Record<string, string | string[] | undefined>;
 
 // Types for the real-time alert system
 

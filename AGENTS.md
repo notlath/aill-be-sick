@@ -361,3 +361,4 @@ When creating new sidebar navigation items:
 - Keep tone calm, respectful, and supportive. Avoid slang, sarcasm, and alarmist wording.
 - Because this is a medical app, avoid absolute claims and avoid wording that sounds like a guaranteed diagnosis.
 - Prefer practical, actionable wording that helps users understand what to do next.
+- **NEVER** use the word "cluster" in user-facing text. Use "group" instead, as most users will not understand technical clustering terminology.

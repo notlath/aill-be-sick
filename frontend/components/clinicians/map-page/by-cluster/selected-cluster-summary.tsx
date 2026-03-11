@@ -105,8 +105,7 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
     if (stat.top_districts.length >= 2) {
       const secondDistrict = stat.top_districts[1];
       const percentageIncrease =
-        (topDistrict.count - secondDistrict.count) /
-        secondDistrict.count;
+        (topDistrict.count - secondDistrict.count) / secondDistrict.count;
 
       if (percentageIncrease >= 0.4) {
         regionPrefix = "mostly from";
@@ -129,14 +128,16 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
       {/* Subtle background color based on theme */}
       <div className={`absolute inset-0 bg-base-100 opacity-90`} />
 
-      <CardHeader className="relative pb-4 flex flex-col md:flex-row md:items-start justify-between gap-4">
+      <CardHeader className="relative pb-4">
         <div className="flex-1">
           <div className="font-semibold text-lg mb-2 flex items-center gap-2">
             Group {clusterIndex + 1} Summary
             <div className={`w-3 h-3 rounded-full ${theme.iconBg}`} />
           </div>
 
-          <div className={`${theme.accentBg} rounded-[12px] border p-3.5 ${theme.border} inline-block`}>
+          <div
+            className={`${theme.accentBg} rounded-[12px] border p-3.5 ${theme.border} inline-block`}
+          >
             <div className="text-base-content/80 text-sm leading-relaxed">
               {stat.count} diagnoses
               {regionLocation ? (
@@ -149,14 +150,12 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
               , {ageDescriptor}
               {genderWord ? (
                 <>
-                  , {genderDescriptor}{" "}
-                  <strong>{genderWord}</strong>
+                  , {genderDescriptor} <strong>{genderWord}</strong>
                 </>
               ) : null}
               {dominantDisease ? (
                 <>
-                  , primarily{" "}
-                  <strong>{dominantDisease.disease}</strong>
+                  , primarily <strong>{dominantDisease.disease}</strong>
                 </>
               ) : null}
               .
@@ -177,10 +176,13 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
             </div>
             <div className="space-y-2">
               {stat.top_diseases.map((d, idx) => (
-                <div key={idx} className="flex items-center justify-between text-sm">
+                <div
+                  key={idx}
+                  className="flex items-center justify-between text-sm"
+                >
                   <span className="text-base-content/80">{d.disease}</span>
                   <span className="text-base-content font-medium bg-base-200 px-2 py-0.5 rounded-full text-xs">
-                    {d.count} ({Math.round(d.count / stat.count * 100)}%)
+                    {d.count} ({Math.round((d.count / stat.count) * 100)}%)
                   </span>
                 </div>
               ))}
@@ -209,16 +211,22 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
             <div className="bg-base-200/50 p-3 rounded-xl flex flex-col justify-center">
               <div className="flex justify-between items-center mb-1 text-sm">
                 <span className="text-base-content/70">Male</span>
-                <span className="font-semibold tabular-nums">{malePercent}%</span>
+                <span className="font-semibold tabular-nums">
+                  {malePercent}%
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm mb-1">
                 <span className="text-base-content/70">Female</span>
-                <span className="font-semibold tabular-nums">{femalePercent}%</span>
+                <span className="font-semibold tabular-nums">
+                  {femalePercent}%
+                </span>
               </div>
               {otherPercent > 0 && (
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-base-content/70">Other</span>
-                  <span className="font-semibold tabular-nums">{otherPercent}%</span>
+                  <span className="font-semibold tabular-nums">
+                    {otherPercent}%
+                  </span>
                 </div>
               )}
             </div>
@@ -241,7 +249,9 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
                   className="px-2 py-1 text-xs text-base-content font-medium bg-base-200 hover:bg-base-300"
                 >
                   {district.district}
-                  <span className="ml-1.5 opacity-60 tabular-nums">({district.count})</span>
+                  <span className="ml-1.5 opacity-60 tabular-nums">
+                    ({district.count})
+                  </span>
                 </Badge>
               ))}
             </div>

@@ -1,43 +1,12 @@
-import { getIllnessClusters } from "@/utils/cluster";
 import IllnessClustersClient from "./clustering/illness-clusters-client";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { Card, CardHeader } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import { Suspense } from "react";
 
 const DEFAULT_K = 4;
 
-const IllnessClusters = async () => {
-  const initialClusterData = await getIllnessClusters(DEFAULT_K);
-
-  if (!initialClusterData) {
-    return (
-      <Card className="col-span-2 border-red-200/50 bg-red-50/50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-red-700">
-            <div className="rounded-[12px] bg-red-100 p-3">
-              <AlertCircle className="size-6" />
-            </div>
-            <span>Error Loading Illness Clusters</span>
-          </CardTitle>
-          <CardDescription className="ml-[60px] text-red-600">
-            Could not connect to the illness clustering service. Please ensure it is running and try again.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    )
-  }
-
-  return (
-    <IllnessClustersClient
-      initialData={initialClusterData}
-      initialK={DEFAULT_K}
-    />
-  );
+const IllnessClusters = () => {
+  return <IllnessClustersClient initialK={DEFAULT_K} />;
 };
 
 const IllnessClustersSkeleton = () => {

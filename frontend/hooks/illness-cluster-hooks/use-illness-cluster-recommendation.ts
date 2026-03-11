@@ -1,18 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
-type ClusterVariableSelection = {
-  age: boolean;
-  gender: boolean;
-  district: boolean;
-  time: boolean;
-};
+import type { ClusterVariableSelection } from "@/types/illness-cluster-settings";
 
 type UseIllnessClusterRecommendationParams = {
   variables: ClusterVariableSelection;
   startDate: string;
   endDate: string;
+  enabled?: boolean;
 };
 
 type UseIllnessClusterRecommendationResult = {
@@ -21,22 +16,37 @@ type UseIllnessClusterRecommendationResult = {
   message: string;
 };
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
 
 export const useIllnessClusterRecommendation = ({
   variables,
   startDate,
   endDate,
+  enabled = true,
 }: UseIllnessClusterRecommendationParams): UseIllnessClusterRecommendationResult => {
   const [recommendedK, setRecommendedK] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(enabled);
   const [message, setMessage] = useState<string>("");
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const activeRequestIdRef = useRef<number>(0);
 
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
+
+    if (!enabled) {
+      activeRequestIdRef.current += 1;
+      setRecommendedK(null);
+      setLoading(false);
+      setMessage("");
+      return;
+    }
+
+    const { age, gender, district, time } = variables;
+    const requestId = activeRequestIdRef.current + 1;
+    activeRequestIdRef.current = requestId;
 
     const fetchRecommendation = async () => {
       try {
@@ -44,10 +54,10 @@ export const useIllnessClusterRecommendation = ({
         setMessage("");
         const params = new URLSearchParams({
           range: "2-25",
-          age: String(variables.age),
-          gender: String(variables.gender),
-          district: String(variables.district),
-          time: String(variables.time),
+          age: String(age),
+          gender: String(gender),
+          district: String(district),
+          time: String(time),
         });
 
         if (startDate) params.set("start_date", startDate);
@@ -56,6 +66,11 @@ export const useIllnessClusterRecommendation = ({
         const res = await fetch(
           `${BACKEND_URL}/api/illness-clusters/silhouette?${params.toString()}`,
         );
+
+        if (requestId !== activeRequestIdRef.current) {
+          return;
+        }
+
         if (!res.ok) {
           const errorText = await res.text();
           throw new Error(errorText || "Failed to fetch recommendation");
@@ -66,9 +81,15 @@ export const useIllnessClusterRecommendation = ({
           setMessage("");
         } else {
           setRecommendedK(null);
-          setMessage("Recommendation is unavailable for the current date filter.");
+          setMessage(
+            "Recommendation is unavailable for the current date filter.",
+          );
         }
       } catch (err) {
+        if (requestId !== activeRequestIdRef.current) {
+          return;
+        }
+
         const errorMessage =
           err instanceof Error ? err.message : "Failed to fetch recommendation";
         setRecommendedK(null);
@@ -83,7 +104,9 @@ export const useIllnessClusterRecommendation = ({
           );
         }
       } finally {
-        setLoading(false);
+        if (requestId === activeRequestIdRef.current) {
+          setLoading(false);
+        }
       }
     };
 
@@ -94,7 +117,15 @@ export const useIllnessClusterRecommendation = ({
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [variables, startDate, endDate]);
+  }, [
+    enabled,
+    variables.age,
+    variables.gender,
+    variables.district,
+    variables.time,
+    startDate,
+    endDate,
+  ]);
 
   return { recommendedK, loading, message };
 };
