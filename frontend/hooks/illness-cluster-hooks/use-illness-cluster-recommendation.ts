@@ -7,6 +7,7 @@ type UseIllnessClusterRecommendationParams = {
   variables: ClusterVariableSelection;
   startDate: string;
   endDate: string;
+  enabled?: boolean;
 };
 
 type UseIllnessClusterRecommendationResult = {
@@ -22,18 +23,30 @@ export const useIllnessClusterRecommendation = ({
   variables,
   startDate,
   endDate,
+  enabled = true,
 }: UseIllnessClusterRecommendationParams): UseIllnessClusterRecommendationResult => {
   const [recommendedK, setRecommendedK] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(enabled);
   const [message, setMessage] = useState<string>("");
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const activeRequestIdRef = useRef<number>(0);
 
   useEffect(() => {
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
 
+    if (!enabled) {
+      activeRequestIdRef.current += 1;
+      setRecommendedK(null);
+      setLoading(false);
+      setMessage("");
+      return;
+    }
+
     const { age, gender, district, time } = variables;
+    const requestId = activeRequestIdRef.current + 1;
+    activeRequestIdRef.current = requestId;
 
     const fetchRecommendation = async () => {
       try {
@@ -53,6 +66,11 @@ export const useIllnessClusterRecommendation = ({
         const res = await fetch(
           `${BACKEND_URL}/api/illness-clusters/silhouette?${params.toString()}`,
         );
+
+        if (requestId !== activeRequestIdRef.current) {
+          return;
+        }
+
         if (!res.ok) {
           const errorText = await res.text();
           throw new Error(errorText || "Failed to fetch recommendation");
@@ -68,6 +86,10 @@ export const useIllnessClusterRecommendation = ({
           );
         }
       } catch (err) {
+        if (requestId !== activeRequestIdRef.current) {
+          return;
+        }
+
         const errorMessage =
           err instanceof Error ? err.message : "Failed to fetch recommendation";
         setRecommendedK(null);
@@ -82,7 +104,9 @@ export const useIllnessClusterRecommendation = ({
           );
         }
       } finally {
-        setLoading(false);
+        if (requestId === activeRequestIdRef.current) {
+          setLoading(false);
+        }
       }
     };
 
@@ -94,6 +118,7 @@ export const useIllnessClusterRecommendation = ({
       }
     };
   }, [
+    enabled,
     variables.age,
     variables.gender,
     variables.district,

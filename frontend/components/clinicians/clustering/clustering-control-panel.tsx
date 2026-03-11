@@ -47,9 +47,10 @@ type ClusteringPreferencesPersistApi = {
 const getClusteringPreferencesPersistApi = ():
   | ClusteringPreferencesPersistApi
   | undefined => {
-  const storeWithPersist = useClusteringPreferencesStore as typeof useClusteringPreferencesStore & {
-    persist?: ClusteringPreferencesPersistApi;
-  };
+  const storeWithPersist =
+    useClusteringPreferencesStore as typeof useClusteringPreferencesStore & {
+      persist?: ClusteringPreferencesPersistApi;
+    };
 
   return storeWithPersist.persist;
 };
@@ -135,9 +136,25 @@ const areSameDateValue = (left: Date | null, right: Date | null): boolean => {
   return formatDateToString(left) === formatDateToString(right);
 };
 
+const buildRecommendationSignature = (
+  variables: ClusterVariableSelection,
+  startDate: string,
+  endDate: string,
+): string => {
+  return [
+    variables.age ? "1" : "0",
+    variables.gender ? "1" : "0",
+    variables.district ? "1" : "0",
+    variables.time ? "1" : "0",
+    startDate,
+    endDate,
+  ].join("|");
+};
+
 type ControlPanelResolvedState = {
   source: "explicit-url" | "saved-preferences" | "defaults";
   k: number;
+  recommendedK?: number;
   variables: ClusterVariableSelection;
   startDate?: string;
   endDate?: string;
@@ -164,6 +181,7 @@ const resolveControlPanelState = ({
   initialK,
   hasSavedPreferences,
   savedK,
+  savedRecommendedK,
   savedVariables,
   savedStartDate,
   savedEndDate,
@@ -174,6 +192,7 @@ const resolveControlPanelState = ({
   initialK: number;
   hasSavedPreferences: boolean;
   savedK: number;
+  savedRecommendedK?: number;
   savedVariables: ClusterVariableSelection;
   savedStartDate?: string;
   savedEndDate?: string;
@@ -183,6 +202,7 @@ const resolveControlPanelState = ({
     return {
       source: "explicit-url",
       k: urlState.k,
+      recommendedK: urlState.recommendedK,
       variables: { ...urlState.variables },
       startDate: urlState.startDate,
       endDate: urlState.endDate,
@@ -206,6 +226,7 @@ const resolveControlPanelState = ({
     return {
       source: "saved-preferences",
       k: normalizedK,
+      recommendedK: savedRecommendedK,
       variables: normalizedVariables,
       startDate: savedStartDate,
       endDate: savedEndDate,
@@ -225,6 +246,7 @@ const resolveControlPanelState = ({
   return {
     source: "defaults",
     k: fallbackK,
+    recommendedK: urlState.recommendedK,
     variables: fallbackVariables,
     startDate: undefined,
     endDate: undefined,
@@ -255,6 +277,7 @@ export interface ClusteringControlPanelRenderProps {
   setView: (value: "coordinates" | "district") => void;
   appliedVariables: ClusterVariableSelection;
   k: number;
+  recommendedK?: number;
   appliedStartDate: string;
   appliedEndDate: string;
 }
@@ -273,6 +296,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   const {
     hasSavedPreferences,
     k: savedK,
+    recommendedK: savedRecommendedK,
     variables: savedVariables,
     startDate: savedStartDate,
     endDate: savedEndDate,
@@ -350,6 +374,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       initialK,
       hasSavedPreferences,
       savedK,
+      savedRecommendedK,
       savedVariables,
       savedStartDate,
       savedEndDate,
@@ -361,9 +386,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
 
   // State management
   const [k, setK] = useState<number>(initialResolvedState.k);
-  const [kInput, setKInput] = useState<string>(
-    String(initialResolvedState.k),
-  );
+  const [kInput, setKInput] = useState<string>(String(initialResolvedState.k));
   const [selectedVariables, setSelectedVariables] =
     useState<ClusterVariableSelection>(initialResolvedState.variables);
   const [appliedVariables, setAppliedVariables] =
@@ -375,9 +398,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     parseDateFromString(initialResolvedState.endDate),
   );
   const [appliedDateRangeStart, setAppliedDateRangeStart] =
-    useState<Date | null>(
-      parseDateFromString(initialResolvedState.startDate),
-    );
+    useState<Date | null>(parseDateFromString(initialResolvedState.startDate));
   const [appliedDateRangeEnd, setAppliedDateRangeEnd] = useState<Date | null>(
     parseDateFromString(initialResolvedState.endDate),
   );
@@ -388,12 +409,62 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingK, setPendingK] = useState<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [cachedRecommendedK, setCachedRecommendedK] = useState<
+    number | undefined
+  >(initialResolvedState.recommendedK);
+  const [cachedRecommendationSignature, setCachedRecommendationSignature] =
+    useState<string | null>(() => {
+      if (typeof initialResolvedState.recommendedK !== "number") {
+        return null;
+      }
+
+      return buildRecommendationSignature(
+        initialResolvedState.variables,
+        initialResolvedState.startDate ?? "",
+        initialResolvedState.endDate ?? "",
+      );
+    });
 
   const lastSyncedUrlRef = useRef<string>("");
   const hasAppliedHydratedPreferencesRef = useRef<boolean>(false);
   const hasSkippedInitialPreferenceSyncRef = useRef<boolean>(false);
   const hasCompletedInitialUrlHydrationRef = useRef<boolean>(
     !hasExplicitClusterQuery,
+  );
+
+  const syncCachedRecommendation = useCallback(
+    (params: {
+      recommendedK?: number;
+      variables: ClusterVariableSelection;
+      startDate?: string;
+      endDate?: string;
+    }) => {
+      if (typeof params.recommendedK !== "number") {
+        setCachedRecommendedK((previousValue) =>
+          typeof previousValue === "undefined" ? previousValue : undefined,
+        );
+        setCachedRecommendationSignature((previousSignature) =>
+          previousSignature === null ? previousSignature : null,
+        );
+        return;
+      }
+
+      const nextSignature = buildRecommendationSignature(
+        params.variables,
+        params.startDate ?? "",
+        params.endDate ?? "",
+      );
+
+      setCachedRecommendedK((previousValue) =>
+        previousValue === params.recommendedK
+          ? previousValue
+          : params.recommendedK,
+      );
+      setCachedRecommendationSignature((previousSignature) =>
+        previousSignature === nextSignature ? previousSignature : nextSignature,
+      );
+    },
+    [],
   );
 
   useEffect(() => {
@@ -428,19 +499,58 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   }, [hasExplicitClusterQuery, searchParams]);
 
   // Convert dates to string format for hooks
+  const draftStartDateString = formatDateToString(dateRangeStart);
+  const draftEndDateString = formatDateToString(dateRangeEnd);
   const startDateString = formatDateToString(appliedDateRangeStart);
   const endDateString = formatDateToString(appliedDateRangeEnd);
 
+  const draftRecommendationSignature = useMemo(
+    () =>
+      buildRecommendationSignature(
+        selectedVariables,
+        draftStartDateString,
+        draftEndDateString,
+      ),
+    [selectedVariables, draftStartDateString, draftEndDateString],
+  );
+
+  const appliedRecommendationSignature = useMemo(
+    () =>
+      buildRecommendationSignature(
+        appliedVariables,
+        startDateString,
+        endDateString,
+      ),
+    [appliedVariables, startDateString, endDateString],
+  );
+
+  const hasCachedRecommendationForDraft =
+    typeof cachedRecommendedK === "number" &&
+    cachedRecommendationSignature === draftRecommendationSignature;
+
+  const shouldFetchRecommendation = !hasCachedRecommendationForDraft;
+
+  const recommendedKForAppliedState =
+    typeof cachedRecommendedK === "number" &&
+    cachedRecommendationSignature === appliedRecommendationSignature
+      ? cachedRecommendedK
+      : undefined;
+
   // Use custom hooks for data fetching
   const {
-    recommendedK,
+    recommendedK: fetchedRecommendedK,
     loading: loadingRecommendation,
     message: recommendationMessage,
   } = useIllnessClusterRecommendation({
     variables: selectedVariables,
-    startDate: formatDateToString(dateRangeStart),
-    endDate: formatDateToString(dateRangeEnd),
+    startDate: draftStartDateString,
+    endDate: draftEndDateString,
+    enabled: shouldFetchRecommendation,
   });
+
+  const displayedRecommendedK = hasCachedRecommendationForDraft
+    ? cachedRecommendedK
+    : fetchedRecommendedK;
 
   const { clusterData, loading, error } = useIllnessClusterData({
     k,
@@ -477,11 +587,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
         hasExplicitClusterQuery,
       },
     );
-  }, [
-    selectedClusterDisplay,
-    clusterDisplayOptions,
-    hasExplicitClusterQuery,
-  ]);
+  }, [selectedClusterDisplay, clusterDisplayOptions, hasExplicitClusterQuery]);
 
   // Notify parent of cluster data changes
   useEffect(() => {
@@ -490,12 +596,38 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     }
   }, [clusterData, onClusterDataChange]);
 
+  useEffect(() => {
+    if (!shouldFetchRecommendation || loadingRecommendation) {
+      return;
+    }
+
+    if (fetchedRecommendedK === null) {
+      return;
+    }
+
+    setCachedRecommendedK((previousRecommendedK) =>
+      previousRecommendedK === fetchedRecommendedK
+        ? previousRecommendedK
+        : fetchedRecommendedK,
+    );
+    setCachedRecommendationSignature((previousSignature) =>
+      previousSignature === draftRecommendationSignature
+        ? previousSignature
+        : draftRecommendationSignature,
+    );
+  }, [
+    shouldFetchRecommendation,
+    loadingRecommendation,
+    fetchedRecommendedK,
+    draftRecommendationSignature,
+  ]);
+
   // Sync recommendation to input
   useEffect(() => {
-    if (recommendedK) {
-      setKInput(String(recommendedK));
+    if (displayedRecommendedK) {
+      setKInput(String(displayedRecommendedK));
     }
-  }, [recommendedK]);
+  }, [displayedRecommendedK]);
 
   // Rehydrate from persisted preferences when URL has no explicit clustering state.
   useEffect(() => {
@@ -520,6 +652,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       initialK,
       hasSavedPreferences,
       savedK,
+      savedRecommendedK,
       savedVariables,
       savedStartDate,
       savedEndDate,
@@ -533,9 +666,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     debugHydration("persisted-rehydrate-apply", {
       k: persistedState.k,
       clusterDisplay: persistedState.clusterDisplay,
-      hasDateRange: Boolean(
-        persistedState.startDate && persistedState.endDate,
-      ),
+      hasDateRange: Boolean(persistedState.startDate && persistedState.endDate),
       variables: persistedState.variables,
     });
 
@@ -576,6 +707,12 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     setAppliedDateRangeEnd((previousDate) =>
       areSameDateValue(previousDate, nextEndDate) ? previousDate : nextEndDate,
     );
+    syncCachedRecommendation({
+      recommendedK: persistedState.recommendedK,
+      variables: persistedState.variables,
+      startDate: persistedState.startDate,
+      endDate: persistedState.endDate,
+    });
   }, [
     hasExplicitClusterQuery,
     hasHydratedPreferences,
@@ -583,10 +720,12 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     parsedUrlState,
     initialK,
     savedK,
+    savedRecommendedK,
     savedVariables,
     savedStartDate,
     savedEndDate,
     savedClusterDisplay,
+    syncCachedRecommendation,
   ]);
 
   // URL sync effect (if enabled)
@@ -604,6 +743,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
 
     const nextQuery = serializeIllnessClusterNavigationQuery({
       k,
+      recommendedK: recommendedKForAppliedState,
       variables: appliedVariables,
       startDate: startDateString || undefined,
       endDate: endDateString || undefined,
@@ -620,6 +760,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       nextQuery,
       selectedClusterDisplay,
       k,
+      recommendedK: recommendedKForAppliedState,
     });
     lastSyncedUrlRef.current = nextQuery;
     router.replace(nextHref, { scroll: false });
@@ -635,6 +776,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     router,
     searchParams,
     hasExplicitClusterQuery,
+    recommendedKForAppliedState,
   ]);
 
   // Sync incoming URL parameters when explicit clustering query values exist.
@@ -706,8 +848,16 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       areSameDateValue(previousDate, nextEndDate) ? previousDate : nextEndDate,
     );
 
+    syncCachedRecommendation({
+      recommendedK: parsedUrlState.recommendedK,
+      variables: normalizedVariables,
+      startDate: parsedUrlState.startDate,
+      endDate: parsedUrlState.endDate,
+    });
+
     savePreferences({
       k: parsedUrlState.k,
+      recommendedK: parsedUrlState.recommendedK,
       variables: normalizedVariables,
       startDate: parsedUrlState.startDate,
       endDate: parsedUrlState.endDate,
@@ -715,7 +865,13 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     });
 
     hasCompletedInitialUrlHydrationRef.current = true;
-  }, [searchParams, hasExplicitClusterQuery, parsedUrlState, savePreferences]);
+  }, [
+    searchParams,
+    hasExplicitClusterQuery,
+    parsedUrlState,
+    savePreferences,
+    syncCachedRecommendation,
+  ]);
 
   // Persist the latest applied clustering state for non-URL-based navigation.
   useEffect(() => {
@@ -734,6 +890,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
 
     savePreferences({
       k,
+      recommendedK: recommendedKForAppliedState,
       variables: appliedVariables,
       startDate: startDateString || undefined,
       endDate: endDateString || undefined,
@@ -742,6 +899,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
 
     debugHydration("persisted-save-applied-state", {
       k,
+      recommendedK: recommendedKForAppliedState,
       clusterDisplay: selectedClusterDisplay,
       hasDateRange: Boolean(startDateString && endDateString),
       variables: appliedVariables,
@@ -751,6 +909,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     hasExplicitClusterQuery,
     savePreferences,
     k,
+    recommendedKForAppliedState,
     appliedVariables,
     startDateString,
     endDateString,
@@ -800,6 +959,23 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   const onSubmitK = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
+
+      const hasPendingGroupCountChange = clampK(parseInt(kInput, 10)) !== k;
+      const hasPendingVariableChange = (
+        Object.keys(selectedVariables) as Array<keyof ClusterVariableSelection>
+      ).some((key) => selectedVariables[key] !== appliedVariables[key]);
+      const hasPendingDateRangeChange =
+        draftStartDateString !== startDateString ||
+        draftEndDateString !== endDateString;
+
+      if (
+        !hasPendingGroupCountChange &&
+        !hasPendingVariableChange &&
+        !hasPendingDateRangeChange
+      ) {
+        return;
+      }
+
       const nextK = clampK(parseInt(kInput, 10));
 
       if (loadingRecommendation) {
@@ -810,7 +986,19 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
 
       applyClusteringWithK(nextK);
     },
-    [kInput, loadingRecommendation, clampK, applyClusteringWithK],
+    [
+      kInput,
+      k,
+      selectedVariables,
+      appliedVariables,
+      draftStartDateString,
+      draftEndDateString,
+      startDateString,
+      endDateString,
+      loadingRecommendation,
+      clampK,
+      applyClusteringWithK,
+    ],
   );
 
   const handleConfirmModal = useCallback(() => {
@@ -858,6 +1046,14 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
 
   const hasPendingFilterChanges =
     hasPendingVariableChanges || hasPendingDateRangeChanges;
+
+  const hasPendingGroupCountChange = useMemo(() => {
+    const normalizedInputK = clampK(parseInt(kInput, 10));
+    return normalizedInputK !== k;
+  }, [kInput, k, clampK]);
+
+  const hasPendingClusteringChanges =
+    hasPendingFilterChanges || hasPendingGroupCountChange;
 
   const modalRoot = isMounted ? document.body : null;
   const confirmModal = (
@@ -912,6 +1108,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     setView,
     appliedVariables,
     k,
+    recommendedK: recommendedKForAppliedState,
     appliedStartDate: startDateString,
     appliedEndDate: endDateString,
   };
@@ -1008,8 +1205,8 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                       <Loader2 className="size-3 animate-spin" />
                       Calculating recommendation...
                     </>
-                  ) : recommendedK ? (
-                    <>Recommended: {recommendedK} groups</>
+                  ) : displayedRecommendedK ? (
+                    <>Recommended: {displayedRecommendedK} groups</>
                   ) : (
                     <>Recommended: 2-25 groups</>
                   )}
@@ -1029,10 +1226,10 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                   Patients with similar details in these areas are placed in the
                   same group
                 </span>
-                {hasPendingFilterChanges ? (
+                {hasPendingClusteringChanges ? (
                   <span className="block mt-1">
                     The groups have not been updated. Click Apply to rebuild the
-                    groups using the updated filters
+                    groups using the updated settings
                   </span>
                 ) : null}
               </div>
@@ -1043,7 +1240,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                   type="submit"
                   className="btn btn-primary btn-sm w-fit"
                   title="Apply group settings"
-                  disabled={loading}
+                  disabled={loading || !hasPendingClusteringChanges}
                 >
                   {loading ? "Applying..." : "Apply"}
                 </button>

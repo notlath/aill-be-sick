@@ -10,6 +10,7 @@ import {
 
 type ClusteringPreferenceInput = {
   k: number;
+  recommendedK?: number;
   variables: ClusterVariableSelection;
   startDate?: string;
   endDate?: string;
@@ -19,6 +20,7 @@ type ClusteringPreferenceInput = {
 interface ClusteringPreferencesState {
   hasSavedPreferences: boolean;
   k: number;
+  recommendedK?: number;
   variables: ClusterVariableSelection;
   startDate?: string;
   endDate?: string;
@@ -29,7 +31,10 @@ interface ClusteringPreferencesState {
 
 const DEFAULT_CLUSTER_DISPLAY = "1";
 
-const normalizeClusterDisplay = (value: string | undefined, k: number): string => {
+const normalizeClusterDisplay = (
+  value: string | undefined,
+  k: number,
+): string => {
   if (!value || !/^\d+$/.test(value)) {
     return DEFAULT_CLUSTER_DISPLAY;
   }
@@ -94,9 +99,24 @@ const normalizeDateRange = (
   };
 };
 
+const normalizeRecommendedClusterCount = (
+  value?: number,
+): number | undefined => {
+  if (
+    typeof value !== "number" ||
+    Number.isNaN(value) ||
+    !Number.isFinite(value)
+  ) {
+    return undefined;
+  }
+
+  return clampClusterCount(value, DEFAULT_CLUSTER_COUNT);
+};
+
 const INITIAL_STATE = {
   hasSavedPreferences: false,
   k: DEFAULT_CLUSTER_COUNT,
+  recommendedK: undefined,
   variables: DEFAULT_CLUSTER_VARIABLES,
   startDate: undefined,
   endDate: undefined,
@@ -109,6 +129,7 @@ const useClusteringPreferencesStore = create<ClusteringPreferencesState>()(
       ...INITIAL_STATE,
       savePreferences: ({
         k,
+        recommendedK,
         variables,
         startDate,
         endDate,
@@ -124,6 +145,7 @@ const useClusteringPreferencesStore = create<ClusteringPreferencesState>()(
         set({
           hasSavedPreferences: true,
           k: normalizedK,
+          recommendedK: normalizeRecommendedClusterCount(recommendedK),
           variables: normalizedVariables,
           startDate: normalizedDateRange.startDate,
           endDate: normalizedDateRange.endDate,
@@ -140,6 +162,7 @@ const useClusteringPreferencesStore = create<ClusteringPreferencesState>()(
       partialize: (state) => ({
         hasSavedPreferences: state.hasSavedPreferences,
         k: state.k,
+        recommendedK: state.recommendedK,
         variables: state.variables,
         startDate: state.startDate,
         endDate: state.endDate,

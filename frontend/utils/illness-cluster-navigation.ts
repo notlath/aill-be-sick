@@ -22,6 +22,7 @@ export type IllnessClusterNavigationState = {
   tab: MapTabKey;
   clusterDisplay: string;
   k: number;
+  recommendedK?: number;
   variables: ClusterVariableSelection;
   startDate?: string;
   endDate?: string;
@@ -31,6 +32,7 @@ export type IllnessClusterNavigationQueryInput = {
   tab?: string;
   clusterDisplay?: string | number;
   k?: number;
+  recommendedK?: number;
   variables?: Partial<ClusterVariableSelection>;
   startDate?: string;
   endDate?: string;
@@ -143,6 +145,16 @@ const normalizeClusterDisplay = (
   return String(normalizedNumber);
 };
 
+const parseOptionalClusterCount = (
+  value: string | null,
+): number | undefined => {
+  if (!value || !/^\d+$/.test(value)) {
+    return undefined;
+  }
+
+  return clampClusterCount(Number(value), DEFAULT_CLUSTER_COUNT);
+};
+
 const parseBooleanValue = (value: string | undefined): boolean | undefined => {
   if (typeof value !== "string") {
     return undefined;
@@ -193,6 +205,7 @@ const toSearchParams = (
 
 const CLUSTER_NAVIGATION_PARAM_KEYS = [
   "k",
+  "recommended_k",
   "age",
   "gender",
   "district",
@@ -223,6 +236,17 @@ export const serializeIllnessClusterNavigationQuery = (
   searchParams.set("tab", normalizeMapTab(input.tab));
   searchParams.set("cluster", normalizeClusterDisplay(input.clusterDisplay, k));
   searchParams.set("k", String(k));
+
+  if (
+    typeof input.recommendedK === "number" &&
+    Number.isFinite(input.recommendedK)
+  ) {
+    searchParams.set(
+      "recommended_k",
+      String(clampClusterCount(input.recommendedK, DEFAULT_CLUSTER_COUNT)),
+    );
+  }
+
   searchParams.set("age", String(variables.age));
   searchParams.set("gender", String(variables.gender));
   searchParams.set("district", String(variables.district));
@@ -258,6 +282,10 @@ export const parseIllnessClusterNavigationQuery = (
   const parsedK = Number(searchParams.get("k"));
   const k = clampClusterCount(parsedK, DEFAULT_CLUSTER_COUNT);
 
+  const recommendedK = parseOptionalClusterCount(
+    searchParams.get("recommended_k"),
+  );
+
   const { startDate, endDate } = validateDateRange(
     searchParams.get("start_date") ?? undefined,
     searchParams.get("end_date") ?? undefined,
@@ -271,6 +299,7 @@ export const parseIllnessClusterNavigationQuery = (
       k,
     ),
     k,
+    recommendedK,
     variables,
     startDate: hasCompleteDateRange ? startDate : undefined,
     endDate: hasCompleteDateRange ? endDate : undefined,

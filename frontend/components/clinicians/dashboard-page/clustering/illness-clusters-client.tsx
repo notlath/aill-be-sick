@@ -35,6 +35,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
         error,
         appliedVariables,
         k,
+        recommendedK,
         appliedStartDate,
         appliedEndDate,
       }) => {
@@ -45,11 +46,18 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
             return {
               tab: "by-cluster",
               k,
+              recommendedK,
               variables: appliedVariables,
               startDate: appliedStartDate || undefined,
               endDate: appliedEndDate || undefined,
             };
-          }, [k, appliedVariables, appliedStartDate, appliedEndDate]);
+          }, [
+            k,
+            recommendedK,
+            appliedVariables,
+            appliedStartDate,
+            appliedEndDate,
+          ]);
 
         return (
           <div className="space-y-6">
