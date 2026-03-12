@@ -79,7 +79,7 @@ export function AnomalyTimelineChart({
   disease,
   diseaseColor,
 }: AnomalyTimelineChartProps) {
-  const [granularity, setGranularity] = useState<TimeGranularity>("month");
+  const [granularity, setGranularity] = useState<TimeGranularity>("day");
 
   const chartData = useMemo<TimeBucket[]>(() => {
     const withDates = anomalies.filter((a) => !!a.createdAt);
@@ -173,7 +173,11 @@ export function AnomalyTimelineChart({
             >
               <defs>
                 <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={diseaseColor} stopOpacity={0.8} />
+                  <stop
+                    offset="5%"
+                    stopColor={diseaseColor}
+                    stopOpacity={0.8}
+                  />
                   <stop offset="95%" stopColor={diseaseColor} stopOpacity={0} />
                 </linearGradient>
               </defs>

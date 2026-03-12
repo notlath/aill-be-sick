@@ -60,7 +60,7 @@ const MapTabs = () => {
           By disease
         </TabsTrigger>
         <TabsTrigger value="by-cluster" className="flex-1 sm:flex-none">
-          By illness cluster
+          By illness group
         </TabsTrigger>
         <TabsTrigger value="by-anomaly" className="flex-1 sm:flex-none">
           By anomaly

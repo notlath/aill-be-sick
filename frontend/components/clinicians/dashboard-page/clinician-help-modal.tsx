@@ -15,8 +15,11 @@ const ClinicianHelpModal = () => {
 
   const handleClose = () => {
     setIsOpen(false);
-    (document.querySelector(".clinician-help-dialog") as HTMLDialogElement | null)
-      ?.close();
+    (
+      document.querySelector(
+        ".clinician-help-dialog",
+      ) as HTMLDialogElement | null
+    )?.close();
   };
 
   return (
@@ -56,7 +59,8 @@ const ClinicianHelpModal = () => {
                 Dashboard
               </h2>
               <p className="text-sm opacity-80">
-                Review illness patterns, clustering summaries, and trend data for fast surveillance insights.
+                Review illness patterns, group summaries, and trend data for
+                fast surveillance insights.
               </p>
             </div>
           </div>
@@ -68,7 +72,8 @@ const ClinicianHelpModal = () => {
                 Map
               </h2>
               <p className="text-sm opacity-80">
-                Inspect geographic spread, hotspots, and area-level activity for better local response planning.
+                Inspect geographic spread, hotspots, and area-level activity for
+                better local response planning.
               </p>
             </div>
           </div>
@@ -80,7 +85,8 @@ const ClinicianHelpModal = () => {
                 Alerts
               </h2>
               <p className="text-sm opacity-80">
-                Check anomaly alerts and possible outbreak signals that may need quick validation.
+                Check anomaly alerts and possible outbreak signals that may need
+                quick validation.
               </p>
             </div>
           </div>
@@ -92,7 +98,8 @@ const ClinicianHelpModal = () => {
                 Users
               </h2>
               <p className="text-sm opacity-80">
-                Manage user access and review account roles when handling clinician and patient workflows.
+                Manage user access and review account roles when handling
+                clinician and patient workflows.
               </p>
             </div>
           </div>
@@ -104,14 +111,19 @@ const ClinicianHelpModal = () => {
                 Healthcare Reports
               </h2>
               <p className="text-sm opacity-80">
-                Open detailed report tables to analyze diagnosis records and patient-level context.
+                Open detailed report tables to analyze diagnosis records and
+                patient-level context.
               </p>
             </div>
           </div>
         </div>
 
         <div className="text-center mt-6">
-          <button type="button" onClick={handleClose} className="btn btn-primary btn-wide">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="btn btn-primary btn-wide"
+          >
             Close guide
           </button>
           <div className="divider my-3"></div>
@@ -123,7 +135,9 @@ const ClinicianHelpModal = () => {
       </div>
 
       <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={handleClose}>close</button>
+        <button type="button" onClick={handleClose}>
+          close
+        </button>
       </form>
     </dialog>
   );

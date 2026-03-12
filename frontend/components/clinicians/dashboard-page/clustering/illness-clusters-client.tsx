@@ -66,7 +66,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                 <div className="flex items-center justify-center gap-3">
                   <Loader2 className="text-primary size-8 animate-spin" />
                   <p className="text-muted-foreground text-sm font-medium">
-                    Recalculating clusters...
+                    Recalculating groups...
                   </p>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -91,10 +91,10 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                     <AlertCircle className="size-8 text-red-700" />
                   </div>
                   <CardTitle className="mt-4 text-red-700">
-                    Error Loading Cluster Data
+                    Error Loading Group Data
                   </CardTitle>
                   <CardDescription className="text-red-600">
-                    {error || "Could not retrieve illness cluster information."}
+                    {error || "Could not retrieve illness group information."}
                   </CardDescription>
                 </CardHeader>
               </Card>

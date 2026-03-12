@@ -3,7 +3,9 @@ import {
   LayoutDashboard,
   MapPin,
   OctagonAlert,
-  Stethoscope, User
+  Stethoscope,
+  User,
+  FileText,
 } from "lucide-react";
 
 export type NavItem = {
@@ -27,14 +29,14 @@ export const patientNavItems: NavItem[] = [
 
 export const clinicianNavItems: NavItem[] = [
   {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Map",
+    name: "Surveillance",
     href: "/map",
     icon: MapPin,
+  },
+  {
+    name: "Patterns",
+    href: "/dashboard",
+    icon: LayoutDashboard,
   },
   {
     name: "Alerts",
@@ -42,9 +44,9 @@ export const clinicianNavItems: NavItem[] = [
     icon: OctagonAlert,
   },
   {
-    name: "Healthcare Reports",
+    name: "Reports",
     href: "/healthcare-reports",
-    icon: LayoutDashboard,
+    icon: FileText,
   },
   {
     name: "Users",

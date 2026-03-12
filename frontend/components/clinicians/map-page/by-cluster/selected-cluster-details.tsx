@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { IllnessClusterTimelineChart } from "./illness-cluster-timeline-chart";
+import { IllnessClusterContributionGraph } from "./illness-cluster-contribution-graph";
 import SelectedClusterSummary from "./selected-cluster-summary";
 import { PatientsDataTable } from "../patients-data-table";
 import { columns } from "../patients-columns";
@@ -48,12 +49,19 @@ const SelectedClusterDetails = ({
           </CardContent>
         </Card>
       ) : (
-        <IllnessClusterTimelineChart
-          illnesses={illnesses}
-          nClusters={nClusters}
-          selectedCluster={selectedCluster}
-          clusterColorIndex={clusterIndex}
-        />
+        <div className="space-y-4">
+          <IllnessClusterTimelineChart
+            illnesses={illnesses}
+            nClusters={nClusters}
+            selectedCluster={selectedCluster}
+            clusterColorIndex={clusterIndex}
+          />
+          <IllnessClusterContributionGraph
+            illnesses={illnesses}
+            selectedCluster={selectedCluster}
+            clusterColorIndex={clusterIndex}
+          />
+        </div>
       )}
       <Card className="relative overflow-hidden border">
         <div className="absolute inset-0 bg-base-100 opacity-90" />

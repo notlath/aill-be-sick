@@ -62,15 +62,18 @@ export default function PatientsModal({
         <div className="p-6 border-b border-border flex justify-between items-center bg-base-100">
           <div>
             <h3 className="font-bold text-lg">
-              {title ?? `Cluster ${clusterDisplay} Patients`}
+              {title ?? `Group ${clusterDisplay} Patients`}
             </h3>
             <p className="text-sm text-base-content/70">
               {subtitle ??
-                `Showing ${patients.length} patient record${patients.length !== 1 ? "s" : ""
+                `Showing ${patients.length} patient record${
+                  patients.length !== 1 ? "s" : ""
                 }`}
             </p>
           </div>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>✕</button>
+          <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
+            ✕
+          </button>
         </div>
         <div className="p-6 overflow-y-auto bg-base-100 flex-1">
           <PatientsDataTable columns={columns} data={patients} />

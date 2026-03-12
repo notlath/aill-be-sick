@@ -18,9 +18,15 @@ import {
   AnomalyDistrictStatsCards,
   AnomalyCoordinatesStatsCards,
 } from "./anomaly-stats-cards";
-import { MapSkeleton, StatsSkeletonCards, TimelineSkeleton, AnomalySummarySkeleton } from "./skeleton-loaders";
+import {
+  MapSkeleton,
+  StatsSkeletonCards,
+  TimelineSkeleton,
+  AnomalySummarySkeleton,
+} from "./skeleton-loaders";
 import AnomalyPatientsModal from "./anomaly-patients-modal";
 import { AnomalyTimelineChart } from "../anomaly-timeline-chart";
+import { IllnessClusterContributionGraph } from "../by-cluster/illness-cluster-contribution-graph";
 import AnomalySummary from "./anomaly-summary";
 import TopCriticalAnomalies from "./top-critical-anomalies";
 
@@ -47,9 +53,11 @@ const ByAnomalyTab = () => {
     "total" | "mostAffected" | "affectedDistricts" | null
   >(null);
 
-  const { geoData, loading: geoLoading, error: geoError } = useGeoJsonData(
-    "/geojson/bagong_silangan.geojson",
-  );
+  const {
+    geoData,
+    loading: geoLoading,
+    error: geoError,
+  } = useGeoJsonData("/geojson/bagong_silangan.geojson");
 
   // Always fetch all diseases from the backend so Isolation Forest trains on
   // the full dataset and per-disease reason-code baselines are accurate.
@@ -172,20 +180,31 @@ const ByAnomalyTab = () => {
     if (!districtModal) return [];
     if (districtModal === "total") return anomalies;
     if (districtModal === "mostAffected") {
-      return anomalies.filter((a) => a.district === districtStats.highestDistrict);
+      return anomalies.filter(
+        (a) => a.district === districtStats.highestDistrict,
+      );
     }
     if (districtModal === "affectedDistricts") {
       const affectedDistricts = Object.keys(districtCasesData);
-      return anomalies.filter((a) => a.district && affectedDistricts.includes(a.district));
+      return anomalies.filter(
+        (a) => a.district && affectedDistricts.includes(a.district),
+      );
     }
     return [];
-  }, [districtModal, anomalies, districtStats.highestDistrict, districtCasesData]);
+  }, [
+    districtModal,
+    anomalies,
+    districtStats.highestDistrict,
+    districtCasesData,
+  ]);
 
   const districtStatsModalTitle = useMemo(() => {
     if (!districtModal) return "";
     if (districtModal === "total") return "All Anomalies";
-    if (districtModal === "mostAffected") return `${districtStats.highestDistrict} — Anomalies`;
-    if (districtModal === "affectedDistricts") return "Affected Districts — Anomalies";
+    if (districtModal === "mostAffected")
+      return `${districtStats.highestDistrict} — Anomalies`;
+    if (districtModal === "affectedDistricts")
+      return "Affected Districts — Anomalies";
     return "";
   }, [districtModal, districtStats.highestDistrict]);
 
@@ -212,7 +231,8 @@ const ByAnomalyTab = () => {
     setDistrictModal(null);
   }, []);
 
-  const isMapLoading = loading || (view === "district" && (geoLoading || !geoData));
+  const isMapLoading =
+    loading || (view === "district" && (geoLoading || !geoData));
 
   return (
     <div className="space-y-4">
@@ -263,14 +283,19 @@ const ByAnomalyTab = () => {
                 onFeatureClick={handleFeatureClick}
               />
             ) : (
-              <HeatmapMap diagnoses={pinnedAnomalies} topAnomalies={topCriticalAnomalies} />
+              <HeatmapMap
+                diagnoses={pinnedAnomalies}
+                topAnomalies={topCriticalAnomalies}
+              />
             )}
           </CardContent>
         </Card>
       </div>
 
       {/* Stats cards */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${view === "district" ? "4" : "3"} gap-6 mt-6`}>
+      <div
+        className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-${view === "district" ? "4" : "3"} gap-6 mt-6`}
+      >
         {loading ? (
           <StatsSkeletonCards />
         ) : view === "district" ? (
@@ -283,7 +308,9 @@ const ByAnomalyTab = () => {
               averageAnomalies={districtStats.averageAnomalies}
               onTotalClick={() => setDistrictModal("total")}
               onMostAffectedClick={() => setDistrictModal("mostAffected")}
-              onAffectedDistrictsClick={() => setDistrictModal("affectedDistricts")}
+              onAffectedDistrictsClick={() =>
+                setDistrictModal("affectedDistricts")
+              }
             />
           ) : null
         ) : (
@@ -302,7 +329,10 @@ const ByAnomalyTab = () => {
         {loading ? (
           <AnomalySummarySkeleton />
         ) : (
-          <AnomalySummary anomalies={anomalies} selectedDisease={selectedDisease} />
+          <AnomalySummary
+            anomalies={anomalies}
+            selectedDisease={selectedDisease}
+          />
         )}
       </div>
 
@@ -319,10 +349,24 @@ const ByAnomalyTab = () => {
         )}
       </div>
 
+      <div className="mt-6">
+        {loading ? (
+          <TimelineSkeleton />
+        ) : (
+          <IllnessClusterContributionGraph
+            activityDates={anomalies.map((anomaly) => anomaly.createdAt)}
+            color={diseaseColor}
+            title="Daily Illness Activity"
+            emptyMessage="No daily activity data available for this anomaly view"
+            recordLabel="anomaly record"
+          />
+        )}
+      </div>
+
       {/* Top Critical Cases Table below timeline */}
       <div className="mt-6">
         {loading ? (
-           <div className="animate-pulse bg-base-200 rounded-xl h-[400px]"></div>
+          <div className="animate-pulse bg-base-200 rounded-xl h-[400px]"></div>
         ) : (
           <TopCriticalAnomalies topAnomalies={topCriticalAnomalies} />
         )}
