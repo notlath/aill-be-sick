@@ -46,7 +46,10 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
       ? Math.round((stat.gender_distribution.OTHER / totalGender) * 100)
       : 0;
 
-  let dominantDisease: { disease: string; percent: number } | null = null;
+  let dominantDisease: {
+    disease: string;
+    phrase: "have" | "primarily have";
+  } | null = null;
   if (stat.disease_distribution) {
     const entries = Object.entries(stat.disease_distribution);
     if (entries.length > 0) {
@@ -56,18 +59,25 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
       if (sorted.length === 1) {
         dominantDisease = {
           disease: topDisease[0],
-          percent: topDisease[1].percent,
+          phrase: "have",
         };
       } else {
         const secondDisease = sorted[1];
-        const percentageIncrease =
-          (topDisease[1].count - secondDisease[1].count) /
-          secondDisease[1].count;
+        if (secondDisease[1].count > 0) {
+          const percentageIncrease =
+            (topDisease[1].count - secondDisease[1].count) /
+            secondDisease[1].count;
 
-        if (percentageIncrease >= 0.4) {
+          if (percentageIncrease >= 0.4) {
+            dominantDisease = {
+              disease: topDisease[0],
+              phrase: "primarily have",
+            };
+          }
+        } else if (topDisease[1].count > 0) {
           dominantDisease = {
             disease: topDisease[0],
-            percent: topDisease[1].percent,
+            phrase: "primarily have",
           };
         }
       }
@@ -89,8 +99,7 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
   }
 
   let regionLocation = "";
-  let regionPrefix = "from";
-  let hasMultipleDistricts = false;
+  let regionPrefix: "from" | "primarily from" = "from";
 
   if (
     selectedVariables.district &&
@@ -98,17 +107,22 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
     stat.top_districts.length >= 1
   ) {
     const topDistrict = stat.top_districts[0];
-    regionLocation = topDistrict.district;
-    regionPrefix = "from";
-    hasMultipleDistricts = stat.top_districts.length > 1;
-
-    if (stat.top_districts.length >= 2) {
+    if (stat.top_districts.length === 1) {
+      regionLocation = topDistrict.district;
+      regionPrefix = "from";
+    } else if (stat.top_districts.length >= 2) {
       const secondDistrict = stat.top_districts[1];
-      const percentageIncrease =
-        (topDistrict.count - secondDistrict.count) / secondDistrict.count;
+      if (secondDistrict.count > 0) {
+        const percentageIncrease =
+          (topDistrict.count - secondDistrict.count) / secondDistrict.count;
 
-      if (percentageIncrease >= 0.4) {
-        regionPrefix = "mostly from";
+        if (percentageIncrease >= 0.4) {
+          regionLocation = topDistrict.district;
+          regionPrefix = "primarily from";
+        }
+      } else if (topDistrict.count > 0) {
+        regionLocation = topDistrict.district;
+        regionPrefix = "primarily from";
       }
     }
   }
@@ -143,8 +157,7 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
               {regionLocation ? (
                 <>
                   {" "}
-                  {hasMultipleDistricts ? "primarily" : regionPrefix}{" "}
-                  <strong>{regionLocation}</strong>
+                  {regionPrefix} <strong>{regionLocation}</strong>
                 </>
               ) : null}
               , {ageDescriptor}
@@ -155,7 +168,8 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
               ) : null}
               {dominantDisease ? (
                 <>
-                  , primarily <strong>{dominantDisease.disease}</strong>
+                  , {dominantDisease.phrase}{" "}
+                  <strong>{dominantDisease.disease}</strong>
                 </>
               ) : null}
               .
