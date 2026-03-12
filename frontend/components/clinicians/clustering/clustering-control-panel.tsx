@@ -580,7 +580,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       !Number.isNaN(currentClusterDisplay) &&
         currentClusterDisplay >= 1 &&
         currentClusterDisplay <= clusterDisplayOptions.length,
-      "selected cluster display is out of bounds",
+      "selected group display is out of bounds",
       {
         selectedClusterDisplay,
         clusterOptionCount: clusterDisplayOptions.length,
@@ -1117,7 +1117,10 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     <div className="space-y-6">
       <div className="card card-body bg-base-100 border-base-300 border p-4 sm:p-6 sm:px-8">
         <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6 xl:gap-4 relative">
-          <form onSubmit={onSubmitK} className="flex flex-col gap-4 w-full xl:w-auto">
+          <form
+            onSubmit={onSubmitK}
+            className="flex flex-col gap-4 w-full xl:w-auto"
+          >
             {/* Variable Selection */}
             <div>
               <h2 className="text-base font-semibold">Select variables</h2>

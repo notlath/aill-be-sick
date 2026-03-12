@@ -53,7 +53,10 @@ const getDatePresetRange = (preset: PresetType): [string, string] => {
   }
 };
 
-const resolvePresetFromRange = (startDate: string, endDate: string): PresetType => {
+const resolvePresetFromRange = (
+  startDate: string,
+  endDate: string,
+): PresetType => {
   if (!startDate || !endDate) {
     return "custom";
   }

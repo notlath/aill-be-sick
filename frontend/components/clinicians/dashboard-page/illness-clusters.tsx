@@ -39,7 +39,7 @@ const IllnessClustersSkeleton = () => {
         <div className="flex items-center justify-center gap-3">
           <Loader2 className="text-primary size-8 animate-spin" />
           <p className="text-muted-foreground text-sm font-medium">
-            Loading Illness Clusters...
+            Loading Illness Groups...
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

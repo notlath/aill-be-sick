@@ -66,11 +66,14 @@ export default function PatientsModal({
             </h3>
             <p className="text-sm text-base-content/70">
               {subtitle ??
-                `Showing ${patients.length} patient record${patients.length !== 1 ? "s" : ""
+                `Showing ${patients.length} patient record${
+                  patients.length !== 1 ? "s" : ""
                 }`}
             </p>
           </div>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>✕</button>
+          <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
+            ✕
+          </button>
         </div>
         <div className="p-6 overflow-y-auto bg-base-100 flex-1">
           <PatientsDataTable columns={columns} data={patients} />
