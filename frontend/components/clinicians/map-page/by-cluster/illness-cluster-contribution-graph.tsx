@@ -25,6 +25,14 @@ type ContributionWeek = {
   days: ContributionDay[];
 };
 
+type MonthLabel = {
+  weekIndex: number;
+  label: string;
+};
+
+const WEEK_COLUMN_WIDTH_PX = 16;
+const MIN_MONTH_LABEL_GAP_PX = 8;
+
 function getDayKey(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toISOString().slice(0, 10);
@@ -75,6 +83,33 @@ function formatDateLabel(date: Date): string {
   });
 }
 
+function formatMonthLabel(date: Date, includeYear: boolean): string {
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    ...(includeYear ? { year: "numeric" as const } : {}),
+  });
+}
+
+function filterOverlappingMonthLabels(labels: MonthLabel[]): MonthLabel[] {
+  const visibleLabels: MonthLabel[] = [];
+  let lastRightEdge = Number.NEGATIVE_INFINITY;
+
+  for (const label of labels) {
+    const left = label.weekIndex * WEEK_COLUMN_WIDTH_PX;
+    const estimatedWidth = label.label.length * 6 + 8;
+    const right = left + estimatedWidth;
+
+    if (left < lastRightEdge + MIN_MONTH_LABEL_GAP_PX) {
+      continue;
+    }
+
+    visibleLabels.push(label);
+    lastRightEdge = right;
+  }
+
+  return visibleLabels;
+}
+
 function getBlockStyle(level: ContributionLevel, baseColor: string) {
   if (level === 0) {
     return {
@@ -122,10 +157,13 @@ export function IllnessClusterContributionGraph({
     const sortedKeys = [...dayCounts.keys()].sort((a, b) => a.localeCompare(b));
     const firstDate = parseDayKey(sortedKeys[0]);
     const lastDate = parseDayKey(sortedKeys[sortedKeys.length - 1]);
-
-    const rangeStart = startOfWeekMonday(
-      new Date(firstDate.getFullYear(), firstDate.getMonth(), 1),
+    const firstVisibleMonthStart = new Date(
+      firstDate.getFullYear(),
+      firstDate.getMonth(),
+      1,
     );
+
+    const rangeStart = startOfWeekMonday(firstVisibleMonthStart);
     const rangeEnd = endOfWeekSunday(
       new Date(lastDate.getFullYear(), lastDate.getMonth() + 1, 0),
     );
@@ -158,40 +196,48 @@ export function IllnessClusterContributionGraph({
 
     const monthLabels = weeks
       .map((week, weekIndex) => {
+        const currentLabelDate =
+          week.weekStart < firstVisibleMonthStart
+            ? firstVisibleMonthStart
+            : week.weekStart;
         const previousWeek = weeks[weekIndex - 1];
 
         if (!previousWeek) {
           return {
             weekIndex,
-            label: week.weekStart.toLocaleDateString("en-US", {
-              month: "short",
-              year: "numeric",
-            }),
+            label: formatMonthLabel(currentLabelDate, true),
           };
         }
 
+        const previousLabelDate =
+          previousWeek.weekStart < firstVisibleMonthStart
+            ? firstVisibleMonthStart
+            : previousWeek.weekStart;
+
         const isSameMonth =
-          week.weekStart.getMonth() === previousWeek.weekStart.getMonth() &&
-          week.weekStart.getFullYear() === previousWeek.weekStart.getFullYear();
+          currentLabelDate.getMonth() === previousLabelDate.getMonth() &&
+          currentLabelDate.getFullYear() === previousLabelDate.getFullYear();
 
         if (isSameMonth) return null;
 
+        const includeYear =
+          currentLabelDate.getFullYear() !== previousLabelDate.getFullYear();
+
         return {
           weekIndex,
-          label: week.weekStart.toLocaleDateString("en-US", {
-            month: "short",
-            year: "numeric",
-          }),
+          label: formatMonthLabel(currentLabelDate, includeYear),
         };
       })
       .filter(
         (item): item is { weekIndex: number; label: string } => item !== null,
       );
 
+    const visibleMonthLabels = filterOverlappingMonthLabels(monthLabels);
+
     return {
       totalCount: withDates.length,
       weeks,
-      monthLabels,
+      monthLabels: visibleMonthLabels,
     };
   }, [illnesses, selectedCluster]);
 
@@ -206,7 +252,7 @@ export function IllnessClusterContributionGraph({
     );
   }
 
-  const graphWidth = graph.weeks.length * 16;
+  const graphWidth = graph.weeks.length * WEEK_COLUMN_WIDTH_PX;
 
   return (
     <Card className="relative overflow-hidden border">
@@ -230,7 +276,9 @@ export function IllnessClusterContributionGraph({
                 <span
                   key={`${month.label}-${month.weekIndex}`}
                   className="absolute text-[10px] text-base-content/70 whitespace-nowrap"
-                  style={{ left: `${month.weekIndex * 16}px` }}
+                  style={{
+                    left: `${month.weekIndex * WEEK_COLUMN_WIDTH_PX}px`,
+                  }}
                 >
                   {month.label}
                 </span>
