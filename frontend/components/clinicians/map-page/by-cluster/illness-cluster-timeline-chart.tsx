@@ -140,7 +140,7 @@ export function IllnessClusterTimelineChart({
       <Card className="relative overflow-hidden border">
         <div className="absolute inset-0 bg-base-100 opacity-90" />
         <CardContent className="relative py-8 text-center text-sm text-base-content/70">
-          No temporal data available for this cluster
+          No temporal data available for this group
         </CardContent>
       </Card>
     );

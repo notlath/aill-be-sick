@@ -62,7 +62,7 @@ export default function PatientsModal({
         <div className="p-6 border-b border-border flex justify-between items-center bg-base-100">
           <div>
             <h3 className="font-bold text-lg">
-              {title ?? `Cluster ${clusterDisplay} Patients`}
+              {title ?? `Group ${clusterDisplay} Patients`}
             </h3>
             <p className="text-sm text-base-content/70">
               {subtitle ??

@@ -166,7 +166,7 @@ const ByClusterTab = () => {
                     <AlertCircle className="size-8 text-red-700" />
                   </div>
                   <CardTitle className="mt-4 text-red-700">
-                    Error Loading Cluster Data
+                    Error Loading Group Data
                   </CardTitle>
                   <p className="text-red-600 text-sm">{error || geoError}</p>
                 </CardHeader>
