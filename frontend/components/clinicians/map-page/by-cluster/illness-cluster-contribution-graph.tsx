@@ -9,7 +9,27 @@ type IllnessClusterContributionGraphProps = {
   illnesses: IllnessRecord[];
   selectedCluster: number;
   clusterColorIndex: number;
+  activityDates?: never;
+  color?: never;
+  title?: never;
+  emptyMessage?: never;
+  recordLabel?: never;
 };
+
+type GenericContributionGraphProps = {
+  activityDates: Array<string | Date | null | undefined>;
+  color?: string;
+  title?: string;
+  emptyMessage?: string;
+  recordLabel?: string;
+  illnesses?: never;
+  selectedCluster?: never;
+  clusterColorIndex?: never;
+};
+
+type ContributionGraphProps =
+  | IllnessClusterContributionGraphProps
+  | GenericContributionGraphProps;
 
 type ContributionLevel = 0 | 1 | 2 | 3 | 4;
 
@@ -131,26 +151,46 @@ function getBlockStyle(level: ContributionLevel, baseColor: string) {
   };
 }
 
-export function IllnessClusterContributionGraph({
-  illnesses,
-  selectedCluster,
-  clusterColorIndex,
-}: IllnessClusterContributionGraphProps) {
-  const clusterColor = useMemo(
-    () => getClusterBaseColor(clusterColorIndex),
-    [clusterColorIndex],
-  );
+export function IllnessClusterContributionGraph(props: ContributionGraphProps) {
+  const clusterColor =
+    "activityDates" in props
+      ? (props.color ?? getClusterBaseColor(0))
+      : getClusterBaseColor(props.clusterColorIndex);
+
+  const titleText =
+    "activityDates" in props
+      ? (props.title ?? "Daily Illness Activity")
+      : "Daily Illness Activity";
+
+  const emptyMessage =
+    "activityDates" in props
+      ? (props.emptyMessage ?? "No daily activity data available")
+      : "No daily activity data available for this group";
+
+  const recordLabel =
+    "activityDates" in props
+      ? (props.recordLabel ?? "diagnosis record")
+      : "diagnosis record";
 
   const graph = useMemo(() => {
-    const withDates = illnesses.filter(
-      (illness) => illness.diagnosed_at && illness.cluster === selectedCluster,
+    const dateValues: Array<string | Date | null | undefined> =
+      "activityDates" in props && props.activityDates
+        ? props.activityDates
+        : props.illnesses
+            .filter((illness) => illness.cluster === props.selectedCluster)
+            .map((illness) => illness.diagnosed_at);
+
+    const withDates = dateValues.filter(
+      (value): value is string | Date => value !== null && value !== undefined,
     );
 
     if (withDates.length === 0) return null;
 
     const dayCounts = new Map<string, number>();
-    for (const illness of withDates) {
-      const key = getDayKey(illness.diagnosed_at!);
+    for (const value of withDates) {
+      const key = getDayKey(
+        value instanceof Date ? value.toISOString() : value,
+      );
       dayCounts.set(key, (dayCounts.get(key) || 0) + 1);
     }
 
@@ -239,14 +279,14 @@ export function IllnessClusterContributionGraph({
       weeks,
       monthLabels: visibleMonthLabels,
     };
-  }, [illnesses, selectedCluster]);
+  }, [props]);
 
   if (!graph) {
     return (
       <Card className="relative overflow-hidden border">
         <div className="absolute inset-0 bg-base-100 opacity-90" />
         <CardContent className="relative py-8 text-center text-sm text-base-content/70">
-          No daily activity data available for this group
+          {emptyMessage}
         </CardContent>
       </Card>
     );
@@ -258,9 +298,9 @@ export function IllnessClusterContributionGraph({
     <Card className="relative overflow-hidden border">
       <div className="absolute inset-0 bg-base-100 opacity-90" />
       <CardHeader className="relative pb-2">
-        <p className="font-semibold text-base">Daily Illness Activity</p>
+        <p className="font-semibold text-base">{titleText}</p>
         <p className="text-xs text-base-content/70">
-          {graph.totalCount} diagnosis record
+          {graph.totalCount} {recordLabel}
           {graph.totalCount !== 1 ? "s" : ""} across the selected period
         </p>
       </CardHeader>
