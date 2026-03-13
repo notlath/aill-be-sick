@@ -677,6 +677,6 @@ HIGH_VALUE_CONCEPTS = {
 # Length-tiered similarity thresholds to mitigate false positives.
 # Short words (e.g., "baha", "ihi") need near-exact match to prevent collisions.
 FUZZY_THRESHOLD_SHORT = 95   # terms <= 5 chars
-FUZZY_THRESHOLD_MEDIUM = 90  # terms 6–9 chars
+FUZZY_THRESHOLD_MEDIUM = 95  # terms 6–9 chars
 FUZZY_THRESHOLD_LONG = 90    # terms ≥ 10 chars
 FUZZY_MIN_TERM_LENGTH = 3    # skip fuzzy matching for terms shorter than this
