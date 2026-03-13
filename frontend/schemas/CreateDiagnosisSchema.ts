@@ -1,8 +1,8 @@
 import * as z from "zod";
 
 export const CreateDiagnosisSchema = z.object({
-  confidence: z.number().min(-0.1).max(1.1),
-  uncertainty: z.number().min(-0.1).max(1.1),
+  confidence: z.number().min(0).max(1),
+  uncertainty: z.number().min(0).max(1),
   symptoms: z.string(),
   modelUsed: z.enum(["BIOCLINICAL_MODERNBERT", "ROBERTA_TAGALOG"]),
   disease: z.enum([
