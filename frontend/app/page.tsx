@@ -28,6 +28,10 @@ const HomeContent = async () => {
     redirect("/dashboard");
   }
 
+  if (dbUser.role === "ADMIN") {
+    redirect("/dashboard");
+  }
+
   if (dbUser.role === "PATIENT") {
     if (!dbUser.isOnboarded) {
       redirect("/onboarding");

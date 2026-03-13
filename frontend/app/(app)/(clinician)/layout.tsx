@@ -39,7 +39,7 @@ const ClinicianLayoutContent = async ({
   }
 
   // Keep invalid-role users out of clinician routes without falling back to 404.
-  if (dbUser.role !== "CLINICIAN" && dbUser.role !== ("DEVELOPER" as any)) {
+  if (dbUser.role !== "CLINICIAN" && dbUser.role !== ("DEVELOPER" as any) && dbUser.role !== "ADMIN") {
     redirect("/");
   }
 

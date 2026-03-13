@@ -36,6 +36,17 @@ export const emailSignup = actionClient
     const { email, password } = parsedInput;
     const supabase = await createClient();
 
+    const allowedEmail = await prisma.allowedClinicianEmail.findUnique({
+      where: { email },
+    });
+
+    if (!allowedEmail) {
+      return {
+        error:
+          "Your email is not authorized to register as a clinician. Please contact your administrator.",
+      };
+    }
+
     const { error, data } = await supabase.auth.signUp({ email, password });
 
     if (error) {
@@ -54,6 +65,10 @@ export const emailSignup = actionClient
           role: "CLINICIAN",
         },
         update: {},
+      });
+
+      await prisma.allowedClinicianEmail.delete({
+        where: { email },
       });
     }
 
