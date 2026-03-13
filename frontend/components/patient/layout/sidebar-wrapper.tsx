@@ -21,14 +21,14 @@ const SidebarWrapper = ({ children }: SidebarWrapperProps) => {
   return (
     <>
       {isOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm sidebar:hidden"
+        <div
+          className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
       <aside
         className={`fixed sidebar:relative z-50 h-[100dvh] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/95 sidebar:bg-base-100/60 backdrop-blur-xl border-r border-border/50 ${
-          isOpen ? "w-64 opacity-100 translate-x-0" : "w-0 opacity-0 sidebar:translate-x-0"
+          isOpen ? "w-64 opacity-100 translate-x-0" : "w-0 opacity-0 translate-x-0"
         }`}
         style={{
           transitionProperty: "width, opacity, transform",
