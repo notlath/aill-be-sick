@@ -19,6 +19,10 @@ async function ProfileData() {
         province: dbUser.province || null,
         city: dbUser.city || null,
         barangay: dbUser.barangay || null,
+        address: dbUser.address || null,
+        district: dbUser.district || null,
+        latitude: dbUser.latitude || null,
+        longitude: dbUser.longitude || null,
         gender: dbUser.gender || null,
         birthday: dbUser.birthday ? dbUser.birthday.toISOString().split("T")[0] : null,
       }}

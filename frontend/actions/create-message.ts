@@ -2,7 +2,7 @@
 
 import prisma from "@/prisma/prisma";
 import { CreateMessageSchema } from "@/schemas/CreateMessageSchema";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 
 export const createMessage = actionClient
@@ -46,10 +46,8 @@ export const createMessage = actionClient
         });
       }
 
-      updateTag("messages");
-      updateTag(`messages-${chatId}`);
-      revalidatePath("/history");
-      revalidatePath("/diagnosis/[chatId]");
+      revalidateTag(`messages-${chatId}`, { expire: 0 });
+      revalidatePath(`/diagnosis/${chatId}`, "page");
 
       return { success: createdMessage };
     } catch (error) {

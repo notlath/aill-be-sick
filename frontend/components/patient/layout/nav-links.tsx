@@ -5,6 +5,7 @@ import NavLink from "./nav-link";
 import { usePathname } from "next/navigation";
 import { User } from "@/lib/generated/prisma";
 import { useMemo, useEffect, useState } from "react";
+import AlertsNavBadge from "@/components/clinicians/alerts/alerts-nav-badge";
 
 type NavLinksProps = {
   dbUser: User;
@@ -58,6 +59,12 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
           key={navItem.href}
           {...navItem}
           isActive={pathname === navItem.href}
+          badge={
+            navItem.href === "/alerts" &&
+            (dbUser.role === "CLINICIAN" || dbUser.role === ("DEVELOPER" as any)) ? (
+              <AlertsNavBadge />
+            ) : undefined
+          }
         />
       ))}
     </nav>

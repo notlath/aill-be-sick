@@ -1,24 +1,25 @@
 "use server";
 
-import {RunDiagnosisSchema} from "@/schemas/RunDiagnosisSchema";
-import {getCurrentDbUser} from "@/utils/user";
-import axios, {AxiosError} from "axios";
-import {actionClient} from "./client";
-import {createMessage} from "./create-message";
+import { RunDiagnosisSchema } from "@/schemas/RunDiagnosisSchema";
+import { getBackendUrl } from "@/utils/backend-url";
+import { getCurrentDbUser } from "@/utils/user";
+import axios, { AxiosError } from "axios";
+import { actionClient } from "./client";
+import { createMessage } from "./create-message";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
+const BACKEND_URL = getBackendUrl();
+const DIAGNOSIS_TIMEOUT_MS = 30000;
 
 export const runDiagnosis = actionClient
   .inputSchema(RunDiagnosisSchema)
-  .action(async ({parsedInput}) => {
-    const {symptoms, chatId, skipMessage} = parsedInput;
-    const {success: dbUser, error} = await getCurrentDbUser();
+  .action(async ({ parsedInput }) => {
+    const { symptoms, chatId, skipMessage } = parsedInput;
+    const { success: dbUser, error } = await getCurrentDbUser();
 
     if (!dbUser) {
       console.error(`Error fetching user: ${error}`);
 
-      return {error: `Error fetching user: ${error}`};
+      return { error: `Error fetching user: ${error}` };
     }
 
     try {
@@ -29,6 +30,7 @@ export const runDiagnosis = actionClient
         },
         {
           withCredentials: true, // Enable session cookies
+          timeout: DIAGNOSIS_TIMEOUT_MS,
         },
       );
 
@@ -37,7 +39,7 @@ export const runDiagnosis = actionClient
       // BRIDGE: Capture session cookie from Flask and set it in Next.js response
       const setCookieHeader = response.headers["set-cookie"];
       if (setCookieHeader) {
-        const {cookies} = await import("next/headers");
+        const { cookies } = await import("next/headers");
         const cookieStore = await cookies();
 
         // Parse the session cookie (usually named 'session')
@@ -66,6 +68,7 @@ export const runDiagnosis = actionClient
         cdss,
         skip_followup,
         skip_reason,
+        session_id: diagnosisSessionId,
       } = diagnosis;
 
       // Debug: Log what we received from backend
@@ -213,11 +216,25 @@ Do you want to record this diagnosis?
           cdss: cdss || null,
           skip_followup,
           skip_reason,
+          session_id: diagnosisSessionId || undefined,
         },
         isConfident,
       };
     } catch (error) {
       console.error("Error running diagnosis:", error);
+
+      if (
+        error instanceof AxiosError &&
+        (error.code === "ECONNABORTED" ||
+          (typeof error.message === "string" &&
+            error.message.toLowerCase().includes("timeout")))
+      ) {
+        return {
+          error: "DIAGNOSIS_TIMEOUT",
+          message:
+            "Diagnosis is taking too long. Please try again with a shorter symptom summary.",
+        };
+      }
 
       if (error instanceof AxiosError && error.response) {
         const errorData = error.response.data;
@@ -237,8 +254,22 @@ Do you want to record this diagnosis?
             details: errorData.details,
           };
         }
+
+        if (errorData.error === "INTERNAL_ERROR") {
+          return {
+            error: "INTERNAL_ERROR",
+            message:
+              errorData.message ||
+              "Internal diagnosis error. Please try again with a shorter symptom summary.",
+          };
+        }
+
+        return {
+          error: errorData.error || "DIAGNOSIS_FAILED",
+          message: errorData.message || "Failed to process diagnosis.",
+        };
       }
 
-      return {error: `Error running diagnosis: ${error}`};
+      return { error: `Error running diagnosis: ${error}` };
     }
   });

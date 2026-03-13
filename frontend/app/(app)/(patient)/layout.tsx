@@ -1,8 +1,8 @@
-import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import Sidebar from "@/components/patient/layout/sidebar";
 import OnboardingModal from "@/components/patient/onboarding/onboarding-modal";
+import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
-import { redirect } from "next/navigation";
+import { forbidden, redirect, unauthorized } from "next/navigation";
 import { ReactNode, Suspense } from "react";
 
 const Layout = ({ children }: { children: ReactNode }) => {
@@ -16,17 +16,17 @@ const Layout = ({ children }: { children: ReactNode }) => {
 const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
   const { success: dbUser, error } = await getCurrentDbUser();
 
-  if (!dbUser) {
-    return redirect("/login");
-  }
-
   if (error) {
     throw new Error(typeof error === "string" ? error : JSON.stringify(error));
   }
 
+  if (!dbUser) {
+    unauthorized();
+  }
+
   // Allow PATIENT and DEVELOPER roles to access patient views
   if (dbUser.role !== "PATIENT" && dbUser.role !== ("DEVELOPER" as any)) {
-    return redirect("/dashboard");
+    forbidden();
   }
 
   if (!dbUser.isOnboarded) {
@@ -46,7 +46,7 @@ function PatientLayoutSkeleton() {
   return (
     <LayoutWrapper>
       <aside
-        className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/60 backdrop-blur-xl border-r border-border/50 w-64 opacity-100"
+        className="hidden md:block overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/60 backdrop-blur-xl border-r border-border/50 w-64 opacity-100"
         style={{
           boxShadow: "0 0 0 1px rgb(0 0 0 / 0.02)",
         }}

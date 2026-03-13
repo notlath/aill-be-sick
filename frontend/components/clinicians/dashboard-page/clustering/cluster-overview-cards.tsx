@@ -141,9 +141,11 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
             ? Math.round((stat.gender_distribution.FEMALE / totalGender) * 100)
             : 0;
 
-        // Determine dominant disease from distribution if available
-        // Only show if top disease is at least 40% higher than second disease
-        let dominantDisease: { disease: string; percent: number } | null = null;
+        // Determine dominant disease phrase from distribution
+        let dominantDisease: {
+          disease: string;
+          phrase: "have" | "primarily have";
+        } | null = null;
         if (stat.disease_distribution) {
           const entries = Object.entries(stat.disease_distribution);
           if (entries.length > 0) {
@@ -151,22 +153,27 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
             const topDisease = sorted[0];
 
             if (sorted.length === 1) {
-              // Only one disease, show it
               dominantDisease = {
                 disease: topDisease[0],
-                percent: topDisease[1].percent,
+                phrase: "have",
               };
             } else {
-              // Check if top disease is at least 40% higher than second
               const secondDisease = sorted[1];
-              const percentageIncrease =
-                (topDisease[1].count - secondDisease[1].count) /
-                secondDisease[1].count;
+              if (secondDisease[1].count > 0) {
+                const percentageIncrease =
+                  (topDisease[1].count - secondDisease[1].count) /
+                  secondDisease[1].count;
 
-              if (percentageIncrease >= 0.4) {
+                if (percentageIncrease >= 0.4) {
+                  dominantDisease = {
+                    disease: topDisease[0],
+                    phrase: "primarily have",
+                  };
+                }
+              } else if (topDisease[1].count > 0) {
                 dominantDisease = {
                   disease: topDisease[0],
-                  percent: topDisease[1].percent,
+                  phrase: "primarily have",
                 };
               }
             }
@@ -273,7 +280,7 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                               ) : null}
                               {dominantDisease ? (
                                 <>
-                                  , has mostly{" "}
+                                  , {dominantDisease.phrase}{" "}
                                   <strong>{dominantDisease.disease}</strong>
                                 </>
                               ) : null}
@@ -357,10 +364,11 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                             </span>
                           </div>
                           <span
-                            className={`swap swap-rotate ${expandedClusters[`${stat.cluster_id}-diseases`]
-                              ? "swap-active"
-                              : ""
-                              }`}
+                            className={`swap swap-rotate ${
+                              expandedClusters[`${stat.cluster_id}-diseases`]
+                                ? "swap-active"
+                                : ""
+                            }`}
                           >
                             <div
                               className={`swap-on ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}
@@ -497,10 +505,11 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                             </span>
                           </div>
                           <span
-                            className={`swap swap-rotate ${expandedClusters[stat.cluster_id]
-                              ? "swap-active"
-                              : ""
-                              }`}
+                            className={`swap swap-rotate ${
+                              expandedClusters[stat.cluster_id]
+                                ? "swap-active"
+                                : ""
+                            }`}
                           >
                             <div
                               className={`swap-on ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}
@@ -595,10 +604,11 @@ const ClusterOverviewCards: React.FC<ClusterOverviewCardsProps> = ({
                             </span>
                           </div>
                           <span
-                            className={`swap swap-rotate ${expandedClusters[`${stat.cluster_id}-regions`]
-                              ? "swap-active"
-                              : ""
-                              }`}
+                            className={`swap swap-rotate ${
+                              expandedClusters[`${stat.cluster_id}-regions`]
+                                ? "swap-active"
+                                : ""
+                            }`}
                           >
                             <div
                               className={`swap-on ${theme.accentText} ${theme.badgeBg} size-4.5 flex items-center justify-center rounded-full`}

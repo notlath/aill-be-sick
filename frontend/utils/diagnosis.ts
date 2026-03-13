@@ -53,12 +53,15 @@ export const getAllDiagnoses = async ({
       const diagnoses = await prisma.diagnosis.findMany({
         skip,
         take,
+        include: { user: true },
       });
 
       return { success: diagnoses };
     }
 
-    const diagnoses = await prisma.diagnosis.findMany();
+    const diagnoses = await prisma.diagnosis.findMany({
+      include: { user: true },
+    });
 
     return { success: diagnoses };
   } catch (error) {
@@ -77,5 +80,174 @@ export const getTotalDiagnosesCount = async () => {
     console.error(`Error fetching total diagnoses count: ${error}`);
 
     return { error: `Error fetching total diagnoses count: ${error}` };
+  }
+};
+
+export const getDiseaseDiagnosesByDistricts = async (
+  disease: string,
+  startDate?: string,
+  endDate?: string
+) => {
+  try {
+
+    if (disease === 'all') {
+      const [diagnoses, grouped] = await Promise.all([
+        prisma.diagnosis.findMany({
+          where: {
+            district: { not: null },
+            createdAt: {
+              gte: startDate ? new Date(startDate) : undefined,
+              lte: endDate ? new Date(endDate) : undefined,
+            },
+          },
+          include: {
+            user: true,
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+        }),
+        prisma.diagnosis.groupBy({
+          by: ["district"],
+          where: {
+            district: { not: null },
+            createdAt: {
+              gte: startDate ? new Date(startDate) : undefined,
+              lte: endDate ? new Date(endDate) : undefined,
+            },
+          },
+          _count: {
+            id: true,
+          },
+          orderBy: {
+            _count: {
+              id: "desc",
+            },
+          },
+        }),
+      ]);
+
+      return { success: { diagnoses, grouped } };
+    }
+
+    const [diagnoses, grouped] = await Promise.all([
+      prisma.diagnosis.findMany({
+        where: {
+          disease: disease.toUpperCase() as any,
+          district: { not: null },
+          createdAt: {
+            gte: startDate ? new Date(startDate) : undefined,
+            lte: endDate ? new Date(endDate) : undefined,
+          },
+        },
+        include: {
+          user: true,
+        },
+      }),
+      prisma.diagnosis.groupBy({
+        by: ["district"],
+        where: {
+          disease: disease.toUpperCase() as any,
+          district: { not: null },
+          createdAt: {
+            gte: startDate ? new Date(startDate) : undefined,
+            lte: endDate ? new Date(endDate) : undefined,
+          },
+        },
+        _count: {
+          id: true,
+        },
+        orderBy: {
+          _count: {
+            id: "desc",
+          },
+        },
+      }),
+    ]);
+
+    return { success: { diagnoses, grouped } };
+  } catch (error) {
+    console.error(`Error fetching diagnoses for disease ${disease}`, error);
+
+    return { error: `Could not fetch diagnoses for disease ${disease}` };
+  }
+}
+
+export const getDiagnosesWithCoordinates = async (
+  disease: string,
+  startDate?: string,
+  endDate?: string
+) => {
+  try {
+    const dateFilter = {
+      gte: startDate ? new Date(startDate) : undefined,
+      lte: endDate ? new Date(endDate) : undefined,
+    };
+
+    if (disease === "all") {
+      const [diagnoses, unpinnedDiagnoses, totalCount] = await Promise.all([
+        prisma.diagnosis.findMany({
+          where: {
+            latitude: { not: null },
+            longitude: { not: null },
+            createdAt: dateFilter,
+          },
+          include: { user: true },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.diagnosis.findMany({
+          where: {
+            OR: [{ latitude: null }, { longitude: null }],
+            createdAt: dateFilter,
+          },
+          include: { user: true },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.diagnosis.count({
+          where: { createdAt: dateFilter },
+        }),
+      ]);
+
+      return { success: { diagnoses, unpinnedDiagnoses, totalCount } };
+    }
+
+    const [diagnoses, unpinnedDiagnoses, totalCount] = await Promise.all([
+      prisma.diagnosis.findMany({
+        where: {
+          disease: disease.toUpperCase() as any,
+          latitude: { not: null },
+          longitude: { not: null },
+          createdAt: dateFilter,
+        },
+        include: { user: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.diagnosis.findMany({
+        where: {
+          disease: disease.toUpperCase() as any,
+          OR: [{ latitude: null }, { longitude: null }],
+          createdAt: dateFilter,
+        },
+        include: { user: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.diagnosis.count({
+        where: {
+          disease: disease.toUpperCase() as any,
+          createdAt: dateFilter,
+        },
+      }),
+    ]);
+
+    return { success: { diagnoses, unpinnedDiagnoses, totalCount } };
+  } catch (error) {
+    console.error(
+      `Error fetching diagnoses with coordinates for disease ${disease}`,
+      error
+    );
+
+    return {
+      error: `Could not fetch diagnoses with coordinates for disease ${disease}`,
+    };
   }
 };

@@ -1,93 +1,66 @@
 "use server";
 
 export type LocationData = {
-  latitude: number;
-  longitude: number;
-  city?: string;
-  province?: string;
-  region?: string;
-  barangay?: string; // finer location details
+  lat: number;
+  lng: number;
+  address?: string;
 };
 
 /**
  * Get location details from latitude/longitude using reverse geocoding
- * Using OpenStreetMap Nominatim API (free, no API key required)
  */
 export const getLocationDetails = async (
-  latitude: number,
-  longitude: number
+  lat: number,
+  lng: number,
 ): Promise<{ success?: LocationData; error?: string }> => {
   try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-      {
-        headers: {
-          "User-Agent": "AIllBeSick/1.0", // Required by Nominatim
-        },
-      }
-    );
-
-    if (!response.ok) {
-      return { error: "Failed to fetch location details" };
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    
+    if (!token) {
+        console.error("[geocode] NEXT_PUBLIC_MAPBOX_TOKEN is not set.");
+        
+        return { error: "Geocoding service is not configured." };
+    }
+    
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${token}&limit=1`;
+    
+    let mapboxRes: Response;
+    
+    try {
+        mapboxRes = await fetch(url);
+    } catch (err) {
+        console.error("[geocode] Failed to reach Mapbox API:", err);
+        
+        return { error: "Failed to reach the geocoding service." };
+    }
+    
+    if (!mapboxRes.ok) {
+        console.error("[geocode] Mapbox returned non-OK status:", mapboxRes.status);
+        
+        return { error: "Geocoding service returned an error." };
     }
 
-    const data = await response.json();
+    const data = await mapboxRes.json();
+    const feature = data?.features?.[0];
+    
+    if (!feature) {
+        return { error: "No address found for the given coordinates." };
+    }
+    
+    const address: string = feature.place_name;
+
+    console.log(`[geocode] Resolved location —`, { lat, lng, address });
 
     return {
       success: {
-        latitude,
-        longitude,
-        city:
-          data.address?.city ||
-          data.address?.town ||
-          data.address?.village ||
-          data.address?.municipality,
-        province: data.address?.state || data.address?.province,
-        region: data.address?.region,
-        barangay:
-          data.address?.quarter ||
-          data.address?.suburb ||
-          data.address?.neighbourhood,
+        lat: feature.geometry.coordinates[1],
+        lng: feature.geometry.coordinates[0],
+        address: address,
       },
     };
   } catch (error) {
     console.error(`Error fetching location details: ${error}`);
+
     return { error: `Error fetching location details: ${error}` };
-  }
-};
-
-/**
- * Get location from IP address (fallback if browser geolocation is denied)
- * Using ipapi.co free tier (no API key required for basic usage)
- */
-export const getLocationFromIP = async (): Promise<{
-  success?: LocationData;
-  error?: string;
-}> => {
-  try {
-    const response = await fetch("https://ipapi.co/json/");
-
-    if (!response.ok) {
-      return { error: "Failed to fetch location from IP" };
-    }
-
-    const data = await response.json();
-
-    if (data.error) {
-      return { error: data.reason || "Failed to fetch location from IP" };
-    }
-
-    return {
-      success: {
-        latitude: data.latitude,
-        longitude: data.longitude,
-        city: data.city,
-        province: data.region, // Note: ipapi.co uses 'region' for state/province and 'region_code' for code
-        region: data.region_code,
-      },
-    };
-  } catch (error) {
-    console.error(`Error fetching location from IP: ${error}`);
-    return { error: `Error fetching location from IP: ${error}` };
   }
 };

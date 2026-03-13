@@ -14,12 +14,18 @@ const nextConfig = {
         hostname: "*.supabase.co",
         port: "",
       },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        port: "",
+      }
     ],
   },
   experimental: {
     serverActions: {
       bodySizeLimit: '5mb'
-    }
+    },
+    authInterrupts: true,
   },
   cacheComponents: true,
 };

@@ -12,6 +12,17 @@ import traceback
 import app.config as config
 from app.utils import detect_language_heuristic, aggregate_subword_attributions, clean_token, _count_words, _has_medical_keywords
 
+# Correctly aligned Medical Ontology Labels.
+# HF model config configs are improperly set, we must strictly enforce this map.
+CORRECT_ID2LABEL = {
+    0: "Dengue",
+    1: "Diarrhea",
+    2: "Influenza",
+    3: "Measles",
+    4: "Pneumonia",
+    5: "Typhoid"
+}
+
 # Context variables for thread-local MCD control
 mcd_enabled_ctx = contextvars.ContextVar("mcd_enabled", default=False)
 mcd_rate_ctx = contextvars.ContextVar("mcd_rate", default=0.1)
@@ -47,6 +58,10 @@ class MCDClassifierWithSHAP:
         )
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+
+        # OVERRIDE: Enforce the canonical ground-truth mapping and ignore the broken HF configs
+        self.model.config.id2label = CORRECT_ID2LABEL
+        self.model.config.label2id = {v: k for k, v in CORRECT_ID2LABEL.items()}
 
         # Store a reference to the raw, non-quantized model for explanations (gradients required)
         # Note: In Python, this is a reference. If we quantize self.model later,
@@ -278,10 +293,10 @@ class MCDClassifierWithSHAP:
 # In a larger app we might want to lazy-load them.
 print("[ML] Initializing Classifiers...")
 eng_classifier = MCDClassifierWithSHAP(
-    config.ENG_MODEL_PATH, n_iterations=25, inference_dropout_rate=0.05
+    config.ENG_MODEL_PATH, n_iterations=50, inference_dropout_rate=0.1
 )
 fil_classifier = MCDClassifierWithSHAP(
-    config.FIL_MODEL_PATH, n_iterations=25, inference_dropout_rate=0.05
+    config.FIL_MODEL_PATH, n_iterations=50, inference_dropout_rate=0.1
 )
 print("[ML] Classifiers Initialized")
 

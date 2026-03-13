@@ -3,7 +3,7 @@
 import prisma from "@/prisma/prisma";
 import { CreateChatSchema } from "@/schemas/CreateChatSchema";
 import { getCurrentDbUser } from "@/utils/user";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 
 export const createChat = actionClient
@@ -38,8 +38,8 @@ export const createChat = actionClient
         },
       });
 
-      updateTag(`chats-${user.id}`);
-      revalidatePath("/history");
+      revalidateTag(`chats-${user.id}`, { expire: 0 });
+      revalidatePath("/history", "page");
 
       return { success: { chatId, symptoms } };
     } catch (error) {

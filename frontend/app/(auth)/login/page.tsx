@@ -2,11 +2,71 @@
 
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
+import { useAction } from "next-safe-action/hooks";
+import { patientLogin, patientSignup } from "@/actions/patient-auth";
+import {
+  EmailAuthSchema,
+  EmailAuthSchemaType,
+} from "@/schemas/EmailAuthSchema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
 
 const HomePage = () => {
   const supabase = createClient();
+  const router = useRouter();
 
-  const handleSignIn = async () => {
+  const form = useForm<EmailAuthSchemaType>({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    resolver: zodResolver(EmailAuthSchema),
+  });
+
+  const { execute: execLogin, isExecuting: isLoggingIn } = useAction(
+    patientLogin,
+    {
+      onSuccess: ({ data }) => {
+        if (data?.error) {
+          toast.error(data.error);
+        }
+      },
+      onError: ({ error }) => {
+        toast.error("An unexpected error occurred during login.");
+      },
+    }
+  );
+
+  const { execute: execSignup, isExecuting: isSigningUp } = useAction(
+    patientSignup,
+    {
+      onSuccess: ({ data }) => {
+        if (data?.error) {
+          toast.error(data.error);
+        } else {
+          toast.success("Check your email to confirm your account.");
+          router.push("/verify-email");
+        }
+      },
+      onError: ({ error }) => {
+        toast.error("An unexpected error occurred during signup.");
+      },
+    }
+  );
+
+  const handleLogin = form.handleSubmit((formData) => {
+    execLogin(formData);
+  });
+
+  const handleSignup = form.handleSubmit((formData) => {
+    execSignup(formData);
+  });
+
+  const handleSignInGoogle = async () => {
     try {
       const appUrl =
         process.env.NEXT_PUBLIC_APP_URL ??
@@ -30,6 +90,8 @@ const HomePage = () => {
     }
   };
 
+  const isExecuting = isLoggingIn || isSigningUp;
+
   return (
     <main className="flex bg-base-200 min-h-screen">
       {/* Left Column - Auth Form */}
@@ -42,10 +104,88 @@ const HomePage = () => {
             </p>
           </div>
 
-          <div className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="email">
+                Email address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                className="h-12"
+                placeholder="name@example.com"
+                {...form.register("email")}
+              />
+              {form.formState.errors.email && (
+                <span className="text-error text-xs font-medium">
+                  {form.formState.errors.email.message}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="password">
+                  Password
+                </label>
+              </div>
+              <Input
+                id="password"
+                type="password"
+                className="h-12"
+                placeholder="••••••••"
+                {...form.register("password")}
+              />
+              {form.formState.errors.password && (
+                <span className="text-error text-xs font-medium">
+                  {form.formState.errors.password.message}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={isExecuting}
+                className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium"
+              >
+                {isLoggingIn ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    Sign In <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSignup}
+                disabled={isExecuting}
+                className="btn btn-outline border-border w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium bg-base-100 text-base-content"
+              >
+                {isSigningUp ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  "Create patient account"
+                )}
+              </button>
+            </div>
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-base-200/50 px-2 text-muted-foreground bg-base-100">Or</span>
+              </div>
+            </div>
+
             <button
-              onClick={handleSignIn}
+              type="button"
+              onClick={handleSignInGoogle}
               className="btn btn-outline w-full rounded-xl flex items-center bg-base-100 justify-center border-border gap-2 h-12 font-medium text-base-content"
+              disabled={isExecuting}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -55,14 +195,14 @@ const HomePage = () => {
               </svg>
               Sign in with Google
             </button>
-            <p className="text-center text-sm text-muted">
+            <p className="text-center text-sm text-muted mt-4">
               Not a patient? Click{" "}
               <Link href="/clinician-login" className="text-primary font-medium hover:underline transition-all cursor-pointer">
                 here
               </Link>{" "}
               to log in as a clinician
             </p>
-          </div>
+          </form>
         </div>
       </section>
 

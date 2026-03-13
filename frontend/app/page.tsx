@@ -1,7 +1,8 @@
-import { Suspense } from "react";
+import DeveloperRedirect from "@/components/shared/developer-redirect";
+import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
 import { redirect } from "next/navigation";
-import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
+import { Suspense } from "react";
 
 const HomeContent = async () => {
   const { success: dbUser, error, code } = await getCurrentDbUser();
@@ -34,12 +35,12 @@ const HomeContent = async () => {
     redirect("/diagnosis");
   }
 
-  // For DEVELOPER role, redirect to patient view by default
+  // For DEVELOPER role, use client-side redirect to check localStorage preference
   if (dbUser.role === ("DEVELOPER" as any)) {
     if (!dbUser.isOnboarded) {
       redirect("/onboarding");
     }
-    redirect("/diagnosis");
+    return <DeveloperRedirect />;
   }
 
   return null;
@@ -51,7 +52,7 @@ function AppSkeleton() {
     <LayoutWrapper>
       {/* Sidebar Skeleton */}
       <aside
-        className="overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/60 backdrop-blur-xl border-r border-border/50 w-64 opacity-100"
+        className="hidden md:block overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/60 backdrop-blur-xl border-r border-border/50 w-64 opacity-100"
         style={{
           boxShadow: "0 0 0 1px rgb(0 0 0 / 0.02)",
         }}
@@ -82,8 +83,8 @@ function AppSkeleton() {
         </div>
       </aside>
       {/* Main Content Skeleton */}
-      <div className="p-6 w-full animate-pulse">
-        <div className="h-[200px] w-full rounded-2xl bg-base-300/40" />
+      <div className="p-3 md:p-6 w-full animate-pulse">
+        <div className="h-[200px] w-full rounded-2xl md:rounded-3xl bg-base-300/40" />
       </div>
     </LayoutWrapper>
   );

@@ -2,33 +2,47 @@
 
 import prisma from "@/prisma/prisma";
 import { ExplainDiagnosisSchema } from "@/schemas/ExplainDiagnosisSchema";
+import { getBackendUrl } from "@/utils/backend-url";
 import axios, { AxiosError } from "axios";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:10000";
+const BACKEND_URL = getBackendUrl();
 
 export const explainDiagnosis = actionClient
   .inputSchema(ExplainDiagnosisSchema)
-  .action(async ({parsedInput}) => {
-    const {meanProbs, messageId, symptoms} = parsedInput;
+  .action(async ({ parsedInput }) => {
+    const { meanProbs, messageId, symptoms } = parsedInput;
 
     try {
       // BRIDGE: Get session cookie from browser and forward to Flask
-      const {cookies} = await import("next/headers");
+      const { cookies } = await import("next/headers");
       const cookieStore = await cookies();
       const sessionCookie = cookieStore.get("session");
       const cookieHeader = sessionCookie
         ? `session=${sessionCookie.value}`
         : "";
 
+      // Flatten meanProbs if it's nested (backend expects flat array)
+      const flattenedMeanProbs = Array.isArray(meanProbs)
+        ? meanProbs.length > 0 && Array.isArray(meanProbs[0])
+          ? meanProbs[0] // Nested format [[p1, p2, ...]] -> [p1, p2, ...]
+          : meanProbs // Already flat [p1, p2, ...]
+        : meanProbs;
+
+      console.log(
+        "[explainDiagnosis] Requesting explanation for message",
+        messageId,
+        "meanProbs shape:",
+        Array.isArray(flattenedMeanProbs) ? flattenedMeanProbs.length : typeof flattenedMeanProbs,
+      );
+
       const {
-        data: {symptoms: text, tokens},
+        data: { symptoms: text, tokens },
       } = await axios.post(
         `${BACKEND_URL}/diagnosis/explain`,
         {
-          mean_probs: meanProbs,
+          mean_probs: flattenedMeanProbs,
           symptoms,
         },
         {
@@ -95,25 +109,39 @@ export const explainDiagnosis = actionClient
         importancesArray = [];
       }
 
+      // Get the diagnosisId from the message's tempDiagnosis relation
+      const messageWithDiagnosis = await prisma.message.findUnique({
+        where: { id: messageId },
+        select: { chatId: true, tempDiagnosis: true },
+      });
+
+      // Find the corresponding Diagnosis record to link it
+      let diagnosisId: number | null = null;
+      if (messageWithDiagnosis?.chatId) {
+        const diagnosis = await prisma.diagnosis.findUnique({
+          where: { chatId: messageWithDiagnosis.chatId },
+          select: { id: true },
+        });
+        diagnosisId = diagnosis?.id ?? null;
+      }
+
       await prisma.explanation.create({
         data: {
           tokens: tokensArray,
           importances: importancesArray,
           messageId: messageId,
+          diagnosisId: diagnosisId ?? undefined,
         },
       });
 
-      const message = await prisma.message.findUnique({
-        where: { id: messageId },
-        select: { chatId: true },
-      });
-
-      if (message) {
-        updateTag(`messages-${message.chatId}`);
-        updateTag("messages");
+      // Revalidate cache for explanation queries
+      if (messageWithDiagnosis?.chatId) {
+        revalidateTag(`explanation-chat-${messageWithDiagnosis.chatId}`, { expire: 0 });
       }
-
-      revalidatePath("/diagnosis/[chatId]", "page");
+      if (diagnosisId) {
+        revalidateTag(`explanation-${diagnosisId}`, { expire: 0 });
+      }
+      revalidateTag(`messages-${messageWithDiagnosis?.chatId || "unknown"}`, { expire: 0 });
 
       return {
         success: "Successfully retrieved explanation.",
@@ -138,6 +166,6 @@ export const explainDiagnosis = actionClient
         }
       }
 
-      return {error: `Error running explanation: ${error}`};
+      return { error: `Error running explanation: ${error}` };
     }
   });

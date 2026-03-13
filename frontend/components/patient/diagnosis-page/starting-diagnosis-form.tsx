@@ -2,16 +2,24 @@
 
 import { createChat } from "@/actions/create-chat";
 import {
-  CreateChatSchema,
-  CreateChatSchemaType,
+    CreateChatSchema,
+    CreateChatSchemaType,
 } from "@/schemas/CreateChatSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUp, Loader2 } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "nextjs-toploader/app";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 
-const StartingDiagnosisForm = () => {
+type StartingDiagnosisFormProps = {
+  onPendingSymptomsChange?: (symptoms: string) => void;
+};
+
+const StartingDiagnosisForm = ({
+  onPendingSymptomsChange,
+}: StartingDiagnosisFormProps) => {
+  const [isNavigating, setIsNavigating] = useState(false);
   const form = useForm<CreateChatSchemaType>({
     defaultValues: {
       symptoms: "",
@@ -20,20 +28,35 @@ const StartingDiagnosisForm = () => {
     resolver: zodResolver(CreateChatSchema),
   });
   const router = useRouter();
+  // Guard: only navigate on an intentional submission within this lifecycle.
+  // Prevents stale onSuccess callbacks (from router cache or re-renders) from
+  // spuriously navigating to the previously created chat.
+  const hasSubmittedRef = useRef(false);
   const { execute, isExecuting } = useAction(createChat, {
     onSuccess: ({ data }) => {
+      if (!hasSubmittedRef.current) return;
+      hasSubmittedRef.current = false;
       if (data.success) {
-        form.setValue('chatId', '');
-        form.setValue('symptoms', '');
+        form.setValue("chatId", crypto.randomUUID());
+        form.setValue("symptoms", "");
         router.push(`/diagnosis/${data.success.chatId}`);
       } else if (data.error) {
+        setIsNavigating(false);
+        onPendingSymptomsChange?.("");
         // TODO: Error handling
         console.error(data.error);
       }
     },
+    onError: () => {
+      setIsNavigating(false);
+      onPendingSymptomsChange?.("");
+    },
   });
 
+  const isLoading = isExecuting || isNavigating;
+
   const handleSubmit = (data: CreateChatSchemaType) => {
+    hasSubmittedRef.current = true;
     execute(data);
   };
 
@@ -44,9 +67,10 @@ const StartingDiagnosisForm = () => {
           <div className="space-y-8">
             <div className="flex justify-between items-start shadow-xl bg-base-100/90 border border-base-300/30 rounded-2xl outline-none w-full h-auto px-4 py-3 backdrop-blur-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]">
               <textarea
-                className="flex-1 pl-1 border-none outline-none bg-transparent resize-none   text-base-content placeholder:text-muted transition-all duration-300 min-h-[40px]"
+                className="flex-1 pl-1 border-none outline-none bg-transparent resize-none text-base text-base-content placeholder:text-muted transition-all duration-300 min-h-[40px] md:min-h-[48px] py-1 md:py-2"
                 placeholder="I'm feeling..."
                 suppressHydrationWarning
+                disabled={isLoading}
                 onKeyDown={(e) => {
                   // Submit on Enter, allow Shift+Enter for newline, and ignore IME composition
                   if (
@@ -63,14 +87,12 @@ const StartingDiagnosisForm = () => {
               />
               <button
                 type="submit"
-                disabled={isExecuting}
+                disabled={isLoading}
+                aria-busy={isLoading}
+                aria-live="polite"
                 className="ml-3 p-0 w-12 h-12 aspect-square rounded-xl bg-primary text-primary-content shadow-md hover:shadow-xl hover:bg-primary/90 active:scale-95 transition-all duration-200 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100"
               >
-                {isExecuting ? (
-                  <Loader2 className="size-5 animate-spin" strokeWidth={2.5} />
-                ) : (
-                  <ArrowUp className="size-5" strokeWidth={2.5} />
-                )}
+                <ArrowUp className="size-5" strokeWidth={2.5} />
               </button>
             </div>
             {form.formState.errors.symptoms && (

@@ -78,7 +78,7 @@ const TabsList = React.forwardRef<
     <div
       ref={listRef}
       className={cn(
-        "relative inline-flex items-center justify-center rounded-[14px] bg-base-200/50 p-1.5 text-muted backdrop-blur-sm border border-base-300/50",
+        "relative inline-flex items-center justify-start sm:justify-center rounded-[14px] bg-base-200/50 p-1.5 text-muted backdrop-blur-sm border border-base-300/50 max-w-full overflow-x-auto no-scrollbar",
         className
       )}
       {...props}

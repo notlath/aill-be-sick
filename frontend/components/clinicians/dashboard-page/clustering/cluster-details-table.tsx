@@ -24,13 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Search,
-  Filter,
-  User, MapPin,
-  Calendar,
-  Activity
-} from "lucide-react";
+import { Search, Filter, User, MapPin, Calendar, Activity } from "lucide-react";
 import type { Patient, ClusterStatistics } from "@/types";
 
 interface ClusterDetailsTableProps {
@@ -105,20 +99,20 @@ const ClusterDetailsTable: React.FC<ClusterDetailsTableProps> = ({
   statistics.forEach((stat) => {
     const dist = stat.disease_distribution || {};
     const entries = Object.entries(dist).sort(
-      (a, b) => b[1].percent - a[1].percent
+      (a, b) => b[1].percent - a[1].percent,
     );
     const dominantDisease = entries.length > 0 ? entries[0][0] : null;
     clusterNameMap[stat.cluster_id] = dominantDisease
       ? `${stat.cluster_id + 1}. ${dominantDisease}`
-      : `Cluster ${stat.cluster_id + 1}`;
+      : `Group ${stat.cluster_id + 1}`;
   });
 
   // Get unique regions
   const uniqueRegions = Array.from(
-    new Set(patients.map((p) => p.region).filter(Boolean))
+    new Set(patients.map((p) => p.region).filter(Boolean)),
   ).sort();
   const uniqueDiseases = Array.from(
-    new Set(patients.map((p) => p.disease).filter(Boolean))
+    new Set(patients.map((p) => p.disease).filter(Boolean)),
   ).sort() as string[];
 
   // Filter patients
@@ -148,11 +142,11 @@ const ClusterDetailsTable: React.FC<ClusterDetailsTableProps> = ({
           </div>
           <div>
             <CardTitle className="text-2xl tracking-tight">
-              Patient Details by Cluster
+              Patient Details by Group
             </CardTitle>
             <CardDescription className="mt-1">
-              Detailed patient information with cluster assignments for
-              population analysis
+              Detailed patient information with group assignments for population
+              analysis
             </CardDescription>
           </div>
         </div>
@@ -176,13 +170,13 @@ const ClusterDetailsTable: React.FC<ClusterDetailsTableProps> = ({
             <Select value={selectedCluster} onValueChange={setSelectedCluster}>
               <SelectTrigger className="h-11">
                 <Filter className="size-4 text-muted" />
-                <SelectValue placeholder="All Clusters" />
+                <SelectValue placeholder="All Groups" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Clusters</SelectItem>
+                <SelectItem value="all">All Groups</SelectItem>
                 {Array.from({ length: nClusters }, (_, i) => (
                   <SelectItem key={i} value={i.toString()}>
-                    {clusterNameMap[i] || `Cluster ${i + 1}`}
+                    {clusterNameMap[i] || `Group ${i + 1}`}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -254,7 +248,7 @@ const ClusterDetailsTable: React.FC<ClusterDetailsTableProps> = ({
             <TableHeader>
               <TableRow className="bg-gradient-to-br from-base-200/50 to-base-200/30 border-b-2 border-base-300/50 hover:bg-gradient-to-br hover:from-base-200/50 hover:to-base-200/30">
                 <TableHead className="font-semibold text-sm text-base-content/80 uppercase tracking-wide">
-                  Cluster
+                  Group
                 </TableHead>
                 <TableHead className="font-semibold text-sm text-base-content/80 uppercase tracking-wide">
                   Patient ID
@@ -301,7 +295,7 @@ const ClusterDetailsTable: React.FC<ClusterDetailsTableProps> = ({
                             className={`w-2 h-2 rounded-full ${theme.dot} mr-1.5`}
                           ></div>
                           {clusterNameMap[patient.cluster] ||
-                            `Cluster ${patient.cluster + 1}`}
+                            `Group ${patient.cluster + 1}`}
                         </Badge>
                       </TableCell>
                       <TableCell>

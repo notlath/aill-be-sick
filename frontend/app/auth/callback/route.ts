@@ -120,6 +120,9 @@ export async function GET(request: NextRequest) {
           });
 
           console.log("[OAuth Callback] User upserted to database");
+          
+          const { revalidateTag } = require("next/cache");
+          revalidateTag(`user-${user.id}`);
         } catch (prismaError) {
           console.error(
             "[OAuth Callback] Error upserting user with Prisma:",

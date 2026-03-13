@@ -45,6 +45,16 @@ export interface CityCount {
   count: number;
 }
 
+export interface ProvinceCount {
+  province: string;
+  count: number;
+}
+
+export interface BarangayCount {
+  barangay: string;
+  count: number;
+}
+
 export interface ClusterStatistics {
   cluster_id: number;
   count: number;
@@ -67,20 +77,49 @@ export interface PatientClusterData {
 }
 
 // Types for surveillance / outbreak detection
+
+export interface SurveillanceUser {
+  id: number;
+  name: string | null;
+  email: string | null;
+  role: string;
+  city: string | null;
+  region: string | null;
+  province: string | null;
+  barangay: string | null;
+  district: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  age: number | null;
+  gender: string | null;
+}
+
 export interface SurveillanceAnomaly {
   id: number;
   disease: string;
-  created_at: string;
+  createdAt: string;
   latitude: number;
   longitude: number;
   city: string | null;
   province: string | null;
+  barangay: string | null;
   region: string | null;
+  district: string | null;
   confidence: number;
   uncertainty: number;
-  user_id: number;
-  user_name: string;
+  userId: number;
+  user: SurveillanceUser;
+  is_anomaly: boolean;
   anomaly_score: number;
+  /** Pipe-separated reason codes, e.g. "GEOGRAPHIC:RARE|COMBINED:MULTI". Null for normal records. */
+  reason: string | null;
+}
+
+export interface OutbreakSummaryStats {
+  total_records: number;
+  anomaly_count: number;
+  normal_count: number;
+  contamination_used: number;
 }
 
 export interface OutbreakSummary {
@@ -95,11 +134,13 @@ export interface OutbreakSummary {
 
 export interface OutbreakFullResult {
   anomalies: SurveillanceAnomaly[];
-  normal: SurveillanceAnomaly[];
+  normal_diagnoses: SurveillanceAnomaly[];
+  summary: OutbreakSummaryStats;
+  // Legacy top-level aliases (still present in backend response for backwards compat)
   total_analyzed: number;
   anomaly_count: number;
+  normal_count: number;
   outbreak_alert: boolean;
-  contamination: number;
 }
 
 export type HeatmapLegendBin = {
@@ -137,11 +178,117 @@ export type AnomalyHeatmapData = {
   provinceCounts: Record<string, number>;
   // Normalized province name -> actual anomaly count from province field (for tooltip)
   provinceDirectCounts: Record<string, number>;
+  // Normalized "province||city||barangay" -> count
+  barangayCounts: Record<string, number>;
+  // Normalized "province||city" -> count
+  cityTotals: Record<string, number>;
+  // Normalized province name -> count (for tooltip at province level)
+  provinceTotals: Record<string, number>;
   // Region name -> total anomalies in that region
   regionTotals: Record<string, number>;
   // Normalized province name -> region display label
   provinceToRegion: Record<string, string>;
   globalMax: number;
   legendBins: HeatmapLegendBin[];
+  // Province-specific legend bins keyed by normalized province name
+  provinceLegendBinsByProvince: Record<string, HeatmapLegendBin[]>;
   selectedDisease: string;
+};
+
+// Types for illness clustering data
+export interface IllnessRecord {
+  id: number;
+  disease: string;
+  confidence: number;
+  uncertainty: number;
+  city: string | null;
+  province: string | null;
+  barangay: string | null;
+  region: string | null;
+  district: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  diagnosed_at: string | null;
+  patient_id: number;
+  patient_name: string | null;
+  patient_email: string | null;
+  patient_age: number;
+  patient_gender: "MALE" | "FEMALE" | "OTHER";
+  cluster: number;
+}
+
+export interface IllnessClusterStatistics {
+  cluster_id: number;
+  count: number;
+  disease_distribution: Record<string, { count: number; percent: number }>;
+  top_diseases: { disease: string; count: number }[];
+  avg_patient_age: number;
+  min_patient_age: number;
+  max_patient_age: number;
+  gender_distribution: GenderDistribution;
+  top_regions: RegionCount[];
+  top_provinces?: ProvinceCount[];
+  top_cities: CityCount[];
+  top_barangays?: BarangayCount[];
+  top_districts?: { district: string; count: number }[];
+  temporal_distribution?: Record<string, number>;
+}
+
+export interface IllnessClusterData {
+  n_clusters: number;
+  total_illnesses: number;
+  cluster_statistics: IllnessClusterStatistics[];
+  illnesses: IllnessRecord[];
+  centers: number[][];
+}
+
+export type SearchParams = Record<string, string | string[] | undefined>;
+
+// Types for the real-time alert system
+
+export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type AlertStatus = "NEW" | "ACKNOWLEDGED" | "RESOLVED" | "DISMISSED";
+export type AlertType = "ANOMALY" | "LOW_CONFIDENCE" | "HIGH_UNCERTAINTY";
+
+export type AlertMetadata = {
+  disease?: string;
+  city?: string;
+  province?: string;
+  region?: string;
+  barangay?: string;
+  district?: string;
+  latitude?: number;
+  longitude?: number;
+  patientAge?: number;
+  patientGender?: string;
+  anomalyScore?: number;
+  confidence?: number;
+  uncertainty?: number;
+};
+
+export type AlertNote = {
+  id: number;
+  alertId: number;
+  authorId: number;
+  authorName: string | null;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Alert = {
+  id: number;
+  type: AlertType;
+  severity: AlertSeverity;
+  status: AlertStatus;
+  diagnosisId: number | null;
+  reasonCodes: string[];
+  message: string;
+  metadata: AlertMetadata | null;
+  createdAt: string;
+  acknowledgedAt: string | null;
+  acknowledgedBy: number | null;
+  resolvedAt: string | null;
+  resolvedBy: number | null;
+  notes: AlertNote[];
 };

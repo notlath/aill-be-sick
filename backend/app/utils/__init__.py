@@ -294,19 +294,17 @@ def detect_language_heuristic(text, debug=False):
     # OR we need to accept tokenizers as arguments.
     # Ideally, we pass tokenizers IN, but for now let's rely on keywords which are strong indicators.
     
-    # Keyword-based detection (Strong signal)
+    # Keyword-based detection (Count based instead of boolean fallback)
     text_lower = text.lower()
-    has_tl = any(k in text_lower for k in config.MEDICAL_KEYWORDS_TL)
-    has_en = any(k in text_lower for k in config.MEDICAL_KEYWORDS_EN)
+    
+    tl_matches = sum(1 for k in config.MEDICAL_KEYWORDS_TL if k in text_lower)
+    en_matches = sum(1 for k in config.MEDICAL_KEYWORDS_EN if k in text_lower)
 
-    if has_tl and not has_en:
+    if tl_matches > 0 and tl_matches >= en_matches:
         if debug:
-            print(f"[DEBUG] Heuristic: Tagalog keywords found, forcing TL")
+            print(f"[DEBUG] Heuristic: TL matches ({tl_matches}) >= EN matches ({en_matches}), forcing TL")
         return "tl"
     
-    # If mixed or neither, fallback to 'en' or use a light heuristic?
-    # Original code compared token counts from the specific models.
-    # To decouple this from the ML models (which are heavy), we can just default to 'en'
-    # unless Tagalog keywords are explicitly found.
-    
-    return "tl" if has_tl else "en"
+    if debug:
+        print(f"[DEBUG] Heuristic: EN matches ({en_matches}) > TL matches ({tl_matches}) or no TL matches, forcing EN")
+    return "en"
