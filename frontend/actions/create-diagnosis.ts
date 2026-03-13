@@ -34,22 +34,32 @@ function buildAlertMessage(
   severity: string,
 ): string {
   const codeLabels: Record<string, string> = {
-    "GEOGRAPHIC:RARE": "unusual location",
-    "TEMPORAL:RARE": "unusual timing",
-    "CLUSTER:SPATIAL": "spatial cluster",
-    "CONFIDENCE:LOW": "low model confidence",
-    "UNCERTAINTY:HIGH": "high model uncertainty",
-    "COMBINED:MULTI": "multiple contributing factors",
-    "AGE:RARE": "unusual patient age",
-    "GENDER:RARE": "unusual patient gender",
+    "GEOGRAPHIC:RARE": "an occurrence in an unusual location",
+    "TEMPORAL:RARE": "a presentation during an off-season period",
+    "CLUSTER:SPATIAL": "a sudden geographic group of similar cases",
+    "CONFIDENCE:LOW": "low predictive confidence from the AI model",
+    "UNCERTAINTY:HIGH": "high statistical uncertainty from the AI model",
+    "COMBINED:MULTI": "multiple overlapping anomalies",
+    "AGE:RARE": "a patient age outside the typical demographic range",
+    "GENDER:RARE": "a patient demographic that is uncommon for this disease",
   };
 
-  const labels = reasonCodes
+  const validLabels = reasonCodes
     .filter((c) => c !== "COMBINED:MULTI")
-    .map((c) => codeLabels[c] ?? c)
-    .join(", ");
+    .map((c) => codeLabels[c] ?? c);
 
-  return `${severity} anomaly detected for ${disease}: ${labels}.`;
+  if (validLabels.length === 0 && reasonCodes.includes("COMBINED:MULTI")) {
+    validLabels.push(codeLabels["COMBINED:MULTI"]);
+  }
+
+  const formatter = new Intl.ListFormat("en", {
+    style: "long",
+    type: "conjunction",
+  });
+  const formattedLabels = formatter.format(validLabels);
+
+  const severityText = severity.toLowerCase();
+  return `A ${severityText}-priority ${disease} diagnosis requires attention. The case was flagged due to ${formattedLabels}.`;
 }
 
 export const createDiagnosis = actionClient

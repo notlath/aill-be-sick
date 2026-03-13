@@ -295,7 +295,7 @@ model Alert {
 
 ```prisma
 enum AlertType {
-  ANOMALY           // Geographic, temporal, spatial cluster, or combined anomaly
+  ANOMALY           // Geographic, temporal, spatial group, or combined anomaly
   LOW_CONFIDENCE    // Only reason is CONFIDENCE:LOW
   HIGH_UNCERTAINTY  // Only reason is UNCERTAINTY:HIGH
 }
@@ -792,7 +792,7 @@ Reason codes are sourced from the Flask surveillance service's `reason` field (p
 |------|-------|-------------|
 | `GEOGRAPHIC:RARE` | Unusual location | Disease rarely reported in this area |
 | `TEMPORAL:RARE` | Unusual timing | Case recorded at an atypical time of year |
-| `CLUSTER:SPATIAL` | Spatial cluster | Unusual concentration of cases in this location |
+| `CLUSTER:SPATIAL` | Spatial group | Unusual concentration of cases in this location |
 | `CONFIDENCE:LOW` | Low confidence | System had low confidence making this diagnosis |
 | `UNCERTAINTY:HIGH` | High uncertainty | System reported high uncertainty for this diagnosis |
 | `COMBINED:MULTI` | Multiple factors | Two or more independent factors contributed |

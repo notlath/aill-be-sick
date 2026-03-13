@@ -87,7 +87,7 @@ export const REASON_CODES = {
       "This case was recorded at an unusual time of year for this disease. It does not follow the typical seasonal pattern.",
   },
   "CLUSTER:SPATIAL": {
-    label: "Spatial cluster",
+    label: "Spatial group",
     description:
       "There is an unusual concentration of cases in this specific location. Multiple cases are being reported from the same area.",
   },
