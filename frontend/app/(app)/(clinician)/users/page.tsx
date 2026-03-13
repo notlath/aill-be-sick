@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { columns } from "@/components/clinicians/users-page/columns";
 import { DataTable } from "@/components/clinicians/users-page/data-table";
-import { getAllUsers } from "@/utils/user";
+import { getAllUsers, getCurrentDbUser } from "@/utils/user";
 
 function UsersTableSkeleton() {
   return (
@@ -31,17 +31,20 @@ function UsersTableSkeleton() {
   );
 }
 
-async function UsersTable() {
-  const { success: users, error } = await getAllUsers();
+async function UsersTable({ currentUserRole }: { currentUserRole: string }) {
+  const { success: users, error } = await getAllUsers(currentUserRole);
 
   if (error) {
     throw new Error(error);
   }
 
-  return <DataTable columns={columns} data={users || []} />;
+  return <DataTable columns={columns} data={users || []} currentUserRole={currentUserRole} />;
 }
 
-const UsersPage = () => {
+const UsersPage = async () => {
+  const { success: dbUser } = await getCurrentDbUser();
+  const currentUserRole = dbUser?.role || "";
+
   return (
     <main className="from-base-100 via-base-200/30 to-base-100 min-h-screen bg-gradient-to-br">
       {/* Hero Header Section */}
@@ -63,7 +66,7 @@ const UsersPage = () => {
         <div className="mx-auto max-w-[1600px] space-y-8">
           <div className="animate-slide-up" style={{ animationDelay: "200ms" }}>
             <Suspense fallback={<UsersTableSkeleton />}>
-              <UsersTable />
+              <UsersTable currentUserRole={currentUserRole} />
             </Suspense>
           </div>
         </div>

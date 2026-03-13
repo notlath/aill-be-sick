@@ -59,9 +59,12 @@ export const getAllPatients = async () => {
   }
 };
 
-export const getAllUsers = async () => {
+export const getAllUsers = async (currentUserRole?: string) => {
   try {
+    const whereClause = currentUserRole === "CLINICIAN" ? { role: "PATIENT" as const } : {};
+
     const users = await prisma.user.findMany({
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
       include: {
         _count: {
           select: { diagnoses: true },

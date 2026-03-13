@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Search, X } from "lucide-react";
+import { Search, X, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
@@ -23,10 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import AddClinicianEmailModal from "./add-clinician-email-modal";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  currentUserRole?: string;
 }
 
 type SortOption = {
@@ -53,6 +55,7 @@ const sortOptions: SortOption[] = [
 export function DataTable<TData, TValue>({
   columns,
   data,
+  currentUserRole = "",
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -61,6 +64,17 @@ export function DataTable<TData, TValue>({
     pageIndex: 0,
     pageSize: 10,
   });
+  const [isAddEmailModalOpen, setIsAddEmailModalOpen] = useState(false);
+
+  const isAdmin = currentUserRole === "ADMIN";
+
+  const roleFilterOptions = isAdmin
+    ? [
+        { value: "ADMIN", label: "Admin" },
+        { value: "CLINICIAN", label: "Clinician" },
+        { value: "PATIENT", label: "Patient" },
+      ]
+    : [{ value: "PATIENT", label: "Patient" }];
 
   const table = useReactTable({
     data,
@@ -102,6 +116,11 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
+      <AddClinicianEmailModal
+        isOpen={isAddEmailModalOpen}
+        onClose={() => setIsAddEmailModalOpen(false)}
+      />
+
       {/* Search and Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:w-72">
@@ -131,6 +150,16 @@ export function DataTable<TData, TValue>({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={() => setIsAddEmailModalOpen(true)}
+              className="btn btn-primary gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Clinician Email
+            </button>
+          )}
+
           <Select className="w-auto" value={currentSortLabel} onValueChange={handleSortChange}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Sort by..." />
@@ -156,9 +185,11 @@ export function DataTable<TData, TValue>({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">All Roles</SelectItem>
-              <SelectItem value="CLINICIAN">Clinician</SelectItem>
-              <SelectItem value="DEVELOPER">Developer</SelectItem>
-              <SelectItem value="PATIENT">Patient</SelectItem>
+              {roleFilterOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 

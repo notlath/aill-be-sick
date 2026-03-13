@@ -164,6 +164,12 @@ const ClinicianLoginPage = () => {
               </Link>{" "}
               to log in as a patient
             </p>
+            <p className="text-center text-sm text-muted mt-2">
+              Admin? Click{" "}
+              <Link href="/admin-login" className="text-primary font-medium hover:underline transition-all cursor-pointer">
+                here
+              </Link>
+            </p>
           </form>
         </div>
       </section>
