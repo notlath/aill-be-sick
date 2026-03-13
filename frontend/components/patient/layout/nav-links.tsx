@@ -1,6 +1,6 @@
 "use client";
 
-import { clinicianNavItems, patientNavItems } from "@/constants/nav-items";
+import { clinicianNavItems, patientNavItems, adminNavItems } from "@/constants/nav-items";
 import NavLink from "./nav-link";
 import { usePathname } from "next/navigation";
 import { User } from "@/lib/generated/prisma";
@@ -44,6 +44,10 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
   }, [dbUser.role, pathname]);
 
   const navItems = useMemo(() => {
+    // For admin users, show admin navigation
+    if (dbUser.role === "ADMIN") {
+      return adminNavItems;
+    }
     // For developers, use the current view to determine nav items
     if (dbUser.role === ("DEVELOPER" as any)) {
       return currentView === "PATIENT" ? patientNavItems : clinicianNavItems;

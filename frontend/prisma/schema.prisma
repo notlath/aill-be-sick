@@ -140,6 +140,12 @@ model AlertNote {
   updatedAt DateTime @updatedAt
 }
 
+model AllowedClinicianEmail {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
 model diagnosis_sessions {
   session_id       String @id
   chat_id          String
@@ -163,6 +169,7 @@ model diagnosis_sessions {
 enum Role {
   PATIENT
   CLINICIAN
+  ADMIN
   DEVELOPER
 }
 

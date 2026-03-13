@@ -4,6 +4,7 @@ import ViewSwitcherBtn from "./view-switcher-btn";
 import Image from "next/image";
 import { User } from "@/lib/generated/prisma";
 import { useRouter } from "nextjs-toploader/app";
+import { useMemo } from "react";
 
 type HeaderProps = {
   dbUser: User;
@@ -12,6 +13,14 @@ type HeaderProps = {
 
 const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
   const router = useRouter();
+  const resolvedProfileLink = useMemo(() => {
+    switch (dbUser.role) {
+      case "CLINICIAN":
+        return "/clinician-profile";
+      default:
+        return "/profile";
+    }
+  }, [dbUser]);
 
   return (
     <header className="flex justify-between items-center gap-3 mb-6 bg-base-300/40 p-1 rounded-xl -mx-1">
@@ -33,13 +42,13 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
               <div className="cursor-pointer avatar avatar-placeholder group">
                 <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-full size-9 ring-2 ring-base-300/50 transition-all duration-300 group-hover:ring-primary/30 flex items-center justify-center">
                   <span className="font-semibold text-base text-primary">
-                    {dbUser.name?.charAt(0)}
+                    {dbUser.name ? dbUser.name.charAt(0) : "C"}
                   </span>
                 </div>
               </div>
             )}
             <p className="flex-1 font-semibold text-base-content/90 tracking-tight text-sm">
-              {dbUser.name}
+              {dbUser.name || "Clinician"}
             </p>
           </div>
         </div>
@@ -56,15 +65,17 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
               <ViewSwitcherBtn isDeveloper={true} />
             </li>
           )}
-          <li>
-            <button
-              onClick={() => router.push(dbUser.role === "CLINICIAN" ? "/clinician-profile" : "/profile")}
-              role="button"
-              className="rounded-xl transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-200/80 active:scale-95 font-medium text-base-content/80 hover:text-base-content"
-            >
+          {dbUser.role !== "ADMIN" && (
+            <li>
+              <button
+                onClick={() => router.push(resolvedProfileLink)}
+                role="button"
+                className="rounded-xl transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-200/80 active:scale-95 font-medium text-base-content/80 hover:text-base-content"
+              >
               Profile
             </button>
           </li>
+          )}
           <li>
             <SignOutBtn />
           </li>
