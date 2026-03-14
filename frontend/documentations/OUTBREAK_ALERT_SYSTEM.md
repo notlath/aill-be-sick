@@ -329,7 +329,7 @@ npx tsx scripts/trigger-outbreak.ts
 |----------|----------|
 | **Insufficient Data** | If $< 5$ cases exist in the system, detection returns empty to avoid false positives. |
 | **Backend Offline** | The Next.js action logs a warning and fails gracefully; the patient's diagnosis is **never** blocked. |
-| **Missing District** | The system falls back to a general "Volume Spike" alert if geographic data is incomplete. |
+| **Missing District** | The system falls back to `"UNKNOWN"` as the district label to ensure alerts are still generated even if geographic data is incomplete. |
 | **Spam Prevention** | Alerts are throttled to once every 24 hours per unique disease/district combination. |
 
 ---

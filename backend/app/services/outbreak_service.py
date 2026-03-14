@@ -22,7 +22,8 @@ def calculate_statistical_thresholds(diagnoses, days=30):
     # Group by disease, district, and day
     counts = {}
     for d in diagnoses:
-        key = (d['disease'], d['district'])
+        district = d.get('district') or "UNKNOWN"
+        key = (d['disease'], district)
         date = d['diagnosed_at'][:10] # YYYY-MM-DD
         if key not in counts:
             counts[key] = {}
@@ -99,7 +100,8 @@ def detect_outbreaks(db_url=None):
     # 4. Analyze recent volumes by disease and district
     recent_counts = {}
     for d in recent_diagnoses:
-        key = (d['disease'], d['district'])
+        district = d.get('district') or "UNKNOWN"
+        key = (d['disease'], district)
         recent_counts[key] = recent_counts.get(key, 0) + 1
         
     outbreaks = []
@@ -166,7 +168,7 @@ def detect_outbreaks(db_url=None):
                 # Check if this cluster's disease/district already has a threshold alert
                 diseases = [d['disease'] for d in cluster_items]
                 most_common_disease = max(set(diseases), key=diseases.count)
-                districts = [d['district'] for d in cluster_items]
+                districts = [d.get('district') or "UNKNOWN" for d in cluster_items]
                 most_common_district = max(set(districts), key=districts.count)
                 
                 # Check if we already have an alert for this disease/district
