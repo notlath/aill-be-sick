@@ -77,18 +77,6 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
     });
   }, [alerts, activeTab, searchQuery]);
 
-  if (isLoading) {
-    return <AlertsListSkeleton />;
-  }
-
-  if (error) {
-    return (
-      <div className="alert alert-error">
-        <span>Failed to load alerts: {error}</span>
-      </div>
-    );
-  }
-
   // Calculate counts for tabs
   const tabCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -111,6 +99,18 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
     }
     return map;
   }, []);
+
+  if (isLoading) {
+    return <AlertsListSkeleton />;
+  }
+
+  if (error) {
+    return (
+      <div className="alert alert-error">
+        <span>Failed to load alerts: {error}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
