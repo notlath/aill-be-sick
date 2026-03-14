@@ -14,10 +14,10 @@ export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export function mapReasonCodesToSeverity(reasonCodes: string[]): AlertSeverity {
   const has = (code: string) => reasonCodes.includes(code);
 
-  if (has("CLUSTER:SPATIAL") && has("COMBINED:MULTI")) return "CRITICAL";
-  if (has("CLUSTER:SPATIAL") || (has("COMBINED:MULTI") && reasonCodes.length >= 3))
+  if (has("OUTBREAK:EPIDEMIC_THRESHOLD") || (has("CLUSTER:SPATIAL") && has("COMBINED:MULTI"))) return "CRITICAL";
+  if (has("OUTBREAK:ALERT_THRESHOLD") || has("CLUSTER:SPATIAL") || (has("COMBINED:MULTI") && reasonCodes.length >= 3))
     return "HIGH";
-  if (has("CONFIDENCE:LOW") || has("UNCERTAINTY:HIGH")) return "MEDIUM";
+  if (has("CLUSTER:DENSE") || has("OUTBREAK:VOL_SPIKE") || has("CONFIDENCE:LOW") || has("UNCERTAINTY:HIGH")) return "MEDIUM";
 
   return "LOW";
 }

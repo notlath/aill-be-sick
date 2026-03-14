@@ -116,6 +116,26 @@ export const REASON_CODES = {
     description:
       "This patient's gender is uncommon among people diagnosed with this disease. This pattern may be worth noting during review.",
   },
+  "OUTBREAK:EPIDEMIC_THRESHOLD": {
+    label: "Epidemic Threshold",
+    description:
+      "The case volume in this area has exceeded the DOH Epidemic Threshold, indicating a significant outbreak.",
+  },
+  "OUTBREAK:ALERT_THRESHOLD": {
+    label: "Alert Threshold",
+    description:
+      "The case volume in this area has exceeded the Alert Threshold, requiring increased surveillance.",
+  },
+  "CLUSTER:DENSE": {
+    label: "Dense Cluster",
+    description:
+      "A high-density spatial cluster of similar cases has been detected in a localized area.",
+  },
+  "OUTBREAK:VOL_SPIKE": {
+    label: "Volume Spike",
+    description:
+      "A sudden, significant increase in case volume compared to historical baselines.",
+  },
 } as const;
 
 export type ReasonCode = keyof typeof REASON_CODES;

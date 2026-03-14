@@ -200,6 +200,7 @@ enum MessageType {
   QUESTION
   DIAGNOSIS
   URGENT_WARNING
+  INFO
   ERROR
   INFO
 }
@@ -221,6 +222,7 @@ enum Model {
 
 enum AlertType {
   ANOMALY
+  OUTBREAK
   LOW_CONFIDENCE
   HIGH_UNCERTAINTY
 }

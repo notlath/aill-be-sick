@@ -139,8 +139,7 @@ export const createDiagnosis = actionClient
       revalidatePath(`/diagnosis/${chatId}`, "page");
       revalidatePath("/history", "page");
 
-      // Run anomaly check in the background — non-blocking so diagnosis is
-      // always saved even if the surveillance service is unavailable.
+      // Run anomaly and outbreak checks in the background — non-blocking.
       checkAndCreateAlert({
         diagnosisId: diagnosis.id,
         disease,
@@ -156,7 +155,14 @@ export const createDiagnosis = actionClient
         patientAge: dbUser.age ?? undefined,
         patientGender: dbUser.gender ?? undefined,
       }).catch((err) =>
-        console.error(`Alert creation failed for diagnosis ${diagnosis.id}:`, err),
+        console.error(`Anomaly alert failed for diagnosis ${diagnosis.id}:`, err),
+      );
+
+      checkAndCreateOutbreakAlert({
+        disease,
+        district: dbUser.district,
+      }).catch((err) =>
+        console.error(`Outbreak alert failed for diagnosis ${diagnosis.id}:`, err),
       );
 
       return { success: "Successfully recorded diagnosis" };
@@ -268,6 +274,97 @@ async function checkAndCreateAlert(params: AlertCheckParams): Promise<void> {
   } catch (err) {
     // Surface but don't re-throw; diagnosis must succeed regardless.
     console.error(`Anomaly check failed for diagnosis ${diagnosisId}:`, err);
+  }
+}
+
+/**
+ * Calls the Flask outbreak detection endpoint and creates OUTBREAK alerts
+ * if any recent clusters or threshold breaches are detected. Includes
+ * duplicate prevention to avoid spamming the same outbreak multiple times.
+ */
+async function checkAndCreateOutbreakAlert(params: {
+  disease: string;
+  district?: string | null;
+}): Promise<void> {
+  const { disease, district } = params;
+
+  try {
+    const res = await fetch(
+      `${BACKEND_URL}/api/surveillance/outbreaks/detect`,
+      { cache: "no-store" },
+    );
+
+    if (!res.ok) {
+      console.warn(
+        `Outbreak detection skipped — backend responded ${res.status}`,
+      );
+      return;
+    }
+
+    const { outbreaks } = (await res.json()) as { outbreaks: any[] };
+
+    if (!outbreaks || outbreaks.length === 0) return;
+
+    // Process each detected outbreak
+    for (const outbreak of outbreaks) {
+      const {
+        disease: oDisease,
+        district: oDistrict,
+        severity,
+        reasonCodes,
+        message,
+        metadata,
+      } = outbreak;
+
+      // Duplicate prevention: check for an existing NEW/ACKNOWLEDGED alert
+      // for this same disease and district created in the last 24 hours.
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const existing = await prisma.alert.findFirst({
+        where: {
+          type: "OUTBREAK",
+          status: { in: ["NEW", "ACKNOWLEDGED"] },
+          metadata: {
+            path: ["disease"],
+            equals: oDisease,
+          },
+          AND: [
+            {
+              metadata: {
+                path: ["district"],
+                equals: oDistrict ?? "",
+              },
+            },
+            {
+              createdAt: { gte: oneDayAgo },
+            },
+          ],
+        },
+      });
+
+      if (existing) {
+        console.log(
+          `Skipping duplicate outbreak alert for ${oDisease} in ${oDistrict}`,
+        );
+        continue;
+      }
+
+      // Create the outbreak alert
+      await prisma.alert.create({
+        data: {
+          type: "OUTBREAK",
+          severity: severity as any,
+          reasonCodes,
+          message,
+          metadata: metadata as any,
+        },
+      });
+
+      console.log(
+        `OUTBREAK Alert created for ${oDisease} in ${oDistrict} — severity: ${severity}`,
+      );
+    }
+  } catch (err) {
+    console.error(`Outbreak detection failed:`, err);
   }
 }
 
