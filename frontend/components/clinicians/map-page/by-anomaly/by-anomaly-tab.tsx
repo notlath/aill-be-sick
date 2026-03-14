@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { DiseaseSelect } from "../disease-select";
@@ -29,6 +29,7 @@ import { AnomalyTimelineChart } from "../anomaly-timeline-chart";
 import { IllnessClusterContributionGraph } from "../by-cluster/illness-cluster-contribution-graph";
 import AnomalySummary from "./anomaly-summary";
 import TopCriticalAnomalies from "./top-critical-anomalies";
+import useMapStore from "@/stores/use-map-store";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), {
   ssr: false,
@@ -38,8 +39,20 @@ const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
 const ByAnomalyTab = () => {
   const { selectedDisease, setSelectedDisease } = useSelectedDiseaseStore();
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
+  const { focusLocation, focusDisease, setFocusDisease } = useMapStore();
 
   const [view, setView] = useState<"coordinates" | "district">("coordinates");
+
+  // Apply focus disease from URL params on mount
+  useEffect(() => {
+    console.log('[ByAnomalyTab] focusDisease:', focusDisease, 'selectedDisease:', selectedDisease);
+    if (focusDisease && focusDisease !== "all") {
+      console.log('[ByAnomalyTab] Setting disease to:', focusDisease, '(previous:', selectedDisease, ')');
+      setSelectedDisease(focusDisease as DiseaseType);
+      // Clear focus disease after applying so it doesn't re-apply on re-renders
+      setFocusDisease(null);
+    }
+  }, [focusDisease, setSelectedDisease, selectedDisease, setFocusDisease]);
 
   // Modal state:
   //   coordinatesModal — "anomalies" | "normal" | null
@@ -286,6 +299,7 @@ const ByAnomalyTab = () => {
               <HeatmapMap
                 diagnoses={pinnedAnomalies}
                 topAnomalies={topCriticalAnomalies}
+                focusLocation={focusLocation}
               />
             )}
           </CardContent>

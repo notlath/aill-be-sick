@@ -1,13 +1,14 @@
 "use client";
 
-import { useId, useRef } from "react";
-import { MapContainer, TileLayer } from "react-leaflet";
+import { useId, useRef, useEffect } from "react";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import HeatmapLayer from "./heatmap-layer";
 import { Marker, Tooltip } from "react-leaflet";
 import L from "leaflet";
 import type { SurveillanceAnomaly } from "@/types";
 import { getReasonLabel } from "@/utils/anomaly-reasons";
+import type { FocusLocation } from "@/stores/use-map-store";
 
 type GeoPoint = {
   latitude: number | null;
@@ -21,9 +22,25 @@ const MAP_STYLE = { height: "600px", width: "100%" };
 type HeatmapMapProps = {
   diagnoses: GeoPoint[];
   topAnomalies?: SurveillanceAnomaly[];
+  focusLocation?: FocusLocation | null;
 };
 
-const HeatmapMap = ({ diagnoses, topAnomalies = [] }: HeatmapMapProps) => {
+// Component to handle map view changes
+function ChangeMapView({ focusLocation }: { focusLocation: FocusLocation }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.flyTo(
+      [focusLocation.lat, focusLocation.lng],
+      focusLocation.zoom ?? 15,
+      { duration: 1.5 }
+    );
+  }, [map, focusLocation]);
+
+  return null;
+}
+
+const HeatmapMap = ({ diagnoses, topAnomalies = [], focusLocation }: HeatmapMapProps) => {
   const id = useId();
   const mountRef = useRef(0);
   mountRef.current += 1;
@@ -54,6 +71,9 @@ const HeatmapMap = ({ diagnoses, topAnomalies = [] }: HeatmapMapProps) => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <HeatmapLayer diagnoses={diagnoses} />
+
+        {/* Focus on location if provided */}
+        {focusLocation && <ChangeMapView focusLocation={focusLocation} />}
         
         {/* Render Critical Anomalies as pulsating markers */}
         {topAnomalies.map((anomaly) => {

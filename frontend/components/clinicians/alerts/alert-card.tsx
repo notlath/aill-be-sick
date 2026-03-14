@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Info, AlertOctagon, AlertTriangle, ShieldAlert } from "lucide-react";
+import { Info, AlertOctagon, AlertTriangle, ShieldAlert, MapPin } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity";
 import type { Alert, AlertStatus } from "@/types";
+import { useRouter } from "next/navigation";
 
 interface AlertCardProps {
   alert: Alert;
@@ -41,7 +42,9 @@ export function AlertCard({
   onViewDetails,
   onAcknowledge,
   onDismiss,
+  onResolve,
 }: AlertCardProps) {
+  const router = useRouter();
   const [isAcknowledging, setIsAcknowledging] = useState(false);
   const [isDismissing, setIsDismissing] = useState(false);
 
@@ -63,6 +66,29 @@ export function AlertCard({
     } finally {
       setIsDismissing(false);
     }
+  };
+
+  const handleViewOnMap = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const metadata = alert.metadata;
+    const hasCoords = metadata?.latitude != null && metadata?.longitude != null;
+    const hasDisease = !!metadata?.disease;
+
+    const params = new URLSearchParams();
+    params.set("tab", "by-anomaly");
+
+    if (hasDisease) {
+      params.set("disease", metadata!.disease!);
+    }
+
+    if (hasCoords) {
+      params.set("lat", String(metadata!.latitude!));
+      params.set("lng", String(metadata!.longitude!));
+      params.set("zoom", "15");
+    }
+
+    const queryString = params.toString();
+    router.push(`/map?${queryString}`);
   };
 
   const isPending = alert.status === "NEW";
@@ -153,6 +179,15 @@ export function AlertCard({
             className="btn btn-sm btn-outline border-border hover:bg-base-200 text-base-content/50 hover:text-base-content/80 h-8 min-h-0"
           >
             View details
+          </button>
+          <button
+            onClick={handleViewOnMap}
+            disabled={!alert.metadata?.latitude || !alert.metadata?.longitude}
+            className="btn btn-sm btn-outline border-primary/30 hover:bg-primary hover:border-primary text-primary hover:text-primary-content h-8 min-h-0 gap-1.5"
+            title={!alert.metadata?.latitude || !alert.metadata?.longitude ? "No location data available" : "View on map"}
+          >
+            <MapPin className="w-4 h-4" />
+            View on map
           </button>
         </div>
       </CardContent>

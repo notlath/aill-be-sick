@@ -2,7 +2,6 @@ import LazyMarkdown from "@/components/ui/lazy-markdown";
 import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { Explanation } from "@/types";
 import { cn } from "@/utils/lib";
-import { LocationData } from "@/utils/location";
 import { ChevronDown, ChevronUp, XCircle } from "lucide-react";
 import { memo, useState } from "react";
 import InsightsModal from "./insights-modal";
@@ -14,7 +13,6 @@ type ChatBubbleProps = {
   idx?: number;
   tempDiagnosis?: TempDiagnosis;
   chatHasDiagnosis?: boolean;
-  location?: LocationData | null;
   isGettingExplanations: boolean;
   explanation: Explanation | null;
   userRole?: string;
@@ -36,7 +34,6 @@ const ChatBubble = ({
   tempDiagnosis,
   chatId,
   chatHasDiagnosis,
-  location,
   isGettingExplanations,
   explanation,
   userRole,
@@ -100,7 +97,7 @@ const ChatBubble = ({
           )}
         </div>
       )}
-      {type === "DIAGNOSIS" && location && (
+      {type === "DIAGNOSIS" && (
         <>
           <RecordDiagnosisBtn
             disabled={
@@ -108,7 +105,6 @@ const ChatBubble = ({
             }
             tempDiagnosis={tempDiagnosis}
             chatId={chatId}
-            location={location}
           />
           <ViewInsightsBtn disabled={isGettingExplanations || !explanation} />
         </>

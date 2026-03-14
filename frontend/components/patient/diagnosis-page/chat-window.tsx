@@ -4,7 +4,6 @@ import { createMessage } from "@/actions/create-message";
 import { explainDiagnosis } from "@/actions/explain-diagnosis";
 import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
 import { runDiagnosis } from "@/actions/run-diagnosis";
-import { useUserLocation } from "@/hooks/use-location";
 import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import {
   CreateChatSchema,
@@ -77,8 +76,6 @@ const ChatWindow = ({
   dbExplanation,
   userRole,
 }: ChatWindowProps) => {
-  const { location, requestLocation } = useUserLocation();
-
   const form = useForm<CreateChatSchemaType>({
     resolver: zodResolver(CreateChatSchema),
     defaultValues: {
@@ -637,10 +634,6 @@ const ChatWindow = ({
   }, []);
 
   useEffect(() => {
-    requestLocation();
-  }, [requestLocation]);
-
-  useEffect(() => {
     if (prevChatIdRef.current !== chatId) {
       form.reset({
         chatId,
@@ -711,7 +704,6 @@ const ChatWindow = ({
           isGettingExplanations={isGettingExplanations}
           isCreatingMessage={isCreatingMessage}
           hasDiagnosis={chat.hasDiagnosis}
-          location={location}
           currentQuestion={currentQuestion as any}
           onQuestionAnswer={handleQuestionAnswer}
           dbExplanation={dbExplanation as unknown as TempExplanation}

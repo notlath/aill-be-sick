@@ -1,9 +1,8 @@
 "use client";
 
-import { useUserLocation } from "@/hooks/use-location";
 import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import { Explanation as TempExplanation } from "@/types";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import ChatContainer from "./chat-container";
 
 type ChatHistoryViewProps = {
@@ -29,17 +28,6 @@ const ChatHistoryView = ({
   dbExplanation,
   userRole,
 }: ChatHistoryViewProps) => {
-  const { location, requestLocation } = useUserLocation();
-
-  // Only request location if the diagnosis hasn't been formally recorded yet
-  // (user completed the flow but didn't click "Record diagnosis").
-  // When hasDiagnosis is true the record button is disabled so location is unused.
-  useEffect(() => {
-    if (!chat.hasDiagnosis) {
-      requestLocation();
-    }
-  }, [chat.hasDiagnosis, requestLocation]);
-
   const processedMessages = useMemo(
     () =>
       messages.map((msg) => ({
@@ -58,7 +46,6 @@ const ChatHistoryView = ({
         isGettingExplanations={false}
         isCreatingMessage={false}
         hasDiagnosis={chat.hasDiagnosis}
-        location={location}
         currentQuestion={null}
         dbExplanation={dbExplanation as unknown as TempExplanation}
         userRole={userRole}

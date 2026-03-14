@@ -13,7 +13,7 @@ const MapTabs = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { activeTab, setActiveTab } = useMapStore();
+  const { activeTab, setActiveTab, setFocusLocation, setFocusDisease, clearFocus } = useMapStore();
 
   const urlTab = useMemo(() => {
     const rawTab = searchParams.get("tab");
@@ -29,7 +29,46 @@ const MapTabs = () => {
     return tab;
   }, [searchParams]);
 
+  const urlDisease = useMemo(() => {
+    return searchParams.get("disease");
+  }, [searchParams]);
+
+  const urlFocusLocation = useMemo(() => {
+    const lat = searchParams.get("lat");
+    const lng = searchParams.get("lng");
+    const zoom = searchParams.get("zoom");
+
+    if (lat == null || lng == null) return null;
+
+    const latNum = parseFloat(lat);
+    const lngNum = parseFloat(lng);
+    const zoomNum = zoom != null ? parseInt(zoom, 10) : undefined;
+
+    if (isNaN(latNum) || isNaN(lngNum)) return null;
+
+    return {
+      lat: latNum,
+      lng: lngNum,
+      zoom: zoomNum,
+    };
+  }, [searchParams]);
+
   const resolvedActiveTab = urlTab ?? activeTab;
+
+  useEffect(() => {
+    // Set focus location and disease from URL params when they change
+    console.log('[MapTabs] urlFocusLocation:', urlFocusLocation, 'urlDisease:', urlDisease);
+    if (urlFocusLocation) {
+      console.log('[MapTabs] Setting focus location:', urlFocusLocation);
+      setFocusLocation(urlFocusLocation);
+    }
+    if (urlDisease) {
+      // Convert uppercase disease name to title case (e.g., "DENGUE" -> "Dengue")
+      const titleCaseDisease = urlDisease.charAt(0).toUpperCase() + urlDisease.slice(1).toLowerCase();
+      console.log('[MapTabs] Setting focus disease:', urlDisease, '->', titleCaseDisease);
+      setFocusDisease(titleCaseDisease);
+    }
+  }, [urlFocusLocation, urlDisease, setFocusLocation, setFocusDisease]);
 
   useEffect(() => {
     if (!urlTab) {
