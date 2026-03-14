@@ -173,6 +173,10 @@ const ChatWindow = ({
             lastDiagnosisRef.current = {
               ...(lastDiagnosisRef.current || {}),
               ...diagnosis,
+              // Preserve mean_probs from the initial diagnosis if the follow-up
+              // response doesn't include it — mean_probs is required for SHAP.
+              mean_probs:
+                diagnosis.mean_probs ?? lastDiagnosisRef.current?.mean_probs,
               symptoms: getCurrentSymptoms(),
             };
           }
