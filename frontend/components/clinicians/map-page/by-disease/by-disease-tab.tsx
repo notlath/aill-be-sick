@@ -4,6 +4,7 @@ import { DiseaseSelect } from "../disease-select";
 import { DateRangeFilter } from "../date-range-filter";
 import { Card, CardContent } from "@/components/ui/card";
 import dynamic from "next/dynamic";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
 import useDateRangeStore from "@/stores/use-date-range-store";
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -29,9 +30,41 @@ const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), {
 const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
 
 const ByDiseaseTab = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [view, setView] = useState<"coordinates" | "district">("coordinates");
   const { selectedDisease, setSelectedDisease } = useSelectedDiseaseStore();
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
+
+  const handleDiseaseChange = (disease: any) => {
+    setSelectedDisease(disease);
+    clearMapParams();
+  };
+
+  const handleStartDateChange = (date: string) => {
+    setStartDate(date);
+    clearMapParams();
+  };
+
+  const handleEndDateChange = (date: string) => {
+    setEndDate(date);
+    clearMapParams();
+  };
+
+  const clearMapParams = () => {
+    if (searchParams.has("lat") || searchParams.has("lng") || searchParams.has("disease")) {
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete("lat");
+      newParams.delete("lng");
+      newParams.delete("disease");
+      
+      const newQuery = newParams.toString();
+      const newHref = newQuery ? `${pathname}?${newQuery}` : pathname;
+      router.replace(newHref, { scroll: false });
+    }
+  };
 
   // District view state
   const [casesData, setCasesData] = useState<Record<string, number>>({});
@@ -225,15 +258,15 @@ const ByDiseaseTab = () => {
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
           <DiseaseSelect
             value={selectedDisease}
-            onValueChange={setSelectedDisease}
+            onValueChange={handleDiseaseChange}
           />
           <ViewSelect value={view} onValueChange={setView} />
         </div>
         <DateRangeFilter
           startDate={startDate}
           endDate={endDate}
-          onStartDateChange={setStartDate}
-          onEndDateChange={setEndDate}
+          onStartDateChange={handleStartDateChange}
+          onEndDateChange={handleEndDateChange}
         />
       </div>
 
