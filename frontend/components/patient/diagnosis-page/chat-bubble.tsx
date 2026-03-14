@@ -1,11 +1,10 @@
+import LazyMarkdown from "@/components/ui/lazy-markdown";
 import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { Explanation } from "@/types";
 import { cn } from "@/utils/lib";
 import { LocationData } from "@/utils/location";
 import { ChevronDown, ChevronUp, XCircle } from "lucide-react";
 import { memo, useState } from "react";
-import Markdown from "react-markdown";
-import remarkBreaks from "remark-breaks";
 import InsightsModal from "./insights-modal";
 import RecordDiagnosisBtn from "./record-diagnosis-btn";
 import ViewInsightsBtn from "./view-insights-btn";
@@ -20,8 +19,6 @@ type ChatBubbleProps = {
   explanation: Explanation | null;
   userRole?: string;
 } & Message;
-
-const MARKDOWN_PLUGINS = [remarkBreaks];
 
 const MARKDOWN_COMPONENTS = {
   p: ({ children }: any) => <p className="my-0">{children}</p>,
@@ -63,8 +60,8 @@ const ChatBubble = ({
     isError
       ? "border border-red-400 bg-red-50 text-red-800"
       : role === "USER"
-      ? "bg-primary text-primary-content chat-bubble-user"
-      : "bg-gray-100 chat-bubble-ai"
+        ? "bg-primary text-primary-content chat-bubble-user"
+        : "bg-gray-100 chat-bubble-ai",
   );
 
   return (
@@ -76,12 +73,7 @@ const ChatBubble = ({
         </div>
       )}
       <div>
-        <Markdown
-          remarkPlugins={MARKDOWN_PLUGINS}
-          components={MARKDOWN_COMPONENTS}
-        >
-          {content}
-        </Markdown>
+        <LazyMarkdown components={MARKDOWN_COMPONENTS}>{content}</LazyMarkdown>
       </div>
       {shouldShowToggle && (
         <div className="mt-3 border-t border-gray-300 pt-3">
@@ -112,9 +104,7 @@ const ChatBubble = ({
         <>
           <RecordDiagnosisBtn
             disabled={
-              chatHasDiagnosis ||
-              !tempDiagnosis ||
-              messagesLength - 1 !== idx
+              chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
             }
             tempDiagnosis={tempDiagnosis}
             chatId={chatId}

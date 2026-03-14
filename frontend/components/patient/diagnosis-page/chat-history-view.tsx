@@ -3,7 +3,7 @@
 import { useUserLocation } from "@/hooks/use-location";
 import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import { Explanation as TempExplanation } from "@/types";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import ChatContainer from "./chat-container";
 
 type ChatHistoryViewProps = {
@@ -40,13 +40,19 @@ const ChatHistoryView = ({
     }
   }, [chat.hasDiagnosis, requestLocation]);
 
+  const processedMessages = useMemo(
+    () =>
+      messages.map((msg) => ({
+        ...msg,
+        explanation: msg.explanation || dbExplanation,
+      })),
+    [messages, dbExplanation],
+  );
+
   return (
     <>
       <ChatContainer
-        messages={messages.map((msg) => ({
-          ...msg,
-          explanation: msg.explanation || dbExplanation,
-        })) as any}
+        messages={processedMessages as any}
         isGettingQuestion={false}
         isDiagnosing={false}
         isGettingExplanations={false}

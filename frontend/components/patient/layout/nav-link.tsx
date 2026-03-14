@@ -3,8 +3,8 @@
 import { NavItem } from "@/constants/nav-items";
 import { cn } from "@/utils/lib";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { ReactNode, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ReactNode } from "react";
 
 type NavLinkProps = {
   isActive: boolean;
@@ -13,22 +13,35 @@ type NavLinkProps = {
 
 const NavLink = ({ name, href, icon: Icon, isActive, badge }: NavLinkProps) => {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const isDashboardOrMap = href === "/dashboard" || href === "/map";
 
-  // Preserve query parameters when moving between dashboard and map.
-  const preservedHref = useMemo(() => {
-    if (!isDashboardOrMap || !searchParams || searchParams.toString() === "") {
-      return href;
-    }
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Preserve query parameters ONLY when moving between dashboard and map.
+    const isCurrentlyDashboardOrMap =
+      pathname === "/dashboard" ||
+      pathname.startsWith("/map") ||
+      pathname.startsWith("/dashboard");
 
-    return `${href}?${searchParams.toString()}`;
-  }, [href, isDashboardOrMap, searchParams]);
+    if (
+      isDashboardOrMap &&
+      isCurrentlyDashboardOrMap &&
+      searchParams &&
+      searchParams.toString() !== ""
+    ) {
+      e.preventDefault();
+      router.push(`${href}?${searchParams.toString()}`);
+    }
+  };
 
   return (
     <Link
-      href={preservedHref}
-      // Avoid repetitive prefetches for highly dynamic query strings.
-      prefetch={!isDashboardOrMap}
+      href={href}
+      onClick={handleClick}
+      // Statically linking to the base href prevents repetitive prefetches,
+      // so we don't need to manually disable prefetch. This also fixes the Next.js
+      // glitch where prefetch={false} + useSearchParams causes Suspense fallbacks on click.
       className={cn(
         "group flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] relative overflow-hidden",
         "hover:bg-base-200/60 hover:shadow-sm active:scale-[0.98]",
@@ -39,7 +52,6 @@ const NavLink = ({ name, href, icon: Icon, isActive, badge }: NavLinkProps) => {
       style={{
         transitionProperty: "transform, background-color, box-shadow",
       }}
-      key={href}
     >
       <div
         className={cn(

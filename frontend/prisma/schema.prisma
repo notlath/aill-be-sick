@@ -34,6 +34,10 @@ model User {
   acknowledgedAlerts Alert[]     @relation("AlertAcknowledger")
   resolvedAlerts     Alert[]     @relation("AlertResolver")
   alertNotes         AlertNote[] @relation("AlertNoteAuthor")
+
+  @@index([latitude, longitude])
+  @@index([region])
+  @@index([province])
 }
 
 model Chat {
@@ -96,6 +100,11 @@ model Diagnosis {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   explanation Explanation?
   alerts      Alert[]
+
+  @@index([createdAt])
+  @@index([disease])
+  @@index([disease, createdAt])
+  @@index([userId])
 }
 
 model Explanation {
@@ -164,6 +173,7 @@ model diagnosis_sessions {
   updated_at       Float
 
   @@index([chat_id], map: "idx_diagnosis_sessions_chat_id")
+  @@index([created_at], map: "idx_diagnosis_sessions_created_at")
 }
 
 enum Role {
