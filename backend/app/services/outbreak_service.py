@@ -140,7 +140,7 @@ def detect_outbreaks(db_url=None):
                 "disease": disease,
                 "district": district,
                 "reasonCodes": reasons,
-                "message": f"Potential {disease} outbreak detected in {district}. Volume ({count}) exceeded thresholds.",
+                "message": f"Potential {disease} outbreak detected in {district}. Volume ({count} cases) exceeded thresholds.",
                 "metadata": {
                     "disease": disease,
                     "district": district,
