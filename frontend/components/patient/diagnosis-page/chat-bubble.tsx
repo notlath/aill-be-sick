@@ -8,6 +8,7 @@ import { memo, useState } from "react";
 import InsightsModal from "./insights-modal";
 import RecordDiagnosisBtn from "./record-diagnosis-btn";
 import ViewInsightsBtn from "./view-insights-btn";
+import DiscardDiagnosisBtn from "./discard-diagnosis-btn";
 
 type ChatBubbleProps = {
   messagesLength: number;
@@ -109,16 +110,28 @@ const ChatBubble = ({
           )}
         </div>
       )}
-      {type === "DIAGNOSIS" && location && (
+      {type === "DIAGNOSIS" && (
         <>
-          <RecordDiagnosisBtn
-            disabled={
-              chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
-            }
-            tempDiagnosis={tempDiagnosis}
-            chatId={chatId}
-            location={location}
-          />
+          {/* Low-confidence diagnoses (<95%): Show Record + Discard buttons for user choice */}
+          {isLowConfidenceFinal && (
+            <div className="flex gap-2 mt-4">
+              {location && (
+                <RecordDiagnosisBtn
+                  disabled={
+                    chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
+                  }
+                  tempDiagnosis={tempDiagnosis}
+                  chatId={chatId}
+                  location={location}
+                />
+              )}
+              <DiscardDiagnosisBtn
+                chatId={chatId}
+                disabled={chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx}
+              />
+            </div>
+          )}
+          {/* High-confidence diagnoses (≥95%): Auto-recorded, no buttons needed */}
           <ViewInsightsBtn disabled={isGettingExplanations || !explanation} />
         </>
       )}
