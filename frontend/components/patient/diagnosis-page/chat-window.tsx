@@ -191,7 +191,7 @@ const ChatWindow = ({
             createMessageExecute({
               chatId,
               content: outOfScopeMessage,
-              type: "ERROR",
+              type: "INFO",
               role: "AI",
             });
             setCurrentQuestion(null);
@@ -389,14 +389,14 @@ const ChatWindow = ({
               setIsFinalDiagnosis(false);
               const verificationFailure = (data.diagnosis as any)
                 ?.verification_failure;
-              const errorMsg =
+              const infoMsg =
                 verificationFailure?.message ||
                 "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.";
 
               createMessageExecute({
                 chatId,
-                content: errorMsg,
-                type: "ERROR",
+                content: infoMsg,
+                type: "INFO",
                 role: "AI",
               });
               setCurrentQuestion(null);

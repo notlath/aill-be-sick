@@ -3,7 +3,7 @@ import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { Explanation } from "@/types";
 import { cn } from "@/utils/lib";
 import { LocationData } from "@/utils/location";
-import { ChevronDown, ChevronUp, XCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Info, XCircle } from "lucide-react";
 import { memo, useState } from "react";
 import InsightsModal from "./insights-modal";
 import RecordDiagnosisBtn from "./record-diagnosis-btn";
@@ -43,6 +43,7 @@ const ChatBubble = ({
 }: ChatBubbleProps) => {
   const [showClinicianDetails, setShowClinicianDetails] = useState(false);
   const isError = type === "ERROR";
+  const isInfo = type === "INFO";
 
   // Check if this is a low-confidence final diagnosis for clinicians
   const isLowConfidenceFinal =
@@ -59,9 +60,11 @@ const ChatBubble = ({
     // Visual style
     isError
       ? "border border-red-400 bg-red-50 text-red-800"
-      : role === "USER"
-        ? "bg-primary text-primary-content chat-bubble-user"
-        : "bg-gray-100 chat-bubble-ai",
+      : isInfo
+        ? "border border-blue-300 bg-blue-50 text-blue-900"
+        : role === "USER"
+          ? "bg-primary text-primary-content chat-bubble-user"
+          : "bg-gray-100 chat-bubble-ai",
   );
 
   return (
@@ -70,6 +73,12 @@ const ChatBubble = ({
         <div className="flex items-center gap-2 mb-1 text-red-700">
           <XCircle className="w-4 h-4" aria-hidden="true" />
           <span className="font-semibold text-sm">Error</span>
+        </div>
+      )}
+      {isInfo && (
+        <div className="flex items-center gap-2 mb-1 text-blue-700">
+          <Info className="w-4 h-4" aria-hidden="true" />
+          <span className="font-semibold text-sm">Important</span>
         </div>
       )}
       <div>
