@@ -248,7 +248,7 @@ export type SearchParams = Record<string, string | string[] | undefined>;
 
 export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type AlertStatus = "NEW" | "ACKNOWLEDGED" | "RESOLVED" | "DISMISSED";
-export type AlertType = "ANOMALY" | "LOW_CONFIDENCE" | "HIGH_UNCERTAINTY";
+export type AlertType = "ANOMALY" | "OUTBREAK" | "LOW_CONFIDENCE" | "HIGH_UNCERTAINTY";
 
 export type AlertMetadata = {
   disease?: string;
@@ -264,6 +264,12 @@ export type AlertMetadata = {
   anomalyScore?: number;
   confidence?: number;
   uncertainty?: number;
+  // Outbreak specific
+  count?: number;
+  baseline_mean?: number;
+  threshold_alert?: number;
+  threshold_epidemic?: number;
+  is_cluster?: boolean;
 };
 
 export type AlertNote = {

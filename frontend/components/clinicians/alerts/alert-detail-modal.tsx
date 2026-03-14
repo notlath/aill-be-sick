@@ -7,6 +7,7 @@ import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity"
 
 const typeLabel: Record<Alert["type"], string> = {
   ANOMALY: "Anomaly",
+  OUTBREAK: "Outbreak",
   LOW_CONFIDENCE: "Low Confidence",
   HIGH_UNCERTAINTY: "High Uncertainty",
 };
@@ -286,6 +287,42 @@ export function AlertDetailModal({
                     <span className="font-medium capitalize">
                       {String((alert.metadata as any).patientGender).toLowerCase()}
                     </span>
+                  </>
+                ) : null}
+                {(alert.metadata as any).count !== undefined ? (
+                  <>
+                    <span className="text-base-content/60">Cases Detected (7d)</span>
+                    <span className="font-medium">{(alert.metadata as any).count}</span>
+                  </>
+                ) : null}
+                {(alert.metadata as any).baseline_mean !== undefined ? (
+                  <>
+                    <span className="text-base-content/60">Baseline Mean</span>
+                    <span className="font-medium">
+                      {Number((alert.metadata as any).baseline_mean).toFixed(2)}
+                    </span>
+                  </>
+                ) : null}
+                {(alert.metadata as any).threshold_alert !== undefined ? (
+                  <>
+                    <span className="text-base-content/60">Alert Threshold</span>
+                    <span className="font-medium">
+                      {Number((alert.metadata as any).threshold_alert).toFixed(2)}
+                    </span>
+                  </>
+                ) : null}
+                {(alert.metadata as any).threshold_epidemic !== undefined ? (
+                  <>
+                    <span className="text-base-content/60">Epidemic Threshold</span>
+                    <span className="font-medium">
+                      {Number((alert.metadata as any).threshold_epidemic).toFixed(2)}
+                    </span>
+                  </>
+                ) : null}
+                {(alert.metadata as any).is_cluster ? (
+                  <>
+                    <span className="text-base-content/60">High Density</span>
+                    <span className="font-medium text-warning">Yes (K-Means)</span>
                   </>
                 ) : null}
               </div>
