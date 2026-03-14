@@ -6,6 +6,7 @@ import { MapPin } from "lucide-react";
 import type { Alert, AlertNote } from "@/types";
 import { getReasonLabel, getReasonDescription } from "@/utils/anomaly-reasons";
 import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity";
+import { getDistrictCentroid } from "@/constants/bagong-silangan-districts";
 
 const typeLabel: Record<Alert["type"], string> = {
   ANOMALY: "Anomaly",
@@ -133,12 +134,29 @@ export function AlertDetailModal({
   };
 
   const handleViewOnMap = () => {
-    const meta = alert?.metadata as any;
+    if (!alert) return;
+    const meta = alert.metadata as any;
     if (!meta) return;
-    const params = new URLSearchParams({ tab: "by-anomaly" });
-    if (meta.disease) params.set("disease", meta.disease);
-    if (meta.latitude) params.set("lat", String(meta.latitude));
-    if (meta.longitude) params.set("lng", String(meta.longitude));
+    const params = new URLSearchParams();
+    
+    if (alert.type === "OUTBREAK") {
+      params.set("tab", "by-disease");
+      if (meta.disease) params.set("disease", meta.disease);
+      if (meta.district) {
+        const centroid = getDistrictCentroid(meta.district);
+        if (centroid) {
+          params.set("lat", String(centroid.lat));
+          params.set("lng", String(centroid.lng));
+        }
+      }
+    } else {
+      params.set("tab", "by-anomaly");
+      if (meta.disease) params.set("disease", meta.disease);
+      if (meta.latitude) params.set("lat", String(meta.latitude));
+      if (meta.longitude) params.set("lng", String(meta.longitude));
+    }
+    
+    onClose();
     router.push(`/map?${params.toString()}`);
   };
 
@@ -473,7 +491,8 @@ export function AlertDetailModal({
 
           {/* ── Action buttons ───────────────────────────────── */}
           <div className="flex gap-2 justify-end pt-2 items-center flex-wrap">
-            {alert.type === "ANOMALY" && (alert.metadata as any)?.latitude ? (
+            {((alert.type === "ANOMALY" && (alert.metadata as any)?.latitude) ||
+              (alert.type === "OUTBREAK" && (alert.metadata as any)?.district)) ? (
               <button
                 className="btn btn-outline border-border btn-sm mr-auto"
                 onClick={handleViewOnMap}

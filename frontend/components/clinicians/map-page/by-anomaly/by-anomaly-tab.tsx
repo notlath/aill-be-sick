@@ -242,8 +242,20 @@ const ByAnomalyTab = () => {
 
   const handleDiseaseChange = (disease: DiseaseType) => {
     setSelectedDisease(disease);
-    
-    // Check if URL has disease or lat/lng params to clear
+    clearMapParams();
+  };
+
+  const handleStartDateChange = (date: string) => {
+    setStartDate(date);
+    clearMapParams();
+  };
+
+  const handleEndDateChange = (date: string) => {
+    setEndDate(date);
+    clearMapParams();
+  };
+
+  const clearMapParams = () => {
     if (searchParams.has("lat") || searchParams.has("lng") || searchParams.has("disease")) {
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.delete("lat");
@@ -273,8 +285,8 @@ const ByAnomalyTab = () => {
         <DateRangeFilter
           startDate={startDate}
           endDate={endDate}
-          onStartDateChange={setStartDate}
-          onEndDateChange={setEndDate}
+          onStartDateChange={handleStartDateChange}
+          onEndDateChange={handleEndDateChange}
         />
       </div>
 
