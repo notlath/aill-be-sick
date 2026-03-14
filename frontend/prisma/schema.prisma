@@ -202,7 +202,6 @@ enum MessageType {
   URGENT_WARNING
   INFO
   ERROR
-  INFO
 }
 
 enum Disease {
