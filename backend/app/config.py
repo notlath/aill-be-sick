@@ -29,10 +29,35 @@ SYMPTOM_MIN_CHARS = int(os.getenv("SYMPTOM_MIN_CHARS", "15"))
 HIGH_CONFIDENCE_THRESHOLD = float(os.getenv("HIGH_CONFIDENCE_THRESHOLD", "0.90"))
 LOW_UNCERTAINTY_THRESHOLD = float(os.getenv("LOW_UNCERTAINTY_THRESHOLD", "0.01"))
 
-# Thesis-aligned thresholds for VALID predictions (per sensitivity analysis)
-# Predictions below these are considered unreliable and should be flagged
+# --- Uncertainty Quantification Thresholds ---
+# Multi-metric uncertainty thresholds (data-driven, adjust based on validation)
+
+# Confidence thresholds
 VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.70"))  # Thesis: 70%
+
+# Mutual Information (epistemic uncertainty)
 VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.05"))  # Thesis: 5%
+TRIAGE_LOW_UNCERTAINTY = float(os.getenv("TRIAGE_LOW_UNCERTAINTY", "0.03"))
+
+# Variance threshold (prediction stability)
+VALID_MAX_VARIANCE = float(os.getenv("VALID_MAX_VARIANCE", "0.02"))
+
+# Coefficient of Variation threshold (relative uncertainty)
+VALID_MAX_CV = float(os.getenv("VALID_MAX_CV", "0.15"))
+
+# Ensemble disagreement threshold
+VALID_MAX_DISAGREEMENT = float(os.getenv("VALID_MAX_DISAGREEMENT", "0.20"))
+
+# Composite uncertainty: flag if ANY metric exceeds threshold
+USE_COMPOSITE_UNCERTAINTY = os.getenv("USE_COMPOSITE_UNCERTAINTY", "true").lower() == "true"
+
+# Calibration settings
+CALIBRATION_N_BINS = int(os.getenv("CALIBRATION_N_BINS", "10"))
+TARGET_ECE = float(os.getenv("TARGET_ECE", "0.05"))  # Target Expected Calibration Error
+
+# Temperature scaling for calibration
+USE_TEMPERATURE_SCALING = os.getenv("USE_TEMPERATURE_SCALING", "false").lower() == "true"
+TEMPERATURE = float(os.getenv("TEMPERATURE", "1.0"))  # 1.0 = no scaling, >1 = softer probs
 
 # Low confidence - stop asking questions after MAX_QUESTIONS_THRESHOLD
 LOW_CONFIDENCE_THRESHOLD = float(os.getenv("LOW_CONFIDENCE_THRESHOLD", "0.65"))

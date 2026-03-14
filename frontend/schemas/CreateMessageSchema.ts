@@ -4,7 +4,15 @@ export const CreateMessageSchema = z.object({
   content: z.string().min(1, "Content cannot be empty"),
   chatId: z.string().min(1, "Chat ID cannot be empty"),
   type: z
-    .enum(["SYMPTOMS", "ANSWER", "QUESTION", "DIAGNOSIS", "ERROR"])
+    .enum([
+      "SYMPTOMS",
+      "ANSWER",
+      "QUESTION",
+      "DIAGNOSIS",
+      "URGENT_WARNING",
+      "ERROR",
+      "INFO",
+    ])
     .default("QUESTION"),
   role: z.enum(["USER", "AI"]).default("USER"),
   tempDiagnosis: z
