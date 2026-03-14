@@ -8,6 +8,7 @@ import gc
 from captum.attr import GradientShap
 import contextvars
 import traceback
+from typing import Dict, List, Tuple, Optional
 
 import app.config as config
 from app.utils import detect_language_heuristic, aggregate_subword_attributions, clean_token, _count_words, _has_medical_keywords
@@ -286,6 +287,368 @@ class MCDClassifierWithSHAP:
             "mutual_information": mi_val,
             "explanation": explanation,
         }
+
+
+# =============================================================================
+# UNCERTAINTY IMPROVEMENTS
+# =============================================================================
+
+
+def compute_expected_calibration_error(
+    predictions: np.ndarray,
+    confidences: np.ndarray,
+    y_true: np.ndarray,
+    n_bins: int = 10
+) -> float:
+    """
+    Compute Expected Calibration Error (ECE) to measure if confidence matches actual accuracy.
+    
+    ECE measures the weighted average of the difference between accuracy and confidence
+    in each bin. Perfect calibration = ECE of 0.
+    
+    Args:
+        predictions: predicted class indices (shape: [n_samples])
+        confidences: confidence scores (max probability) for each prediction (shape: [n_samples])
+        y_true: true class labels (shape: [n_samples])
+        n_bins: number of bins for calibration curve
+    
+    Returns:
+        ECE score (lower is better, 0 = perfectly calibrated)
+    
+    Example:
+        >>> preds = np.array([0, 1, 1, 0, 1])
+        >>> confs = np.array([0.6, 0.8, 0.9, 0.7, 0.95])
+        >>> y_true = np.array([0, 1, 0, 1, 1])
+        >>> ece = compute_expected_calibration_error(preds, confs, y_true)
+        >>> print(f"ECE: {ece:.4f}")
+    """
+    bin_boundaries = np.linspace(0, 1, n_bins + 1)
+    ece = 0.0
+    total_samples = len(confidences)
+    
+    if total_samples == 0:
+        return 0.0
+    
+    for i in range(n_bins):
+        in_bin = (confidences > bin_boundaries[i]) & (confidences <= bin_boundaries[i + 1])
+        n_in_bin = np.sum(in_bin)
+        
+        if n_in_bin > 0:
+            accuracy_in_bin = np.mean(y_true[in_bin] == predictions[in_bin])
+            avg_confidence_in_bin = np.mean(confidences[in_bin])
+            ece += np.abs(avg_confidence_in_bin - accuracy_in_bin) * (n_in_bin / total_samples)
+    
+    return float(ece)
+
+
+def compute_reliability_diagram_data(
+    confidences: np.ndarray,
+    accuracies: np.ndarray,
+    n_bins: int = 10
+) -> Dict[str, np.ndarray]:
+    """
+    Compute data for plotting a reliability diagram (calibration curve).
+    
+    Args:
+        confidences: confidence scores (shape: [n_samples])
+        accuracies: binary accuracy (1 if correct, 0 if incorrect) (shape: [n_samples])
+        n_bins: number of bins
+    
+    Returns:
+        Dictionary with 'bin_centers', 'accuracies', 'confidences', 'counts'
+    """
+    bin_boundaries = np.linspace(0, 1, n_bins + 1)
+    bin_centers = []
+    bin_accuracies = []
+    bin_confidences = []
+    bin_counts = []
+    
+    for i in range(n_bins):
+        in_bin = (confidences > bin_boundaries[i]) & (confidences <= bin_boundaries[i + 1])
+        n_in_bin = np.sum(in_bin)
+        
+        if n_in_bin > 0:
+            bin_centers.append((bin_boundaries[i] + bin_boundaries[i + 1]) / 2)
+            bin_accuracies.append(np.mean(accuracies[in_bin]))
+            bin_confidences.append(np.mean(confidences[in_bin]))
+            bin_counts.append(n_in_bin)
+    
+    return {
+        "bin_centers": np.array(bin_centers),
+        "accuracies": np.array(bin_accuracies),
+        "confidences": np.array(bin_confidences),
+        "counts": np.array(bin_counts),
+    }
+
+
+def compute_multi_metric_uncertainty(
+    all_predictions: np.ndarray,
+    mean_probs: np.ndarray,
+    std_probs: np.ndarray
+) -> Dict[str, float]:
+    """
+    Compute multiple uncertainty metrics for comprehensive uncertainty quantification.
+    
+    Args:
+        all_predictions: all MC dropout predictions (shape: [n_iterations, n_classes])
+        mean_probs: mean probabilities across iterations (shape: [n_classes])
+        std_probs: std of probabilities across iterations (shape: [n_classes])
+    
+    Returns:
+        Dictionary with multiple uncertainty metrics:
+        - mutual_information: epistemic uncertainty (model doubt)
+        - predictive_entropy: total uncertainty
+        - variance: prediction variance (stability)
+        - coefficient_of_variation: relative uncertainty
+        - ensemble_disagreement: how often MC samples disagree on class
+        - max_probability_std: max std across classes
+    """
+    # Mutual Information (epistemic uncertainty)
+    mi = compute_mutual_information(all_predictions)
+    
+    # Predictive Entropy (total uncertainty)
+    pred_entropy = entropy(mean_probs, axis=-1)
+    
+    # Variance (prediction stability)
+    variance = np.var(all_predictions, axis=0).max()
+    
+    # Coefficient of Variation (relative uncertainty)
+    # Normalizes variance by mean to account for scale
+    cv = std_probs.max() / (mean_probs.max() + 1e-8)
+    
+    # Ensemble Disagreement (how often MC samples predict different classes)
+    predicted_classes = all_predictions.argmax(axis=1)
+    unique, counts = np.unique(predicted_classes, return_counts=True)
+    ensemble_disagreement = 1 - (counts.max() / len(predicted_classes))
+    
+    # Max probability standard deviation
+    max_prob_std = std_probs.max()
+    
+    return {
+        "mutual_information": float(mi),
+        "predictive_entropy": float(pred_entropy),
+        "variance": float(variance),
+        "coefficient_of_variation": float(cv),
+        "ensemble_disagreement": float(ensemble_disagreement),
+        "max_probability_std": float(max_prob_std),
+    }
+
+
+def compute_mutual_information(predictions: np.ndarray) -> np.ndarray:
+    """
+    Compute mutual information as measure of epistemic uncertainty.
+    MI = H(E[p]) - E[H(p)]
+    
+    Args:
+        predictions: MC dropout predictions (shape: [n_iterations, n_classes])
+    
+    Returns:
+        Mutual information score (higher = more uncertain)
+    """
+    expected_entropy = np.mean([entropy(p, axis=-1) for p in predictions], axis=0)
+    mean_probs = predictions.mean(axis=0)
+    entropy_of_expected = entropy(mean_probs, axis=-1)
+    return entropy_of_expected - expected_entropy
+
+
+def compute_ensemble_disagreement(all_predictions: np.ndarray) -> float:
+    """
+    Measure how often MC dropout samples predict different classes.
+    
+    Args:
+        all_predictions: MC dropout predictions (shape: [n_iterations, n_classes])
+    
+    Returns:
+        Disagreement score (0 = all agree, 1 = max disagreement)
+    """
+    predicted_classes = all_predictions.argmax(axis=1)
+    unique, counts = np.unique(predicted_classes, return_counts=True)
+    return float(1 - (counts.max() / len(predicted_classes)))
+
+
+def apply_temperature_scaling(
+    logits: np.ndarray,
+    temperature: float = 1.5
+) -> np.ndarray:
+    """
+    Apply temperature scaling to calibrate probability outputs.
+    
+    Temperature scaling divides logits by a temperature parameter before softmax,
+    which softens the probability distribution and reduces overconfidence.
+    
+    Args:
+        logits: raw model logits (shape: [n_classes] or [batch, n_classes])
+        temperature: scaling factor (>1 softens, <1 sharpens)
+    
+    Returns:
+        Calibrated probabilities
+    """
+    scaled_logits = logits / temperature
+    return F.softmax(torch.tensor(scaled_logits), dim=-1).numpy()
+
+
+def find_optimal_temperature(
+    logits: np.ndarray,
+    y_true: np.ndarray,
+    temperature_range: Tuple[float, float] = (0.5, 3.0),
+    n_steps: int = 25
+) -> float:
+    """
+    Find optimal temperature for calibration using NLL loss.
+    
+    Args:
+        logits: raw model logits (shape: [n_samples, n_classes])
+        y_true: true class labels (shape: [n_samples])
+        temperature_range: (min, max) temperature to search
+        n_steps: number of temperature values to try
+    
+    Returns:
+        Optimal temperature value
+    """
+    temperatures = np.linspace(temperature_range[0], temperature_range[1], n_steps)
+    best_temp = 1.0
+    best_nll = float("inf")
+    
+    for temp in temperatures:
+        scaled_probs = apply_temperature_scaling(logits, temp)
+        # Negative log likelihood
+        nll = -np.mean(np.log(scaled_probs[np.arange(len(y_true)), y_true] + 1e-10))
+        if nll < best_nll:
+            best_nll = nll
+            best_temp = temp
+    
+    return float(best_temp)
+
+
+def optimize_uncertainty_threshold(
+    uncertainties: np.ndarray,
+    y_correct: np.ndarray,
+    metric: str = "f1"
+) -> Dict[str, float]:
+    """
+    Find optimal uncertainty threshold for flagging unreliable predictions.
+    
+    Uses ROC analysis and precision-recall curves to find the threshold
+    that best separates correct from incorrect predictions.
+    
+    Args:
+        uncertainties: uncertainty scores (shape: [n_samples])
+        y_correct: binary accuracy (1 if correct, 0 if incorrect) (shape: [n_samples])
+        metric: optimization metric ('f1', 'youden', 'precision')
+    
+    Returns:
+        Dictionary with optimal threshold and associated metrics
+    """
+    from sklearn.metrics import roc_curve, precision_recall_curve, f1_score
+    
+    # Sort by uncertainty
+    sorted_indices = np.argsort(uncertainties)
+    sorted_correct = y_correct[sorted_indices]
+    sorted_uncertainties = uncertainties[sorted_indices]
+    
+    best_threshold = 0.5
+    best_score = 0
+    best_metrics = {}
+    
+    # Try each unique uncertainty value as threshold
+    unique_thresholds = np.unique(uncertainties)
+    
+    for threshold in unique_thresholds:
+        # Predict "unreliable" if uncertainty > threshold
+        predicted_unreliable = uncertainties > threshold
+        
+        # True "unreliable" = incorrect predictions
+        true_unreliable = y_correct == 0
+        
+        if metric == "f1":
+            # F1 score for detecting incorrect predictions
+            tp = np.sum(predicted_unreliable & true_unreliable)
+            fp = np.sum(predicted_unreliable & ~true_unreliable)
+            fn = np.sum(~predicted_unreliable & true_unreliable)
+            
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+            score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+        elif metric == "youden":
+            # Youden's J statistic (sensitivity + specificity - 1)
+            sensitivity = np.sum(predicted_unreliable & true_unreliable) / np.sum(true_unreliable) if np.sum(true_unreliable) > 0 else 0
+            specificity = np.sum(~predicted_unreliable & ~true_unreliable) / np.sum(~true_unreliable) if np.sum(~true_unreliable) > 0 else 0
+            score = sensitivity + specificity - 1
+        else:  # precision
+            tp = np.sum(predicted_unreliable & true_unreliable)
+            fp = np.sum(predicted_unreliable & ~true_unreliable)
+            score = tp / (tp + fp) if (tp + fp) > 0 else 0
+        
+        if score > best_score:
+            best_score = score
+            best_threshold = threshold
+            best_metrics = {
+                "threshold": float(threshold),
+                "score": float(score),
+                "metric": metric,
+            }
+    
+    # Also compute ROC-based optimal threshold
+    fpr, tpr, thresholds = roc_curve(y_correct == 0, uncertainties)
+    youden_index = tpr - fpr
+    optimal_idx = np.argmax(youden_index)
+    roc_threshold = float(thresholds[optimal_idx])
+    
+    best_metrics["roc_optimal_threshold"] = roc_threshold
+    
+    # Compute precision-recall curve
+    precision_curve, recall_curve, pr_thresholds = precision_recall_curve(y_correct == 0, uncertainties)
+    pr_scores = 2 * precision_curve * recall_curve / (precision_curve + recall_curve + 1e-10)
+    optimal_pr_idx = np.argmax(pr_scores)
+    pr_threshold = float(pr_thresholds[optimal_pr_idx]) if optimal_pr_idx < len(pr_thresholds) else roc_threshold
+    
+    best_metrics["pr_optimal_threshold"] = pr_threshold
+    
+    return best_metrics
+
+
+def compute_uncertainty_separation(
+    uncertainties: np.ndarray,
+    y_correct: np.ndarray
+) -> Dict[str, float]:
+    """
+    Analyze how well uncertainty separates correct from incorrect predictions.
+    
+    Args:
+        uncertainties: uncertainty scores (shape: [n_samples])
+        y_correct: binary accuracy (1 if correct, 0 if incorrect) (shape: [n_samples])
+    
+    Returns:
+        Dictionary with separation metrics
+    """
+    unc_correct = uncertainties[y_correct == 1]
+    unc_incorrect = uncertainties[y_correct == 0]
+    
+    if len(unc_correct) == 0 or len(unc_incorrect) == 0:
+        return {
+            "separation_mean": float("nan"),
+            "separation_std": float("nan"),
+            "auc": float("nan"),
+            "can_evaluate": False,
+        }
+    
+    from sklearn.metrics import roc_auc_score
+    
+    # Mean separation (how much higher is uncertainty for incorrect predictions)
+    separation_mean = float(np.mean(unc_incorrect) - np.mean(unc_correct))
+    separation_std = float(np.std(unc_incorrect) - np.std(unc_correct))
+    
+    # AUC: how well uncertainty ranks incorrect predictions higher
+    auc = float(roc_auc_score(y_correct == 0, uncertainties))
+    
+    return {
+        "separation_mean": separation_mean,
+        "separation_std": separation_std,
+        "auc": auc,
+        "mean_uncertainty_correct": float(np.mean(unc_correct)),
+        "mean_uncertainty_incorrect": float(np.mean(unc_incorrect)),
+        "can_evaluate": True,
+    }
 
 
 # Initialize Classifiers
