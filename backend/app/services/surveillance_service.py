@@ -24,7 +24,9 @@ REASON_AGE_RARE = "AGE:RARE"
 REASON_GENDER_RARE = "GENDER:RARE"
 
 
-def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=None):
+def fetch_diagnosis_data(
+    db_url=None, start_date=None, end_date=None, disease=None, limit=None, offset=None
+):
     """
     Fetch diagnosis data joined with user information.
 
@@ -33,6 +35,8 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
         start_date: Include records on or after this date (inclusive, optional)
         end_date:   Include records on or before this date (inclusive, optional)
         disease:    Filter by disease name (optional)
+        limit:      Maximum number of records to return (optional)
+        offset:     Number of records to skip (optional)
 
     Returns:
         List of SQLAlchemy Row objects (empty list when no data found)
@@ -88,6 +92,14 @@ def fetch_diagnosis_data(db_url=None, start_date=None, end_date=None, disease=No
 
     query_str += ' ORDER BY d."createdAt" DESC'
 
+    if limit:
+        query_str += " LIMIT :limit"
+        params["limit"] = limit
+
+    if offset:
+        query_str += " OFFSET :offset"
+        params["offset"] = offset
+
     with engine.connect() as conn:
         result = conn.execute(text(query_str), params)
         data = result.fetchall()
@@ -129,9 +141,11 @@ def _build_feature_matrix(records):
     districts = np.array([r.district if r.district else "Unknown" for r in records])
     months = np.array(
         [
-            r.createdAt.month
-            if hasattr(r.createdAt, "month")
-            else datetime.fromisoformat(str(r.createdAt)).month
+            (
+                r.createdAt.month
+                if hasattr(r.createdAt, "month")
+                else datetime.fromisoformat(str(r.createdAt)).month
+            )
             for r in records
         ],
         dtype=float,
@@ -499,6 +513,7 @@ def analyze_surveillance(
         start_date=start_date,
         end_date=end_date,
         disease=disease,
+        limit=10000,  # Limit to prevent loading entire database history
     )
 
     return detect_anomalies(
