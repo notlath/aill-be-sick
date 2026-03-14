@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { getAllDiagnoses } from "@/utils/diagnosis";
 import { DataTable } from "@/components/clinicians/healthcare-reports-page/data-table";
 import { columns } from "@/components/clinicians/healthcare-reports-page/columns";
+import { ExportPdfButton } from "@/components/ui/export-pdf-button";
+import { PdfColumn } from "@/utils/pdf-export";
 
 export default function HealthcareReports() {
   return (
@@ -43,7 +45,39 @@ async function DiagnosesData() {
     );
   }
 
-  return <DataTable columns={columns} data={diagnoses || []} />;
+  const pdfColumns: PdfColumn[] = [
+    { header: "Disease", dataKey: "disease" },
+    { header: "Confidence", dataKey: "confidence" },
+    { header: "Uncertainty", dataKey: "uncertainty" },
+    { header: "Symptoms", dataKey: "symptoms" },
+    { header: "Patient ID", dataKey: "userId" },
+    { header: "Date", dataKey: "createdAt" },
+  ];
+
+  const exportData = (diagnoses || []).map((d) => ({
+    disease: d.disease,
+    confidence: `${(d.confidence * 100).toFixed(2)}%`,
+    uncertainty: `${(d.uncertainty * 100).toFixed(2)}%`,
+    symptoms: d.symptoms,
+    userId: d.userId,
+    createdAt: new Date(d.createdAt),
+  }));
+
+  return (
+    <DataTable 
+      columns={columns} 
+      data={diagnoses || []}
+      additionalActions={
+        <ExportPdfButton
+          data={exportData}
+          columns={pdfColumns}
+          filename="healthcare-reports"
+          title="Healthcare Reports"
+          subtitle="All diagnoses in the system"
+        />
+      }
+    />
+  );
 }
 
 // Static shell - instant from CDN / Server

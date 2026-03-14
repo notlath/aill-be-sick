@@ -3,6 +3,8 @@ import { DataTable } from "@/components/patient/history-page/data-table";
 import { getChats } from "@/utils/chat";
 import { getCurrentDbUser } from "@/utils/user";
 import { Suspense } from "react";
+import { ExportPdfButton } from "@/components/ui/export-pdf-button";
+import { PdfColumn } from "@/utils/pdf-export";
 
 async function ChatHistoryList() {
   const { success: dbUser, error: userError } = await getCurrentDbUser();
@@ -83,9 +85,37 @@ async function ChatHistoryList() {
     };
   });
 
+  const pdfColumns: PdfColumn[] = [
+    { header: "Diagnosis", dataKey: "diagnosis" },
+    { header: "Model", dataKey: "modelUsed" },
+    { header: "Uncertainty", dataKey: "uncertainty" },
+    { header: "Confidence", dataKey: "confidence" },
+    { header: "Date", dataKey: "createdAt" },
+  ];
+
+  const exportData = rows.map((row) => ({
+    diagnosis: row.diagnosis,
+    modelUsed: row.modelUsed || "-",
+    uncertainty: row.uncertainty !== null ? `${(row.uncertainty * 100).toFixed(2)}%` : "-",
+    confidence: row.confidence !== null ? `${(row.confidence * 100).toFixed(2)}%` : "-",
+    createdAt: new Date(row.createdAt),
+  }));
+
   return (
     <div className="animate-fade-in w-full">
-      <DataTable columns={columns} data={rows} />
+      <DataTable 
+        columns={columns} 
+        data={rows}
+        additionalActions={
+          <ExportPdfButton
+            data={exportData}
+            columns={pdfColumns}
+            filename="diagnosis-history"
+            title="Diagnosis History"
+            subtitle="Your diagnosis history"
+          />
+        }
+      />
     </div>
   );
 }

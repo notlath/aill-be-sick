@@ -10,9 +10,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type PresetType = "last-7-days" | "last-3-months" | "year-to-date" | "custom";
+type PresetType = "all-time" | "last-7-days" | "last-3-months" | "year-to-date" | "custom";
 
 const PRESETS: Array<{ id: PresetType; label: string }> = [
+  { id: "all-time", label: "All time" },
   { id: "last-7-days", label: "Last 7 days" },
   { id: "last-3-months", label: "Last 3 months" },
   { id: "year-to-date", label: "Year to date" },
@@ -31,6 +32,9 @@ const getDatePresetRange = (preset: PresetType): [string, string] => {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   switch (preset) {
+    case "all-time":
+      return ["", ""];
+
     case "last-7-days": {
       const start = new Date(today);
       start.setDate(start.getDate() - 7);
@@ -57,11 +61,11 @@ const resolvePresetFromRange = (
   startDate: string,
   endDate: string,
 ): PresetType => {
-  if (!startDate || !endDate) {
-    return "custom";
+  if (!startDate && !endDate) {
+    return "all-time";
   }
 
-  const deterministicPresets: Array<Exclude<PresetType, "custom">> = [
+  const deterministicPresets: Array<Exclude<PresetType, "all-time" | "custom">> = [
     "last-7-days",
     "last-3-months",
     "year-to-date",
@@ -92,15 +96,11 @@ export function DateRangeFilter({
   onEndDateChange,
   className,
 }: DateRangeFilterProps) {
-  const [activePreset, setActivePreset] = useState<PresetType>("last-3-months");
+  const [activePreset, setActivePreset] = useState<PresetType>("all-time");
 
   useEffect(() => {
     if (!startDate && !endDate) {
-      const [defaultStartDate, defaultEndDate] =
-        getDatePresetRange("last-3-months");
-      onStartDateChange(defaultStartDate);
-      onEndDateChange(defaultEndDate);
-      setActivePreset("last-3-months");
+      setActivePreset("all-time");
       return;
     }
 
@@ -108,10 +108,16 @@ export function DateRangeFilter({
     setActivePreset((currentPreset) =>
       currentPreset === nextPreset ? currentPreset : nextPreset,
     );
-  }, [startDate, endDate, onStartDateChange, onEndDateChange]);
+  }, [startDate, endDate]);
 
   const handlePresetChange = (preset: PresetType) => {
     setActivePreset(preset);
+
+    if (preset === "all-time") {
+      onStartDateChange("");
+      onEndDateChange("");
+      return;
+    }
 
     if (preset === "custom") {
       return;
@@ -157,7 +163,7 @@ export function DateRangeFilter({
             value={activePreset}
             onValueChange={(value) => handlePresetChange(value as PresetType)}
           >
-            <SelectTrigger className="h-8 w-52 text-xs">
+            <SelectTrigger className="w-52">
               <SelectValue placeholder="Select date range" />
             </SelectTrigger>
             <SelectContent>

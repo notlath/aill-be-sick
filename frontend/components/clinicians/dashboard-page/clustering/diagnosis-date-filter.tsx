@@ -17,7 +17,7 @@ interface DiagnosisDateFilterProps {
   currentEndDate?: Date | null;
 }
 
-type PresetType = "last-7-days" | "last-3-months" | "year-to-date" | "custom";
+type PresetType = "all-time" | "last-7-days" | "last-3-months" | "year-to-date" | "custom";
 
 interface DatePickerProps {
   selectedDate: Date | null;
@@ -48,6 +48,9 @@ const getDatePresetRange = (preset: PresetType): [Date | null, Date | null] => {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   switch (preset) {
+    case "all-time":
+      return [null, null];
+
     case "last-7-days": {
       const start = new Date(today);
       start.setDate(start.getDate() - 7);
@@ -81,7 +84,15 @@ const toDateKey = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-const resolvePresetFromRange = (startDate: Date, endDate: Date): PresetType => {
+const resolvePresetFromRange = (startDate: Date | null, endDate: Date | null): PresetType => {
+  if (!startDate && !endDate) {
+    return "all-time";
+  }
+
+  if (!startDate || !endDate) {
+    return "custom";
+  }
+
   const deterministicPresets: PresetType[] = [
     "last-7-days",
     "last-3-months",
@@ -237,7 +248,7 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
   currentStartDate,
   currentEndDate,
 }) => {
-  const [activePreset, setActivePreset] = useState<PresetType>("last-3-months");
+  const [activePreset, setActivePreset] = useState<PresetType>("all-time");
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
@@ -251,17 +262,20 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
       return;
     }
 
-    const [defaultStart, defaultEnd] = getDatePresetRange("last-3-months");
-    setActivePreset("last-3-months");
-    setStartDate(defaultStart);
-    setEndDate(defaultEnd);
-    onDateRangeChange(defaultStart, defaultEnd);
+    setActivePreset("all-time");
+    setStartDate(null);
+    setEndDate(null);
+    onDateRangeChange(null, null);
   }, [currentStartDate, currentEndDate, onDateRangeChange]);
 
   const handlePresetClick = (preset: PresetType) => {
     setActivePreset(preset);
 
-    if (preset === "custom") {
+    if (preset === "all-time") {
+      setStartDate(null);
+      setEndDate(null);
+      onDateRangeChange(null, null);
+    } else if (preset === "custom") {
       // For custom, keep current dates or initialize to current month
       if (!startDate || !endDate) {
         const today = new Date();
@@ -289,6 +303,7 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
   };
 
   const presets: Array<{ id: PresetType; label: string }> = [
+    { id: "all-time", label: "All time" },
     { id: "last-7-days", label: "Last 7 days" },
     { id: "last-3-months", label: "Last 3 months" },
     { id: "year-to-date", label: "Year to date" },
@@ -305,7 +320,7 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
           onValueChange={(value) => handlePresetClick(value as PresetType)}
         >
           <SelectTrigger
-            className="h-8 w-52 text-xs"
+            className="w-52"
             disabled={Boolean(loading)}
           >
             <SelectValue placeholder="Select date range" />

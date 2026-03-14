@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useMemo, useState } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 import { DiseaseSelect } from "../disease-select";
@@ -36,6 +37,10 @@ const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), {
 const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
 
 const ByAnomalyTab = () => {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const { selectedDisease, setSelectedDisease } = useSelectedDiseaseStore();
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
 
@@ -79,7 +84,9 @@ const ByAnomalyTab = () => {
     () =>
       selectedDisease === "all"
         ? allAnomalies
-        : allAnomalies.filter((a) => a.disease === selectedDisease),
+        : allAnomalies.filter(
+            (a) => a.disease.toLowerCase() === selectedDisease.toLowerCase(),
+          ),
     [allAnomalies, selectedDisease],
   );
 
@@ -87,7 +94,9 @@ const ByAnomalyTab = () => {
     () =>
       selectedDisease === "all"
         ? allNormalDiagnoses
-        : allNormalDiagnoses.filter((a) => a.disease === selectedDisease),
+        : allNormalDiagnoses.filter(
+            (a) => a.disease.toLowerCase() === selectedDisease.toLowerCase(),
+          ),
     [allNormalDiagnoses, selectedDisease],
   );
 
@@ -231,6 +240,22 @@ const ByAnomalyTab = () => {
     setDistrictModal(null);
   }, []);
 
+  const handleDiseaseChange = (disease: DiseaseType) => {
+    setSelectedDisease(disease);
+    
+    // Check if URL has disease or lat/lng params to clear
+    if (searchParams.has("lat") || searchParams.has("lng") || searchParams.has("disease")) {
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete("lat");
+      newParams.delete("lng");
+      newParams.delete("disease");
+      
+      const newQuery = newParams.toString();
+      const newHref = newQuery ? `${pathname}?${newQuery}` : pathname;
+      router.replace(newHref, { scroll: false });
+    }
+  };
+
   const isMapLoading =
     loading || (view === "district" && (geoLoading || !geoData));
 
@@ -241,7 +266,7 @@ const ByAnomalyTab = () => {
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
           <DiseaseSelect
             value={selectedDisease}
-            onValueChange={setSelectedDisease}
+            onValueChange={handleDiseaseChange}
           />
           <ViewSelect value={view} onValueChange={setView} />
         </div>

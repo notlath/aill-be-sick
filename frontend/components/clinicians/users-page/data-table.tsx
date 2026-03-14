@@ -29,6 +29,7 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   currentUserRole?: string;
+  additionalActions?: React.ReactNode;
 }
 
 type SortOption = {
@@ -56,6 +57,7 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   currentUserRole = "",
+  additionalActions,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -159,6 +161,8 @@ export function DataTable<TData, TValue>({
               Add Clinician Email
             </button>
           )}
+
+          {additionalActions}
 
           <Select className="w-auto" value={currentSortLabel} onValueChange={handleSortChange}>
             <SelectTrigger className="w-[160px]">

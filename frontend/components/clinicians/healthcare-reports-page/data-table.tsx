@@ -28,6 +28,7 @@ import { DiagnosisRow } from "./columns"; // For type casting
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  additionalActions?: React.ReactNode;
 }
 
 type SortOption = {
@@ -50,6 +51,7 @@ const sortOptions: SortOption[] = [
 export function DataTable<TData, TValue>({
   columns,
   data,
+  additionalActions,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -152,6 +154,8 @@ export function DataTable<TData, TValue>({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {additionalActions}
+            
             <Select
               className="w-auto"
               value={currentSortLabel}

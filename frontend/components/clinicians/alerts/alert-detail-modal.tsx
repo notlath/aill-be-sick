@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { MapPin } from "lucide-react";
 import type { Alert, AlertNote } from "@/types";
 import { getReasonLabel, getReasonDescription } from "@/utils/anomaly-reasons";
 import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity";
@@ -49,6 +51,7 @@ export function AlertDetailModal({
   onAddNote,
   onEditNote,
 }: AlertDetailModalProps) {
+  const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   // Notes state
@@ -127,6 +130,16 @@ export function AlertDetailModal({
       setIsResolving(false);
       handleClose();
     }
+  };
+
+  const handleViewOnMap = () => {
+    const meta = alert?.metadata as any;
+    if (!meta) return;
+    const params = new URLSearchParams({ tab: "by-anomaly" });
+    if (meta.disease) params.set("disease", meta.disease);
+    if (meta.latitude) params.set("lat", String(meta.latitude));
+    if (meta.longitude) params.set("lng", String(meta.longitude));
+    router.push(`/map?${params.toString()}`);
   };
 
   const handleAddNote = async () => {
@@ -459,56 +472,67 @@ export function AlertDetailModal({
           </div>
 
           {/* ── Action buttons ───────────────────────────────── */}
-          {(isPending || isAcknowledged) ? (
-            <div className="flex gap-2 justify-end pt-2">
+          <div className="flex gap-2 justify-end pt-2 items-center flex-wrap">
+            {alert.type === "ANOMALY" && (alert.metadata as any)?.latitude ? (
               <button
-                className="btn btn-primary btn-sm"
-                onClick={handleResolve}
-                disabled={isResolving || isAcknowledging || isDismissing}
+                className="btn btn-outline border-border btn-sm mr-auto"
+                onClick={handleViewOnMap}
               >
-                {isResolving ? (
-                  <>
-                    <span className="loading loading-spinner loading-xs"></span>
-                    Resolving...
-                  </>
-                ) : (
-                  "Mark as Resolved"
-                )}
+                <MapPin className="w-4 h-4 mr-1" /> View on map
               </button>
-              {isPending ? (
-                <>
-                  <button
-                    className="btn btn-sm btn-outline border-primary/30 hover:bg-primary hover:border-primary text-primary hover:text-primary-content h-8 min-h-0"
-                    onClick={handleAcknowledge}
-                    disabled={isResolving || isAcknowledging || isDismissing}
-                  >
-                    {isAcknowledging ? (
-                      <>
-                        <span className="loading loading-spinner loading-xs"></span>
-                        Wait...
-                      </>
-                    ) : (
-                      "Acknowledge"
-                    )}
-                  </button>
-                  <button
-                    className="btn btn-outline border-border btn-sm"
-                    onClick={handleDismiss}
-                    disabled={isResolving || isAcknowledging || isDismissing}
-                  >
-                    {isDismissing ? (
-                      <>
-                        <span className="loading loading-spinner loading-xs"></span>
-                        Wait...
-                      </>
-                    ) : (
-                      "Dismiss"
-                    )}
-                  </button>
-                </>
-              ) : null}
-            </div>
-          ) : null}
+            ) : null}
+            
+            {(isPending || isAcknowledged) ? (
+              <>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleResolve}
+                  disabled={isResolving || isAcknowledging || isDismissing}
+                >
+                  {isResolving ? (
+                    <>
+                      <span className="loading loading-spinner loading-xs"></span>
+                      Resolving...
+                    </>
+                  ) : (
+                    "Mark as Resolved"
+                  )}
+                </button>
+                {isPending ? (
+                  <>
+                    <button
+                      className="btn btn-sm btn-outline border-primary/30 hover:bg-primary hover:border-primary text-primary hover:text-primary-content h-8 min-h-0"
+                      onClick={handleAcknowledge}
+                      disabled={isResolving || isAcknowledging || isDismissing}
+                    >
+                      {isAcknowledging ? (
+                        <>
+                          <span className="loading loading-spinner loading-xs"></span>
+                          Wait...
+                        </>
+                      ) : (
+                        "Acknowledge"
+                      )}
+                    </button>
+                    <button
+                      className="btn btn-outline border-border btn-sm"
+                      onClick={handleDismiss}
+                      disabled={isResolving || isAcknowledging || isDismissing}
+                    >
+                      {isDismissing ? (
+                        <>
+                          <span className="loading loading-spinner loading-xs"></span>
+                          Wait...
+                        </>
+                      ) : (
+                        "Dismiss"
+                      )}
+                    </button>
+                  </>
+                ) : null}
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">

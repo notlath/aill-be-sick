@@ -8,12 +8,41 @@ import ByClusterTab from "../by-cluster/by-cluster-tab";
 import ByAnomalyTab from "../by-anomaly/by-anomaly-tab";
 import useMapStore from "@/stores/use-map-store";
 import { parseIllnessClusterNavigationQuery } from "@/utils/illness-cluster-navigation";
+import useSelectedDiseaseStore from "@/stores/use-selected-disease-store";
+import type { DiseaseType } from "@/stores/use-selected-disease-store";
 
 const MapTabs = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { activeTab, setActiveTab } = useMapStore();
+  const { selectedDisease, setSelectedDisease } = useSelectedDiseaseStore();
+
+  useEffect(() => {
+    const urlDisease = searchParams.get("disease");
+    if (urlDisease && urlDisease !== selectedDisease) {
+      // Allowed disease values (title case)
+      const allowedDiseases: DiseaseType[] = [
+        "all",
+        "Dengue",
+        "Pneumonia",
+        "Typhoid",
+        "Impetigo",
+        "Diarrhea",
+        "Measles",
+        "Influenza",
+      ];
+
+      // Find case-insensitive match
+      const matchedDisease = allowedDiseases.find(
+        (d) => d.toLowerCase() === urlDisease.toLowerCase(),
+      );
+
+      if (matchedDisease && matchedDisease !== selectedDisease) {
+        setSelectedDisease(matchedDisease);
+      }
+    }
+  }, [searchParams, selectedDisease, setSelectedDisease]);
 
   const urlTab = useMemo(() => {
     const rawTab = searchParams.get("tab");
@@ -47,6 +76,11 @@ const MapTabs = () => {
 
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("tab", nextTab);
+    
+    // Clear extra params when switching tabs
+    nextParams.delete("lat");
+    nextParams.delete("lng");
+    nextParams.delete("disease");
 
     const nextQuery = nextParams.toString();
     const nextHref = nextQuery ? `${pathname}?${nextQuery}` : pathname;

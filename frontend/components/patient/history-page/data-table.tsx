@@ -27,6 +27,7 @@ import {
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  additionalActions?: React.ReactNode;
 }
 
 type SortOption = {
@@ -49,6 +50,7 @@ const sortOptions: SortOption[] = [
 export function DataTable<TData, TValue>({
   columns,
   data,
+  additionalActions,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([
     { id: "createdAt", desc: true },
@@ -164,6 +166,8 @@ export function DataTable<TData, TValue>({
               <SelectItem value="Influenza">Influenza</SelectItem>
             </SelectContent>
           </Select>
+
+          {additionalActions}
         </div>
       </div>
 

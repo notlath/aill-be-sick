@@ -1,7 +1,9 @@
 import { Suspense } from "react";
-import { columns } from "@/components/clinicians/users-page/columns";
+import { columns, UserRow } from "@/components/clinicians/users-page/columns";
 import { DataTable } from "@/components/clinicians/users-page/data-table";
 import { getAllUsers, getCurrentDbUser } from "@/utils/user";
+import { ExportPdfButton } from "@/components/ui/export-pdf-button";
+import { PdfColumn } from "@/utils/pdf-export";
 
 function UsersTableSkeleton() {
   return (
@@ -38,7 +40,44 @@ async function UsersTable({ currentUserRole }: { currentUserRole: string }) {
     throw new Error(error);
   }
 
-  return <DataTable columns={columns} data={users || []} currentUserRole={currentUserRole} />;
+  const pdfColumns: PdfColumn[] = [
+    { header: "Name", dataKey: "name" },
+    { header: "Email", dataKey: "email" },
+    { header: "Gender", dataKey: "gender" },
+    { header: "Age", dataKey: "age" },
+    { header: "Region", dataKey: "region" },
+    { header: "Role", dataKey: "role" },
+    { header: "Diagnoses", dataKey: "diagnoses" },
+    { header: "Joined", dataKey: "createdAt" },
+  ];
+
+  const exportData = (users || []).map((user) => ({
+    name: user.name || "-",
+    email: user.email,
+    gender: user.gender || "-",
+    age: user.age ?? "-",
+    region: [user.city, user.region].filter(Boolean).join(", ") || "-",
+    role: user.role,
+    diagnoses: user._count.diagnoses,
+    createdAt: new Date(user.createdAt),
+  }));
+
+  return (
+    <DataTable 
+      columns={columns} 
+      data={users || []} 
+      currentUserRole={currentUserRole}
+      additionalActions={
+        <ExportPdfButton
+          data={exportData}
+          columns={pdfColumns}
+          filename="users-report"
+          title="Users Report"
+          subtitle="All registered users"
+        />
+      }
+    />
+  );
 }
 
 const UsersPage = async () => {

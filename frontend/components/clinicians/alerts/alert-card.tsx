@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Info, AlertOctagon, AlertTriangle, ShieldAlert } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Info, AlertOctagon, AlertTriangle, ShieldAlert, MapPin } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity";
@@ -42,6 +43,7 @@ export function AlertCard({
   onAcknowledge,
   onDismiss,
 }: AlertCardProps) {
+  const router = useRouter();
   const [isAcknowledging, setIsAcknowledging] = useState(false);
   const [isDismissing, setIsDismissing] = useState(false);
 
@@ -63,6 +65,16 @@ export function AlertCard({
     } finally {
       setIsDismissing(false);
     }
+  };
+
+  const handleViewOnMap = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const meta = alert.metadata as any;
+    const params = new URLSearchParams({ tab: "by-anomaly" });
+    if (meta?.disease) params.set("disease", meta.disease);
+    if (meta?.latitude) params.set("lat", String(meta.latitude));
+    if (meta?.longitude) params.set("lng", String(meta.longitude));
+    router.push(`/map?${params.toString()}`);
   };
 
   const isPending = alert.status === "NEW";
@@ -147,6 +159,14 @@ export function AlertCard({
                 )}
               </button>
             </>
+          ) : null}
+          {alert.type === "ANOMALY" && (alert.metadata as any)?.latitude ? (
+            <button
+              onClick={handleViewOnMap}
+              className="btn btn-sm btn-outline border-border hover:bg-base-200 text-base-content/50 hover:text-base-content/80 h-8 min-h-0"
+            >
+              <MapPin className="w-4 h-4 mr-1" /> View on map
+            </button>
           ) : null}
           <button
             onClick={() => onViewDetails(alert)}
