@@ -3,7 +3,7 @@
 import { NavItem } from "@/constants/nav-items";
 import { cn } from "@/utils/lib";
 import Link from "next/link";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ReactNode } from "react";
 
 type NavLinkProps = {
@@ -19,9 +19,17 @@ const NavLink = ({ name, href, icon: Icon, isActive, badge }: NavLinkProps) => {
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Preserve query parameters ONLY when moving between dashboard and map.
-    const isCurrentlyDashboardOrMap = pathname === "/dashboard" || pathname.startsWith("/map") || pathname.startsWith("/dashboard");
-    
-    if (isDashboardOrMap && isCurrentlyDashboardOrMap && searchParams && searchParams.toString() !== "") {
+    const isCurrentlyDashboardOrMap =
+      pathname === "/dashboard" ||
+      pathname.startsWith("/map") ||
+      pathname.startsWith("/dashboard");
+
+    if (
+      isDashboardOrMap &&
+      isCurrentlyDashboardOrMap &&
+      searchParams &&
+      searchParams.toString() !== ""
+    ) {
       e.preventDefault();
       router.push(`${href}?${searchParams.toString()}`);
     }
@@ -31,7 +39,7 @@ const NavLink = ({ name, href, icon: Icon, isActive, badge }: NavLinkProps) => {
     <Link
       href={href}
       onClick={handleClick}
-      // Statically linking to the base href prevents repetitive prefetches, 
+      // Statically linking to the base href prevents repetitive prefetches,
       // so we don't need to manually disable prefetch. This also fixes the Next.js
       // glitch where prefetch={false} + useSearchParams causes Suspense fallbacks on click.
       className={cn(
