@@ -27,9 +27,9 @@ const OnboardingModal = () => {
   };
 
   const shortExample =
-    "A 102.1°F fever has been present for three days, coupled with a dry cough and a clear, runny nose.";
+    "First I got a very high temperature, a dry cough, profound tiredness, and a runny nose. I found small white spots in my mouth. Yesterday, a rash began at my hairline and spread down my chest.";
   const longExample =
-    "A 102.1°F fever has been present for three days, coupled with a dry cough and a clear, runny nose. My eyes are red and sensitive to light. A rash of small, non-itchy red spots started behind my ears a few hours ago and is now advancing onto my forehead. I'm experiencing a general feeling of tiredness and aches throughout my body.";
+    "First I got a very high temperature, a dry cough, profound tiredness, and a runny nose. I found small white spots in my mouth. Yesterday, a rash began at my hairline and spread down my chest.";
 
   return (
     <dialog className={`help-dialog onboarding-dialog modal ${isOpen ? "modal-open" : ""}`}>
