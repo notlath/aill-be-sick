@@ -1,5 +1,6 @@
 "use client";
 
+import { autoRecordDiagnosis } from "@/actions/auto-record-diagnosis";
 import { createMessage } from "@/actions/create-message";
 import { explainDiagnosis } from "@/actions/explain-diagnosis";
 import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
@@ -278,6 +279,27 @@ const ChatWindow = ({
     Record<number, Explanation>
   >({});
 
+  const { execute: autoRecordExecute } = useAction(autoRecordDiagnosis, {
+    onSuccess: ({ data }) => {
+      if (data?.success) {
+        if (data.requiresManualRecord) {
+          // Low-confidence diagnosis - requires user consent
+          console.log(
+            `[ChatWindow] Auto-record skipped (confidence ${data.confidence?.toFixed(3)}), waiting for manual record`,
+          );
+        } else {
+          // High-confidence diagnosis - auto-recorded successfully
+          console.log("[ChatWindow] Diagnosis auto-recorded:", data.success);
+        }
+      } else if (data?.error) {
+        console.error("[ChatWindow] Auto-record error:", data.error);
+      }
+    },
+    onError: ({ error }) => {
+      console.error("[ChatWindow] Auto-record request failed:", error);
+    },
+  });
+
   const { execute: getExplanations, isExecuting: isGettingExplanations } =
     useAction(explainDiagnosis, {
       onSuccess: ({ data }) => {
@@ -295,6 +317,20 @@ const ChatWindow = ({
               "[ChatWindow] Explanation stored for message",
               messageId,
             );
+
+            // Auto-record the diagnosis now that an explanation exists.
+            // HYBRID APPROACH: Only high-confidence diagnoses (≥95%) are auto-recorded.
+            // Low-confidence diagnoses require explicit user consent via manual recording.
+            // This resolves the limbo state where the chat has a final AI
+            // diagnosis but no permanent Diagnosis record (e.g. after refresh).
+            if (!chat.hasDiagnosis) {
+              autoRecordExecute({
+                messageId,
+                chatId,
+                latitude: location?.lat ?? undefined,
+                longitude: location?.lng ?? undefined,
+              });
+            }
           } else {
             console.warn(
               "[ChatWindow] Explanation received but messageId is null",
