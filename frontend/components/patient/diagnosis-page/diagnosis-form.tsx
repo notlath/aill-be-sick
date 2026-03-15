@@ -39,13 +39,12 @@ const DiagnosisForm = ({
       <form onSubmit={form.handleSubmit(handleSubmit)} className="w-full">
         <div className="space-y-2 w-full">
           <div
-            className={`flex items-end gap-3 px-4 py-3 border rounded-2xl w-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-              disabled || isPending
+            className={`flex items-center gap-3 px-4 py-3 border rounded-2xl w-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${disabled || isPending
                 ? "bg-base-200/60 border-base-300/40 opacity-70"
                 : isBelowMin
                   ? "bg-base-100 border-warning/60 shadow-sm focus-within:shadow-md focus-within:border-warning"
                   : "bg-base-100 border-base-300/40 shadow-sm focus-within:shadow-md focus-within:border-primary/50"
-            }`}
+              }`}
           >
             <textarea
               aria-label="Describe your symptoms"
@@ -90,9 +89,8 @@ const DiagnosisForm = ({
             <p
               role="status"
               aria-live="polite"
-              className={`text-xs text-right transition-colors duration-200 ${
-                isBelowMin ? "text-warning" : "text-success"
-              }`}
+              className={`text-xs text-right transition-colors duration-200 ${isBelowMin ? "text-warning" : "text-success"
+                }`}
             >
               {isBelowMin
                 ? `${MIN_CHARACTERS - symptomsLength} more character${MIN_CHARACTERS - symptomsLength === 1 ? "" : "s"} needed`
