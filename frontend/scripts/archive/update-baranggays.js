@@ -3,7 +3,7 @@
   Run: bun scripts/update-baranggays.js
 */
 
-const { PrismaClient } = require("../lib/generated/prisma");
+const { PrismaClient } = require("../../lib/generated/prisma");
 const path = require("path");
 const fs = require("fs");
 

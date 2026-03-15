@@ -8,18 +8,18 @@ export interface BagongSilanganDistrict {
 }
 
 export const BAGONG_SILANGAN_DISTRICTS: BagongSilanganDistrict[] = [
-  { name: "Agri Land", geoLevel: "zone", centroid: { lat: 14.70977, lng: 121.11989 } },
-  { name: "Barangay Proper", geoLevel: "zone", centroid: { lat: 14.69782, lng: 121.10898 } },
-  { name: "Covenant Village", geoLevel: "zone", centroid: { lat: 14.69581, lng: 121.10755 } },
-  { name: "DSWD", geoLevel: "zone", centroid: { lat: 14.69385, lng: 121.09888 } },
-  { name: "Filinvest 2", geoLevel: "zone", centroid: { lat: 14.69890, lng: 121.10295 } },
-  { name: "Filinvest Heights - Brookside", geoLevel: "zone", centroid: { lat: 14.70059, lng: 121.11359 } },
-  { name: "Parkwoods", geoLevel: "zone", centroid: { lat: 14.72564, lng: 121.11698 } },
-  { name: "Sitio Bakal", geoLevel: "zone", centroid: { lat: 14.70970, lng: 121.11952 } },
-  { name: "Sitio Veterans", geoLevel: "zone", centroid: { lat: 14.70639, lng: 121.10702 } },
-  { name: "Spring Valley", geoLevel: "zone", centroid: { lat: 14.71017, lng: 121.10964 } },
-  { name: "Sugartowne", geoLevel: "zone", centroid: { lat: 14.69211, lng: 121.10108 } },
-  { name: "Violago Homes", geoLevel: "zone", centroid: { lat: 14.69983, lng: 121.10024 } },
+  { name: "Agri Land", geoLevel: "zone", centroid: { lat: 14.71734, lng: 121.11863 } },
+  { name: "Barangay Proper", geoLevel: "zone", centroid: { lat: 14.69738, lng: 121.10735 } },
+  { name: "Covenant Village", geoLevel: "zone", centroid: { lat: 14.69626, lng: 121.10772 } },
+  { name: "DSWD", geoLevel: "zone", centroid: { lat: 14.69387, lng: 121.09898 } },
+  { name: "Filinvest 2", geoLevel: "zone", centroid: { lat: 14.69910, lng: 121.10303 } },
+  { name: "Filinvest Heights - Brookside", geoLevel: "zone", centroid: { lat: 14.70045, lng: 121.11360 } },
+  { name: "Parkwoods", geoLevel: "zone", centroid: { lat: 14.72546, lng: 121.11707 } },
+  { name: "Sitio Bakal", geoLevel: "zone", centroid: { lat: 14.70953, lng: 121.11937 } },
+  { name: "Sitio Veterans", geoLevel: "zone", centroid: { lat: 14.70620, lng: 121.10741 } },
+  { name: "Spring Valley", geoLevel: "zone", centroid: { lat: 14.70991, lng: 121.11001 } },
+  { name: "Sugartowne", geoLevel: "zone", centroid: { lat: 14.69208, lng: 121.10089 } },
+  { name: "Violago Homes", geoLevel: "zone", centroid: { lat: 14.69979, lng: 121.10046 } },
 ];
 
 export function getDistrictCentroid(name: string) {
