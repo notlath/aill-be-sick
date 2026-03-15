@@ -13,10 +13,11 @@ async function ChatHistoryList() {
     throw new Error(userError || "Failed to load user");
   }
 
-  // Include messages, diagnosis, and tempDiagnoses to avoid N+1 queries
-  // tempDiagnoses doesn't order by createdAt automatically in include, so we sort it below
+  // Include only the latest message (for fallback display), diagnosis, and tempDiagnoses
+  // to avoid fetching every Message row. tempDiagnoses doesn't order by createdAt
+  // automatically in include, so we sort it below.
   const { success: chats, error } = await getChats(dbUser.id, {
-    messages: true,
+    messages: { take: 1, orderBy: { createdAt: "desc" } },
     diagnosis: true,
     tempDiagnoses: true,
   });
@@ -62,15 +63,8 @@ async function ChatHistoryList() {
       confidence = latestTemp.confidence;
       modelUsed = latestTemp.modelUsed;
     } else {
-      const messages = chat.messages || [];
-      const latestMessageContentRaw =
-        messages.length > 0
-          ? [...messages].sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime(),
-            )[0].content
-          : "";
+      // Only the latest message is fetched (take: 1, orderBy desc) — no sort needed
+      const latestMessageContentRaw = chat.messages?.[0]?.content ?? "";
 
       diagnosis =
         latestMessageContentRaw.length > 120
