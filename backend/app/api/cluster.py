@@ -3,9 +3,13 @@ Cluster blueprint: K-Means patient clustering and silhouette analysis endpoints.
 """
 
 import traceback
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 
-from app.services.cluster_service import fetch_patient_data, run_kmeans, get_cluster_statistics
+from app.services.cluster_service import (
+    fetch_patient_data,
+    run_kmeans,
+    get_cluster_statistics,
+)
 from app.services.illness_cluster_service import (
     fetch_diagnosis_data,
     run_illness_kmeans,
@@ -77,7 +81,10 @@ def patient_clusters():
         error_details = traceback.format_exc()
         print(f"ERROR in patient_clusters: {str(e)}")
         print(error_details)
-        return jsonify({"error": str(e), "details": error_details}), 500
+        payload = {"error": str(e)}
+        if current_app.debug:
+            payload["details"] = error_details
+        return jsonify(payload), 500
 
 
 @cluster_bp.route("/api/patient-clusters/silhouette", methods=["GET"])
@@ -169,7 +176,10 @@ def patient_clusters_silhouette():
         )
     except Exception as e:
         error_details = traceback.format_exc()
-        return jsonify({"error": str(e), "details": error_details}), 500
+        payload = {"error": str(e)}
+        if current_app.debug:
+            payload["details"] = error_details
+        return jsonify(payload), 500
 
 
 @cluster_bp.route("/api/illness-clusters", methods=["GET"])
@@ -224,7 +234,9 @@ def illness_clusters():
         clusters, centers = run_illness_kmeans(data, n_clusters=n_clusters)
 
         # Get cluster statistics
-        cluster_stats = get_illness_cluster_statistics(illness_info, clusters, n_clusters)
+        cluster_stats = get_illness_cluster_statistics(
+            illness_info, clusters, n_clusters
+        )
 
         # Add cluster assignment to each diagnosis
         for i, illness in enumerate(illness_info):
@@ -253,7 +265,10 @@ def illness_clusters():
         error_details = traceback.format_exc()
         print(f"ERROR in illness_clusters: {str(e)}")
         print(error_details)
-        return jsonify({"error": str(e), "details": error_details}), 500
+        payload = {"error": str(e)}
+        if current_app.debug:
+            payload["details"] = error_details
+        return jsonify(payload), 500
 
 
 @cluster_bp.route("/api/illness-clusters/silhouette", methods=["GET"])
@@ -366,4 +381,7 @@ def illness_clusters_silhouette():
         return jsonify({"error": str(e)}), 400
     except Exception as e:
         error_details = traceback.format_exc()
-        return jsonify({"error": str(e), "details": error_details}), 500
+        payload = {"error": str(e)}
+        if current_app.debug:
+            payload["details"] = error_details
+        return jsonify(payload), 500
