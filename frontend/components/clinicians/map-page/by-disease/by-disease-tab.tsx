@@ -17,7 +17,6 @@ import FeaturePatientsModal from "../map/feature-patients-modal";
 import { useGeoJsonData } from "@/hooks/map-hooks/use-geojson-data";
 import ViewSelect from "../view-select";
 import { DiseaseTimelineChart } from "./disease-timeline-chart";
-import { IllnessClusterContributionGraph } from "../by-cluster/illness-cluster-contribution-graph";
 import {
   DistrictStatsCards,
   CoordinatesStatsCards,
@@ -328,21 +327,6 @@ const ByDiseaseTab = () => {
           <DiseaseTimelineChart
             diagnoses={timelineDiagnoses}
             disease={selectedDisease}
-          />
-        )}
-      </div>
-
-      <div className="mt-6">
-        {isLoading ? (
-          <TimelineSkeleton />
-        ) : (
-          <IllnessClusterContributionGraph
-            activityDates={timelineDiagnoses.map(
-              (diagnosis) => diagnosis.createdAt,
-            )}
-            title="Daily Illness Activity"
-            emptyMessage="No daily activity data available for this disease"
-            recordLabel="diagnosis record"
           />
         )}
       </div>
