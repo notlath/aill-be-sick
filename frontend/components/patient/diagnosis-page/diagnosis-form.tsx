@@ -22,6 +22,8 @@ const DiagnosisForm = ({
   const symptomsLength = symptomsValue?.length || 0;
   const isBelowMin = symptomsLength > 0 && symptomsLength < MIN_CHARACTERS;
 
+  const isInteractive = !disabled && !isPending;
+
   const handleSubmit = (data: CreateChatSchemaType) => {
     createMessageExecute({
       chatId: data.chatId,
@@ -35,57 +37,68 @@ const DiagnosisForm = ({
   return (
     <div className="flex justify-center items-center w-full">
       <form onSubmit={form.handleSubmit(handleSubmit)} className="w-full">
-        <div className="space-y-4 w-full md:w-[800px] mx-auto text-center">
-          <div className="space-y-4">
-            <div
-              className={`flex justify-between items-start py-3 border rounded-xl outline-none w-full h-auto input ${
-                disabled ? "bg-base-200 opacity-70 cursor-not-allowed" : ""
-              } ${isBelowMin ? "border-warning" : ""}`}
-            >
-              <textarea
-                className="flex-1 pl-1 border-none outline-none disabled:bg-transparent"
-                placeholder={
-                  disabled
-                    ? "Please answer the question above..."
-                    : "I'm feeling..."
+        <div className="space-y-2 w-full">
+          <div
+            className={`flex items-end gap-3 px-4 py-3 border rounded-2xl w-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+              disabled || isPending
+                ? "bg-base-200/60 border-base-300/40 opacity-70"
+                : isBelowMin
+                  ? "bg-base-100 border-warning/60 shadow-sm focus-within:shadow-md focus-within:border-warning"
+                  : "bg-base-100 border-base-300/40 shadow-sm focus-within:shadow-md focus-within:border-primary/50"
+            }`}
+          >
+            <textarea
+              aria-label="Describe your symptoms"
+              className="flex-1 border-none outline-none bg-transparent resize-none text-base text-base-content placeholder:text-base-content/40 transition-opacity duration-200 min-h-[40px] py-1 disabled:cursor-not-allowed"
+              placeholder={
+                disabled ? "Please answer the question above..." : "I'm feeling..."
+              }
+              suppressHydrationWarning
+              data-gramm="false"
+              data-gramm_editor="false"
+              data-enable-grammarly="false"
+              disabled={!isInteractive}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !(e.nativeEvent as any)?.isComposing
+                ) {
+                  e.preventDefault();
+                  void form.handleSubmit(handleSubmit)();
                 }
-                suppressHydrationWarning
-                data-gramm="false"
-                data-gramm_editor="false"
-                data-enable-grammarly="false"
-                disabled={disabled || isPending}
-                onKeyDown={(e) => {
-                  if (
-                    e.key === "Enter" &&
-                    !e.shiftKey &&
-                    !(e.nativeEvent as any)?.isComposing
-                  ) {
-                    e.preventDefault();
-                    void form.handleSubmit(handleSubmit)();
-                  }
-                }}
-                {...form.register("symptoms")}
-              />
-              <button
-                type="submit"
-                className="w-auto min-w-10 h-10 px-3 aspect-square btn btn-primary"
-                disabled={disabled || isPending || isBelowMin}
-              >
-                <ArrowUp className="size-4" />
-              </button>
-            </div>
-            {symptomsLength > 0 && (
-              <div className="text-xs text-right">
-                <span
-                  className={
-                    isBelowMin ? "text-warning" : "text-success"
-                  }
-                >
-                  {symptomsLength}/{MIN_CHARACTERS} characters
-                </span>
-              </div>
-            )}
+              }}
+              {...form.register("symptoms")}
+            />
+            <button
+              type="submit"
+              aria-label={isPending ? "Sending…" : "Send symptoms"}
+              aria-busy={isPending}
+              aria-live="polite"
+              className="shrink-0 w-11 h-11 rounded-xl bg-primary text-primary-content flex items-center justify-center shadow-sm hover:bg-primary/90 hover:shadow-md active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100"
+              disabled={!isInteractive || isBelowMin}
+            >
+              {isPending ? (
+                <span className="loading loading-spinner loading-xs" />
+              ) : (
+                <ArrowUp className="size-5" strokeWidth={2.5} />
+              )}
+            </button>
           </div>
+
+          {symptomsLength > 0 && (
+            <p
+              role="status"
+              aria-live="polite"
+              className={`text-xs text-right transition-colors duration-200 ${
+                isBelowMin ? "text-warning" : "text-success"
+              }`}
+            >
+              {isBelowMin
+                ? `${MIN_CHARACTERS - symptomsLength} more character${MIN_CHARACTERS - symptomsLength === 1 ? "" : "s"} needed`
+                : "Ready to send"}
+            </p>
+          )}
         </div>
       </form>
     </div>

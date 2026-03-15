@@ -735,60 +735,69 @@ const ChatWindow = ({
   }, [messages, chatId, chat.hasDiagnosis]);
 
   return (
-    <ThreadTransition className="w-full max-w-[768px]">
-      <FormProvider {...form}>
-        <ChatContainer
-          ref={chatEndRef}
-          messages={optimisticMessages.map((msg) => ({
-            ...msg,
-            explanation:
-              msg.explanation ||
-              (msg.id && messageExplanations[msg.id]) ||
-              null,
-          })) as any}
-          isGettingQuestion={isGettingQuestion}
-          isDiagnosing={isDiagnosing}
-          isGettingExplanations={isGettingExplanations}
-          isCreatingMessage={isCreatingMessage}
-          hasDiagnosis={chat.hasDiagnosis}
-          location={location}
-          currentQuestion={currentQuestion as any}
-          onQuestionAnswer={handleQuestionAnswer}
-          dbExplanation={dbExplanation as unknown as TempExplanation}
-          userRole={userRole}
-        />
-        {isFinalDiagnosis &&
-          currentDiagnosis?.cdss &&
-          (currentDiagnosis?.confidence ?? 0) >= 0.95 && (
-            <div className="mt-3">
-              <CDSSSummary cdss={currentDiagnosis.cdss} />
-            </div>
-          )}
-        {!chat.hasDiagnosis && (
-          <div className="-bottom-0.5 sticky bg-base-100 p-4 pt-0">
-            <DiagnosisForm
-              createMessageExecute={createMessageExecute}
-              isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
-              disabled={!!currentQuestion || isFinalDiagnosis}
+    <FormProvider {...form}>
+      <div className="flex flex-col h-full w-full">
+        {/* Scrollable messages area — scroll stays inside the card, not the viewport */}
+        <div className="flex-1 overflow-y-auto w-full flex flex-col items-center">
+          <ThreadTransition className="w-full max-w-[768px]">
+            <ChatContainer
+              ref={chatEndRef}
+              messages={optimisticMessages.map((msg) => ({
+                ...msg,
+                explanation:
+                  msg.explanation ||
+                  (msg.id && messageExplanations[msg.id]) ||
+                  null,
+              })) as any}
+              isGettingQuestion={isGettingQuestion}
+              isDiagnosing={isDiagnosing}
+              isGettingExplanations={isGettingExplanations}
+              isCreatingMessage={isCreatingMessage}
+              hasDiagnosis={chat.hasDiagnosis}
+              location={location}
+              currentQuestion={currentQuestion as any}
+              onQuestionAnswer={handleQuestionAnswer}
+              dbExplanation={dbExplanation as unknown as TempExplanation}
+              userRole={userRole}
             />
+            {isFinalDiagnosis &&
+              currentDiagnosis?.cdss &&
+              (currentDiagnosis?.confidence ?? 0) >= 0.95 && (
+                <div className="mt-3">
+                  <CDSSSummary cdss={currentDiagnosis.cdss} />
+                </div>
+              )}
+            <dialog id="record_success_modal" className="modal">
+              <div className="modal-box">
+                <form method="dialog">
+                  <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
+                    ✕
+                  </button>
+                </form>
+                <h3 className="font-bold text-lg">Diagnosis recorded</h3>
+                <p className="py-4 text-muted">
+                  This diagnosis has been successfully stored and saved in the
+                  records!
+                </p>
+              </div>
+            </dialog>
+          </ThreadTransition>
+        </div>
+
+        {/* Pinned input bar — sits in normal flow below the scroll area, full card width */}
+        {!chat.hasDiagnosis && (
+          <div className="shrink-0 w-full bg-base-100 border-t border-base-200 p-4 pt-3">
+            <div className="w-full max-w-[768px] mx-auto">
+              <DiagnosisForm
+                createMessageExecute={createMessageExecute}
+                isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
+                disabled={!!currentQuestion || isFinalDiagnosis}
+              />
+            </div>
           </div>
         )}
-        <dialog id="record_success_modal" className="modal">
-          <div className="modal-box">
-            <form method="dialog">
-              <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
-                ✕
-              </button>
-            </form>
-            <h3 className="font-bold text-lg">Diagnosis recorded</h3>
-            <p className="py-4 text-muted">
-              This diagnosis has been successfully stored and saved in the
-              records!
-            </p>
-          </div>
-        </dialog>
-      </FormProvider>
-    </ThreadTransition>
+      </div>
+    </FormProvider>
   );
 };
 
