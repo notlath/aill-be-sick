@@ -7,6 +7,7 @@ import type { Alert, AlertNote } from "@/types";
 import { getReasonLabel, getReasonDescription } from "@/utils/anomaly-reasons";
 import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity";
 import { getDistrictCentroid } from "@/constants/bagong-silangan-districts";
+import { parseUtcDate } from "@/utils/lib";
 
 const statusLabel: Record<Alert["status"], string> = {
   NEW: "New",
@@ -322,7 +323,7 @@ export function AlertDetailModal({
             <div>
               <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Date Created</p>
               <p className="text-sm font-medium">
-                {new Date(alert.createdAt).toLocaleDateString(undefined, {
+                {parseUtcDate(alert.createdAt).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
                   hour: "numeric",
@@ -334,7 +335,7 @@ export function AlertDetailModal({
               <div>
                 <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Acknowledged</p>
                 <p className="text-sm font-medium">
-                  {new Date(alert.acknowledgedAt).toLocaleDateString(undefined, {
+                  {parseUtcDate(alert.acknowledgedAt).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
                     hour: "numeric",
@@ -347,7 +348,7 @@ export function AlertDetailModal({
               <div>
                 <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Resolved</p>
                 <p className="text-sm font-medium">
-                  {new Date(alert.resolvedAt).toLocaleDateString(undefined, {
+                  {parseUtcDate(alert.resolvedAt).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
                     hour: "numeric",
@@ -373,7 +374,7 @@ export function AlertDetailModal({
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium">{note.authorName ?? "Clinician"}</span>
                   <span className="text-xs text-base-content/40">
-                    {new Date(note.updatedAt).toLocaleString()}
+                    {parseUtcDate(note.updatedAt).toLocaleString()}
                     {note.updatedAt !== note.createdAt ? " (edited)" : null}
                   </span>
                 </div>

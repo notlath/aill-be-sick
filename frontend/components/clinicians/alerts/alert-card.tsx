@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Info, AlertOctagon, AlertTriangle, ShieldAlert, MapPin } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
+import { parseUtcDate } from "@/utils/lib";
 import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity";
 import type { Alert, AlertStatus } from "@/types";
 import { getDistrictCentroid } from "@/constants/bagong-silangan-districts";
@@ -94,7 +95,7 @@ export function AlertCard({
   };
 
   const isPending = alert.status === "NEW";
-  const date = new Date(alert.createdAt);
+  const date = parseUtcDate(alert.createdAt);
   const timeAgo = formatDistanceToNow(date, { addSuffix: true });
   const Icon = severityIcon[alert.severity as keyof typeof severityIcon];
 

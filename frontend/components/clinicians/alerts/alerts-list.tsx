@@ -8,6 +8,7 @@ import { AlertCard } from "./alert-card";
 import { AlertDetailModal } from "./alert-detail-modal";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, X, FileDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from "lucide-react";
+import { parseUtcDate } from "@/utils/lib";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -54,12 +55,12 @@ const SORT_OPTIONS: SortOption[] = [
   {
     value: "newest",
     label: "Newest first",
-    compareFn: (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    compareFn: (a, b) => parseUtcDate(b.createdAt).getTime() - parseUtcDate(a.createdAt).getTime(),
   },
   {
     value: "oldest",
     label: "Oldest first",
-    compareFn: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+    compareFn: (a, b) => parseUtcDate(a.createdAt).getTime() - parseUtcDate(b.createdAt).getTime(),
   },
   {
     value: "severity-high",
@@ -195,7 +196,7 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
       severity: alert.severity,
       message: alert.message,
       status: alert.status,
-      createdAt: new Date(alert.createdAt),
+      createdAt: parseUtcDate(alert.createdAt),
     }));
 
     exportToPDF({

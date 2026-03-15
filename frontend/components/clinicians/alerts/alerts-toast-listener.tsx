@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useShallow } from "zustand/react/shallow";
 import useAlertsStore from "@/stores/use-alerts-store";
 import { getSeverityLabel } from "@/utils/alert-severity";
+import { parseUtcDate } from "@/utils/lib";
 
 /**
  * Mounts silently in the clinician layout.
@@ -31,7 +32,7 @@ const AlertsToastListener = () => {
         : toast.info;
 
     toastFn(`${severityLabel} alert: ${latestAlert.message}`, {
-      description: `Diagnosis #${latestAlert.diagnosisId ?? "—"} · ${new Date(latestAlert.createdAt).toLocaleTimeString()}`,
+      description: `Diagnosis #${latestAlert.diagnosisId ?? "—"} · ${parseUtcDate(latestAlert.createdAt).toLocaleTimeString()}`,
       duration: 8000,
       action: {
         label: "View Alerts",
