@@ -3,7 +3,7 @@ Surveillance blueprint: Isolation Forest outbreak detection endpoint.
 """
 
 import traceback
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 
 from app.services.surveillance_service import analyze_surveillance
 
@@ -146,4 +146,7 @@ def surveillance_outbreaks():
         error_details = traceback.format_exc()
         print(f"ERROR in surveillance_outbreaks: {str(e)}")
         print(error_details)
-        return jsonify({"error": str(e), "details": error_details}), 500
+        payload = {"error": str(e)}
+        if current_app.debug:
+            payload["details"] = error_details
+        return jsonify(payload), 500
