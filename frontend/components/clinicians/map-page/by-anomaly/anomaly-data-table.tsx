@@ -62,19 +62,6 @@ export const ReasonBadge = ({ code }: { code: string }) => {
 
 export const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
   {
-    accessorKey: "userId",
-    header: ({ column }) => (
-      <button
-        className="flex items-center gap-1 hover:text-primary"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Patient ID
-        <ArrowUpDown className="w-4 h-4" />
-      </button>
-    ),
-    cell: ({ row }) => <span>{row.getValue("userId")}</span>,
-  },
-  {
     id: "user_name",
     accessorFn: (row) => row.user?.name ?? null,
     header: ({ column }) => (
@@ -126,44 +113,6 @@ export const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
         >
           {label}
         </span>
-      );
-    },
-  },
-  {
-    accessorKey: "confidence",
-    header: ({ column }) => (
-      <button
-        className="flex items-center gap-1 hover:text-primary"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Confidence
-        <ArrowUpDown className="w-4 h-4" />
-      </button>
-    ),
-    cell: ({ row }) => {
-      const val = row.getValue("confidence") as number | null;
-      if (val == null) return <span>—</span>;
-      return (
-        <span className="tabular-nums">{(val * 100).toFixed(1)}%</span>
-      );
-    },
-  },
-  {
-    accessorKey: "uncertainty",
-    header: ({ column }) => (
-      <button
-        className="flex items-center gap-1 hover:text-primary"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Uncertainty
-        <ArrowUpDown className="w-4 h-4" />
-      </button>
-    ),
-    cell: ({ row }) => {
-      const val = row.getValue("uncertainty") as number | null;
-      if (val == null) return <span>—</span>;
-      return (
-        <span className="tabular-nums">{(val * 100).toFixed(1)}%</span>
       );
     },
   },
@@ -255,19 +204,6 @@ export const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
 
 export const normalColumns: ColumnDef<SurveillanceAnomaly>[] = [
   {
-    accessorKey: "userId",
-    header: ({ column }) => (
-      <button
-        className="flex items-center gap-1 hover:text-primary"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Patient ID
-        <ArrowUpDown className="w-4 h-4" />
-      </button>
-    ),
-    cell: ({ row }) => <span>{row.getValue("userId")}</span>,
-  },
-  {
     id: "user_name",
     accessorFn: (row) => row.user?.name ?? null,
     header: ({ column }) => (
@@ -296,44 +232,6 @@ export const normalColumns: ColumnDef<SurveillanceAnomaly>[] = [
       </button>
     ),
     cell: ({ row }) => <span>{row.getValue("disease")}</span>,
-  },
-  {
-    accessorKey: "confidence",
-    header: ({ column }) => (
-      <button
-        className="flex items-center gap-1 hover:text-primary"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Confidence
-        <ArrowUpDown className="w-4 h-4" />
-      </button>
-    ),
-    cell: ({ row }) => {
-      const val = row.getValue("confidence") as number | null;
-      if (val == null) return <span>—</span>;
-      return (
-        <span className="tabular-nums">{(val * 100).toFixed(1)}%</span>
-      );
-    },
-  },
-  {
-    accessorKey: "uncertainty",
-    header: ({ column }) => (
-      <button
-        className="flex items-center gap-1 hover:text-primary"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Uncertainty
-        <ArrowUpDown className="w-4 h-4" />
-      </button>
-    ),
-    cell: ({ row }) => {
-      const val = row.getValue("uncertainty") as number | null;
-      if (val == null) return <span>—</span>;
-      return (
-        <span className="tabular-nums">{(val * 100).toFixed(1)}%</span>
-      );
-    },
   },
   {
     id: "user_age",
@@ -412,18 +310,12 @@ type SortOption = { value: string; label: string; desc: boolean };
 const sortOptions: SortOption[] = [
   { value: "user_name",      label: "Name (A-Z)",                    desc: false },
   { value: "user_name",      label: "Name (Z-A)",                    desc: true  },
-  { value: "anomaly_score",  label: "Anomaly Score (Low-High)",      desc: false },
-  { value: "anomaly_score",  label: "Anomaly Score (High-Low)",      desc: true  },
-  { value: "confidence",     label: "Confidence (Low-High)",         desc: false },
-  { value: "confidence",     label: "Confidence (High-Low)",         desc: true  },
-  { value: "uncertainty",    label: "Uncertainty (Low-High)",        desc: false },
-  { value: "uncertainty",    label: "Uncertainty (High-Low)",        desc: true  },
+  { value: "anomaly_score",  label: "Anomaly Level (Low-High)",      desc: false },
+  { value: "anomaly_score",  label: "Anomaly Level (High-Low)",      desc: true  },
   { value: "disease",        label: "Diagnosis (A-Z)",               desc: false },
   { value: "disease",        label: "Diagnosis (Z-A)",               desc: true  },
   { value: "createdAt",      label: "Date (Oldest)",                 desc: false },
   { value: "createdAt",      label: "Date (Newest)",                 desc: true  },
-  { value: "userId",         label: "ID (Low-High)",                 desc: false },
-  { value: "userId",         label: "ID (High-Low)",                 desc: true  },
   { value: "user_age",       label: "Age (Low-High)",                desc: false },
   { value: "user_age",       label: "Age (High-Low)",                desc: true  },
   { value: "user_gender",    label: "Gender (A-Z)",                  desc: false },

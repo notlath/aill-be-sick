@@ -2,31 +2,13 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, AlertCircle, MapPin, Calendar, CheckSquare, Stethoscope } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import type { SurveillanceAnomaly } from "@/types";
-import { getReasonLabel } from "@/utils/anomaly-reasons";
 import { AnomalyDataTable } from "./anomaly-data-table";
 
 interface TopCriticalAnomaliesProps {
   topAnomalies: SurveillanceAnomaly[];
   onAnomalyClick?: (anomaly: SurveillanceAnomaly) => void;
-}
-
-/**
- * Get color class for reason code badge based on category.
- */
-function getReasonBadgeColor(code: string): string {
-  if (code.startsWith("GEOGRAPHIC:") || code.startsWith("CLUSTER:")) {
-    return "badge-warning";
-  }
-  if (code.startsWith("TEMPORAL:")) {
-    return "badge-info";
-  }
-  if (code.startsWith("COMBINED:")) {
-    return "badge-secondary";
-  }
-  return "badge-ghost";
 }
 
 const TopCriticalAnomalies: React.FC<TopCriticalAnomaliesProps> = ({
@@ -47,7 +29,7 @@ const TopCriticalAnomalies: React.FC<TopCriticalAnomaliesProps> = ({
             Top Critical Cases
           </CardTitle>
           <div className="text-sm text-base-content/70 mt-1">
-            Patients with the lowest anomaly scores requiring immediate review.
+            The highest-priority flagged cases for this period. Review these patients first.
           </div>
         </div>
       </CardHeader>
