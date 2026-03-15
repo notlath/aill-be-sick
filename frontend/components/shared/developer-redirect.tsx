@@ -2,22 +2,21 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  getDefaultLandingPath,
+  type DeveloperView,
+} from "@/constants/default-landing-path";
 
 export default function DeveloperRedirect() {
   const router = useRouter();
 
   useEffect(() => {
     // Check the developer's saved view preference
-    const savedView = localStorage.getItem("developerView") as
-      | "PATIENT"
-      | "CLINICIAN"
-      | null;
+    const savedView = localStorage.getItem(
+      "developerView",
+    ) as DeveloperView | null;
 
-    if (savedView === "CLINICIAN") {
-      router.push("/dashboard");
-    } else {
-      router.push("/diagnosis");
-    }
+    router.push(getDefaultLandingPath("DEVELOPER", savedView));
   }, [router]);
 
   return (

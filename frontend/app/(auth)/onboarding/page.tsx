@@ -15,11 +15,11 @@ import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
 
 const SearchBox = dynamic(
   () => import("@mapbox/search-js-react").then((mod) => mod.SearchBox),
-  { ssr: false }
+  { ssr: false },
 );
 const AddressMinimap = dynamic(
   () => import("@mapbox/search-js-react").then((mod) => mod.AddressMinimap),
-  { ssr: false }
+  { ssr: false },
 );
 
 import { DatePicker } from "@/components/ui/date-picker";
@@ -32,6 +32,11 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { BAGONG_SILANGAN_DISTRICTS } from "@/constants/bagong-silangan-districts";
+import {
+  getDefaultLandingPath,
+  type AppRole,
+  type DeveloperView,
+} from "@/constants/default-landing-path";
 import { useUserLocation } from "@/hooks/use-location";
 
 // Fixed location constants for Bagong Silangan, Quezon City
@@ -88,18 +93,12 @@ export default function OnboardingPage() {
         if (data?.success) {
           toast.success("Onboarding completed!");
 
-          let redirectPath = "/diagnosis";
-
-          if (data.success.role === "CLINICIAN") {
-            redirectPath = "/dashboard";
-          } else if (data.success.role === "DEVELOPER") {
-            const savedView = localStorage.getItem("developerView") as
-              | "PATIENT"
-              | "CLINICIAN"
-              | null;
-            redirectPath =
-              savedView === "CLINICIAN" ? "/dashboard" : "/diagnosis";
-          }
+          const role = data.success.role as AppRole;
+          const savedView =
+            role === "DEVELOPER"
+              ? (localStorage.getItem("developerView") as DeveloperView | null)
+              : null;
+          const redirectPath = getDefaultLandingPath(role, savedView);
 
           router.push(redirectPath);
         } else if (data?.error) {
@@ -164,7 +163,11 @@ export default function OnboardingPage() {
     const lng: number = feature.geometry.coordinates[0];
     const lat: number = feature.geometry.coordinates[1];
 
-    console.log("[onboarding] Autofill address selected —", { lat, lng, address });
+    console.log("[onboarding] Autofill address selected —", {
+      lat,
+      lng,
+      address,
+    });
 
     form.setValue("address", address, { shouldValidate: true });
     form.setValue("latitude", lat);

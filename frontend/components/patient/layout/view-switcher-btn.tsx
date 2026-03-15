@@ -3,6 +3,10 @@
 import { Eye, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  getDefaultLandingPathForDeveloperView,
+  type DeveloperView,
+} from "@/constants/default-landing-path";
 
 type ViewSwitcherBtnProps = {
   isDeveloper: boolean;
@@ -11,16 +15,15 @@ type ViewSwitcherBtnProps = {
 const ViewSwitcherBtn = ({ isDeveloper }: ViewSwitcherBtnProps) => {
   const router = useRouter();
   const [currentView, setCurrentView] = useState<"PATIENT" | "CLINICIAN">(
-    "PATIENT"
+    "PATIENT",
   );
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Load the saved view from localStorage
-    const savedView = localStorage.getItem("developerView") as
-      | "PATIENT"
-      | "CLINICIAN"
-      | null;
+    const savedView = localStorage.getItem(
+      "developerView",
+    ) as DeveloperView | null;
     if (savedView) {
       setCurrentView(savedView);
     }
@@ -32,12 +35,7 @@ const ViewSwitcherBtn = ({ isDeveloper }: ViewSwitcherBtnProps) => {
     setCurrentView(newView);
     localStorage.setItem("developerView", newView);
 
-    // Redirect to the appropriate home page
-    if (newView === "CLINICIAN") {
-      router.push("/dashboard");
-    } else {
-      router.push("/diagnosis");
-    }
+    router.push(getDefaultLandingPathForDeveloperView(newView));
   };
 
   return (

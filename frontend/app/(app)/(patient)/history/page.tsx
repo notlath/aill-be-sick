@@ -4,7 +4,7 @@ import { getChats } from "@/utils/chat";
 import { getCurrentDbUser } from "@/utils/user";
 import { Suspense } from "react";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
-import { PdfColumn } from "@/utils/pdf-export";
+import type { PdfColumn } from "@/utils/pdf-export";
 
 async function ChatHistoryList() {
   const { success: dbUser, error: userError } = await getCurrentDbUser();
@@ -50,7 +50,8 @@ async function ChatHistoryList() {
       modelUsed = chat.diagnosis.modelUsed;
     } else if (chat.tempDiagnoses && chat.tempDiagnoses.length > 0) {
       const latestTemp = [...chat.tempDiagnoses].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )[0];
       diagnosis = latestTemp.disease
         .toString()
@@ -65,8 +66,10 @@ async function ChatHistoryList() {
       const latestMessageContentRaw =
         messages.length > 0
           ? [...messages].sort(
-            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          )[0].content
+              (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime(),
+            )[0].content
           : "";
 
       diagnosis =
@@ -96,15 +99,17 @@ async function ChatHistoryList() {
   const exportData = rows.map((row) => ({
     diagnosis: row.diagnosis,
     modelUsed: row.modelUsed || "-",
-    uncertainty: row.uncertainty !== null ? `${(row.uncertainty * 100).toFixed(2)}%` : "-",
-    confidence: row.confidence !== null ? `${(row.confidence * 100).toFixed(2)}%` : "-",
+    uncertainty:
+      row.uncertainty !== null ? `${(row.uncertainty * 100).toFixed(2)}%` : "-",
+    confidence:
+      row.confidence !== null ? `${(row.confidence * 100).toFixed(2)}%` : "-",
     createdAt: new Date(row.createdAt),
   }));
 
   return (
     <div className="animate-fade-in w-full">
-      <DataTable 
-        columns={columns} 
+      <DataTable
+        columns={columns}
         data={rows}
         additionalActions={
           <ExportPdfButton
@@ -134,7 +139,10 @@ function ChatHistorySkeleton() {
       {/* Mobile Card Skeletons */}
       <div className="lg:hidden space-y-3">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="border border-border/60 rounded-2xl p-4 space-y-3">
+          <div
+            key={i}
+            className="border border-border/60 rounded-2xl p-4 space-y-3"
+          >
             <div className="flex items-start justify-between">
               <div className="space-y-1.5">
                 <div className="skeleton h-5 w-40" />
@@ -159,7 +167,10 @@ function ChatHistorySkeleton() {
       <div className="hidden lg:block border border-border rounded-xl">
         <div className="h-12 border-b border-border bg-base-200/50" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-16 border-b border-border/50 px-6 py-4 flex items-center justify-between">
+          <div
+            key={i}
+            className="h-16 border-b border-border/50 px-6 py-4 flex items-center justify-between"
+          >
             <div className="skeleton h-5 w-1/3" />
             <div className="skeleton h-5 w-24" />
             <div className="skeleton h-5 w-24" />

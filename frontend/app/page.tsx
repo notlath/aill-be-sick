@@ -1,5 +1,6 @@
 import DeveloperRedirect from "@/components/shared/developer-redirect";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
+import { getDefaultLandingPath } from "@/constants/default-landing-path";
 import { getCurrentDbUser } from "@/utils/user";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -24,23 +25,25 @@ const HomeContent = async () => {
     redirect("/login");
   }
 
-  if (dbUser.role === "CLINICIAN") {
-    redirect("/dashboard");
+  const role = dbUser.role as "PATIENT" | "CLINICIAN" | "ADMIN" | "DEVELOPER";
+
+  if (role === "CLINICIAN") {
+    redirect(getDefaultLandingPath(role));
   }
 
-  if (dbUser.role === "ADMIN") {
-    redirect("/dashboard");
+  if (role === "ADMIN") {
+    redirect(getDefaultLandingPath(role));
   }
 
-  if (dbUser.role === "PATIENT") {
+  if (role === "PATIENT") {
     if (!dbUser.isOnboarded) {
       redirect("/onboarding");
     }
-    redirect("/diagnosis");
+    redirect(getDefaultLandingPath(role));
   }
 
   // For DEVELOPER role, use client-side redirect to check localStorage preference
-  if (dbUser.role === ("DEVELOPER" as any)) {
+  if (role === "DEVELOPER") {
     if (!dbUser.isOnboarded) {
       redirect("/onboarding");
     }
