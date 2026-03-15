@@ -5,8 +5,9 @@ import {
   OctagonAlert,
   Stethoscope,
   User,
-  FileText
+  FileText,
 } from "lucide-react";
+import { DEFAULT_LANDING_PATH_BY_ROLE } from "./default-landing-path";
 
 export type NavItem = {
   name: string;
@@ -14,10 +15,13 @@ export type NavItem = {
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 };
 
+// Keep each role's primary nav destination aligned with DEFAULT_LANDING_PATH_BY_ROLE
+// so default redirects and first nav actions always point to the same route.
+
 export const patientNavItems: NavItem[] = [
   {
     name: "New chat",
-    href: "/diagnosis",
+    href: DEFAULT_LANDING_PATH_BY_ROLE.PATIENT,
     icon: Stethoscope,
   },
   {
@@ -30,7 +34,7 @@ export const patientNavItems: NavItem[] = [
 export const clinicianNavItems: NavItem[] = [
   {
     name: "Surveillance",
-    href: "/map",
+    href: DEFAULT_LANDING_PATH_BY_ROLE.CLINICIAN,
     icon: MapPin,
   },
   {
@@ -58,7 +62,7 @@ export const clinicianNavItems: NavItem[] = [
 export const adminNavItems: NavItem[] = [
   {
     name: "Surveillance",
-    href: "/map",
+    href: DEFAULT_LANDING_PATH_BY_ROLE.ADMIN,
     icon: MapPin,
   },
   {
