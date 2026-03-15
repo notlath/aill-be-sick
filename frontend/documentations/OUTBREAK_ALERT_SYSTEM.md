@@ -43,6 +43,10 @@ This section provides a high-level summary of how the system identifies and comm
    - It automatically determines the optimal number of clusters using the **Calinski-Harabasz Index**. 
    - If it finds a tight, dense cluster of 5 or more cases in a specific area, it flags a **Dense Cluster (Medium/High Priority)**.
 
+   > **In plain terms:** While the Threshold Check (Step 4) only asks *"how many cases are there?"*, this step asks *"where are those cases happening?"* Every diagnosis has GPS coordinates attached to it. K-Means is an algorithm that groups those map coordinates into neighborhoods automatically. The Calinski-Harabasz Index acts as a scoring system to find the right number of groups — too few and you miss real hotspots, too many and random scatter looks like a cluster. If 5 or more cases end up tightly grouped in the same small area, the system flags it as a geographic hotspot even if the raw case count alone would not have triggered a threshold alert.
+   >
+   > **Why this matters:** Imagine 10 new Dengue cases across a whole district — that might be normal. But if 8 of those 10 cases are all within two blocks of each other, that strongly suggests a localized source (a stagnant water site, a school, etc.) and warrants an alert regardless of volume. The threshold check catches *volume-based* outbreaks; clustering catches *geographically concentrated* ones.
+
 6. **Spam Prevention (24-Hour Rule)**
    Before sounding the alarm, the Next.js server checks the database to see if an active `OUTBREAK` alert for that specific disease and district was already created in the last 24 hours. If so, it skips the alert to avoid spamming the dashboard.
 
