@@ -3,7 +3,7 @@ import { getAllDiagnoses } from "@/utils/diagnosis";
 import { DataTable } from "@/components/clinicians/healthcare-reports-page/data-table";
 import { columns } from "@/components/clinicians/healthcare-reports-page/columns";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
-import { PdfColumn } from "@/utils/pdf-export";
+import type { PdfColumn } from "@/utils/pdf-export";
 
 export default function HealthcareReports() {
   return (
@@ -41,7 +41,7 @@ async function DiagnosesData() {
 
   if (error) {
     throw new Error(
-      typeof error === "string" ? error : "Failed to load healthcare reports"
+      typeof error === "string" ? error : "Failed to load healthcare reports",
     );
   }
 
@@ -64,8 +64,8 @@ async function DiagnosesData() {
   }));
 
   return (
-    <DataTable 
-      columns={columns} 
+    <DataTable
+      columns={columns}
       data={diagnoses || []}
       additionalActions={
         <ExportPdfButton
@@ -97,7 +97,10 @@ function TableSkeleton() {
       <div className="border border-border rounded-xl overflow-hidden">
         <div className="h-12 border-b border-border bg-base-200/50" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-16 border-b border-border/50 px-6 py-4 flex items-center justify-between">
+          <div
+            key={i}
+            className="h-16 border-b border-border/50 px-6 py-4 flex items-center justify-between"
+          >
             <div className="skeleton h-5 w-1/4" />
             <div className="skeleton h-5 w-1/4" />
             <div className="skeleton h-5 w-24" />

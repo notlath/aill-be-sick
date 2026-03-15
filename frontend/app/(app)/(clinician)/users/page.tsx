@@ -3,7 +3,7 @@ import { columns, UserRow } from "@/components/clinicians/users-page/columns";
 import { DataTable } from "@/components/clinicians/users-page/data-table";
 import { getAllUsers, getCurrentDbUser } from "@/utils/user";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
-import { PdfColumn } from "@/utils/pdf-export";
+import type { PdfColumn } from "@/utils/pdf-export";
 
 function UsersTableSkeleton() {
   return (
@@ -21,7 +21,10 @@ function UsersTableSkeleton() {
       <div className="border border-border rounded-xl overflow-hidden">
         <div className="h-12 border-b border-border bg-base-200/50" />
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-16 border-b border-border/50 px-6 py-4 flex items-center justify-between">
+          <div
+            key={i}
+            className="h-16 border-b border-border/50 px-6 py-4 flex items-center justify-between"
+          >
             <div className="skeleton h-5 w-1/4" />
             <div className="skeleton h-5 w-1/4" />
             <div className="skeleton h-5 w-24" />
@@ -63,9 +66,9 @@ async function UsersTable({ currentUserRole }: { currentUserRole: string }) {
   }));
 
   return (
-    <DataTable 
-      columns={columns} 
-      data={users || []} 
+    <DataTable
+      columns={columns}
+      data={users || []}
       currentUserRole={currentUserRole}
       additionalActions={
         <ExportPdfButton
