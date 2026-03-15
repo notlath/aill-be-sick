@@ -55,7 +55,7 @@ const ChatBubble = ({
   const shouldShowToggle = isLowConfidenceFinal && canSeeDetails;
 
   const containerClass = cn(
-    "p-3 px-4 rounded-xl max-w-[60%]",
+    "p-3 px-4 rounded-xl max-w-[85%] sm:max-w-[60%] break-words",
     // Default alignment by role
     role === "USER" ? "self-end" : "self-start",
     // Visual style

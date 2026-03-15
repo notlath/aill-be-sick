@@ -738,7 +738,7 @@ const ChatWindow = ({
     <FormProvider {...form}>
       <div className="flex flex-col h-full w-full">
         {/* Scrollable messages area — scroll stays inside the card, not the viewport */}
-        <div className="flex-1 overflow-y-auto w-full flex flex-col items-center">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden w-full flex flex-col items-center">
           <ThreadTransition className="w-full max-w-[768px]">
             <ChatContainer
               ref={chatEndRef}
