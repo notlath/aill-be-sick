@@ -6,7 +6,11 @@ import {
   MapPin,
   TrendingUp,
   AlertTriangle,
+  Clock,
+  Users,
+  ShieldCheck,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface DistrictStatsCardsProps {
   totalCases: number;
@@ -101,23 +105,43 @@ const DistrictStatsCards = ({
 
 interface CoordinatesStatsCardsProps {
   totalAllCases: number;
-  pinnedCases: number;
-  unpinnedCases: number;
-  coveragePercent: number;
+  newestCaseDate: Date | null;
+  uniquePatientsCount: number;
+  avgConfidence: number | null;
   onTotalClick: () => void;
-  onPinnedClick: () => void;
-  onUnpinnedClick: () => void;
 }
 
 const CoordinatesStatsCards = ({
   totalAllCases,
-  pinnedCases,
-  unpinnedCases,
-  coveragePercent,
+  newestCaseDate,
+  uniquePatientsCount,
+  avgConfidence,
   onTotalClick,
-  onPinnedClick,
-  onUnpinnedClick,
 }: CoordinatesStatsCardsProps) => {
+  const newestCaseLabel = newestCaseDate
+    ? formatDistanceToNow(newestCaseDate, { addSuffix: true })
+    : "No cases";
+
+  const newestCaseSubtitle = newestCaseDate
+    ? newestCaseDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "No recorded cases in this period";
+
+  const confidenceLabel =
+    avgConfidence !== null ? `${Math.round(avgConfidence * 100)}%` : "N/A";
+
+  const confidenceSubtitle =
+    avgConfidence !== null
+      ? avgConfidence >= 0.9
+        ? "High reliability"
+        : avgConfidence >= 0.7
+          ? "Moderate reliability"
+          : "Low reliability — review with care"
+      : "No confidence data available";
+
   return (
     <>
       <Card
@@ -140,42 +164,17 @@ const CoordinatesStatsCards = ({
         </CardContent>
       </Card>
 
-      <Card
-        className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-        onClick={onPinnedClick}
-      >
+      <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Pinned Cases
+            Most Recent Case
           </CardTitle>
-          <MapPin className="h-4 w-4 text-emerald-500" />
+          <Clock className="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent className="p-6 pt-0">
-          <div className="text-2xl font-bold">
-            {pinnedCases.toLocaleString()}
-          </div>
+          <div className="text-2xl font-bold">{newestCaseLabel}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            Cases with recorded coordinates
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card
-        className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-        onClick={onUnpinnedClick}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Unpinned Cases
-          </CardTitle>
-          <AlertTriangle className="h-4 w-4 text-orange-500" />
-        </CardHeader>
-        <CardContent className="p-6 pt-0">
-          <div className="text-2xl font-bold">
-            {unpinnedCases.toLocaleString()}
-          </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            Cases without location data
+            {newestCaseSubtitle}
           </p>
         </CardContent>
       </Card>
@@ -183,14 +182,31 @@ const CoordinatesStatsCards = ({
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Coverage
+            Unique Patients
           </CardTitle>
-          <TrendingUp className="h-4 w-4 text-primary" />
+          <Users className="h-4 w-4 text-emerald-500" />
         </CardHeader>
         <CardContent className="p-6 pt-0">
-          <div className="text-2xl font-bold">{coveragePercent}%</div>
+          <div className="text-2xl font-bold">
+            {uniquePatientsCount.toLocaleString()}
+          </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Of cases have coordinates
+            Individual patients with this condition
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Avg. AI Confidence
+          </CardTitle>
+          <ShieldCheck className="h-4 w-4 text-primary" />
+        </CardHeader>
+        <CardContent className="p-6 pt-0">
+          <div className="text-2xl font-bold">{confidenceLabel}</div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {confidenceSubtitle}
           </p>
         </CardContent>
       </Card>
