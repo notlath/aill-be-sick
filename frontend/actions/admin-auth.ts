@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { actionClient } from "./client";
 import { EmailAuthSchema } from "@/schemas/EmailAuthSchema";
+import { getCurrentDbUser } from "@/utils/user";
 
 export const adminLogin = actionClient
   .inputSchema(EmailAuthSchema)
@@ -30,6 +31,16 @@ export const adminLogin = actionClient
 export const adminSignup = actionClient
   .inputSchema(EmailAuthSchema)
   .action(async ({ parsedInput }) => {
+    const { success: dbUser, error: authError } = await getCurrentDbUser();
+
+    if (authError || !dbUser) {
+      return { error: "Unauthorized" };
+    }
+
+    if (dbUser.role !== "ADMIN" && dbUser.role !== ("DEVELOPER" as any)) {
+      return { error: "Unauthorized. Admin access required." };
+    }
+
     const { email, password } = parsedInput;
     const supabase = await createClient();
 

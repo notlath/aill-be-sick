@@ -9,17 +9,23 @@ This module serves dual purposes:
 
 import os
 import json
+import logging
 import secrets
 from flask import Flask
 from flask_cors import CORS
 
-from app.services.verification import OntologyBuilder, VerificationLayer, extract_clinical_concepts   # noqa: F401 — re-exported
+from app.services.verification import (
+    OntologyBuilder,
+    VerificationLayer,
+    extract_clinical_concepts,
+)  # noqa: F401 — re-exported
 
 # Re-export config at package level for `from app import config`
 import app.config as config  # noqa: F401
 
 
 # ── Question Banks ────────────────────────────────────────────────────────────
+
 
 def _load_question_banks():
     """Load English and Tagalog question banks from JSON files."""
@@ -44,6 +50,7 @@ QUESTION_BANK = QUESTION_BANK_EN
 
 # ── App Factory ───────────────────────────────────────────────────────────────
 
+
 def create_app():
     """
     Application factory.
@@ -52,21 +59,37 @@ def create_app():
     flask_app = Flask(__name__)
 
     # --- Session / Security Configuration ---
-    flask_app.secret_key = secrets.token_hex(32)
+    flask_app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
+    if not os.environ.get("FLASK_SECRET_KEY"):
+        logging.warning(
+            "FLASK_SECRET_KEY is not set — using a random key. "
+            "Sessions will not persist across restarts. "
+            "Set FLASK_SECRET_KEY in your environment for production."
+        )
     flask_app.config["SESSION_COOKIE_HTTPONLY"] = True
     flask_app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    flask_app.config["SESSION_COOKIE_SECURE"] = os.environ.get(
-        "SESSION_COOKIE_SECURE", "true" if os.environ.get("FLASK_ENV") != "development" else "false"
-    ).lower() == "true"
+    flask_app.config["SESSION_COOKIE_SECURE"] = (
+        os.environ.get(
+            "SESSION_COOKIE_SECURE",
+            "true" if os.environ.get("FLASK_ENV") != "development" else "false",
+        ).lower()
+        == "true"
+    )
 
     # --- CORS ---
+    allowed_origins = list(
+        filter(
+            None,
+            [
+                "http://localhost:3000",
+                "https://aill-be-sick.vercel.app",
+                os.getenv("FRONTEND_URL"),
+            ],
+        )
+    )
     CORS(
         flask_app,
-        origins=[
-            "http://localhost:3000",
-            "http://aill-be-sick.vercel.app/",
-            os.getenv("FRONTEND_URL", "*"),
-        ],
+        origins=allowed_origins,
         supports_credentials=True,
     )
 

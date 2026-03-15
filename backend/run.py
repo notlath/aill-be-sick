@@ -16,6 +16,6 @@ app = create_app()
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 10000))
-    debug = os.getenv("FLASK_DEBUG", "True").lower() in ("1", "true", "yes")
+    debug = os.getenv("FLASK_DEBUG", "False").lower() in ("1", "true", "yes")
     print(f"[STARTUP] Running on http://0.0.0.0:{port} (debug={debug})")
     app.run(host="0.0.0.0", port=port, debug=debug)
