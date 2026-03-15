@@ -70,6 +70,16 @@ export function DataTable<TData, TValue>({
 
   const isAdmin = currentUserRole === "ADMIN";
 
+  const hasRoleColumn = useMemo(
+    () =>
+      columns.some(
+        (col) =>
+          (col as { id?: string; accessorKey?: string }).id === "role" ||
+          (col as { id?: string; accessorKey?: string }).accessorKey === "role"
+      ),
+    [columns]
+  );
+
   const roleFilterOptions = isAdmin
     ? [
         { value: "ADMIN", label: "Admin" },
@@ -177,7 +187,7 @@ export function DataTable<TData, TValue>({
             </SelectContent>
           </Select>
 
-          {isAdmin && (
+          {isAdmin && hasRoleColumn && (
             <Select className="w-auto" 
               value={(table.getColumn("role")?.getFilterValue() as string) ?? ""}
               onValueChange={(value) => {

@@ -44,11 +44,13 @@ export function PatientDetailModal({
         className="modal-box w-11/12 max-w-2xl bg-base-100 max-h-[90vh] overflow-y-auto"
         onClick={handleContentClick}
       >
-        <form method="dialog">
-          <button className="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">
-            ✕
-          </button>
-        </form>
+        <button 
+          type="button" 
+          onClick={onClose} 
+          className="btn btn-sm btn-circle btn-ghost absolute right-4 top-4"
+        >
+          ✕
+        </button>
         <h3 className="font-bold text-2xl mb-6">Patient Details</h3>
 
         <div className="space-y-4">

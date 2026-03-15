@@ -214,13 +214,14 @@ export function DataTable<TData, TValue>({
           </div>
 
           {/* Controls row */}
-          <div className="flex flex-wrap gap-2 items-center">
-            {/* Sort */}
-            <Select
-              value={currentSortLabel}
-              onValueChange={handleSortChange}
-              className="w-auto"
-            >
+          <div className="flex flex-wrap gap-2 items-center justify-between">
+            <div className="flex flex-wrap gap-2 items-center">
+              {/* Sort */}
+              <Select
+                value={currentSortLabel}
+                onValueChange={handleSortChange}
+                className="w-auto"
+              >
               <SelectTrigger className="w-48 shrink-0 h-10 text-sm">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -311,9 +312,10 @@ export function DataTable<TData, TValue>({
                 Clear
               </button>
             )}
+            </div>
 
             {/* Export PDF / Additional Actions - justified to the end */}
-            <div className="ml-auto shrink-0 flex items-center h-10">
+            <div className="shrink-0 flex items-center h-10">
               {additionalActions}
             </div>
           </div>

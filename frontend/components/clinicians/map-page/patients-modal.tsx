@@ -71,7 +71,7 @@ export default function PatientsModal({
                 }`}
             </p>
           </div>
-          <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
+          <button type="button" className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
             ✕
           </button>
         </div>
