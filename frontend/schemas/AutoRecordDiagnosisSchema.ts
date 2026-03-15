@@ -9,8 +9,6 @@ import * as z from "zod";
 export const AutoRecordDiagnosisSchema = z.object({
   messageId: z.number().min(1, "Message ID cannot be empty"),
   chatId: z.string().min(1, "Chat ID cannot be empty"),
-  latitude: z.number().optional(),
-  longitude: z.number().optional(),
 });
 
 export type AutoRecordDiagnosisInput = z.infer<typeof AutoRecordDiagnosisSchema>;

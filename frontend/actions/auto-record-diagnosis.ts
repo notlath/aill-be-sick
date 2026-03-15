@@ -31,7 +31,7 @@ const AUTO_RECORD_CONFIDENCE_THRESHOLD = 0.95;
 export const autoRecordDiagnosis = actionClient
   .inputSchema(AutoRecordDiagnosisSchema)
   .action(async ({ parsedInput }) => {
-    const { messageId, chatId, latitude, longitude } = parsedInput;
+    const { messageId, chatId } = parsedInput;
 
     const { success: dbUser, error } = await getCurrentDbUser();
     if (!dbUser) {
@@ -89,8 +89,8 @@ export const autoRecordDiagnosis = actionClient
           chatId,
           symptoms: tempDiagnosis.symptoms,
           userId: dbUser.id,
-          latitude: latitude ?? null,
-          longitude: longitude ?? null,
+          latitude: dbUser.latitude ?? null,
+          longitude: dbUser.longitude ?? null,
           city: dbUser.city,
           province: dbUser.province,
           region: dbUser.region,
@@ -132,8 +132,8 @@ export const autoRecordDiagnosis = actionClient
         region: dbUser.region,
         barangay: dbUser.barangay,
         district: dbUser.district,
-        latitude: latitude ?? null,
-        longitude: longitude ?? null,
+        latitude: dbUser.latitude ?? null,
+        longitude: dbUser.longitude ?? null,
         patientAge: dbUser.age ?? undefined,
         patientGender: dbUser.gender ?? undefined,
       }).catch((err) =>
