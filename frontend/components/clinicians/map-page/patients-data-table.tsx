@@ -27,6 +27,7 @@ import {
 interface PatientsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onRowClick?: (row: TData) => void;
 }
 
 type SortOption = {
@@ -46,13 +47,14 @@ const sortOptions: SortOption[] = [
   { value: "disease", label: "Diagnosis (Z-A)", desc: true },
   { value: "diagnosed_at", label: "Diagnosis Date (Oldest)", desc: false },
   { value: "diagnosed_at", label: "Diagnosis Date (Newest)", desc: true },
-  { value: "patient_id", label: "ID (Low-High)", desc: false },
-  { value: "patient_id", label: "ID (High-Low)", desc: true },
+  { value: "severity", label: "Severity (Most Reliable)", desc: false },
+  { value: "severity", label: "Severity (Needs Review)", desc: true },
 ];
 
 export function PatientsDataTable<TData, TValue>({
   columns,
   data,
+  onRowClick,
 }: PatientsDataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -78,11 +80,11 @@ export function PatientsDataTable<TData, TValue>({
         return true;
       }
 
-      // If it's the location column, explicitly check the parts since we might be filtering by something that wasn't rendered yet
+      // If it's the location column, explicitly check the district since that's what we display
       if (columnId === "location") {
         const original = row.original as any;
-        const locationString = [original.barangay, original.city, original.region].filter(Boolean).join(", ").toLowerCase();
-        if (locationString.includes(search)) {
+        const district = (original.district || "").toLowerCase();
+        if (district.includes(search)) {
           return true;
         }
       }
@@ -181,6 +183,24 @@ export function PatientsDataTable<TData, TValue>({
               <SelectItem value="OTHER">Other</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select className="w-auto"
+            value={(table.getColumn("severity")?.getFilterValue() as string) ?? ""}
+            onValueChange={(value) => {
+              table.getColumn("severity")?.setFilterValue(value || undefined);
+              table.setPageIndex(0);
+            }}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All Severities" />
+            </SelectTrigger>
+            <SelectContent className="right-0 left-auto">
+              <SelectItem value="">All Severities</SelectItem>
+              <SelectItem value="Reliable">Reliable</SelectItem>
+              <SelectItem value="Review Recommended">Review Recommended</SelectItem>
+              <SelectItem value="Expert Review Needed">Expert Review Needed</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -207,7 +227,11 @@ export function PatientsDataTable<TData, TValue>({
             <tbody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id}>
+                  <tr
+                    key={row.id}
+                    className={onRowClick ? "cursor-pointer hover:bg-base-200" : ""}
+                    onClick={() => onRowClick?.(row.original)}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id}>
                         {flexRender(

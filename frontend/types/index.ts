@@ -209,6 +209,7 @@ export interface IllnessRecord {
   latitude: number | null;
   longitude: number | null;
   diagnosed_at: string | null;
+  symptoms: string | null;
   patient_id: number;
   patient_name: string | null;
   patient_email: string | null;
