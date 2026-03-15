@@ -2,7 +2,6 @@ import LazyMarkdown from "@/components/ui/lazy-markdown";
 import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { Explanation } from "@/types";
 import { cn } from "@/utils/lib";
-import { LocationData } from "@/utils/location";
 import { ChevronDown, ChevronUp, Info, XCircle } from "lucide-react";
 import { memo, useState } from "react";
 import InsightsModal from "./insights-modal";
@@ -15,7 +14,6 @@ type ChatBubbleProps = {
   idx?: number;
   tempDiagnosis?: TempDiagnosis;
   chatHasDiagnosis?: boolean;
-  location?: LocationData | null;
   isGettingExplanations: boolean;
   explanation: Explanation | null;
   userRole?: string;
@@ -37,7 +35,6 @@ const ChatBubble = ({
   tempDiagnosis,
   chatId,
   chatHasDiagnosis,
-  location,
   isGettingExplanations,
   explanation,
   userRole,
@@ -115,16 +112,13 @@ const ChatBubble = ({
           {/* Low-confidence diagnoses (<95%): Show Record + Discard buttons for user choice */}
           {isLowConfidenceFinal && (
             <div className="flex gap-2 mt-4">
-              {location && (
-                <RecordDiagnosisBtn
-                  disabled={
-                    chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
-                  }
-                  tempDiagnosis={tempDiagnosis}
-                  chatId={chatId}
-                  location={location}
-                />
-              )}
+              <RecordDiagnosisBtn
+                disabled={
+                  chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
+                }
+                tempDiagnosis={tempDiagnosis}
+                chatId={chatId}
+              />
               <DiscardDiagnosisBtn
                 chatId={chatId}
                 disabled={chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx}

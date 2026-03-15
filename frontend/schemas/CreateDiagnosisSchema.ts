@@ -16,11 +16,4 @@ export const CreateDiagnosisSchema = z.object({
   ]),
   chatId: z.string().min(1, "Chat ID cannot be empty"),
   messageId: z.number().min(1, "Message ID cannot be empty"),
-  location: z.object({
-    latitude: z.number(),
-    longitude: z.number(),
-    city: z.string().optional(),
-    province: z.string().optional(),
-    region: z.string().optional(),
-  }),
 });
