@@ -2,19 +2,18 @@ import LazyMarkdown from "@/components/ui/lazy-markdown";
 import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { Explanation } from "@/types";
 import { cn } from "@/utils/lib";
-import { LocationData } from "@/utils/location";
 import { ChevronDown, ChevronUp, Info, XCircle } from "lucide-react";
 import { memo, useState } from "react";
 import InsightsModal from "./insights-modal";
 import RecordDiagnosisBtn from "./record-diagnosis-btn";
 import ViewInsightsBtn from "./view-insights-btn";
+import DiscardDiagnosisBtn from "./discard-diagnosis-btn";
 
 type ChatBubbleProps = {
   messagesLength: number;
   idx?: number;
   tempDiagnosis?: TempDiagnosis;
   chatHasDiagnosis?: boolean;
-  location?: LocationData | null;
   isGettingExplanations: boolean;
   explanation: Explanation | null;
   userRole?: string;
@@ -36,7 +35,6 @@ const ChatBubble = ({
   tempDiagnosis,
   chatId,
   chatHasDiagnosis,
-  location,
   isGettingExplanations,
   explanation,
   userRole,
@@ -54,7 +52,7 @@ const ChatBubble = ({
   const shouldShowToggle = isLowConfidenceFinal && canSeeDetails;
 
   const containerClass = cn(
-    "p-3 px-4 rounded-xl max-w-[60%]",
+    "p-3 px-4 rounded-xl max-w-[85%] sm:max-w-[60%] break-words",
     // Default alignment by role
     role === "USER" ? "self-end" : "self-start",
     // Visual style
@@ -109,16 +107,25 @@ const ChatBubble = ({
           )}
         </div>
       )}
-      {type === "DIAGNOSIS" && location && (
+      {type === "DIAGNOSIS" && (
         <>
-          <RecordDiagnosisBtn
-            disabled={
-              chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
-            }
-            tempDiagnosis={tempDiagnosis}
-            chatId={chatId}
-            location={location}
-          />
+          {/* Low-confidence diagnoses (<95%): Show Record + Discard buttons for user choice */}
+          {isLowConfidenceFinal && (
+            <div className="flex gap-2 mt-4">
+              <RecordDiagnosisBtn
+                disabled={
+                  chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx
+                }
+                tempDiagnosis={tempDiagnosis}
+                chatId={chatId}
+              />
+              <DiscardDiagnosisBtn
+                chatId={chatId}
+                disabled={chatHasDiagnosis || !tempDiagnosis || messagesLength - 1 !== idx}
+              />
+            </div>
+          )}
+          {/* High-confidence diagnoses (≥95%): Auto-recorded, no buttons needed */}
           <ViewInsightsBtn disabled={isGettingExplanations || !explanation} />
         </>
       )}

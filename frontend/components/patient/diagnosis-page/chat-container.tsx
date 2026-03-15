@@ -1,7 +1,6 @@
 import LazyMarkdown from "@/components/ui/lazy-markdown";
 import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { Explanation } from "@/types";
-import { LocationData } from "@/utils/location";
 import { forwardRef, memo } from "react";
 import ChatBubble from "./chat-bubble";
 import QuestionBubble from "./question-bubble";
@@ -23,7 +22,6 @@ type ChatContainerProps = {
   isGettingQuestion: boolean;
   isGettingExplanations: boolean;
   hasDiagnosis?: boolean;
-  location?: LocationData | null;
   currentQuestion?: {
     id: string;
     question: string;
@@ -95,7 +93,6 @@ const ChatContainer = memo(
         isGettingQuestion,
         isGettingExplanations,
         hasDiagnosis,
-        location,
         currentQuestion,
         onQuestionAnswer,
         dbExplanation,
@@ -104,7 +101,7 @@ const ChatContainer = memo(
       ref,
     ) => {
       return (
-        <section className="flex flex-col flex-1 space-x-auto space-y-2 py-8 w-full max-w-[768px]">
+        <section className="flex flex-col flex-1 space-y-2 py-8 px-4 w-full max-w-[768px]">
           {messages.map((message, idx) => (
             <ChatBubble
               key={message.id ? `${message.id}-${idx}` : `msg-${idx}`}
@@ -113,7 +110,6 @@ const ChatContainer = memo(
               chatHasDiagnosis={hasDiagnosis}
               isGettingExplanations={isGettingExplanations}
               explanation={message.explanation || dbExplanation || null}
-              location={location}
               tempDiagnosis={message.tempDiagnosis}
               userRole={userRole}
               {...message}

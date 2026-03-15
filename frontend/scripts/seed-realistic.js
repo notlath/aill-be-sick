@@ -5,7 +5,9 @@
     1. Wipes all PATIENT users EXCEPT the IDs listed in PRESERVE_USER_IDS
        (Prisma's onDelete: Cascade removes their linked Diagnoses and Chats too).
     2. Creates 500 new PATIENT users, each placed inside a specific district of
-       Bagong Silangan with realistic population weighting.
+       Bagong Silangan with realistic population weighting. Coordinates are
+       jittered around district centroids and constrained to stay inside each
+       district polygon (from public/geojson/bagong_silangan.geojson).
     3. Defines two outbreak events baked into a 6-month time window:
          • Dengue surge   — weeks 8–10,  concentrated in Barangay Proper + Filinvest 2
          • Typhoid cluster — weeks 14–16, concentrated in Sitio Bakal + Covenant Village
@@ -17,16 +19,30 @@
   Or:  npm run seed:realistic
 */
 
+const path = require("path");
+const fs = require("fs");
+const turf = require("@turf/turf");
 const { PrismaClient } = require("../lib/generated/prisma");
 
 const prisma = new PrismaClient();
+
+// Load district polygons from GeoJSON so we can keep seeded points inside bounds
+const GEOJSON_PATH = path.join(__dirname, "../public/geojson/bagong_silangan.geojson");
+const GEOJSON = JSON.parse(fs.readFileSync(GEOJSON_PATH, "utf8"));
+const DISTRICT_POLYGONS = new Map();
+for (const f of GEOJSON.features) {
+  const name = f.properties && f.properties.name;
+  if (name && f.geometry && f.geometry.type === "Polygon") {
+    DISTRICT_POLYGONS.set(name, f);
+  }
+}
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
 const TOTAL_USERS = 500;
 
 // These user IDs will never be touched (real accounts)
-const PRESERVE_USER_IDS = [2, 111, 124, 127, 1486, 1487, 1491, 1496, 1497];
+const PRESERVE_USER_IDS = [2, 111, 124, 127, 1486, 1487, 1491, 1496, 1497, 999999, 99999, 2967];
 
 const DISEASES = ["DENGUE", "PNEUMONIA", "TYPHOID", "IMPETIGO", "DIARRHEA", "MEASLES", "INFLUENZA"];
 const MODELS   = ["BIOCLINICAL_MODERNBERT", "ROBERTA_TAGALOG"];
@@ -80,7 +96,7 @@ const DISTRICTS = [
   // Sparse
   { name: "Sitio Veterans",                centLat: 14.706392, centLng: 121.107016, radiusDeg: 0.004,  populationWeight:  4 },
   { name: "DSWD",                          centLat: 14.693852, centLng: 121.098877, radiusDeg: 0.002,  populationWeight:  2 },
-  { name: "Agri Land",                     centLat: 14.709770, centLng: 121.119888, radiusDeg: 0.006,  populationWeight:  2 },
+  { name: "Agri Land",                     centLat: 14.717332, centLng: 121.118672, radiusDeg: 0.006,  populationWeight:  2 },
 ];
 
 // Pre-build a weighted sampling array
@@ -156,6 +172,31 @@ function jitteredCoord(centLat, centLng, radiusDeg) {
     latitude:  Math.min(Math.max(lat, centLat - radiusDeg), centLat + radiusDeg),
     longitude: Math.min(Math.max(lng, centLng - radiusDeg), centLng + radiusDeg),
   };
+}
+
+// Generate a point inside the given district polygon by jittering around the
+// centroid and retrying until the point falls inside the polygon (from GeoJSON).
+// Falls back to a point-on-polygon (guaranteed inside) if no valid point after maxRetries.
+function jitteredCoordInDistrict(district) {
+  const { centLat, centLng, radiusDeg, name } = district;
+  const polygonFeature = DISTRICT_POLYGONS.get(name);
+  const maxRetries = 100;
+
+  if (!polygonFeature) {
+    return jitteredCoord(centLat, centLng, radiusDeg);
+  }
+
+  for (let i = 0; i < maxRetries; i++) {
+    const { latitude, longitude } = jitteredCoord(centLat, centLng, radiusDeg);
+    const point = turf.point([longitude, latitude]);
+    if (turf.booleanPointInPolygon(point, polygonFeature)) {
+      return { latitude, longitude };
+    }
+  }
+
+  const onFeature = turf.pointOnFeature(polygonFeature);
+  const [lng, lat] = onFeature.geometry.coordinates;
+  return { latitude: lat, longitude: lng };
 }
 
 // Map week offset to a random Date within that week
@@ -261,9 +302,7 @@ async function seed() {
 
       // Pick district by population weight
       const district   = randChoice(DISTRICT_POOL);
-      const { latitude, longitude } = jitteredCoord(
-        district.centLat, district.centLng, district.radiusDeg,
-      );
+      const { latitude, longitude } = jitteredCoordInDistrict(district);
 
       // Create user — pass birthday (not age); the trigger derives age from birthday
       const user = await prisma.user.create({

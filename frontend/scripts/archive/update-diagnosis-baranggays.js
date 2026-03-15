@@ -3,7 +3,7 @@
   Run: bun scripts/update-diagnosis-baranggays.js
 */
 
-const { PrismaClient } = require("../lib/generated/prisma");
+const { PrismaClient } = require("../../lib/generated/prisma");
 
 const prisma = new PrismaClient();
 

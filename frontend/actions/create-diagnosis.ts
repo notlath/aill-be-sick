@@ -72,7 +72,6 @@ export const createDiagnosis = actionClient
       disease,
       chatId,
       symptoms,
-      location,
       messageId,
     } = parsedInput;
     const { success: dbUser, error } = await getCurrentDbUser();
@@ -103,8 +102,8 @@ export const createDiagnosis = actionClient
           chatId,
           symptoms,
           userId: dbUser.id,
-          latitude: location.latitude,
-          longitude: location.longitude,
+          latitude: dbUser.latitude ?? null,
+          longitude: dbUser.longitude ?? null,
           city: dbUser.city,
           province: dbUser.province,
           region: dbUser.region,
@@ -150,8 +149,8 @@ export const createDiagnosis = actionClient
         region: dbUser.region,
         barangay: dbUser.barangay,
         district: dbUser.district,
-        latitude: location.latitude,
-        longitude: location.longitude,
+        latitude: dbUser.latitude ?? null,
+        longitude: dbUser.longitude ?? null,
         patientAge: dbUser.age ?? undefined,
         patientGender: dbUser.gender ?? undefined,
       }).catch((err) =>
