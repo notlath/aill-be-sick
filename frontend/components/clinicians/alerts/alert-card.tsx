@@ -127,9 +127,9 @@ export function AlertCard({
             <span className={`badge badge-sm border-none ${getSeverityBadgeClass(alert.severity)}`}>
               {getSeverityLabel(alert.severity)}
             </span>
-            {alert.diagnosisId ? (
-              <span className="text-xs text-base-content/50 bg-base-200 px-2 py-0.5 rounded">
-                Diagnosis ID: {alert.diagnosisId}
+            {(alert.metadata as any)?.disease ? (
+              <span className="text-xs text-base-content/60 bg-base-200 px-2 py-0.5 rounded font-medium">
+                {(alert.metadata as any).disease}
               </span>
             ) : null}
           </div>
@@ -137,6 +137,14 @@ export function AlertCard({
           <p className="text-base font-medium text-base-content leading-snug line-clamp-2 title-tooltip" title={alert.message}>
             {alert.message}
           </p>
+          {(alert.metadata as any)?.district || (alert.metadata as any)?.barangay ? (
+            <p className="text-xs text-base-content/50 flex items-center gap-1">
+              <MapPin className="w-3 h-3 shrink-0" />
+              {[(alert.metadata as any).district, (alert.metadata as any).barangay]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          ) : null}
           <div className="text-xs text-base-content/40 mt-auto flex items-center gap-1.5">
             <span>{timeAgo}</span>
           </div>

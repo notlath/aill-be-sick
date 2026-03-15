@@ -13,7 +13,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 import { Input } from "@/components/ui/input";
 import {
@@ -23,7 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DiagnosisRow } from "./columns"; // For type casting
+import { DatePicker } from "@/components/ui/date-picker";
+import { DiagnosisRow } from "./columns";
+import { PatientDetailModal } from "./patient-detail-modal";
+import { ReportDetailModal } from "./report-detail-modal";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -40,10 +44,6 @@ type SortOption = {
 const sortOptions: SortOption[] = [
   { value: "disease", label: "Disease (A-Z)", desc: false },
   { value: "disease", label: "Disease (Z-A)", desc: true },
-  { value: "confidence", label: "Confidence (Low-High)", desc: false },
-  { value: "confidence", label: "Confidence (High-Low)", desc: true },
-  { value: "uncertainty", label: "Uncertainty (Low-High)", desc: false },
-  { value: "uncertainty", label: "Uncertainty (High-Low)", desc: true },
   { value: "createdAt", label: "Date (Oldest)", desc: false },
   { value: "createdAt", label: "Date (Newest)", desc: true },
 ];
@@ -60,11 +60,52 @@ export function DataTable<TData, TValue>({
     pageIndex: 0,
     pageSize: 10,
   });
+
   const [selectedDiagnosis, setSelectedDiagnosis] = useState<TData | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Extra client-side filters not handled by tanstack (date range, district)
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [selectedDisease, setSelectedDisease] = useState("");
+
+  // Apply all client-side filters manually
+  const filteredData = useMemo(() => {
+    let rows = data as DiagnosisRow[];
+
+    if (selectedDisease) {
+      rows = rows.filter((r) => r.disease === selectedDisease);
+    }
+
+    if (selectedDistrict) {
+      rows = rows.filter((r) => r.district === selectedDistrict);
+    }
+
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      rows = rows.filter((r) => new Date(r.createdAt) >= from);
+    }
+
+    if (dateTo) {
+      const to = new Date(dateTo);
+      // Include the full "to" day
+      to.setHours(23, 59, 59, 999);
+      rows = rows.filter((r) => new Date(r.createdAt) <= to);
+    }
+
+    return rows as TData[];
+  }, [data, selectedDisease, selectedDistrict, dateFrom, dateTo]);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -83,11 +124,11 @@ export function DataTable<TData, TValue>({
     meta: {
       openDiagnosisModal: (row: any) => {
         setSelectedDiagnosis(row);
-        (document.getElementById("diagnosis_modal") as HTMLDialogElement)?.showModal();
+        setIsReportModalOpen(true);
       },
       openPatientModal: (user: any) => {
         setSelectedPatient(user);
-        (document.getElementById("patient_modal") as HTMLDialogElement)?.showModal();
+        setIsPatientModalOpen(true);
       },
     },
   });
@@ -96,13 +137,18 @@ export function DataTable<TData, TValue>({
 
   const uniqueDiseases = useMemo(() => {
     const diseases = new Set<string>();
-    // @ts-ignore - Assuming TData has an accessor "disease"
-    data.forEach((item) => {
-      if ((item as any).disease) {
-        diseases.add((item as any).disease);
-      }
+    (data as DiagnosisRow[]).forEach((item) => {
+      if (item.disease) diseases.add(item.disease);
     });
     return Array.from(diseases).sort();
+  }, [data]);
+
+  const uniqueDistricts = useMemo(() => {
+    const districts = new Set<string>();
+    (data as DiagnosisRow[]).forEach((item) => {
+      if (item.district) districts.add(item.district);
+    });
+    return Array.from(districts).sort();
   }, [data]);
 
   const handleSortChange = (value: string) => {
@@ -122,47 +168,61 @@ export function DataTable<TData, TValue>({
     return option?.label || "Sort by...";
   }, [sorting]);
 
+  const hasActiveFilters =
+    globalFilter || selectedDisease || selectedDistrict || dateFrom || dateTo;
+
+  const clearAllFilters = () => {
+    setGlobalFilter("");
+    setSelectedDisease("");
+    setSelectedDistrict("");
+    setDateFrom("");
+    setDateTo("");
+    table.setPageIndex(0);
+  };
+
   return (
     <>
       <div className="space-y-4">
-        {/* Search and Filters */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:w-72 mt-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/60 z-10 pointer-events-none" />
-            <Input
-              type="text"
-              placeholder="Search reports..."
-              value={globalFilter ?? ""}
-              onChange={(e) => {
-                setGlobalFilter(e.target.value);
-                table.setPageIndex(0);
-              }}
-              className="pl-10"
-            />
-            {globalFilter && (
-              <button
-                onClick={() => {
-                  setGlobalFilter("");
+        <div className="flex flex-col gap-3">
+          {/* Top row: search */}
+          <div className="flex w-full">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/60 z-10 pointer-events-none" />
+              <Input
+                type="text"
+                placeholder="Search reports..."
+                value={globalFilter ?? ""}
+                onChange={(e) => {
+                  setGlobalFilter(e.target.value);
                   table.setPageIndex(0);
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/60 hover:text-base-content z-10"
-                type="button"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+                className="pl-10 h-10 w-full"
+              />
+              {globalFilter && (
+                <button
+                  onClick={() => {
+                    setGlobalFilter("");
+                    table.setPageIndex(0);
+                  }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-base-content z-10 p-1"
+                  type="button"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {additionalActions}
-            
+          {/* Controls row */}
+          <div className="flex flex-wrap gap-2 items-center">
+            {/* Sort */}
             <Select
-              className="w-auto"
               value={currentSortLabel}
               onValueChange={handleSortChange}
+              className="w-auto"
             >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by..." />
+              <SelectTrigger className="w-48 shrink-0 h-10 text-sm">
+                <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
                 {sortOptions.map((option) => (
@@ -173,19 +233,20 @@ export function DataTable<TData, TValue>({
               </SelectContent>
             </Select>
 
+            {/* Disease filter */}
             <Select
-              className="w-auto"
-              value={(table.getColumn("disease")?.getFilterValue() as string) ?? ""}
+              value={selectedDisease}
               onValueChange={(value) => {
-                table.getColumn("disease")?.setFilterValue(value || undefined);
+                setSelectedDisease(value === "__all__" ? "" : value);
                 table.setPageIndex(0);
               }}
+              className="w-auto"
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-44 shrink-0 h-10 text-sm">
                 <SelectValue placeholder="All Diseases" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Diseases</SelectItem>
+                <SelectItem value="__all__">All Diseases</SelectItem>
                 {uniqueDiseases.map((disease) => (
                   <SelectItem key={disease} value={disease}>
                     {disease}
@@ -193,6 +254,68 @@ export function DataTable<TData, TValue>({
                 ))}
               </SelectContent>
             </Select>
+
+            {/* District filter */}
+            <Select
+              value={selectedDistrict}
+              onValueChange={(value) => {
+                setSelectedDistrict(value === "__all__" ? "" : value);
+                table.setPageIndex(0);
+              }}
+              className="w-auto"
+            >
+              <SelectTrigger className="w-44 shrink-0 h-10 text-sm">
+                <SelectValue placeholder="All Districts" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Districts</SelectItem>
+                {uniqueDistricts.map((district) => (
+                  <SelectItem key={district} value={district}>
+                    {district}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Date From */}
+            <DatePicker
+              value={dateFrom}
+              onChange={(date) => {
+                setDateFrom(date);
+                table.setPageIndex(0);
+              }}
+              placeholder="Date From"
+              className="w-[150px] shrink-0 h-10"
+            />
+
+            {/* Date To */}
+            <DatePicker
+              value={dateTo}
+              onChange={(date) => {
+                setDateTo(date);
+                table.setPageIndex(0);
+              }}
+              placeholder="Date To"
+              className="w-[150px] shrink-0 h-10"
+            />
+
+            {/* Clear filters button */}
+            {hasActiveFilters && (
+              <button
+                onClick={clearAllFilters}
+                className="btn btn-ghost h-10 px-3 shrink-0 text-base-content/60 hover:text-base-content"
+                type="button"
+                title="Clear filters"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </button>
+            )}
+
+            {/* Export PDF / Additional Actions - justified to the end */}
+            <div className="ml-auto shrink-0 flex items-center h-10">
+              {additionalActions}
+            </div>
           </div>
         </div>
 
@@ -236,7 +359,7 @@ export function DataTable<TData, TValue>({
                 ) : (
                   <tr>
                     <td colSpan={columns.length} className="h-24 text-center">
-                      {globalFilter || columnFilters.length > 0
+                      {hasActiveFilters
                         ? "No results match your filters."
                         : "No results."}
                     </td>
@@ -257,6 +380,7 @@ export function DataTable<TData, TValue>({
                 table.setPageSize(Number(value));
                 table.setPageIndex(0);
               }}
+              className="w-auto"
             >
               <SelectTrigger className="w-[80px]">
                 <SelectValue />
@@ -311,122 +435,30 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
       </div>
-      {/* Details Modal */}
-      <dialog
-        id="diagnosis_modal"
-        className="modal"
-      >
-        <div className="modal-box w-11/12 max-w-2xl bg-base-100">
-          <form method="dialog">
-            <button className="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">
-              ✕
-            </button>
-          </form>
-          <h3 className="font-bold text-2xl mb-6">Diagnosis Details</h3>
 
-          {selectedDiagnosis && (() => {
-            const diagnosisRow = selectedDiagnosis as unknown as DiagnosisRow;
-            return (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-base-200/50 p-4 rounded-lg">
-                    <p className="text-sm text-base-content/60 mb-1">Disease</p>
-                    <p className="font-medium">{diagnosisRow.disease}</p>
-                  </div>
-                  <div className="bg-base-200/50 p-4 rounded-lg">
-                    <p className="text-sm text-base-content/60 mb-1">Patient ID</p>
-                    <p className="font-medium">{diagnosisRow.userId}</p>
-                  </div>
-                  <div className="bg-base-200/50 p-4 rounded-lg">
-                    <p className="text-sm text-base-content/60 mb-1">Confidence</p>
-                    <p className="font-medium">{(diagnosisRow.confidence * 100).toFixed(4)}%</p>
-                  </div>
-                  <div className="bg-base-200/50 p-4 rounded-lg">
-                    <p className="text-sm text-base-content/60 mb-1">Uncertainty</p>
-                    <p className="font-medium">{diagnosisRow.uncertainty.toFixed(4)}%</p>
-                  </div>
-                </div>
+      {isMounted && selectedDiagnosis ? createPortal(
+        <ReportDetailModal
+          isOpen={isReportModalOpen}
+          onClose={() => {
+            setIsReportModalOpen(false);
+            setTimeout(() => setSelectedDiagnosis(null), 300);
+          }}
+          report={selectedDiagnosis as unknown as DiagnosisRow}
+        />,
+        document.body
+      ) : null}
 
-                <div className="bg-base-200/50 p-4 rounded-lg">
-                  <p className="text-sm text-base-content/60 mb-2">Reported Symptoms</p>
-                  <p className="text-sm leading-relaxed">{diagnosisRow.symptoms}</p>
-                </div>
-
-                <div className="bg-base-200/50 p-4 rounded-lg flex justify-between items-center">
-                  <div>
-                    <p className="text-sm text-base-content/60 mb-1">Date Created</p>
-                    <p className="font-medium">{new Date(diagnosisRow.createdAt).toLocaleString()}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button>close</button>
-        </form>
-      </dialog>
-
-      {/* Patient Details Modal */}
-      <dialog
-        id="patient_modal"
-        className="modal"
-      >
-        <div className="modal-box w-11/12 max-w-2xl bg-base-100">
-          <form method="dialog">
-            <button className="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">
-              ✕
-            </button>
-          </form>
-          <h3 className="font-bold text-2xl mb-6">Patient Details</h3>
-
-          {selectedPatient && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-base-200/50 p-4 rounded-lg">
-                  <p className="text-sm text-base-content/60 mb-1">Name</p>
-                  <p className="font-medium">{selectedPatient.name || "N/A"}</p>
-                </div>
-                <div className="bg-base-200/50 p-4 rounded-lg">
-                  <p className="text-sm text-base-content/60 mb-1">Email</p>
-                  <p className="font-medium">{selectedPatient.email || "N/A"}</p>
-                </div>
-                <div className="bg-base-200/50 p-4 rounded-lg">
-                  <p className="text-sm text-base-content/60 mb-1">Age</p>
-                  <p className="font-medium">{selectedPatient.age || "N/A"}</p>
-                </div>
-                <div className="bg-base-200/50 p-4 rounded-lg">
-                  <p className="text-sm text-base-content/60 mb-1">Gender</p>
-                  <p className="font-medium">
-                    {selectedPatient.gender
-                      ? selectedPatient.gender.charAt(0).toUpperCase() + selectedPatient.gender.slice(1).toLowerCase()
-                      : "N/A"}
-                  </p>
-                </div>
-                <div className="bg-base-200/50 p-4 rounded-lg">
-                  <p className="text-sm text-base-content/60 mb-1">Role</p>
-                  <p className="font-medium">
-                    {selectedPatient.role
-                      ? selectedPatient.role.charAt(0).toUpperCase() + selectedPatient.role.slice(1).toLowerCase()
-                      : "N/A"}
-                  </p>
-                </div>
-                <div className="bg-base-200/50 p-4 rounded-lg">
-                  <p className="text-sm text-base-content/60 mb-1">Location</p>
-                  <p className="font-medium">
-                    {selectedPatient.city || selectedPatient.province
-                      ? [selectedPatient.city, selectedPatient.province].filter(Boolean).join(", ")
-                      : "N/A"}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-        <form method="dialog" className="modal-backdrop">
-          <button>close</button>
-        </form>
-      </dialog>
+      {isMounted && selectedPatient ? createPortal(
+        <PatientDetailModal
+          isOpen={isPatientModalOpen}
+          onClose={() => {
+            setIsPatientModalOpen(false);
+            setTimeout(() => setSelectedPatient(null), 300);
+          }}
+          patient={selectedPatient}
+        />,
+        document.body
+      ) : null}
     </>
   );
 }

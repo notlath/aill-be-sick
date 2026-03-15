@@ -43,22 +43,22 @@ async function UsersTable({ currentUserRole }: { currentUserRole: string }) {
   const pdfColumns: PdfColumn[] = [
     { header: "Name", dataKey: "name" },
     { header: "Email", dataKey: "email" },
-    { header: "Gender", dataKey: "gender" },
     { header: "Age", dataKey: "age" },
-    { header: "Region", dataKey: "region" },
-    { header: "Role", dataKey: "role" },
-    { header: "Diagnoses", dataKey: "diagnoses" },
+    { header: "Gender", dataKey: "gender" },
+    { header: "District", dataKey: "district" },
+    { header: "Symptom Checks", dataKey: "diagnoses" },
+    { header: "Last Activity", dataKey: "lastActivityAt" },
     { header: "Joined", dataKey: "createdAt" },
   ];
 
   const exportData = (users || []).map((user) => ({
     name: user.name || "-",
     email: user.email,
-    gender: user.gender || "-",
     age: user.age ?? "-",
-    region: [user.city, user.region].filter(Boolean).join(", ") || "-",
-    role: user.role,
+    gender: user.gender || "-",
+    district: user.district || "-",
     diagnoses: user._count.diagnoses,
+    lastActivityAt: user.lastActivityAt ? new Date(user.lastActivityAt) : "-",
     createdAt: new Date(user.createdAt),
   }));
 
