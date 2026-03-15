@@ -1,38 +1,44 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Activity,
-  MapPin,
-  AlertTriangle,
-  TrendingUp,
-} from "lucide-react";
+import { Activity, Stethoscope, Users, UserRound } from "lucide-react";
+import { IllnessClusterStatistics } from "@/types";
 
 interface StatisticsCardsProps {
-  totalAllCases: number;
-  pinnedCases: number;
-  unpinnedCases: number;
-  coveragePercent: number;
-  onTotalClick: () => void;
-  onPinnedClick: () => void;
-  onUnpinnedClick: () => void;
+  totalCases: number;
+  stat: IllnessClusterStatistics | null;
 }
 
-const StatisticsCards = ({
-  totalAllCases,
-  pinnedCases,
-  unpinnedCases,
-  coveragePercent,
-  onTotalClick,
-  onPinnedClick,
-  onUnpinnedClick,
-}: StatisticsCardsProps) => {
+const StatisticsCards = ({ totalCases, stat }: StatisticsCardsProps) => {
+  const topDisease = stat?.top_diseases?.[0] ?? null;
+  const totalDiseases = stat?.disease_distribution
+    ? Object.keys(stat.disease_distribution).length
+    : 0;
+
+  const minAge = stat?.min_patient_age ?? null;
+  const maxAge = stat?.max_patient_age ?? null;
+  const avgAge = stat?.avg_patient_age != null
+    ? Math.round(stat.avg_patient_age)
+    : null;
+
+  const genderDist = stat?.gender_distribution ?? null;
+  const totalGendered =
+    genderDist != null
+      ? (genderDist.MALE ?? 0) + (genderDist.FEMALE ?? 0) + (genderDist.OTHER ?? 0)
+      : 0;
+  const malePct =
+    totalGendered > 0
+      ? Math.round(((genderDist?.MALE ?? 0) / totalGendered) * 100)
+      : null;
+  const femalePct =
+    totalGendered > 0
+      ? Math.round(((genderDist?.FEMALE ?? 0) / totalGendered) * 100)
+      : null;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-      <Card
-        className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-        onClick={onTotalClick}
-      >
+      {/* Total Cases */}
+      <Card className="hover:shadow-md transition-shadow hover:border-primary/30">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             Total Cases
@@ -40,66 +46,79 @@ const StatisticsCards = ({
           <Activity className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent className="p-6 pt-0">
-          <div className="text-2xl font-bold">
-            {totalAllCases.toLocaleString()}
-          </div>
+          <div className="text-2xl font-bold">{totalCases.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground mt-1">
-            For the selected group and period
+            In the selected group and period
           </p>
         </CardContent>
       </Card>
 
-      <Card
-        className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-        onClick={onPinnedClick}
-      >
+      {/* Most Common Illness */}
+      <Card className="hover:shadow-md transition-shadow hover:border-primary/30">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Pinned Cases
+            Most Common Illness
           </CardTitle>
-          <MapPin className="h-4 w-4 text-emerald-500" />
+          <Stethoscope className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent className="p-6 pt-0">
-          <div className="text-2xl font-bold">
-            {pinnedCases.toLocaleString()}
+          <div className="text-2xl font-bold capitalize">
+            {topDisease
+              ? topDisease.disease.charAt(0).toUpperCase() +
+                topDisease.disease.slice(1).toLowerCase()
+              : "—"}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Cases with recorded coordinates
+            {topDisease
+              ? `${topDisease.count.toLocaleString()} cases · ${totalDiseases} illness${totalDiseases !== 1 ? "es" : ""} detected`
+              : "No data available"}
           </p>
         </CardContent>
       </Card>
 
-      <Card
-        className="hover:shadow-md transition-shadow cursor-pointer hover:border-primary/30"
-        onClick={onUnpinnedClick}
-      >
+      {/* Affected Age Range */}
+      <Card className="hover:shadow-md transition-shadow hover:border-primary/30">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Unpinned Cases
+            Affected Age Range
           </CardTitle>
-          <AlertTriangle className="h-4 w-4 text-orange-500" />
+          <Users className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent className="p-6 pt-0">
           <div className="text-2xl font-bold">
-            {unpinnedCases.toLocaleString()}
+            {minAge != null && maxAge != null
+              ? `${minAge} – ${maxAge}`
+              : "—"}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Cases without location data
+            {avgAge != null
+              ? `Average age: ${avgAge} years old`
+              : "No age data available"}
           </p>
         </CardContent>
       </Card>
 
-      <Card className="hover:shadow-md transition-shadow">
+      {/* Gender Split */}
+      <Card className="hover:shadow-md transition-shadow hover:border-primary/30">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Coverage
+            Gender Split
           </CardTitle>
-          <TrendingUp className="h-4 w-4 text-primary" />
+          <UserRound className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent className="p-6 pt-0">
-          <div className="text-2xl font-bold">{coveragePercent}%</div>
+          {malePct != null && femalePct != null ? (
+            <div className="space-y-0.5">
+              <div className="text-2xl font-bold">{malePct}% male</div>
+              <div className="text-sm font-medium text-muted-foreground">
+                {femalePct}% female
+              </div>
+            </div>
+          ) : (
+            <div className="text-2xl font-bold">—</div>
+          )}
           <p className="text-xs text-muted-foreground mt-1">
-            Of cases have coordinates
+            Distribution across this group
           </p>
         </CardContent>
       </Card>

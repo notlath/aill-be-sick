@@ -17,7 +17,6 @@ import FeaturePatientsModal from "../map/feature-patients-modal";
 import { useGeoJsonData } from "@/hooks/map-hooks/use-geojson-data";
 import ViewSelect from "../view-select";
 import { DiseaseTimelineChart } from "./disease-timeline-chart";
-import { IllnessClusterContributionGraph } from "../by-cluster/illness-cluster-contribution-graph";
 import {
   DistrictStatsCards,
   CoordinatesStatsCards,
@@ -74,9 +73,9 @@ const ByDiseaseTab = () => {
   const [heatmapDiagnoses, setHeatmapDiagnoses] = useState<Diagnosis[]>([]);
   const [unpinnedDiagnoses, setUnpinnedDiagnoses] = useState<Diagnosis[]>([]);
   const [totalDiagnosesCount, setTotalDiagnosesCount] = useState(0);
-  const [coordinatesModal, setCoordinatesModal] = useState<
-    "total" | "pinned" | "unpinned" | null
-  >(null);
+  const [coordinatesModal, setCoordinatesModal] = useState<"total" | null>(
+    null,
+  );
 
   const [mapLoading, setMapLoading] = useState(true);
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
@@ -214,15 +213,33 @@ const ByDiseaseTab = () => {
   }, [casesData]);
 
   // Coordinates view stats
-  const { pinnedCases, totalAllCases, unpinnedCases, coveragePercent } =
+  const { totalAllCases, newestCaseDate, uniquePatientsCount, casesThisWeek } =
     useMemo(() => {
-      const pinnedCases = heatmapDiagnoses.length;
+      const allDiagnoses = [...heatmapDiagnoses, ...unpinnedDiagnoses];
       const totalAllCases = totalDiagnosesCount;
-      const unpinnedCases = totalAllCases - pinnedCases;
-      const coveragePercent =
-        totalAllCases > 0 ? Math.round((pinnedCases / totalAllCases) * 100) : 0;
-      return { pinnedCases, totalAllCases, unpinnedCases, coveragePercent };
-    }, [heatmapDiagnoses, totalDiagnosesCount]);
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+      let newestCaseDate: Date | null = null;
+      const patientIds = new Set<number>();
+      let casesThisWeek = 0;
+
+      for (const d of allDiagnoses) {
+        const date = new Date(d.createdAt);
+        if (!newestCaseDate || date > newestCaseDate) {
+          newestCaseDate = date;
+        }
+        if (d.userId) {
+          patientIds.add(d.userId);
+        }
+        if (date >= sevenDaysAgo) {
+          casesThisWeek++;
+        }
+      }
+
+      const uniquePatientsCount = patientIds.size;
+
+      return { totalAllCases, newestCaseDate, uniquePatientsCount, casesThisWeek };
+    }, [heatmapDiagnoses, unpinnedDiagnoses, totalDiagnosesCount]);
 
   // Memoize modal diagnoses arrays to prevent recreation on every render
   const selectedFeatureDiagnoses = useMemo(() => {
@@ -233,12 +250,6 @@ const ByDiseaseTab = () => {
   const coordinatesModalDiagnoses = useMemo(() => {
     if (coordinatesModal === "total") {
       return [...heatmapDiagnoses, ...unpinnedDiagnoses];
-    }
-    if (coordinatesModal === "pinned") {
-      return heatmapDiagnoses;
-    }
-    if (coordinatesModal === "unpinned") {
-      return unpinnedDiagnoses;
     }
     return [];
   }, [coordinatesModal, heatmapDiagnoses, unpinnedDiagnoses]);
@@ -311,12 +322,10 @@ const ByDiseaseTab = () => {
         ) : (
           <CoordinatesStatsCards
             totalAllCases={totalAllCases}
-            pinnedCases={pinnedCases}
-            unpinnedCases={unpinnedCases}
-            coveragePercent={coveragePercent}
+            newestCaseDate={newestCaseDate}
+            uniquePatientsCount={uniquePatientsCount}
+            casesThisWeek={casesThisWeek}
             onTotalClick={() => setCoordinatesModal("total")}
-            onPinnedClick={() => setCoordinatesModal("pinned")}
-            onUnpinnedClick={() => setCoordinatesModal("unpinned")}
           />
         )}
       </div>
@@ -332,21 +341,6 @@ const ByDiseaseTab = () => {
         )}
       </div>
 
-      <div className="mt-6">
-        {isLoading ? (
-          <TimelineSkeleton />
-        ) : (
-          <IllnessClusterContributionGraph
-            activityDates={timelineDiagnoses.map(
-              (diagnosis) => diagnosis.createdAt,
-            )}
-            title="Daily Illness Activity"
-            emptyMessage="No daily activity data available for this disease"
-            recordLabel="diagnosis record"
-          />
-        )}
-      </div>
-
       <FeaturePatientsModal
         isOpen={!!selectedFeature}
         onClose={handleCloseFeature}
@@ -357,13 +351,7 @@ const ByDiseaseTab = () => {
       <FeaturePatientsModal
         isOpen={!!coordinatesModal}
         onClose={handleCoordinatesModalClose}
-        featureName={
-          coordinatesModal === "total"
-            ? "All"
-            : coordinatesModal === "pinned"
-              ? "Pinned"
-              : "Unpinned"
-        }
+        featureName="All"
         diagnoses={coordinatesModalDiagnoses}
       />
     </div>

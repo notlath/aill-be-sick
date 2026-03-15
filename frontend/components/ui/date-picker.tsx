@@ -97,7 +97,7 @@ export function DatePicker({
   };
 
   return (
-    <div className="relative w-full" ref={containerRef}>
+    <div className="relative w-auto" ref={containerRef}>
       <div
         role="button"
         tabIndex={disabled ? -1 : 0}

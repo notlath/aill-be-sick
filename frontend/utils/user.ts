@@ -65,7 +65,22 @@ export const getAllUsers = async (currentUserRole?: string) => {
 
     const users = await prisma.user.findMany({
       where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        gender: true,
+        age: true,
+        district: true,
+        city: true,
+        region: true,
+        role: true,
+        createdAt: true,
+        diagnoses: {
+          select: { createdAt: true },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
         _count: {
           select: { diagnoses: true },
         },
@@ -73,7 +88,13 @@ export const getAllUsers = async (currentUserRole?: string) => {
       orderBy: { createdAt: "desc" },
     });
 
-    return { success: users };
+    const mapped = users.map((u) => ({
+      ...u,
+      lastActivityAt: u.diagnoses[0]?.createdAt ?? null,
+      diagnoses: undefined,
+    }));
+
+    return { success: mapped };
   } catch (error) {
     console.error(`Error fetching all users from database: ${error}`);
 

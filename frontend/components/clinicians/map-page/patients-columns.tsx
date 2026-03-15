@@ -3,25 +3,9 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { IllnessRecord } from "@/types";
+import { getReliability } from "@/utils/reliability";
 
 export const columns: ColumnDef<IllnessRecord>[] = [
-  {
-    accessorKey: "patient_id",
-    header: ({ column }) => {
-      return (
-        <button
-          className="flex items-center gap-1 hover:text-primary"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Patient ID
-          <ArrowUpDown className="w-4 h-4" />
-        </button>
-      );
-    },
-    cell: ({ row }) => {
-      return <span>{row.getValue("patient_id")}</span>;
-    },
-  },
   {
     accessorKey: "patient_name",
     header: ({ column }) => {
@@ -81,20 +65,18 @@ export const columns: ColumnDef<IllnessRecord>[] = [
   },
   {
     id: "location",
-    header: "Location",
+    header: "District",
     accessorFn: (row) => {
-      const barangay = row.barangay;
-      const city = row.city;
-      const region = row.region;
-      return [barangay, city, region].filter(Boolean).join(", ");
+      const district = row.district;
+      return district;
     },
     filterFn: (row, columnId, filterValue) => {
       const search = filterValue.toLowerCase();
       const value = row.getValue(columnId) as string;
-      return value.toLowerCase().includes(search);
+      return value?.toLowerCase().includes(search) ?? false;
     },
     cell: ({ row }) => {
-      const display = row.getValue("location") as string;
+      const display = row.getValue("location") as string | null;
       return (
         <div className="max-w-sm truncate" title={display || "—"}>
           {display || "—"}
@@ -136,6 +118,38 @@ export const columns: ColumnDef<IllnessRecord>[] = [
       const dateStr = row.getValue("diagnosed_at") as string | null;
       if (!dateStr) return <span>—</span>;
       return <span>{new Date(dateStr).toLocaleDateString()}</span>;
+    },
+  },
+  {
+    id: "severity",
+    header: ({ column }) => {
+      return (
+        <button
+          className="flex items-center gap-1 hover:text-primary"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Severity
+          <ArrowUpDown className="w-4 h-4" />
+        </button>
+      );
+    },
+    accessorFn: (row) => {
+      const { label } = getReliability(row.confidence, row.uncertainty);
+      return label;
+    },
+    cell: ({ row }) => {
+      const label = row.getValue("severity") as string;
+      const badgeClass = 
+        label === "Reliable" 
+          ? "badge-success" 
+          : label === "Review Recommended" 
+            ? "badge-warning" 
+            : "badge-error";
+      return (
+        <span className={`badge ${badgeClass} badge-sm whitespace-nowrap`}>
+          {label}
+        </span>
+      );
     },
   },
 ];

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getAllDiagnoses } from "@/utils/diagnosis";
 import { DataTable } from "@/components/clinicians/healthcare-reports-page/data-table";
 import { columns } from "@/components/clinicians/healthcare-reports-page/columns";
+import { getReliability } from "@/utils/reliability";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
 import type { PdfColumn } from "@/utils/pdf-export";
 
@@ -47,19 +48,21 @@ async function DiagnosesData() {
 
   const pdfColumns: PdfColumn[] = [
     { header: "Disease", dataKey: "disease" },
-    { header: "Confidence", dataKey: "confidence" },
-    { header: "Uncertainty", dataKey: "uncertainty" },
+    { header: "Patient", dataKey: "patientName" },
+    { header: "District", dataKey: "district" },
+    { header: "Barangay", dataKey: "barangay" },
     { header: "Symptoms", dataKey: "symptoms" },
-    { header: "Patient ID", dataKey: "userId" },
+    { header: "Reliability", dataKey: "reliability" },
     { header: "Date", dataKey: "createdAt" },
   ];
 
   const exportData = (diagnoses || []).map((d) => ({
     disease: d.disease,
-    confidence: `${(d.confidence * 100).toFixed(2)}%`,
-    uncertainty: `${(d.uncertainty * 100).toFixed(2)}%`,
+    patientName: (d as any).user?.name ?? "Unknown",
+    district: d.district ?? "—",
+    barangay: d.barangay ?? "—",
     symptoms: d.symptoms,
-    userId: d.userId,
+    reliability: getReliability(d.confidence, d.uncertainty).label,
     createdAt: new Date(d.createdAt),
   }));
 
@@ -84,13 +87,20 @@ async function DiagnosesData() {
 function TableSkeleton() {
   return (
     <div className="space-y-4">
-      {/* Search Bar Skeleton */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="skeleton h-10 w-full sm:w-72 rounded-lg" />
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="skeleton h-10 w-[160px] rounded-lg" />
-          <div className="skeleton h-10 w-[140px] rounded-lg" />
-          <div className="skeleton h-10 w-[140px] rounded-lg" />
+      <div className="flex flex-col gap-3">
+        {/* Top row: search */}
+        <div className="flex w-full">
+          <div className="skeleton h-10 flex-1 min-w-48 rounded-lg" />
+        </div>
+        
+        {/* Controls row */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="skeleton h-10 w-48 rounded-lg" />
+          <div className="skeleton h-10 w-44 rounded-lg" />
+          <div className="skeleton h-10 w-44 rounded-lg" />
+          <div className="skeleton h-10 w-[150px] rounded-lg" />
+          <div className="skeleton h-10 w-[150px] rounded-lg" />
+          <div className="skeleton h-10 w-32 rounded-lg ml-auto" />
         </div>
       </div>
       {/* Table Skeleton */}

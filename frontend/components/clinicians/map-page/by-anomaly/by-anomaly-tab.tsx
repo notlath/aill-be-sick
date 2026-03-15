@@ -27,7 +27,6 @@ import {
 } from "./skeleton-loaders";
 import AnomalyPatientsModal from "./anomaly-patients-modal";
 import { AnomalyTimelineChart } from "../anomaly-timeline-chart";
-import { IllnessClusterContributionGraph } from "../by-cluster/illness-cluster-contribution-graph";
 import AnomalySummary from "./anomaly-summary";
 import TopCriticalAnomalies from "./top-critical-anomalies";
 
@@ -382,20 +381,6 @@ const ByAnomalyTab = () => {
             anomalies={anomalies}
             disease={selectedDisease}
             diseaseColor={diseaseColor}
-          />
-        )}
-      </div>
-
-      <div className="mt-6">
-        {loading ? (
-          <TimelineSkeleton />
-        ) : (
-          <IllnessClusterContributionGraph
-            activityDates={anomalies.map((anomaly) => anomaly.createdAt)}
-            color={diseaseColor}
-            title="Daily Illness Activity"
-            emptyMessage="No daily activity data available for this anomaly view"
-            recordLabel="anomaly record"
           />
         )}
       </div>

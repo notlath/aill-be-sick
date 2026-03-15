@@ -2,12 +2,13 @@
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { IllnessClusterTimelineChart } from "./illness-cluster-timeline-chart";
-import { IllnessClusterContributionGraph } from "./illness-cluster-contribution-graph";
 import SelectedClusterSummary from "./selected-cluster-summary";
 import { PatientsDataTable } from "../patients-data-table";
+import { DiagnosisDetailModal } from "../diagnosis-detail-modal";
 import { columns } from "../patients-columns";
 import type { ClusterVariableSelection } from "@/types/illness-cluster-settings";
 import type { IllnessClusterStatistics } from "@/types";
+import { useState } from "react";
 
 interface SelectedClusterDetailsProps {
   stat: IllnessClusterStatistics;
@@ -28,7 +29,20 @@ const SelectedClusterDetails = ({
   selectedCluster,
   loading,
 }: SelectedClusterDetailsProps) => {
+  const [selectedDiagnosis, setSelectedDiagnosis] = useState<any | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   if (selectedCluster === null) return null;
+
+  const handleRowClick = (row: any) => {
+    setSelectedDiagnosis(row);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleDetailModalClose = () => {
+    setIsDetailModalOpen(false);
+    setSelectedDiagnosis(null);
+  };
 
   return (
     <div className="mt-2 space-y-4">
@@ -49,19 +63,12 @@ const SelectedClusterDetails = ({
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          <IllnessClusterTimelineChart
-            illnesses={illnesses}
-            nClusters={nClusters}
-            selectedCluster={selectedCluster}
-            clusterColorIndex={clusterIndex}
-          />
-          <IllnessClusterContributionGraph
-            illnesses={illnesses}
-            selectedCluster={selectedCluster}
-            clusterColorIndex={clusterIndex}
-          />
-        </div>
+        <IllnessClusterTimelineChart
+          illnesses={illnesses}
+          nClusters={nClusters}
+          selectedCluster={selectedCluster}
+          clusterColorIndex={clusterIndex}
+        />
       )}
       <Card className="relative overflow-hidden border">
         <div className="absolute inset-0 bg-base-100 opacity-90" />
@@ -75,9 +82,14 @@ const SelectedClusterDetails = ({
           </p>
         </CardHeader>
         <CardContent className="relative pt-2">
-          <PatientsDataTable columns={columns} data={illnesses} />
+          <PatientsDataTable columns={columns} data={illnesses} onRowClick={handleRowClick} />
         </CardContent>
       </Card>
+      <DiagnosisDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={handleDetailModalClose}
+        diagnosis={selectedDiagnosis}
+      />
     </div>
   );
 };

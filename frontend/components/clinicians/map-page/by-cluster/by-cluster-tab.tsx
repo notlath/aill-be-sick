@@ -37,9 +37,6 @@ const ByClusterTab = () => {
   } = useGeoJsonData("/geojson/bagong_silangan.geojson");
 
   const [selectedFeature, setSelectedFeature] = useState<string | null>(null);
-  const [coordinatesModal, setCoordinatesModal] = useState<
-    "total" | "pinned" | "unpinned" | null
-  >(null);
 
   return (
     <ClusteringControlPanel
@@ -104,46 +101,6 @@ const ByClusterTab = () => {
             (illness) => illness.district === selectedFeature,
           );
         }, [filteredIllnesses, selectedFeature]);
-
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const { pinnedCases, totalAllCases, unpinnedCases, coveragePercent } =
-          useMemo(() => {
-            const totalAllCases = filteredIllnesses.length;
-            const pinnedIllnesses = filteredIllnesses.filter(
-              (illness) =>
-                illness.latitude != null && illness.longitude != null,
-            );
-            const pinnedCases = pinnedIllnesses.length;
-            const unpinnedCases = totalAllCases - pinnedCases;
-            const coveragePercent =
-              totalAllCases > 0
-                ? Math.round((pinnedCases / totalAllCases) * 100)
-                : 0;
-            return {
-              pinnedCases,
-              totalAllCases,
-              unpinnedCases,
-              coveragePercent,
-            };
-          }, [filteredIllnesses]);
-
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const coordinatesModalPatients = useMemo(() => {
-          if (coordinatesModal === "total") return filteredIllnesses;
-          if (coordinatesModal === "pinned") {
-            return filteredIllnesses.filter(
-              (diagnosis) =>
-                diagnosis.latitude != null && diagnosis.longitude != null,
-            );
-          }
-          if (coordinatesModal === "unpinned") {
-            return filteredIllnesses.filter(
-              (diagnosis) =>
-                diagnosis.latitude == null || diagnosis.longitude == null,
-            );
-          }
-          return [];
-        }, [coordinatesModal, filteredIllnesses]);
 
         // eslint-disable-next-line react-hooks/rules-of-hooks
         const selectedClusterStat = useMemo(() => {
@@ -226,13 +183,8 @@ const ByClusterTab = () => {
               ) : (
                 <>
                   <StatisticsCards
-                    totalAllCases={totalAllCases}
-                    pinnedCases={pinnedCases}
-                    unpinnedCases={unpinnedCases}
-                    coveragePercent={coveragePercent}
-                    onTotalClick={() => setCoordinatesModal("total")}
-                    onPinnedClick={() => setCoordinatesModal("pinned")}
-                    onUnpinnedClick={() => setCoordinatesModal("unpinned")}
+                    totalCases={filteredIllnesses.length}
+                    stat={selectedClusterStat}
                   />
                   {selectedClusterStat ? (
                     <div className="col-span-1 md:col-span-2 lg:col-span-4 mt-2">
@@ -258,21 +210,6 @@ const ByClusterTab = () => {
               clusterDisplay={selectedClusterLabel}
               title={`District ${selectedFeature ?? ""} - Group ${selectedClusterLabel}`}
               subtitle={`Showing ${selectedDistrictPatients.length} diagnosis record${selectedDistrictPatients.length !== 1 ? "s" : ""}`}
-            />
-
-            <PatientsModal
-              isOpen={!!coordinatesModal}
-              onClose={() => setCoordinatesModal(null)}
-              patients={coordinatesModalPatients}
-              clusterDisplay={selectedClusterLabel}
-              title={
-                coordinatesModal === "total"
-                  ? `All Cases - Group ${selectedClusterLabel}`
-                  : coordinatesModal === "pinned"
-                    ? `Pinned Cases - Group ${selectedClusterLabel}`
-                    : `Unpinned Cases - Group ${selectedClusterLabel}`
-              }
-              subtitle={`Showing ${coordinatesModalPatients.length} diagnosis record${coordinatesModalPatients.length !== 1 ? "s" : ""}`}
             />
           </div>
         );

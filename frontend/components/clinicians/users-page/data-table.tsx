@@ -41,14 +41,14 @@ type SortOption = {
 const sortOptions: SortOption[] = [
   { value: "name", label: "Name (A-Z)", desc: false },
   { value: "name", label: "Name (Z-A)", desc: true },
-  { value: "email", label: "Email (A-Z)", desc: false },
-  { value: "email", label: "Email (Z-A)", desc: true },
   { value: "age", label: "Age (Youngest)", desc: false },
   { value: "age", label: "Age (Oldest)", desc: true },
-  { value: "role", label: "Role (A-Z)", desc: false },
-  { value: "role", label: "Role (Z-A)", desc: true },
-  { value: "diagnoses", label: "Diagnoses (Low-High)", desc: false },
-  { value: "diagnoses", label: "Diagnoses (High-Low)", desc: true },
+  { value: "district", label: "District (A-Z)", desc: false },
+  { value: "district", label: "District (Z-A)", desc: true },
+  { value: "diagnoses", label: "Symptom Checks (Low-High)", desc: false },
+  { value: "diagnoses", label: "Symptom Checks (High-Low)", desc: true },
+  { value: "lastActivityAt", label: "Last Activity (Most Recent)", desc: true },
+  { value: "lastActivityAt", label: "Last Activity (Oldest)", desc: false },
   { value: "createdAt", label: "Joined (Oldest)", desc: false },
   { value: "createdAt", label: "Joined (Newest)", desc: true },
 ];
@@ -69,6 +69,16 @@ export function DataTable<TData, TValue>({
   const [isAddEmailModalOpen, setIsAddEmailModalOpen] = useState(false);
 
   const isAdmin = currentUserRole === "ADMIN";
+
+  const hasRoleColumn = useMemo(
+    () =>
+      columns.some(
+        (col) =>
+          (col as { id?: string; accessorKey?: string }).id === "role" ||
+          (col as { id?: string; accessorKey?: string }).accessorKey === "role"
+      ),
+    [columns]
+  );
 
   const roleFilterOptions = isAdmin
     ? [
@@ -177,25 +187,27 @@ export function DataTable<TData, TValue>({
             </SelectContent>
           </Select>
 
-          <Select className="w-auto" 
-            value={(table.getColumn("role")?.getFilterValue() as string) ?? ""}
-            onValueChange={(value) => {
-              table.getColumn("role")?.setFilterValue(value || undefined);
-              table.setPageIndex(0);
-            }}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All Roles" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">All Roles</SelectItem>
-              {roleFilterOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isAdmin && hasRoleColumn && (
+            <Select className="w-auto" 
+              value={(table.getColumn("role")?.getFilterValue() as string) ?? ""}
+              onValueChange={(value) => {
+                table.getColumn("role")?.setFilterValue(value || undefined);
+                table.setPageIndex(0);
+              }}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Roles</SelectItem>
+                {roleFilterOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           <Select className="w-auto" 
             value={(table.getColumn("gender")?.getFilterValue() as string) ?? ""}

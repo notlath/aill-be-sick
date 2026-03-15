@@ -8,13 +8,6 @@ import { getReasonLabel, getReasonDescription } from "@/utils/anomaly-reasons";
 import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity";
 import { getDistrictCentroid } from "@/constants/bagong-silangan-districts";
 
-const typeLabel: Record<Alert["type"], string> = {
-  ANOMALY: "Anomaly",
-  OUTBREAK: "Outbreak",
-  LOW_CONFIDENCE: "Low Confidence",
-  HIGH_UNCERTAINTY: "High Uncertainty",
-};
-
 const statusLabel: Record<Alert["status"], string> = {
   NEW: "New",
   ACKNOWLEDGED: "Acknowledged",
@@ -211,46 +204,53 @@ export function AlertDetailModal({
         className="modal-box w-11/12 max-w-2xl bg-base-100 max-h-[90vh] overflow-y-auto"
         onClick={handleContentClick}
       >
-        <form method="dialog">
-          <button className="btn btn-sm btn-circle btn-ghost absolute right-4 top-4">
-            ✕
-          </button>
-        </form>
+        <button 
+          type="button"
+          onClick={onClose}
+          className="btn btn-sm btn-circle btn-ghost absolute right-4 top-4"
+        >
+          ✕
+        </button>
         <h3 className="font-bold text-2xl mb-6">Alert Details</h3>
 
         <div className="space-y-4">
-          {/* Core fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-base-200/50 p-4 rounded-lg">
-              <p className="text-sm text-base-content/60 mb-1">Type</p>
-              <p className="font-medium">{typeLabel[alert.type]}</p>
-            </div>
-            <div className="bg-base-200/50 p-4 rounded-lg">
-              <p className="text-sm text-base-content/60 mb-1">Severity</p>
-              <span className={`badge ${getSeverityBadgeClass(alert.severity)}`}>
-                {getSeverityLabel(alert.severity)}
-              </span>
-            </div>
-            <div className="bg-base-200/50 p-4 rounded-lg">
-              <p className="text-sm text-base-content/60 mb-1">Status</p>
-              <span className={`badge ${statusBadgeClass[alert.status]}`}>
-                {statusLabel[alert.status]}
-              </span>
-            </div>
-            <div className="bg-base-200/50 p-4 rounded-lg">
-              <p className="text-sm text-base-content/60 mb-1">Diagnosis ID</p>
-              <p className="font-medium">{alert.diagnosisId ?? "—"}</p>
-            </div>
+          {/* Priority — Severity + Status badges */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`badge ${getSeverityBadgeClass(alert.severity)}`}>
+              {getSeverityLabel(alert.severity)}
+            </span>
+            <span className={`badge ${statusBadgeClass[alert.status]}`}>
+              {statusLabel[alert.status]}
+            </span>
           </div>
 
+          {/* What happened — message */}
           <div className="bg-base-200/50 p-4 rounded-lg">
-            <p className="text-sm text-base-content/60 mb-1">Message</p>
+            <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">What happened</p>
             <p className="text-sm leading-relaxed">{alert.message}</p>
           </div>
 
+          {/* Disease & Location */}
+          {alert.metadata && ((alert.metadata as any).disease || (alert.metadata as any).district || (alert.metadata as any).city) ? (
+            <div className="bg-base-200/50 p-4 rounded-lg">
+              <p className="text-xs text-base-content/50 uppercase tracking-wide mb-2">Disease &amp; Location</p>
+              <div className="space-y-1 text-sm">
+                {(alert.metadata as any).disease ? (
+                  <p className="font-semibold text-base">{(alert.metadata as any).disease}</p>
+                ) : null}
+                <p className="text-base-content/70">
+                  {[(alert.metadata as any).district, (alert.metadata as any).barangay, (alert.metadata as any).city, (alert.metadata as any).province]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Why this alert — reason codes */}
           {alert.reasonCodes.length > 0 ? (
-            <div className="bg-base-200/50 p-4 rounded-lg space-y-2">
-              <p className="text-sm text-base-content/60 mb-2">Reason Codes</p>
+            <div className="bg-base-200/50 p-4 rounded-lg space-y-3">
+              <p className="text-xs text-base-content/50 uppercase tracking-wide">Why this alert</p>
               {alert.reasonCodes.map((code) => (
                 <div key={code}>
                   <p className="text-sm font-medium">{getReasonLabel(code)}</p>
@@ -259,111 +259,69 @@ export function AlertDetailModal({
                   </p>
                 </div>
               ))}
+              {/* Plain-language outbreak context — only for OUTBREAK alerts */}
+              {alert.type === "OUTBREAK" && alert.metadata ? (() => {
+                const meta = alert.metadata as any;
+                const count: number | undefined = meta.count;
+                const disease: string | undefined = meta.disease;
+                const district: string | undefined = meta.district;
+                const baselineMean: number | undefined = meta.baseline_mean;
+                const thresholdEpidemic: number | undefined = meta.threshold_epidemic;
+                const thresholdAlert: number | undefined = meta.threshold_alert;
+                const isCluster: boolean = !!meta.is_cluster;
+
+                const thresholdLabel =
+                  count !== undefined && thresholdEpidemic !== undefined && count > thresholdEpidemic
+                    ? "Epidemic Threshold"
+                    : "Alert Threshold";
+
+                const locationParts = [district].filter(Boolean).join(", ");
+                const basePart = baselineMean !== undefined
+                  ? ` The usual level for this area is around ${Math.round(baselineMean)} case${Math.round(baselineMean) === 1 ? "" : "s"} per day.`
+                  : "";
+
+                const summary = [
+                  count !== undefined && disease
+                    ? `In the last 7 days, ${count} ${count === 1 ? "case" : "cases"} of ${disease} ${count === 1 ? "was" : "were"} recorded${locationParts ? ` in ${locationParts}` : ""}.`
+                    : null,
+                  `This has passed the ${thresholdLabel} — above the usual level for this area.${basePart}`,
+                  isCluster ? "Cases appear to be concentrated in a small area of the district." : null,
+                ].filter(Boolean).join(" ");
+
+                return summary ? (
+                  <div className="mt-2 pt-2 border-t border-base-300">
+                    <p className="text-xs text-base-content/60 leading-relaxed">{summary}</p>
+                  </div>
+                ) : null;
+              })() : null}
             </div>
           ) : null}
 
-          {alert.metadata ? (
+          {/* Patient details (if present) */}
+          {alert.metadata && ((alert.metadata as any).patientAge !== undefined || (alert.metadata as any).patientGender) ? (
             <div className="bg-base-200/50 p-4 rounded-lg">
-              <p className="text-sm text-base-content/60 mb-2">Additional Info</p>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {(alert.metadata as any).disease ? (
-                  <>
-                    <span className="text-base-content/60">Disease</span>
-                    <span className="font-medium">{(alert.metadata as any).disease}</span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).city ? (
-                  <>
-                    <span className="text-base-content/60">City</span>
-                    <span className="font-medium">{(alert.metadata as any).city}</span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).district ? (
-                  <>
-                    <span className="text-base-content/60">District</span>
-                    <span className="font-medium">{(alert.metadata as any).district}</span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).province ? (
-                  <>
-                    <span className="text-base-content/60">Province</span>
-                    <span className="font-medium">{(alert.metadata as any).province}</span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).anomalyScore !== undefined ? (
-                  <>
-                    <span className="text-base-content/60">Anomaly Score</span>
-                    <span className="font-medium">
-                      {Number((alert.metadata as any).anomalyScore).toFixed(4)}
-                    </span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).confidence !== undefined ? (
-                  <>
-                    <span className="text-base-content/60">Confidence</span>
-                    <span className="font-medium">
-                      {(Number((alert.metadata as any).confidence) * 100).toFixed(2)}%
-                    </span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).patientAge !== undefined ? (
-                  <>
-                    <span className="text-base-content/60">Patient Age</span>
-                    <span className="font-medium">{(alert.metadata as any).patientAge}</span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).patientGender ? (
-                  <>
-                    <span className="text-base-content/60">Patient Gender</span>
-                    <span className="font-medium capitalize">
-                      {String((alert.metadata as any).patientGender).toLowerCase()}
-                    </span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).count !== undefined ? (
-                  <>
-                    <span className="text-base-content/60">Cases Detected (7d)</span>
-                    <span className="font-medium">{(alert.metadata as any).count}</span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).baseline_mean !== undefined ? (
-                  <>
-                    <span className="text-base-content/60">Baseline Mean</span>
-                    <span className="font-medium">
-                      {Number((alert.metadata as any).baseline_mean).toFixed(2)}
-                    </span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).threshold_alert !== undefined ? (
-                  <>
-                    <span className="text-base-content/60">Alert Threshold</span>
-                    <span className="font-medium">
-                      {Number((alert.metadata as any).threshold_alert).toFixed(2)}
-                    </span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).threshold_epidemic !== undefined ? (
-                  <>
-                    <span className="text-base-content/60">Epidemic Threshold</span>
-                    <span className="font-medium">
-                      {Number((alert.metadata as any).threshold_epidemic).toFixed(2)}
-                    </span>
-                  </>
-                ) : null}
-                {(alert.metadata as any).is_cluster ? (
-                  <>
-                    <span className="text-base-content/60">High Density</span>
-                    <span className="font-medium text-warning">Yes (K-Means)</span>
-                  </>
-                ) : null}
-              </div>
+              <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Patient</p>
+              <p className="text-sm font-medium">
+                {[
+                  (alert.metadata as any).patientAge !== undefined
+                    ? `${(alert.metadata as any).patientAge}-year-old`
+                    : null,
+                  (alert.metadata as any).patientGender
+                    ? String((alert.metadata as any).patientGender).charAt(0).toUpperCase() +
+                      String((alert.metadata as any).patientGender).slice(1).toLowerCase()
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              </p>
             </div>
           ) : null}
 
+          {/* When — timestamps */}
           <div className="bg-base-200/50 p-4 rounded-lg grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div>
-              <p className="text-sm text-base-content/60 mb-1">Date Created</p>
-              <p className="font-medium">
+              <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Date Created</p>
+              <p className="text-sm font-medium">
                 {new Date(alert.createdAt).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
@@ -374,8 +332,8 @@ export function AlertDetailModal({
             </div>
             {alert.acknowledgedAt ? (
               <div>
-                <p className="text-sm text-base-content/60 mb-1">Acknowledged At</p>
-                <p className="font-medium">
+                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Acknowledged</p>
+                <p className="text-sm font-medium">
                   {new Date(alert.acknowledgedAt).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -387,8 +345,8 @@ export function AlertDetailModal({
             ) : null}
             {alert.resolvedAt ? (
               <div>
-                <p className="text-sm text-base-content/60 mb-1">Resolved At</p>
-                <p className="font-medium">
+                <p className="text-xs text-base-content/50 uppercase tracking-wide mb-1">Resolved</p>
+                <p className="text-sm font-medium">
                   {new Date(alert.resolvedAt).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",
@@ -489,12 +447,15 @@ export function AlertDetailModal({
             </div>
           </div>
 
-          {/* ── Action buttons ───────────────────────────────── */}
+          {/* ── Next steps / Action buttons ──────────────────── */}
           <div className="flex gap-2 justify-end pt-2 items-center flex-wrap">
+            {alert.diagnosisId ? (
+              <span className="text-xs text-base-content/30 mr-auto">Case ref: #{alert.diagnosisId}</span>
+            ) : null}
             {((alert.type === "ANOMALY" && (alert.metadata as any)?.latitude) ||
               (alert.type === "OUTBREAK" && (alert.metadata as any)?.district)) ? (
               <button
-                className="btn btn-outline border-border btn-sm mr-auto"
+                className="btn btn-outline border-border btn-sm"
                 onClick={handleViewOnMap}
               >
                 <MapPin className="w-4 h-4 mr-1" /> View on map
@@ -554,9 +515,6 @@ export function AlertDetailModal({
           </div>
         </div>
       </div>
-      <form method="dialog" className="modal-backdrop">
-        <button>close</button>
-      </form>
     </dialog>
   );
 }

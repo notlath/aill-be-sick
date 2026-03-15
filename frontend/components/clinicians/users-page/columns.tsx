@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Info } from "lucide-react";
 
 export type UserRow = {
   id: number;
@@ -9,10 +9,10 @@ export type UserRow = {
   email: string;
   gender: string | null;
   age: number | null;
-  city: string | null;
-  region: string | null;
+  district: string | null;
   role: string;
   createdAt: Date;
+  lastActivityAt: Date | null;
   _count: {
     diagnoses: number;
   };
@@ -21,25 +21,41 @@ export type UserRow = {
 export const columns: ColumnDef<UserRow>[] = [
   {
     accessorKey: "name",
-    header: ({ column }) => {
-      return (
-        <button
-          className="flex items-center gap-1 hover:text-primary"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Name
-          <ArrowUpDown className="w-4 h-4" />
-        </button>
-      );
-    },
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Name
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
     cell: ({ row }) => {
       const name = row.getValue("name") as string | null;
-      return <span>{name || "—"}</span>;
+      const email = row.original.email;
+      return (
+        <div className="flex flex-col gap-0.5">
+          <span className="font-medium">{name || "—"}</span>
+          <span className="text-xs text-muted">{email}</span>
+        </div>
+      );
     },
   },
   {
-    accessorKey: "email",
-    header: "Email",
+    accessorKey: "age",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Age
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const age = row.getValue("age") as number | null;
+      return <span>{age ?? "—"}</span>;
+    },
   },
   {
     accessorKey: "gender",
@@ -51,88 +67,75 @@ export const columns: ColumnDef<UserRow>[] = [
     },
   },
   {
-    accessorKey: "age",
-    header: ({ column }) => {
-      return (
-        <button
-          className="flex items-center gap-1 hover:text-primary"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Age
-          <ArrowUpDown className="w-4 h-4" />
-        </button>
-      );
-    },
+    accessorKey: "district",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        District
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
     cell: ({ row }) => {
-      const age = row.getValue("age") as number | null;
-      return <span>{age ?? "—"}</span>;
-    },
-  },
-  {
-    accessorKey: "region",
-    header: "Region",
-    cell: ({ row }) => {
-      const region = row.getValue("region") as string | null;
-      const city = row.original.city;
-      const display = [city, region].filter(Boolean).join(", ");
+      const district = row.getValue("district") as string | null;
       return (
-        <div className="max-w-32 truncate" title={display || "—"}>
-          {display || "—"}
+        <div className="max-w-36 truncate" title={district || "—"}>
+          {district || "—"}
         </div>
-      );
-    },
-  },
-  {
-    accessorKey: "role",
-    header: "Role",
-    filterFn: "equals",
-    cell: ({ row }) => {
-      const role = row.getValue("role") as string;
-      const badgeClass =
-        role === "CLINICIAN"
-          ? "badge-primary"
-          : role === "DEVELOPER"
-            ? "badge-secondary"
-            : "badge-ghost";
-      return (
-        <span className={`badge badge-sm ${badgeClass}`}>
-          {role.charAt(0) + role.slice(1).toLowerCase()}
-        </span>
       );
     },
   },
   {
     id: "diagnoses",
     accessorFn: (row) => row._count.diagnoses,
-    header: ({ column }) => {
-      return (
+    header: ({ column }) => (
+      <div className="flex items-center gap-1">
         <button
           className="flex items-center gap-1 hover:text-primary"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Diagnoses
+          Symptom Checks
           <ArrowUpDown className="w-4 h-4" />
         </button>
-      );
-    },
+        <div className="tooltip tooltip-bottom z-50" data-tip="Number of times this person used the symptom checker">
+          <Info className="w-3.5 h-3.5 text-muted cursor-default" />
+        </div>
+      </div>
+    ),
     cell: ({ row }) => {
       const count = row.getValue("diagnoses") as number;
       return <span>{count}</span>;
     },
   },
   {
-    accessorKey: "createdAt",
-    header: ({ column }) => {
-      return (
-        <button
-          className="flex items-center gap-1 hover:text-primary"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Joined
-          <ArrowUpDown className="w-4 h-4" />
-        </button>
-      );
+    accessorKey: "lastActivityAt",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Last Activity
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
+    cell: ({ row }) => {
+      const date = row.getValue("lastActivityAt") as Date | null;
+      if (!date) return <span className="text-muted">No activity</span>;
+      return <span>{new Date(date).toLocaleDateString()}</span>;
     },
+  },
+  {
+    accessorKey: "createdAt",
+    header: ({ column }) => (
+      <button
+        className="flex items-center gap-1 hover:text-primary"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+      >
+        Joined
+        <ArrowUpDown className="w-4 h-4" />
+      </button>
+    ),
     cell: ({ row }) => {
       const date = new Date(row.getValue("createdAt"));
       return <span>{date.toLocaleDateString()}</span>;

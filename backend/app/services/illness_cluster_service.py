@@ -98,7 +98,7 @@ def fetch_diagnosis_data(
             ) from exc
 
     query_str = """
-        SELECT 
+        SELECT
             d.id,
             d.disease,
             d.confidence,
@@ -111,6 +111,7 @@ def fetch_diagnosis_data(
             d.latitude,
             d.longitude,
             d."createdAt" AS diagnosed_at,
+            d.symptoms,
             u.id AS user_id,
             u.name AS user_name,
             u.email AS user_email,
@@ -183,6 +184,7 @@ def fetch_diagnosis_data(
             latitude,
             longitude,
             diagnosed_at,
+            symptoms,
             user_id,
             user_name,
             user_email,
@@ -246,6 +248,7 @@ def fetch_diagnosis_data(
                 "latitude": latitude,
                 "longitude": longitude,
                 "diagnosed_at": diagnosed_at.isoformat() if diagnosed_at else None,
+                "symptoms": symptoms,
                 "patient_id": user_id,
                 "patient_name": user_name,
                 "patient_email": user_email,
