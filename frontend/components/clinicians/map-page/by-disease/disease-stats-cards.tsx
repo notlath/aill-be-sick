@@ -8,7 +8,7 @@ import {
   AlertTriangle,
   Clock,
   Users,
-  ShieldCheck,
+  CalendarDays,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -107,7 +107,7 @@ interface CoordinatesStatsCardsProps {
   totalAllCases: number;
   newestCaseDate: Date | null;
   uniquePatientsCount: number;
-  avgConfidence: number | null;
+  casesThisWeek: number;
   onTotalClick: () => void;
 }
 
@@ -115,7 +115,7 @@ const CoordinatesStatsCards = ({
   totalAllCases,
   newestCaseDate,
   uniquePatientsCount,
-  avgConfidence,
+  casesThisWeek,
   onTotalClick,
 }: CoordinatesStatsCardsProps) => {
   const newestCaseLabel = newestCaseDate
@@ -130,17 +130,12 @@ const CoordinatesStatsCards = ({
       })
     : "No recorded cases in this period";
 
-  const confidenceLabel =
-    avgConfidence !== null ? `${Math.round(avgConfidence * 100)}%` : "N/A";
-
-  const confidenceSubtitle =
-    avgConfidence !== null
-      ? avgConfidence >= 0.9
-        ? "High reliability"
-        : avgConfidence >= 0.7
-          ? "Moderate reliability"
-          : "Low reliability — review with care"
-      : "No confidence data available";
+  const casesThisWeekSubtitle =
+    casesThisWeek === 0
+      ? "No new cases in the last 7 days"
+      : casesThisWeek === 1
+        ? "1 new case recorded this week"
+        : `${casesThisWeek.toLocaleString()} new cases recorded this week`;
 
   return (
     <>
@@ -199,14 +194,16 @@ const CoordinatesStatsCards = ({
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Avg. AI Confidence
+            Cases This Week
           </CardTitle>
-          <ShieldCheck className="h-4 w-4 text-primary" />
+          <CalendarDays className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent className="p-6 pt-0">
-          <div className="text-2xl font-bold">{confidenceLabel}</div>
+          <div className="text-2xl font-bold">
+            {casesThisWeek.toLocaleString()}
+          </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {confidenceSubtitle}
+            {casesThisWeekSubtitle}
           </p>
         </CardContent>
       </Card>

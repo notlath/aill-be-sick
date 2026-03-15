@@ -213,15 +213,15 @@ const ByDiseaseTab = () => {
   }, [casesData]);
 
   // Coordinates view stats
-  const { totalAllCases, newestCaseDate, uniquePatientsCount, avgConfidence } =
+  const { totalAllCases, newestCaseDate, uniquePatientsCount, casesThisWeek } =
     useMemo(() => {
       const allDiagnoses = [...heatmapDiagnoses, ...unpinnedDiagnoses];
       const totalAllCases = totalDiagnosesCount;
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
       let newestCaseDate: Date | null = null;
       const patientIds = new Set<number>();
-      let confidenceSum = 0;
-      let confidenceCount = 0;
+      let casesThisWeek = 0;
 
       for (const d of allDiagnoses) {
         const date = new Date(d.createdAt);
@@ -231,17 +231,14 @@ const ByDiseaseTab = () => {
         if (d.userId) {
           patientIds.add(d.userId);
         }
-        if (d.confidence !== null && d.confidence !== undefined) {
-          confidenceSum += d.confidence;
-          confidenceCount++;
+        if (date >= sevenDaysAgo) {
+          casesThisWeek++;
         }
       }
 
       const uniquePatientsCount = patientIds.size;
-      const avgConfidence =
-        confidenceCount > 0 ? confidenceSum / confidenceCount : null;
 
-      return { totalAllCases, newestCaseDate, uniquePatientsCount, avgConfidence };
+      return { totalAllCases, newestCaseDate, uniquePatientsCount, casesThisWeek };
     }, [heatmapDiagnoses, unpinnedDiagnoses, totalDiagnosesCount]);
 
   // Memoize modal diagnoses arrays to prevent recreation on every render
@@ -327,7 +324,7 @@ const ByDiseaseTab = () => {
             totalAllCases={totalAllCases}
             newestCaseDate={newestCaseDate}
             uniquePatientsCount={uniquePatientsCount}
-            avgConfidence={avgConfidence}
+            casesThisWeek={casesThisWeek}
             onTotalClick={() => setCoordinatesModal("total")}
           />
         )}
