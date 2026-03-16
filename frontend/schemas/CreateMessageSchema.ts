@@ -30,6 +30,7 @@ export const CreateMessageSchema = z.object({
         "IMPETIGO",
       ]),
       symptoms: z.string(),
+      cdss: z.any().optional(),
     })
     .optional(),
 });

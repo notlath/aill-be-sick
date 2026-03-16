@@ -27,6 +27,7 @@ export const createMessage = actionClient
                 modelUsed: tempDiagnosis.modelUsed,
                 disease: tempDiagnosis.disease,
                 symptoms: tempDiagnosis.symptoms,
+                cdss: tempDiagnosis.cdss ?? undefined,
                 chatId,
               },
             },

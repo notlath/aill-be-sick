@@ -10,6 +10,7 @@ const diagnosisWithUserSelect = {
   uncertainty: true,
   symptoms: true,
   modelUsed: true,
+  cdss: true,
   city: true,
   region: true,
   province: true,

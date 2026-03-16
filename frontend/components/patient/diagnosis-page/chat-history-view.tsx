@@ -2,8 +2,11 @@
 
 import { Chat, Explanation, Message } from "@/lib/generated/prisma";
 import { Explanation as TempExplanation } from "@/types";
+import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import ChatContainer from "./chat-container";
+
+const CDSSSummary = dynamic(() => import("./cdss-summary"));
 
 type ChatHistoryViewProps = {
   chatId: string;
@@ -11,6 +14,8 @@ type ChatHistoryViewProps = {
   chat: Chat;
   dbExplanation: Explanation | null;
   userRole?: string;
+  dbCdss?: any | null;
+  dbConfidence?: number | null;
 };
 
 /**
@@ -27,6 +32,8 @@ const ChatHistoryView = ({
   chat,
   dbExplanation,
   userRole,
+  dbCdss,
+  dbConfidence,
 }: ChatHistoryViewProps) => {
   const processedMessages = useMemo(
     () =>
@@ -50,6 +57,11 @@ const ChatHistoryView = ({
         dbExplanation={dbExplanation as unknown as TempExplanation}
         userRole={userRole}
       />
+      {dbCdss && (dbConfidence ?? 0) >= 0.95 && (
+        <div className="w-full max-w-[768px] mx-auto mt-3 px-4">
+          <CDSSSummary cdss={dbCdss} />
+        </div>
+      )}
       <dialog id="record_success_modal" className="modal">
         <div className="modal-box">
           <form method="dialog">

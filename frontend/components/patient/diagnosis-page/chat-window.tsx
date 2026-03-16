@@ -229,6 +229,7 @@ const ChatWindow = ({
                   modelUsed: mapModelUsed(model_used),
                   disease: mapDisease(disease),
                   symptoms: getCurrentSymptoms(),
+                  cdss: diagnosis?.cdss ?? undefined,
                 },
               });
             }
@@ -465,6 +466,7 @@ const ChatWindow = ({
                   modelUsed: mapModelUsed(model_used),
                   disease: mapDisease(disease),
                   symptoms: getCurrentSymptoms(),
+                  cdss: (data.diagnosis as any)?.cdss ?? undefined,
                 },
               });
             }

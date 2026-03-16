@@ -16,4 +16,5 @@ export const CreateDiagnosisSchema = z.object({
   ]),
   chatId: z.string().min(1, "Chat ID cannot be empty"),
   messageId: z.number().min(1, "Message ID cannot be empty"),
+  cdss: z.any().optional(),
 });

@@ -75,6 +75,7 @@ model TempDiagnosis {
   modelUsed   Model
   chatId      String
   symptoms    String
+  cdss        Json?
   chat        Chat     @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
@@ -89,6 +90,7 @@ model Diagnosis {
   userId      Int
   modelUsed   Model
   symptoms    String
+  cdss        Json?
   city        String?
   latitude    Float?
   longitude   Float?

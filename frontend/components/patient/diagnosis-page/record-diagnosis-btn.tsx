@@ -36,19 +36,17 @@ const RecordDiagnosisBtn = ({
   };
 
   return (
-    <div className="flex gap-2 mt-4">
-      <button
-        disabled={isExecuting || disabled}
-        className="flex-1 border border-border btn"
-        onClick={handleRecordDiagnosis}
-      >
-        {isExecuting ? (
-          <span className="loading loading-spinner"></span>
-        ) : (
-          "Record diagnosis"
-        )}
-      </button>
-    </div>
+    <button
+      disabled={isExecuting || disabled}
+      className="flex-1 border border-border btn"
+      onClick={handleRecordDiagnosis}
+    >
+      {isExecuting ? (
+        <span className="loading loading-spinner"></span>
+      ) : (
+        "Record diagnosis"
+      )}
+    </button>
   );
 };
 

@@ -105,6 +105,8 @@ const ChatDataLoader = async ({
         messages={messages}
         chat={chat}
         userRole={userRole}
+        dbCdss={(diagnosis as any)?.cdss ?? null}
+        dbConfidence={diagnosis?.confidence ?? null}
       />
     );
   }

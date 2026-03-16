@@ -73,6 +73,7 @@ export const createDiagnosis = actionClient
       chatId,
       symptoms,
       messageId,
+      cdss,
     } = parsedInput;
     const { success: dbUser, error } = await getCurrentDbUser();
 
@@ -101,6 +102,7 @@ export const createDiagnosis = actionClient
           disease,
           chatId,
           symptoms,
+          cdss: (cdss as any) ?? undefined,
           userId: dbUser.id,
           latitude: dbUser.latitude ?? null,
           longitude: dbUser.longitude ?? null,
