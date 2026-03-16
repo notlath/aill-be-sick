@@ -3,6 +3,33 @@
 import prisma from "@/prisma/prisma";
 import { cacheLife, cacheTag } from "next/cache";
 
+const diagnosisWithUserSelect = {
+  id: true,
+  disease: true,
+  confidence: true,
+  uncertainty: true,
+  symptoms: true,
+  modelUsed: true,
+  city: true,
+  region: true,
+  province: true,
+  district: true,
+  barangay: true,
+  latitude: true,
+  longitude: true,
+  userId: true,
+  chatId: true,
+  createdAt: true,
+  user: {
+    select: {
+      id: true,
+      name: true,
+      age: true,
+      gender: true,
+    },
+  },
+} as const;
+
 export const getDiagnosisByChatId = async (chatId: string) => {
   "use cache";
   cacheLife("hours");
@@ -100,9 +127,7 @@ export const getDiseaseDiagnosesByDistricts = async (
               lte: endDate ? new Date(endDate) : undefined,
             },
           },
-          include: {
-            user: true,
-          },
+          select: diagnosisWithUserSelect,
           orderBy: {
             createdAt: "desc",
           },
@@ -140,9 +165,7 @@ export const getDiseaseDiagnosesByDistricts = async (
             lte: endDate ? new Date(endDate) : undefined,
           },
         },
-        include: {
-          user: true,
-        },
+        select: diagnosisWithUserSelect,
       }),
       prisma.diagnosis.groupBy({
         by: ["district"],
@@ -192,7 +215,7 @@ export const getDiagnosesWithCoordinates = async (
             longitude: { not: null },
             createdAt: dateFilter,
           },
-          include: { user: true },
+          select: diagnosisWithUserSelect,
           orderBy: { createdAt: "desc" },
         }),
         prisma.diagnosis.findMany({
@@ -200,7 +223,7 @@ export const getDiagnosesWithCoordinates = async (
             OR: [{ latitude: null }, { longitude: null }],
             createdAt: dateFilter,
           },
-          include: { user: true },
+          select: diagnosisWithUserSelect,
           orderBy: { createdAt: "desc" },
         }),
         prisma.diagnosis.count({
@@ -219,7 +242,7 @@ export const getDiagnosesWithCoordinates = async (
           longitude: { not: null },
           createdAt: dateFilter,
         },
-        include: { user: true },
+        select: diagnosisWithUserSelect,
         orderBy: { createdAt: "desc" },
       }),
       prisma.diagnosis.findMany({
@@ -228,7 +251,7 @@ export const getDiagnosesWithCoordinates = async (
           OR: [{ latitude: null }, { longitude: null }],
           createdAt: dateFilter,
         },
-        include: { user: true },
+        select: diagnosisWithUserSelect,
         orderBy: { createdAt: "desc" },
       }),
       prisma.diagnosis.count({
