@@ -3,7 +3,7 @@
 import prisma from "@/prisma/prisma";
 import { cacheLife, cacheTag } from "next/cache";
 
-export const getChats = async (userId: number, include?: { messages?: boolean; diagnosis?: boolean; tempDiagnoses?: boolean | object }) => {
+export const getChats = async (userId: number, include?: { messages?: boolean | object; diagnosis?: boolean; tempDiagnoses?: boolean | object }) => {
   "use cache";
   cacheLife("hours");
   cacheTag("chats", `chats-${userId}`);
