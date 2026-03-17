@@ -4,7 +4,7 @@ import StartingDiagnosisForm from "@/components/patient/diagnosis-page/starting-
 
 const PatientHomePage = () => {
   return (
-    <main className="relative flex flex-col justify-center items-center space-y-12 h-full min-h-[80vh] bg-black overflow-hidden">
+    <main className="relative flex flex-col justify-start items-center space-y-12 h-full min-h-[80vh] pt-16 md:pt-20 bg-black overflow-hidden">
       {/* Green gradient orb from below - using inline style for guaranteed visibility */}
       <div
         className="absolute bottom-[-1000] left-1/2 -translate-x-1/2 w-[100vw] h-[100vw] max-w-[1600px] max-h-[1600px] rounded-full pointer-events-none"
