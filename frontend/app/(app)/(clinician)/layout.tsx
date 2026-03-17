@@ -2,8 +2,11 @@ import Sidebar from "@/components/patient/layout/sidebar";
 import ClinicianHelpModal from "@/components/clinicians/dashboard-page/clinician-help-modal";
 import AlertsStoreProvider from "@/components/clinicians/alerts/alerts-store-provider";
 import AlertsToastListener from "@/components/clinicians/alerts/alerts-toast-listener";
+import ConsentModal from "@/components/consent-modal";
+import LegalFooter from "@/components/shared/legal-footer";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
+import { needsTermsUpdate, getTermsUpdateInfo } from "@/utils/check-terms-version";
 import { redirect } from "next/navigation";
 import { ReactNode, Suspense } from "react";
 
@@ -43,13 +46,22 @@ const ClinicianLayoutContent = async ({
     redirect("/");
   }
 
+  // Check if user needs to accept terms
+  const requiresConsent = needsTermsUpdate(dbUser);
+  const { reasons } = getTermsUpdateInfo(dbUser);
+
   return (
     <LayoutWrapper>
       <Sidebar dbUser={dbUser} />
       <ClinicianHelpModal />
       <AlertsStoreProvider />
       <AlertsToastListener />
-      {children}
+      {/* Show consent modal if user hasn't accepted terms or needs to re-accept */}
+      {requiresConsent && <ConsentModal reasons={reasons} />}
+      <div className="flex flex-col flex-1 min-h-screen">
+        <main className="flex-1">{children}</main>
+        <LegalFooter />
+      </div>
     </LayoutWrapper>
   );
 };

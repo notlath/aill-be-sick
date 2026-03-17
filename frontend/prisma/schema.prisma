@@ -29,6 +29,13 @@ model User {
   birthday    DateTime?
   isOnboarded Boolean     @default(false)
   district    String?
+
+  // Consent tracking
+  termsAcceptedAt    DateTime?
+  privacyAcceptedAt  DateTime?
+  termsVersion       String?
+  privacyVersion     String?
+
   chats              Chat[]
   diagnoses          Diagnosis[]
   acknowledgedAlerts Alert[]     @relation("AlertAcknowledger")

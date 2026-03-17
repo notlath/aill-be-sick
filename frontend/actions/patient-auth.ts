@@ -1,12 +1,12 @@
 "use server";
 
-import * as z from "zod";
-
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { actionClient } from "./client";
 import { EmailAuthSchema } from "@/schemas/EmailAuthSchema";
+import { SignupWithConsentSchema } from "@/schemas/SignupWithConsentSchema";
+import { LEGAL_CONSTANTS } from "@/constants/legal";
 
 export const patientLogin = actionClient
   .inputSchema(EmailAuthSchema)
@@ -29,9 +29,25 @@ export const patientLogin = actionClient
   });
 
 export const patientSignup = actionClient
-  .inputSchema(EmailAuthSchema)
+  .inputSchema(SignupWithConsentSchema)
   .action(async ({ parsedInput }) => {
-    const { email, password } = parsedInput;
+    const {
+      email,
+      password,
+      acceptedMedicalDisclaimer,
+      acceptedAgeRequirement,
+      acceptedTermsAndPrivacy,
+    } = parsedInput;
+
+    // Verify all consent flags (enforced by schema, but double-check)
+    if (
+      !acceptedMedicalDisclaimer ||
+      !acceptedAgeRequirement ||
+      !acceptedTermsAndPrivacy
+    ) {
+      return { error: "All consent checkboxes must be accepted to sign up." };
+    }
+
     const supabase = await createClient();
 
     const appUrl =
@@ -61,8 +77,19 @@ export const patientSignup = actionClient
           name: data.user.user_metadata?.name || "",
           authId: data.user.id,
           role: "PATIENT",
+          // Store consent timestamps and versions
+          termsAcceptedAt: new Date(),
+          privacyAcceptedAt: new Date(),
+          termsVersion: LEGAL_CONSTANTS.TERMS_VERSION,
+          privacyVersion: LEGAL_CONSTANTS.PRIVACY_VERSION,
         },
-        update: {},
+        update: {
+          // Also update consent if user already exists (edge case)
+          termsAcceptedAt: new Date(),
+          privacyAcceptedAt: new Date(),
+          termsVersion: LEGAL_CONSTANTS.TERMS_VERSION,
+          privacyVersion: LEGAL_CONSTANTS.PRIVACY_VERSION,
+        },
       });
     }
 
