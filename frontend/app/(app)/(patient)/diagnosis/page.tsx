@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUp, ClipboardList } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "nextjs-toploader/app";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import ChecklistModal from "@/components/patient/diagnosis-page/checklist-modal";
 
@@ -27,10 +27,24 @@ const PatientHomePage = () => {
 
   // Guard: only navigate on an intentional submission within this lifecycle.
   const hasSubmittedRef = useRef(false);
+  const isMountedRef = useRef(true);
   const [isNavigating, setIsNavigating] = useState(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    // If this page is restored from router cache, clear stale loading UI.
+    setIsNavigating(false);
+    hasSubmittedRef.current = false;
+
+    return () => {
+      isMountedRef.current = false;
+      hasSubmittedRef.current = false;
+    };
+  }, []);
 
   const { execute, isExecuting } = useAction(createChat, {
     onSuccess: ({ data }) => {
+      if (!isMountedRef.current) return;
       if (!hasSubmittedRef.current) return;
       hasSubmittedRef.current = false;
       if (data?.success) {
@@ -45,6 +59,7 @@ const PatientHomePage = () => {
       }
     },
     onError: () => {
+      if (!isMountedRef.current) return;
       setIsNavigating(false);
     },
   });

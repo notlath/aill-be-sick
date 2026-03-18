@@ -10,6 +10,9 @@ Theory:
 
     The question with the highest EIG is the one whose answer (yes or no) will,
     on average, reduce uncertainty the most.
+
+Enhanced with semantic grouping to avoid redundant questions about the same
+symptom concepts across different diseases.
 """
 
 from __future__ import annotations
@@ -17,6 +20,12 @@ from __future__ import annotations
 import numpy as np
 from scipy.stats import entropy
 from typing import TYPE_CHECKING
+
+from app.question_groups import (
+    expand_asked_questions,
+    get_questions_to_skip_from_text,
+    get_questions_blocked_by_prerequisites,
+)
 
 if TYPE_CHECKING:
     pass
@@ -92,7 +101,9 @@ def compute_eig(
 
     h_current = _shannon_entropy(probs)
 
-    posterior_yes = _simulate_posterior(probs, "yes", question_weight, target_disease_idx)
+    posterior_yes = _simulate_posterior(
+        probs, "yes", question_weight, target_disease_idx
+    )
     posterior_no = _simulate_posterior(probs, "no", question_weight, target_disease_idx)
 
     h_yes = _shannon_entropy(posterior_yes)
@@ -125,13 +136,19 @@ def select_best_question(
         return None
 
     probs = np.array(current_probs, dtype=np.float64).flatten()
-    label2idx = {v: k for k, v in disease_labels.items()}
+    # Build reverse mapping from disease name to index
+    label2idx: dict[str, int] = {}
+    for idx, name in disease_labels.items():
+        if name is not None:
+            label2idx[name] = idx
 
     best_question = None
     best_eig = -1.0
 
     for q in available_questions:
-        disease_name = q.get("_disease")  # injected by caller
+        disease_name: str | None = q.get("_disease")  # injected by caller
+        if disease_name is None:
+            continue
         target_idx = label2idx.get(disease_name)
         if target_idx is None:
             continue
@@ -153,6 +170,9 @@ def select_best_question_across_diseases(
     asked_question_ids: set[str],
     skip_question_ids: set[str],
     disease_labels: dict[int, str],
+    symptoms_text: str = "",
+    use_semantic_grouping: bool = True,
+    answered_questions: dict[str, str] | None = None,
 ) -> dict | None:
     """
     Select the globally best question across ALL diseases using EIG.
@@ -161,22 +181,49 @@ def select_best_question_across_diseases(
     It iterates over every unanswered question in every disease and returns
     the single question whose EIG is highest.
 
+    Enhanced with semantic grouping to avoid redundant questions:
+    - Questions semantically equivalent to already-asked ones are skipped
+    - Questions about symptoms already mentioned in text are skipped
+    - Questions with unmet prerequisites are skipped (e.g., cough character
+      questions are skipped until cough existence is confirmed)
+
     Args:
         current_probs:        Current probability distribution.
         question_bank:        Full question bank {disease: [questions]}.
         asked_question_ids:   Set of question IDs already asked.
         skip_question_ids:    Set of question IDs to skip (e.g., already-evidenced).
         disease_labels:       CORRECT_ID2LABEL mapping.
+        symptoms_text:        Patient's symptom description text (for text-based skipping).
+        use_semantic_grouping: Whether to use semantic grouping (default True).
+        answered_questions:   Dict of {question_id: "yes"|"no"} for prerequisite checking.
 
     Returns:
         The best question dict (with "_disease" and "_eig" injected), or None.
     """
+    # Expand the asked questions to include semantically equivalent ones
+    if use_semantic_grouping:
+        expanded_asked = expand_asked_questions(asked_question_ids)
+        # Also skip questions about symptoms mentioned in the patient's text
+        text_based_skips = get_questions_to_skip_from_text(symptoms_text)
+        combined_skip = skip_question_ids | expanded_asked | text_based_skips
+    else:
+        combined_skip = skip_question_ids | asked_question_ids
+
+    # Skip questions with unmet prerequisites (e.g., cough character before cough existence)
+    # Note: Use "is not None" because empty dict {} should still trigger blocking
+    # (no answers yet = prerequisites not satisfied)
+    if answered_questions is not None:
+        prerequisite_blocked = get_questions_blocked_by_prerequisites(
+            answered_questions
+        )
+        combined_skip = combined_skip | prerequisite_blocked
+
     all_candidates = []
 
     for disease, questions in question_bank.items():
         for q in questions:
             qid = q.get("id", "")
-            if qid in asked_question_ids or qid in skip_question_ids:
+            if qid in combined_skip:
                 continue
             # Inject disease name so select_best_question knows the target
             candidate = {**q, "_disease": disease}

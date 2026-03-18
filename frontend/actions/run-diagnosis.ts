@@ -27,6 +27,7 @@ export const runDiagnosis = actionClient
         `${BACKEND_URL}/diagnosis/new`,
         {
           symptoms,
+          chat_id: chatId,
         },
         {
           withCredentials: true, // Enable session cookies

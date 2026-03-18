@@ -115,6 +115,8 @@ const ChatWindow = ({
 
   const lastDiagnosisRef = useRef<any>(null);
   const initialSymptomsRef = useRef<string>("");
+  // Mount guard: prevents onSuccess callbacks from firing after unmount
+  const isMountedRef = useRef<boolean>(true);
 
   const getCurrentSymptoms = () => {
     return (
@@ -140,6 +142,8 @@ const ChatWindow = ({
   const { execute: getFollowUpExecute, isExecuting: isGettingQuestion } =
     useAction(getFollowUpQuestion, {
       onSuccess: ({ data }) => {
+        // Guard: ignore callbacks after unmount to prevent stale state updates
+        if (!isMountedRef.current) return;
         if (data?.success) {
           const { question, should_stop, reason, diagnosis, session_id } =
             data.success as any;
@@ -278,6 +282,8 @@ const ChatWindow = ({
 
   const { execute: autoRecordExecute } = useAction(autoRecordDiagnosis, {
     onSuccess: ({ data }) => {
+      // Guard: ignore callbacks after unmount
+      if (!isMountedRef.current) return;
       if (data?.success) {
         if (data.requiresManualRecord) {
           // Low-confidence diagnosis - requires user consent
@@ -293,6 +299,8 @@ const ChatWindow = ({
       }
     },
     onError: ({ error }) => {
+      // Guard: ignore callbacks after unmount
+      if (!isMountedRef.current) return;
       console.error("[ChatWindow] Auto-record request failed:", error);
     },
   });
@@ -300,6 +308,8 @@ const ChatWindow = ({
   const { execute: getExplanations, isExecuting: isGettingExplanations } =
     useAction(explainDiagnosis, {
       onSuccess: ({ data }) => {
+        // Guard: ignore callbacks after unmount
+        if (!isMountedRef.current) return;
         if (data?.success && data.explanation) {
           const messageId = lastExplanationMessageIdRef.current;
           if (messageId !== null) {
@@ -345,6 +355,8 @@ const ChatWindow = ({
         }
       },
       onError: ({ error }) => {
+        // Guard: ignore callbacks after unmount
+        if (!isMountedRef.current) return;
         console.error("[ChatWindow] Explanation request failed:", error);
       },
     });
@@ -353,6 +365,8 @@ const ChatWindow = ({
     runDiagnosis,
     {
       onSuccess: ({ data }) => {
+        // Guard: ignore callbacks after unmount to prevent stale state updates
+        if (!isMountedRef.current) return;
         if (data?.error) {
           let errorMessage = "";
 
@@ -515,6 +529,8 @@ const ChatWindow = ({
       return [...currentMessages, newMessage];
     },
     onSuccess: ({ data }) => {
+      // Guard: ignore callbacks after unmount to prevent stale state updates
+      if (!isMountedRef.current) return;
       if (data.success) {
         const created = data.success as any;
 
@@ -583,6 +599,8 @@ const ChatWindow = ({
       }
     },
     onError: ({ error }) => {
+      // Guard: ignore callbacks after unmount
+      if (!isMountedRef.current) return;
       // If DIAGNOSIS creation failed, allow a subsequent stop response to retry.
       finalDiagnosisInFlightRef.current = false;
       console.error("Failed to create message:", error);
@@ -661,7 +679,11 @@ const ChatWindow = ({
 
   // Cleanup on unmount - cancel any in-flight requests to prevent memory leaks
   useEffect(() => {
+    // Mark as mounted when effect runs
+    isMountedRef.current = true;
     return () => {
+      // Mark as unmounted to stop onSuccess callbacks from firing
+      isMountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
