@@ -1,4 +1,3 @@
-
 import re
 import html
 import unicodedata
@@ -16,8 +15,10 @@ __all__ = [
     "detect_language_heuristic",
 ]
 
+
 def _count_words(text: str) -> int:
     return len([w for w in (text or "").strip().split() if w])
+
 
 def clean_token(t):
     # Decode weird UTF-8 artifacts and normalize apostrophes
@@ -27,6 +28,7 @@ def clean_token(t):
     t = unicodedata.normalize("NFKC", t)
     return t.strip()
 
+
 def aggregate_subword_attributions(tokens, attributions, tokenizer=None):
     """
     Merge subword tokens (e.g., Ġirrit + ating -> 'irritating')
@@ -35,13 +37,22 @@ def aggregate_subword_attributions(tokens, attributions, tokenizer=None):
     """
     words = []
     word_attrs = []
-    
+
     current_tokens = []
     current_word = ""
     current_attr = 0.0
 
     for token, attr in zip(tokens, attributions):
-        if token in ["[CLS]", "[SEP]", "[PAD]", "<s>", "</s>", "<pad>", "<cls>", "<sep>"]:
+        if token in [
+            "[CLS]",
+            "[SEP]",
+            "[PAD]",
+            "<s>",
+            "</s>",
+            "<pad>",
+            "<cls>",
+            "<sep>",
+        ]:
             continue
 
         # BPE and SentencePiece word-start markers
@@ -49,11 +60,15 @@ def aggregate_subword_attributions(tokens, attributions, tokenizer=None):
             if current_tokens or current_word:
                 if tokenizer is not None:
                     ids = tokenizer.convert_tokens_to_ids(current_tokens)
-                    words.append(tokenizer.decode(ids, clean_up_tokenization_spaces=False).strip())
+                    words.append(
+                        tokenizer.decode(
+                            ids, clean_up_tokenization_spaces=False
+                        ).strip()
+                    )
                 else:
                     words.append(current_word.strip())
                 word_attrs.append(current_attr)
-            
+
             if tokenizer is not None:
                 current_tokens = [token]
             else:
@@ -68,15 +83,22 @@ def aggregate_subword_attributions(tokens, attributions, tokenizer=None):
             current_attr += attr
 
         else:
-            if (tokenizer is None and current_word and current_word.endswith(" ")) or \
-               (tokenizer is not None and current_tokens and current_tokens[-1].endswith(" ")):
+            if (tokenizer is None and current_word and current_word.endswith(" ")) or (
+                tokenizer is not None
+                and current_tokens
+                and current_tokens[-1].endswith(" ")
+            ):
                 if tokenizer is not None:
                     ids = tokenizer.convert_tokens_to_ids(current_tokens)
-                    words.append(tokenizer.decode(ids, clean_up_tokenization_spaces=False).strip())
+                    words.append(
+                        tokenizer.decode(
+                            ids, clean_up_tokenization_spaces=False
+                        ).strip()
+                    )
                 else:
                     words.append(current_word.strip())
                 word_attrs.append(current_attr)
-                
+
                 if tokenizer is not None:
                     current_tokens = [token]
                 else:
@@ -92,12 +114,15 @@ def aggregate_subword_attributions(tokens, attributions, tokenizer=None):
     if current_tokens or current_word:
         if tokenizer is not None:
             ids = tokenizer.convert_tokens_to_ids(current_tokens)
-            words.append(tokenizer.decode(ids, clean_up_tokenization_spaces=False).strip())
+            words.append(
+                tokenizer.decode(ids, clean_up_tokenization_spaces=False).strip()
+            )
         else:
             words.append(current_word.strip())
         word_attrs.append(current_attr)
 
     return words, np.array(word_attrs)
+
 
 def _has_medical_keywords(text: str, lang: str = "en") -> bool:
     """
@@ -110,10 +135,15 @@ def _has_medical_keywords(text: str, lang: str = "en") -> bool:
     text_lower = text.lower()
 
     # Check both language sets to handle langdetect misidentifications
-    has_en_keyword = any(keyword in text_lower for keyword in config.MEDICAL_KEYWORDS_EN)
-    has_tl_keyword = any(keyword in text_lower for keyword in config.MEDICAL_KEYWORDS_TL)
+    has_en_keyword = any(
+        keyword in text_lower for keyword in config.MEDICAL_KEYWORDS_EN
+    )
+    has_tl_keyword = any(
+        keyword in text_lower for keyword in config.MEDICAL_KEYWORDS_TL
+    )
 
     return has_en_keyword or has_tl_keyword
+
 
 def _detect_red_flags(text: str) -> list:
     """Very simple keyword-based red flag detection (EN/TL).
@@ -180,6 +210,7 @@ def _detect_red_flags(text: str) -> list:
 
     return red_flags
 
+
 def _build_cdss_payload(
     symptoms: str,
     disease: str,
@@ -201,7 +232,10 @@ def _build_cdss_payload(
             "Avoid delays; consider calling local emergency number",
         ]
     else:
-        if confidence >= config.TRIAGE_HIGH_CONFIDENCE and uncertainty <= config.TRIAGE_LOW_UNCERTAINTY:
+        if (
+            confidence >= config.TRIAGE_HIGH_CONFIDENCE
+            and uncertainty <= config.TRIAGE_LOW_UNCERTAINTY
+        ):
             triage_level = "Non-urgent"
             triage_reasons = [
                 f"High model confidence (≥ {config.TRIAGE_HIGH_CONFIDENCE})",
@@ -233,19 +267,92 @@ def _build_cdss_payload(
         for td in (top_diseases or [])
     ]
 
-    # Minimal knowledge references (non-exhaustive placeholders)
-    knowledge = [
-        {
-            "topic": "Dengue warning signs",
-            "source": "WHO guidance",
-            "link": "https://www.who.int/health-topics/dengue-and-severe-dengue",
-        },
-        {
-            "topic": "Community-acquired pneumonia assessment",
-            "source": "General clinical references",
-            "link": "https://www.cdc.gov/pneumonia/index.html",
-        },
-    ]
+    # Disease-specific knowledge references from authoritative sources
+    _KNOWLEDGE_BY_DISEASE = {
+        "Dengue": [
+            {
+                "topic": "Dengue overview, symptoms and warning signs",
+                "source": "WHO",
+                "link": "https://www.who.int/news-room/fact-sheets/detail/dengue-and-severe-dengue",
+            },
+            {
+                "topic": "Dengue prevention and mosquito control",
+                "source": "CDC",
+                "link": "https://www.cdc.gov/dengue/index.html",
+            },
+        ],
+        "Diarrhea": [
+            {
+                "topic": "Diarrhoeal disease overview and treatment",
+                "source": "WHO",
+                "link": "https://www.who.int/news-room/fact-sheets/detail/diarrhoeal-disease",
+            },
+            {
+                "topic": "Diarrhea prevention and oral rehydration",
+                "source": "CDC",
+                "link": "https://www.cdc.gov/diarrhea/index.html",
+            },
+        ],
+        "Influenza": [
+            {
+                "topic": "Seasonal influenza overview and vaccination",
+                "source": "WHO",
+                "link": "https://www.who.int/news-room/fact-sheets/detail/influenza-(seasonal)",
+            },
+            {
+                "topic": "Flu symptoms, treatment and prevention",
+                "source": "CDC",
+                "link": "https://www.cdc.gov/flu/index.html",
+            },
+        ],
+        "Measles": [
+            {
+                "topic": "Measles overview, symptoms and complications",
+                "source": "WHO",
+                "link": "https://www.who.int/news-room/fact-sheets/detail/measles",
+            },
+            {
+                "topic": "Measles signs, vaccination and prevention",
+                "source": "CDC",
+                "link": "https://www.cdc.gov/measles/index.html",
+            },
+        ],
+        "Pneumonia": [
+            {
+                "topic": "Pneumonia causes, prevention and treatment",
+                "source": "WHO",
+                "link": "https://www.who.int/news-room/fact-sheets/detail/pneumonia",
+            },
+            {
+                "topic": "Pneumonia symptoms and risk factors",
+                "source": "CDC",
+                "link": "https://www.cdc.gov/pneumonia/index.html",
+            },
+        ],
+        "Typhoid": [
+            {
+                "topic": "Typhoid fever overview and vaccination",
+                "source": "WHO",
+                "link": "https://www.who.int/news-room/fact-sheets/detail/typhoid",
+            },
+            {
+                "topic": "Typhoid fever symptoms, treatment and prevention",
+                "source": "CDC",
+                "link": "https://www.cdc.gov/typhoid-fever/index.html",
+            },
+        ],
+    }
+
+    knowledge = _KNOWLEDGE_BY_DISEASE.get(
+        disease,
+        [
+            {
+                "topic": "General health information",
+                "source": "WHO",
+                "link": "https://www.who.int/health-topics",
+            },
+        ],
+    )
 
     payload = {
         "differential": differential,
@@ -267,7 +374,9 @@ def _build_cdss_payload(
         "meta": {
             "model": model_used,
             "model_version": (
-                config.ENG_MODEL_PATH if "ModernBERT" in model_used else config.FIL_MODEL_PATH
+                config.ENG_MODEL_PATH
+                if "ModernBERT" in model_used
+                else config.FIL_MODEL_PATH
             ),
             "thresholds": {
                 "hard_min_conf": config.SYMPTOM_MIN_CONF,
@@ -279,6 +388,7 @@ def _build_cdss_payload(
     }
 
     return payload
+
 
 def detect_language_heuristic(text, debug=False):
     """
@@ -293,18 +403,22 @@ def detect_language_heuristic(text, debug=False):
     # We will simplify this to pure keyword matching + length heuristic if we can't access tokenizers easily
     # OR we need to accept tokenizers as arguments.
     # Ideally, we pass tokenizers IN, but for now let's rely on keywords which are strong indicators.
-    
+
     # Keyword-based detection (Count based instead of boolean fallback)
     text_lower = text.lower()
-    
+
     tl_matches = sum(1 for k in config.MEDICAL_KEYWORDS_TL if k in text_lower)
     en_matches = sum(1 for k in config.MEDICAL_KEYWORDS_EN if k in text_lower)
 
     if tl_matches > 0 and tl_matches >= en_matches:
         if debug:
-            print(f"[DEBUG] Heuristic: TL matches ({tl_matches}) >= EN matches ({en_matches}), forcing TL")
+            print(
+                f"[DEBUG] Heuristic: TL matches ({tl_matches}) >= EN matches ({en_matches}), forcing TL"
+            )
         return "tl"
-    
+
     if debug:
-        print(f"[DEBUG] Heuristic: EN matches ({en_matches}) > TL matches ({tl_matches}) or no TL matches, forcing EN")
+        print(
+            f"[DEBUG] Heuristic: EN matches ({en_matches}) > TL matches ({tl_matches}) or no TL matches, forcing EN"
+        )
     return "en"

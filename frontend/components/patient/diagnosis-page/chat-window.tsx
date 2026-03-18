@@ -210,13 +210,12 @@ const ChatWindow = ({
               finalDiagnosisInFlightRef.current = true;
               const { disease, confidence, uncertainty, model_used } =
                 diagnosis;
-              const impressive = (confidence ?? 0) >= 0.9;
+              const isHighConfidence = (confidence ?? 0) >= 0.95;
 
-              const summary = impressive
-                ? `Final assessment: ${disease} (confidence ${(
-                    confidence * 100
-                  ).toFixed(1)}%)`
-                : diagnosis.message || `Assessment complete: ${disease}`;
+              const summary = isHighConfidence
+                ? `Based on the reported symptoms, **${disease}** is the closest match.`
+                : diagnosis.message ||
+                  `Based on the reported symptoms, **${disease}** may be a possible match. A healthcare provider should evaluate these findings.`;
 
               createMessageExecute({
                 chatId,
@@ -447,13 +446,11 @@ const ChatWindow = ({
                 return;
               }
               finalDiagnosisInFlightRef.current = true;
-              const impressive = (confidence ?? 0) >= 0.95;
-              const summary = impressive
-                ? `Final assessment: ${disease} (confidence ${(
-                    confidence * 100
-                  ).toFixed(1)}%)`
+              const isHighConfidence = (confidence ?? 0) >= 0.95;
+              const summary = isHighConfidence
+                ? `Based on the reported symptoms, **${disease}** is the closest match.`
                 : (data.diagnosis as any)?.message ||
-                  `Assessment complete: ${disease}`;
+                  `Based on the reported symptoms, **${disease}** may be a possible match. A healthcare provider should evaluate these findings.`;
 
               createMessageExecute({
                 chatId,
@@ -755,7 +752,7 @@ const ChatWindow = ({
             {isFinalDiagnosis &&
               currentDiagnosis?.cdss &&
               (currentDiagnosis?.confidence ?? 0) >= 0.95 && (
-                <div className="mt-3">
+                <div className="mt-2 w-full">
                   <CDSSSummary cdss={currentDiagnosis.cdss} />
                 </div>
               )}
