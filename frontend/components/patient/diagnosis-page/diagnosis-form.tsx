@@ -2,10 +2,10 @@
 
 import { CreateChatSchemaType } from "@/schemas/CreateChatSchema";
 import { useSymptomChecklist, type Language } from "@/hooks/use-symptom-checklist";
-import { ArrowUp, ClipboardList, MessageSquareText } from "lucide-react";
+import { ArrowUp, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { useFormContext } from "react-hook-form";
-import SymptomChecklist from "./symptom-checklist";
+import ChecklistModal from "./checklist-modal";
 
 type DiagnosisFormProps = {
   createMessageExecute: any;
@@ -14,8 +14,6 @@ type DiagnosisFormProps = {
 };
 
 const MIN_CHARACTERS = 20;
-
-type InputMode = "text" | "checklist";
 
 const DiagnosisForm = ({
   createMessageExecute,
@@ -29,7 +27,7 @@ const DiagnosisForm = ({
 
   const isInteractive = !disabled && !isPending;
 
-  const [mode, setMode] = useState<InputMode>("text");
+  const [isChecklistOpen, setIsChecklistOpen] = useState(false);
   const [language, setLanguage] = useState<Language>("en");
   const checklist = useSymptomChecklist(language);
 
@@ -56,39 +54,9 @@ const DiagnosisForm = ({
   };
 
   return (
-    <div className="flex flex-col gap-3 w-full">
-      {/* ── Mode toggle ──────────────────────────────────────────── */}
-      {isInteractive && (
-        <div className="flex items-center justify-center gap-1 bg-base-200/50 rounded-xl p-1 self-center">
-          <button
-            type="button"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-              mode === "text"
-                ? "bg-base-100 text-base-content shadow-sm"
-                : "text-base-content/50 hover:text-base-content/70"
-            }`}
-            onClick={() => setMode("text")}
-          >
-            <MessageSquareText className="size-3.5" strokeWidth={2} />
-            Describe
-          </button>
-          <button
-            type="button"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-              mode === "checklist"
-                ? "bg-base-100 text-base-content shadow-sm"
-                : "text-base-content/50 hover:text-base-content/70"
-            }`}
-            onClick={() => setMode("checklist")}
-          >
-            <ClipboardList className="size-3.5" strokeWidth={2} />
-            Checklist
-          </button>
-        </div>
-      )}
-
-      {/* ── Free-text mode ───────────────────────────────────────── */}
-      {mode === "text" && (
+    <>
+      <div className="flex flex-col gap-3 w-full">
+        {/* Text input with checklist button */}
         <div className="flex justify-center items-center w-full">
           <form
             onSubmit={form.handleSubmit(handleTextSubmit)}
@@ -104,14 +72,26 @@ const DiagnosisForm = ({
                       : "bg-base-100 border-base-300/40 shadow-sm focus-within:shadow-md focus-within:border-primary/50"
                 }`}
               >
+                {/* Checklist button */}
+                <button
+                  type="button"
+                  onClick={() => setIsChecklistOpen(true)}
+                  disabled={!isInteractive}
+                  aria-label="Open symptom checklist"
+                  className="shrink-0 w-9 h-9 rounded-lg bg-base-200/80 text-base-content/60 flex items-center justify-center hover:bg-base-300 hover:text-base-content active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-base-200/80 disabled:active:scale-100"
+                >
+                  <ClipboardList className="size-4" strokeWidth={2} />
+                </button>
+
                 <textarea
                   aria-label="Describe your symptoms"
-                  className="flex-1 border-none outline-none bg-transparent resize-none text-base text-base-content placeholder:text-base-content/40 transition-opacity duration-200 min-h-[40px] py-1 disabled:cursor-not-allowed"
+                  className="flex-1 border-none outline-none bg-transparent resize-none text-base text-base-content placeholder:text-base-content/40 transition-opacity duration-200 min-h-[44px] py-2.5 disabled:cursor-not-allowed my-auto"
                   placeholder={
                     disabled
                       ? "Please answer the question above..."
                       : "I'm feeling..."
                   }
+                  rows={1}
                   suppressHydrationWarning
                   data-gramm="false"
                   data-gramm_editor="false"
@@ -163,28 +143,25 @@ const DiagnosisForm = ({
             </div>
           </form>
         </div>
-      )}
+      </div>
 
-      {/* ── Checklist mode ───────────────────────────────────────── */}
-      {mode === "checklist" && (
-        <div className="bg-base-100 border border-base-300/40 rounded-2xl p-4 shadow-sm">
-          <SymptomChecklist
-            checkedIds={checklist.checkedIds}
-            onToggle={checklist.toggle}
-            onClear={checklist.clear}
-            generatedPhrase={checklist.generatedPhrase}
-            isReady={checklist.isReady}
-            remaining={checklist.remaining}
-            count={checklist.count}
-            language={language}
-            onLanguageChange={setLanguage}
-            onSubmit={handleChecklistSubmit}
-            isPending={isPending}
-            disabled={disabled}
-          />
-        </div>
-      )}
-    </div>
+      {/* Checklist Modal */}
+      <ChecklistModal
+        isOpen={isChecklistOpen}
+        onClose={() => setIsChecklistOpen(false)}
+        checkedIds={checklist.checkedIds}
+        onToggle={checklist.toggle}
+        onClear={checklist.clear}
+        generatedPhrase={checklist.generatedPhrase}
+        isReady={checklist.isReady}
+        remaining={checklist.remaining}
+        count={checklist.count}
+        language={language}
+        onLanguageChange={setLanguage}
+        onSubmit={handleChecklistSubmit}
+        isPending={isPending}
+      />
+    </>
   );
 };
 

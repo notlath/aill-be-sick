@@ -24,6 +24,10 @@ type SymptomChecklistProps = {
   onSubmit: (phrase: string) => void;
   isPending: boolean;
   disabled?: boolean;
+  /** Hide the language toggle (when rendered in overlay with its own header) */
+  hideLanguageToggle?: boolean;
+  /** Hide the instruction header text */
+  hideHeader?: boolean;
 };
 
 const SymptomChecklist = ({
@@ -39,6 +43,8 @@ const SymptomChecklist = ({
   onSubmit,
   isPending,
   disabled = false,
+  hideLanguageToggle = false,
+  hideHeader = false,
 }: SymptomChecklistProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sectionHeaderRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -98,27 +104,31 @@ const SymptomChecklist = ({
   };
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 flex flex-col flex-1 min-h-0">
       {/* ── Language toggle ───────────────────────────────────── */}
-      <div className="flex items-center justify-between h-[24px] shrink-0 gap-2">
-        <p className="text-sm text-base-content/60 truncate">
-          {language === "en"
-            ? "Check the symptoms you are experiencing"
-            : "Lagyan ng tsek ang mga sintomas na nararanasan mo"}
-        </p>
-        <button
-          type="button"
-          className="btn btn-ghost btn-xs gap-1.5 shrink-0"
-          onClick={() => onLanguageChange(language === "en" ? "tl" : "en")}
-          disabled={!isInteractive}
-        >
-          <Globe className="size-3.5" strokeWidth={2} />
-          {language === "en" ? "Filipino" : "English"}
-        </button>
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center justify-between h-[24px] shrink-0 gap-2">
+          <p className="text-sm text-base-content/60 truncate">
+            {language === "en"
+              ? "Check the symptoms you are experiencing"
+              : "Lagyan ng tsek ang mga sintomas na nararanasan mo"}
+          </p>
+          {!hideLanguageToggle && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs gap-1.5 shrink-0"
+              onClick={() => onLanguageChange(language === "en" ? "tl" : "en")}
+              disabled={!isInteractive}
+            >
+              <Globe className="size-3.5" strokeWidth={2} />
+              {language === "en" ? "Filipino" : "English"}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Symptom categories ────────────────────────────────── */}
-      <div ref={scrollContainerRef} className="space-y-2 h-[350px] shrink-0 overflow-y-auto pr-1 overscroll-contain will-change-scroll">
+      <div ref={scrollContainerRef} className="space-y-2 flex-1 min-h-0 shrink-0 overflow-y-auto pr-1 overscroll-contain will-change-scroll">
         {SYMPTOM_CATEGORIES.map((category) => {
           const isExpanded = expandedSections.has(category.id);
           const checkedInCategory = category.symptoms.filter((s) =>
@@ -213,31 +223,28 @@ const SymptomChecklist = ({
         })}
       </div>
 
-      {/* ── Generated phrase preview (always rendered to avoid layout shift) */}
-      <div
-        className={`flex flex-col gap-2 h-[88px] shrink-0 transition-opacity duration-200 ${
-          count > 0 ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        aria-hidden={count === 0}
-      >
-        <div className="flex items-center justify-between h-[20px] shrink-0 gap-2">
-          <p className="text-xs font-medium text-base-content/60 truncate">
-            {language === "en" ? "Generated description" : "Nabuong paglalarawan"}
-          </p>
-          <button
-            type="button"
-            className="btn btn-ghost btn-xs gap-1 shrink-0"
-            onClick={onClear}
-            disabled={!isInteractive}
-          >
-            <RotateCcw className="size-3" strokeWidth={2.5} />
-            {language === "en" ? "Clear all" : "Burahin lahat"}
-          </button>
+      {/* ── Generated phrase preview */}
+      {count > 0 && (
+        <div className="flex flex-col gap-2 h-[88px] shrink-0 animate-in fade-in duration-300">
+          <div className="flex items-center justify-between h-[20px] shrink-0 gap-2">
+            <p className="text-xs font-medium text-base-content/60 truncate">
+              {language === "en" ? "Generated description" : "Nabuong paglalarawan"}
+            </p>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs gap-1 shrink-0"
+              onClick={onClear}
+              disabled={!isInteractive}
+            >
+              <RotateCcw className="size-3" strokeWidth={2.5} />
+              {language === "en" ? "Clear all" : "Burahin lahat"}
+            </button>
+          </div>
+          <div className="bg-base-200/50 border border-base-300/40 rounded-xl px-3.5 py-2.5 text-sm text-base-content/80 leading-relaxed h-[60px] overflow-y-auto">
+            {generatedPhrase || "\u00A0"}
+          </div>
         </div>
-        <div className="bg-base-200/50 border border-base-300/40 rounded-xl px-3.5 py-2.5 text-sm text-base-content/80 leading-relaxed h-[60px] overflow-y-auto">
-          {generatedPhrase || "\u00A0"}
-        </div>
-      </div>
+      )}
 
       {/* ── Submit bar ────────────────────────────────────────── */}
       <div className="flex items-center justify-between gap-3 h-[40px] shrink-0">
