@@ -259,6 +259,7 @@ const OnboardingModal = () => {
               </label>
             </div>
           </div>
+          </div>
         )}
 
         {/* Footer */}
