@@ -31,31 +31,32 @@ const ClinicianHelpModal = () => {
           <button
             type="button"
             onClick={handleClose}
-            className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+            className="btn btn-sm sm:btn-md btn-circle btn-ghost absolute right-2 top-2 min-h-[44px] min-w-[44px]"
+            aria-label="Close help guide"
           >
-            x
+            ✕
           </button>
         </form>
 
-        <div className="hero bg-base-200 rounded-box mb-6">
-          <div className="hero-content text-center py-8">
+        <div className="hero bg-base-200 rounded-box mb-6 shadow-sm">
+          <div className="hero-content text-center py-6 md:py-8">
             <div>
               <div className="flex justify-center mb-3">
-                <LayoutDashboard className="w-14 h-14 text-primary" />
+                <LayoutDashboard className="w-12 h-12 md:w-14 md:h-14 text-primary" />
               </div>
-              <h1 className="text-4xl font-bold mb-2">Clinician Guide</h1>
-              <p className="opacity-70 text-sm">
+              <h1 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight">Clinician Guide</h1>
+              <p className="opacity-70 text-sm md:text-base font-medium">
                 Quick overview of the tools available in your dashboard
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="card bg-base-200">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="card bg-base-200 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-300 hover:-translate-y-0.5 hover:shadow-sm">
             <div className="card-body p-5">
-              <h2 className="card-title text-base gap-2">
-                <LayoutDashboard className="w-4 h-4 text-primary" />
+              <h2 className="card-title text-base sm:text-lg gap-2">
+                <LayoutDashboard className="w-5 h-5 text-primary" strokeWidth={2.5} />
                 Dashboard
               </h2>
               <p className="text-sm opacity-80">
@@ -65,10 +66,10 @@ const ClinicianHelpModal = () => {
             </div>
           </div>
 
-          <div className="card bg-base-200">
+          <div className="card bg-base-200 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-300 hover:-translate-y-0.5 hover:shadow-sm">
             <div className="card-body p-5">
-              <h2 className="card-title text-base gap-2">
-                <MapPinned className="w-4 h-4 text-primary" />
+              <h2 className="card-title text-base sm:text-lg gap-2">
+                <MapPinned className="w-5 h-5 text-primary" strokeWidth={2.5} />
                 Map
               </h2>
               <p className="text-sm opacity-80">
@@ -78,10 +79,10 @@ const ClinicianHelpModal = () => {
             </div>
           </div>
 
-          <div className="card bg-base-200">
+          <div className="card bg-base-200 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-300 hover:-translate-y-0.5 hover:shadow-sm">
             <div className="card-body p-5">
-              <h2 className="card-title text-base gap-2">
-                <Bell className="w-4 h-4 text-primary" />
+              <h2 className="card-title text-base sm:text-lg gap-2">
+                <Bell className="w-5 h-5 text-primary" strokeWidth={2.5} />
                 Alerts
               </h2>
               <p className="text-sm opacity-80">
@@ -91,10 +92,10 @@ const ClinicianHelpModal = () => {
             </div>
           </div>
 
-          <div className="card bg-base-200">
+          <div className="card bg-base-200 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-300 hover:-translate-y-0.5 hover:shadow-sm">
             <div className="card-body p-5">
-              <h2 className="card-title text-base gap-2">
-                <Users className="w-4 h-4 text-primary" />
+              <h2 className="card-title text-base sm:text-lg gap-2">
+                <Users className="w-5 h-5 text-primary" strokeWidth={2.5} />
                 Users
               </h2>
               <p className="text-sm opacity-80">
@@ -104,10 +105,10 @@ const ClinicianHelpModal = () => {
             </div>
           </div>
 
-          <div className="card bg-base-200 md:col-span-2">
+          <div className="card bg-base-200 md:col-span-2 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-300 hover:-translate-y-0.5 hover:shadow-sm">
             <div className="card-body p-5">
-              <h2 className="card-title text-base gap-2">
-                <FileBarChart2 className="w-4 h-4 text-primary" />
+              <h2 className="card-title text-base sm:text-lg gap-2">
+                <FileBarChart2 className="w-5 h-5 text-primary" strokeWidth={2.5} />
                 Healthcare Reports
               </h2>
               <p className="text-sm opacity-80">
@@ -118,24 +119,24 @@ const ClinicianHelpModal = () => {
           </div>
         </div>
 
-        <div className="text-center mt-6">
+        <div className="text-center mt-8">
           <button
             type="button"
             onClick={handleClose}
-            className="btn btn-primary btn-wide"
+            className="btn btn-primary btn-wide min-h-[44px] shadow-sm hover:shadow-md transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
           >
-            Close guide
+            Close Guide
           </button>
-          <div className="divider my-3"></div>
-          <div className="flex items-center justify-center gap-2 text-xs opacity-60">
-            <Lightbulb className="w-3 h-3" />
+          <div className="divider my-4"></div>
+          <div className="flex items-center justify-center gap-2 text-xs opacity-70 font-medium">
+            <Lightbulb className="w-3.5 h-3.5" />
             <p>Tip: You can open this guide anytime from the Help button.</p>
           </div>
         </div>
       </div>
 
-      <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={handleClose}>
+      <form method="dialog" className="modal-backdrop bg-base-300/60 backdrop-blur-sm transition-opacity duration-300">
+        <button type="button" onClick={handleClose} aria-label="Close modal backdrop">
           close
         </button>
       </form>

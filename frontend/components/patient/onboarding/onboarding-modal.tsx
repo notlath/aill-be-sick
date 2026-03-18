@@ -22,11 +22,17 @@ const OnboardingModal = () => {
     useState(false);
   const [acceptedAgeRequirement, setAcceptedAgeRequirement] = useState(false);
   const [acceptedTermsAndPrivacy, setAcceptedTermsAndPrivacy] = useState(false);
+  const [alreadyOnboarded, setAlreadyOnboarded] = useState(false);
 
   useEffect(() => {
     const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
     if (!hasSeenOnboarding) {
       setTimeout(() => setIsOpen(true), 500);
+    } else {
+      setAcceptedMedicalDisclaimer(true);
+      setAcceptedAgeRequirement(true);
+      setAcceptedTermsAndPrivacy(true);
+      setAlreadyOnboarded(true);
     }
   }, []);
 
@@ -63,12 +69,13 @@ const OnboardingModal = () => {
       className={`help-dialog onboarding-dialog modal ${isOpen ? "modal-open" : ""}`}
     >
       <div className="modal-box w-11/12 max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto">
-        {/* No close button - must accept terms first */}
+        {/* Close Button - requires min 44pt touch area for accessibility */}
         {allAccepted && (
           <form method="dialog">
             <button
               onClick={handleClose}
-              className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
+              className="btn btn-sm sm:btn-md btn-circle btn-ghost absolute right-2 top-2 min-h-[44px] min-w-[44px]"
+              aria-label="Close help modal"
             >
               ✕
             </button>
@@ -82,10 +89,10 @@ const OnboardingModal = () => {
               <div className="flex justify-center mb-2 sm:mb-4">
                 <Sparkles className="w-12 h-12 sm:w-16 sm:h-16 text-success" />
               </div>
-              <h1 className="text-3xl sm:text-5xl font-bold mb-2 sm:mb-3">
-                Welcome!
+              <h1 className="text-3xl sm:text-5xl font-bold mb-2 sm:mb-3 tracking-tight">
+                {alreadyOnboarded ? "App Guide" : "Welcome!"}
               </h1>
-              <p className="text-lg sm:text-xl mb-1 sm:mb-2">AI&apos;ll Be Sick</p>
+              <p className="text-lg sm:text-xl mb-1 sm:mb-2 font-medium">AI&apos;ll Be Sick</p>
               <p className="opacity-70 text-sm sm:text-base">
                 Your AI-powered tool for identifying common infectious diseases
               </p>
@@ -182,7 +189,8 @@ const OnboardingModal = () => {
         </div>
 
         {/* Consent Section */}
-        <div className="card bg-base-200 mb-4 sm:mb-6">
+        {!alreadyOnboarded && (
+          <div className="card bg-base-200 mb-4 sm:mb-6">
           <div className="card-body p-4 sm:p-6">
             <h3 className="font-bold text-base sm:text-lg mb-3">
               Before you continue, please confirm:
@@ -251,18 +259,20 @@ const OnboardingModal = () => {
               </label>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Footer */}
         <div className="text-center mt-4 sm:mt-6">
           <button
             onClick={handleClose}
             disabled={!allAccepted}
-            className="btn btn-success btn-wide sm:btn-md sm:w-auto"
+            className="btn btn-success btn-wide sm:btn-md sm:w-auto min-h-[44px] shadow-sm hover:shadow-md transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
           >
-            {allAccepted
-              ? "Got it, let's start! →"
-              : "Please accept all terms above"}
+            {alreadyOnboarded
+              ? "Close Guide"
+              : allAccepted
+                ? "Got it, let's start! →"
+                : "Please accept all terms above"}
           </button>
 
           {!allAccepted && (
@@ -272,16 +282,22 @@ const OnboardingModal = () => {
           )}
 
           <div className="divider my-2 sm:my-4"></div>
-          <div className="flex items-center justify-center gap-2 text-xs opacity-60">
-            <Lightbulb className="w-3 h-3" />
-            <p>Tip: Access this guide anytime via the Help button</p>
-          </div>
+          {!alreadyOnboarded && (
+            <div className="flex items-center justify-center gap-2 text-xs opacity-60 font-medium">
+              <Lightbulb className="w-3 h-3" />
+              <p>Tip: Access this guide anytime via the Help button</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Backdrop - only closeable if all accepted */}
-      <form method="dialog" className="modal-backdrop">
-        <button onClick={allAccepted ? handleClose : undefined} disabled={!allAccepted}>
+      <form method="dialog" className="modal-backdrop bg-base-300/60 backdrop-blur-sm transition-opacity duration-300">
+        <button 
+          onClick={allAccepted ? handleClose : undefined} 
+          disabled={!allAccepted}
+          aria-label="Close modal backdrop"
+        >
           {allAccepted ? "close" : ""}
         </button>
       </form>
