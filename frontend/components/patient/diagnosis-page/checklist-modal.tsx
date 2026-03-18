@@ -129,7 +129,7 @@ const ChecklistModal = ({
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-hidden p-4">
+        <div className="flex-1 min-h-0 overflow-hidden p-4 flex flex-col">
           <SymptomChecklist
             checkedIds={checkedIds}
             onToggle={onToggle}

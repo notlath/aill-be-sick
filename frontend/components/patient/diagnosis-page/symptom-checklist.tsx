@@ -128,7 +128,7 @@ const SymptomChecklist = ({
       )}
 
       {/* ── Symptom categories ────────────────────────────────── */}
-      <div ref={scrollContainerRef} className="space-y-2 flex-1 min-h-0 shrink-0 overflow-y-auto pr-1 overscroll-contain will-change-scroll">
+      <div ref={scrollContainerRef} className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1 overscroll-contain will-change-scroll">
         {SYMPTOM_CATEGORIES.map((category) => {
           const isExpanded = expandedSections.has(category.id);
           const checkedInCategory = category.symptoms.filter((s) =>
