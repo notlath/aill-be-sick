@@ -277,8 +277,11 @@ export function AlertDetailModal({
                     : "Alert Threshold";
 
                 const locationParts = [district].filter(Boolean).join(", ");
-                const basePart = baselineMean !== undefined
-                  ? ` The usual level for this area is around ${Math.round(baselineMean)} case${Math.round(baselineMean) === 1 ? "" : "s"} per day.`
+                const baselineMeanDisplay = baselineMean !== undefined
+                  ? parseFloat(baselineMean.toFixed(1))
+                  : undefined;
+                const basePart = baselineMeanDisplay !== undefined
+                  ? ` The usual level for this area is around ${baselineMeanDisplay} case${baselineMeanDisplay === 1 ? "" : "s"} per day.`
                   : "";
 
                 const summary = [
