@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
+  ListChecks,
 } from "lucide-react";
 import Link from "next/link";
 import { LEGAL_CONSTANTS } from "@/constants/legal";
@@ -163,10 +164,30 @@ const OnboardingModal = () => {
           </div>
 
           {/* Step 2 */}
+          <div className="card bg-base-200 mb-3 sm:mb-4">
+            <div className="card-body p-4 sm:p-8">
+              <div className="flex items-start gap-4">
+                <div className="badge badge-success badge-lg">2</div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ListChecks className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+                    <h3 className="card-title text-base sm:text-lg">
+                      Use the symptom checklist
+                    </h3>
+                  </div>
+                  <p className="text-sm sm:text-base">
+                    Alternatively, you can select your symptoms from our comprehensive checklist organized by body parts.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 3 */}
           <div className="card bg-base-200">
             <div className="card-body p-4 sm:p-8">
               <div className="flex items-start gap-3 sm:gap-4">
-                <div className="badge badge-success badge-lg">2</div>
+                <div className="badge badge-success badge-lg">3</div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <History className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
