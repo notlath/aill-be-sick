@@ -7,9 +7,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUp, ClipboardList } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "nextjs-toploader/app";
-import { useRef, useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import ChecklistModal from "@/components/patient/diagnosis-page/checklist-modal";
+import HelpGuide from "@/components/patient/help-guide";
+import LegalFooter from "@/components/shared/legal-footer";
 
 const PatientHomePage = () => {
   const [isChecklistOpen, setIsChecklistOpen] = useState(false);
@@ -72,7 +74,7 @@ const PatientHomePage = () => {
     <main className="relative flex flex-col justify-center items-center space-y-12 h-full flex-1 min-h-full bg-black overflow-hidden">
       {/* Green gradient orb from below */}
       <div
-        className="absolute bottom-[-1000px] left-1/2 -translate-x-1/2 w-[100vw] h-[100vw] max-w-[1600px] max-h-[1600px] rounded-full pointer-events-none"
+        className="absolute bottom-[-300px] md:bottom-[-1000px] left-1/2 -translate-x-1/2 min-w-[800px] min-h-[800px] w-[150vw] md:w-[100vw] h-[150vw] md:h-[100vw] max-w-[1600px] max-h-[1600px] rounded-full pointer-events-none"
         style={{
           background:
             "radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, rgba(16, 185, 129, 0.3) 30%, rgba(16, 185, 129, 0.1) 60%, transparent 100%)",
@@ -81,13 +83,17 @@ const PatientHomePage = () => {
       />
 
       {/* Content */}
-      <div className="relative z-10 space-y-3 text-center px-4">
-        <h1 className="font-semibold text-5xl md:text-6xl tracking-[-0.04em] text-white mb-1 leading-[1.1]">
+      <div className="relative z-10 space-y-3 text-center px-4 mt-12 md:mt-4">
+        <h1 className="font-semibold text-4xl sm:text-5xl md:text-6xl tracking-[-0.04em] text-white mb-1 leading-[1.1]">
           How are you feeling today?
         </h1>
-        <p className="text-gray-400 text-lg md:text-xl font-light">
+        <p className="text-gray-400 text-base md:text-lg font-light">
           Describe your symptoms
         </p>
+      </div>
+
+      <div className="relative z-10 w-full max-w-2xl mb-4 px-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
+        <HelpGuide variant="inline" className="mb-0 sm:mb-0 transform scale-95 opacity-80 hover:opacity-100 transition-opacity duration-500" />
       </div>
 
       {/* Form with inline checklist button */}
@@ -171,6 +177,11 @@ const PatientHomePage = () => {
         onSubmit={handleChecklistSubmit}
         isPending={isLoading}
       />
+
+      {/* Footer embedded in dark background */}
+      <div className="absolute bottom-0 w-full z-20">
+        <LegalFooter />
+      </div>
     </main>
   );
 };

@@ -3,11 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   Sparkles,
-  MessageSquare,
-  History,
   Lightbulb,
-  ChevronDown,
-  ChevronUp,
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
@@ -15,7 +11,6 @@ import { LEGAL_CONSTANTS } from "@/constants/legal";
 
 const OnboardingModal = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showFullExample, setShowFullExample] = useState(false);
 
   // Consent checkboxes state
   const [acceptedMedicalDisclaimer, setAcceptedMedicalDisclaimer] =
@@ -52,11 +47,6 @@ const OnboardingModal = () => {
     setIsOpen(false);
     (document.querySelector(".onboarding-dialog") as HTMLDialogElement)?.close();
   };
-
-  const shortExample =
-    "First I got a very high temperature, a dry cough, profound tiredness, and a runny nose. I found small white spots in my mouth. Yesterday, a rash began at my hairline and spread down my chest.";
-  const longExample =
-    "First I got a very high temperature, a dry cough, profound tiredness, and a runny nose. I found small white spots in my mouth. Yesterday, a rash began at my hairline and spread down my chest.";
 
   return (
     <dialog
@@ -103,81 +93,6 @@ const OnboardingModal = () => {
               professional medical care. Always consult healthcare professionals
               for medical concerns.
             </p>
-          </div>
-        </div>
-
-        {/* How to Use Section */}
-        <div className="mb-4 sm:mb-6">
-          <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-center">
-            How to Use
-          </h2>
-
-          {/* Step 1 */}
-          <div className="card bg-base-200 mb-3 sm:mb-4">
-            <div className="card-body p-4 sm:p-8">
-              <div className="flex items-start gap-4">
-                <div className="badge badge-success badge-lg">1</div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
-                    <h3 className="card-title text-base sm:text-lg">
-                      Describe your symptoms
-                    </h3>
-                  </div>
-                  <p className="mb-3 text-sm sm:text-base">
-                    Type in the box what you&apos;re feeling. The more detail, the
-                    better!
-                  </p>
-                  <div className="alert bg-success/10 border border-success/20 p-3 sm:p-4">
-                    <div className="flex-1">
-                      <div className="badge badge-sm mb-2">Example</div>
-                      <p className="text-xs sm:text-sm">
-                        &quot;{showFullExample ? longExample : shortExample}&quot;
-                      </p>
-                      <button
-                        onClick={() => setShowFullExample(!showFullExample)}
-                        className="btn btn-xs btn-ghost mt-2 gap-1"
-                      >
-                        {showFullExample ? (
-                          <>
-                            Show less <ChevronUp className="w-3 h-3" />
-                          </>
-                        ) : (
-                          <>
-                            Show more <ChevronDown className="w-3 h-3" />
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Step 2 */}
-          <div className="card bg-base-200">
-            <div className="card-body p-4 sm:p-8">
-              <div className="flex items-start gap-3 sm:gap-4">
-                <div className="badge badge-success badge-lg">2</div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <History className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
-                    <h3 className="card-title text-base sm:text-lg">
-                      View your history
-                    </h3>
-                  </div>
-                  <p className="text-sm sm:text-base">
-                    Check past consultations anytime by going to the{" "}
-                    <span className="badge bg-success/10 border border-success/20 gap-1 text-xs sm:text-sm">
-                      <History className="w-3 h-3" />
-                      History
-                    </span>{" "}
-                    tab in the sidebar.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 

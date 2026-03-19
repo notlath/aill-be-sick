@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getCurrentDbUser } from "@/utils/user";
 import ProfileForm from "@/components/patient/profile/profile-form";
+import LegalFooter from "@/components/shared/legal-footer";
 
 async function ProfileData() {
   const { success: dbUser, error } = await getCurrentDbUser();
@@ -82,19 +83,22 @@ function ProfileSkeleton() {
 
 export default function ProfilePage() {
   return (
-    <main className="space-y-10 mx-auto p-8 pt-12 max-w-4xl">
-      <div className="space-y-2">
-        <h1 className="mb-1 font-semibold text-base-content text-4xl tracking-tight">
-          Profile Settings
-        </h1>
-        <p className="text-muted text-lg">
-          Manage your personal information and preferences
-        </p>
-      </div>
+    <>
+      <main className="space-y-10 mx-auto p-8 pt-12 max-w-4xl flex-1 w-full relative">
+        <div className="space-y-2">
+          <h1 className="mb-1 font-semibold text-base-content text-4xl tracking-tight">
+            Profile Settings
+          </h1>
+          <p className="text-muted text-lg">
+            Manage your personal information and preferences
+          </p>
+        </div>
 
-      <Suspense fallback={<ProfileSkeleton />}>
-        <ProfileData />
-      </Suspense>
-    </main>
+        <Suspense fallback={<ProfileSkeleton />}>
+          <ProfileData />
+        </Suspense>
+      </main>
+      <LegalFooter />
+    </>
   );
 }

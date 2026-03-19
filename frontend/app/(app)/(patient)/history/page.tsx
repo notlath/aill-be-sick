@@ -5,6 +5,7 @@ import { getCurrentDbUser } from "@/utils/user";
 import { Suspense } from "react";
 import { ExportReportButton } from "@/components/ui/export-report-button";
 import type { PdfColumn } from "@/utils/pdf-export";
+import LegalFooter from "@/components/shared/legal-footer";
 
 async function ChatHistoryList() {
   const { success: dbUser, error: userError } = await getCurrentDbUser();
@@ -182,20 +183,23 @@ function ChatHistorySkeleton() {
 
 const HistoryPage = async () => {
   return (
-    <main className="space-y-8 lg:space-y-10 mx-auto p-4 pt-8 lg:p-8 lg:pt-12 max-w-5xl">
-      <div className="space-y-2">
-        <h1 className="mb-1 font-semibold text-base-content text-3xl lg:text-4xl tracking-tight">
-          Diagnosis history
-        </h1>
-        <p className="text-muted text-base lg:text-lg">
-          You can view all your previous diagnoses and their details here.
-        </p>
-      </div>
+    <>
+      <main className="space-y-8 lg:space-y-10 mx-auto p-4 pt-8 lg:p-8 lg:pt-12 max-w-5xl flex-1 w-full relative">
+        <div className="space-y-2">
+          <h1 className="mb-1 font-semibold text-base-content text-3xl lg:text-4xl tracking-tight">
+            Diagnosis history
+          </h1>
+          <p className="text-muted text-base lg:text-lg">
+            You can view all your previous diagnoses and their details here.
+          </p>
+        </div>
 
-      <Suspense fallback={<ChatHistorySkeleton />}>
-        <ChatHistoryList />
-      </Suspense>
-    </main>
+        <Suspense fallback={<ChatHistorySkeleton />}>
+          <ChatHistoryList />
+        </Suspense>
+      </main>
+      <LegalFooter />
+    </>
   );
 };
 
