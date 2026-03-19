@@ -106,11 +106,16 @@ const PatientHomePage = () => {
             </button>
 
             <textarea
-              className="flex-1 pl-1 border-none outline-none bg-transparent resize-none text-base text-base-content placeholder:text-muted transition-all duration-300 min-h-[44px] py-2.5 md:min-h-[48px] md:py-3 my-auto"
+              className="flex-1 pl-1 border-none outline-none bg-transparent resize-none overflow-hidden text-base text-base-content placeholder:text-muted transition-all duration-300 min-h-[44px] py-2.5 md:min-h-[48px] md:py-3 my-auto"
               placeholder="I'm feeling..."
               rows={1}
               suppressHydrationWarning
               disabled={isLoading}
+              onInput={(e) => {
+                const target = e.currentTarget;
+                target.style.height = "auto";
+                target.style.height = `${target.scrollHeight}px`;
+              }}
               onKeyDown={(e) => {
                 if (
                   e.key === "Enter" &&
