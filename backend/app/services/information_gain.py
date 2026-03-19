@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Expected Information Gain (EIG) – Active Learning for question selection.
 
@@ -13,9 +15,17 @@ Theory:
 
 Enhanced with semantic grouping to avoid redundant questions about the same
 symptom concepts across different diseases.
+
+Hybrid Strategy (Doctor's Bedside Manner):
+    To improve user trust, questions belonging to the top predicted disease
+    receive a small EIG boost (configurable via TOP_DISEASE_EIG_BOOST).
+    This ensures the first few questions naturally relate to the user's
+    most likely condition, while still allowing cross-disease questions
+    when they provide significantly more information gain.
 """
 
-from __future__ import annotations
+# Configuration for hybrid strategy
+TOP_DISEASE_EIG_BOOST = 1.2  # 20% boost for questions targeting the top disease
 
 import numpy as np
 from scipy.stats import entropy
@@ -113,6 +123,26 @@ def compute_eig(
     return max(eig, 0.0)  # Clamp to non-negative
 
 
+def _generate_question_reasoning(
+    question_disease: str,
+    top_disease: str,
+    second_disease: str | None,
+    is_top_disease_question: bool,
+) -> str:
+    """
+    Generate a user-friendly explanation for why this question is being asked.
+
+    This provides the "bedside manner" context that helps users understand
+    the diagnostic process.
+    """
+    if is_top_disease_question:
+        return f"Gathering more information about {top_disease}"
+    elif second_disease and question_disease == second_disease:
+        return f"Checking for similar conditions like {question_disease}"
+    else:
+        return f"Ruling out similar conditions like {question_disease}"
+
+
 def select_best_question(
     current_probs: list | np.ndarray,
     available_questions: list[dict],
@@ -120,6 +150,12 @@ def select_best_question(
 ) -> dict | None:
     """
     Select the question that maximises Expected Information Gain.
+
+    Implements the "Doctor's Bedside Manner" hybrid strategy:
+    - Questions for the top predicted disease receive a small EIG boost
+    - This ensures early questions relate to the user's most likely condition
+    - Cross-disease questions are still selected when they provide significantly
+      more information (the boost is intentionally small)
 
     Args:
         current_probs:        Current probability distribution [num_diseases].
@@ -130,7 +166,8 @@ def select_best_question(
         disease_labels:        CORRECT_ID2LABEL mapping {idx: "Disease"}.
 
     Returns:
-        The question dict with the highest EIG, or None if no candidates.
+        The question dict with the highest EIG (boosted), or None if no candidates.
+        Includes "_eig" (raw), "_eig_boosted", "_reasoning", and "_is_top_disease_q".
     """
     if not available_questions:
         return None
@@ -142,8 +179,19 @@ def select_best_question(
         if name is not None:
             label2idx[name] = idx
 
+    # Identify top disease and second disease for reasoning
+    sorted_indices = np.argsort(probs)[::-1]  # Descending order
+    top_disease_idx = sorted_indices[0]
+    top_disease = disease_labels.get(int(top_disease_idx), "Unknown")
+    second_disease = (
+        disease_labels.get(int(sorted_indices[1]), None)
+        if len(sorted_indices) > 1
+        else None
+    )
+
     best_question = None
-    best_eig = -1.0
+    best_eig_boosted = -1.0
+    best_eig_raw = -1.0
 
     for q in available_questions:
         disease_name: str | None = q.get("_disease")  # injected by caller
@@ -153,13 +201,28 @@ def select_best_question(
         if target_idx is None:
             continue
 
-        eig = compute_eig(probs, q.get("weight", 0.85), target_idx)
-        if eig > best_eig:
-            best_eig = eig
+        # Compute raw EIG
+        eig_raw = compute_eig(probs, q.get("weight", 0.85), target_idx)
+
+        # Apply boost if this question targets the top predicted disease
+        is_top_disease_q = disease_name == top_disease
+        eig_boosted = eig_raw * TOP_DISEASE_EIG_BOOST if is_top_disease_q else eig_raw
+
+        if eig_boosted > best_eig_boosted:
+            best_eig_boosted = eig_boosted
+            best_eig_raw = eig_raw
             best_question = q
+            best_question["_is_top_disease_q"] = is_top_disease_q
 
     if best_question:
-        best_question["_eig"] = best_eig
+        best_question["_eig"] = best_eig_raw
+        best_question["_eig_boosted"] = best_eig_boosted
+        best_question["_reasoning"] = _generate_question_reasoning(
+            question_disease=best_question.get("_disease", "Unknown"),
+            top_disease=top_disease,
+            second_disease=second_disease,
+            is_top_disease_question=best_question.get("_is_top_disease_q", False),
+        )
 
     return best_question
 

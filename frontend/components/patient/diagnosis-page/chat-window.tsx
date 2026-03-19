@@ -91,6 +91,7 @@ const ChatWindow = ({
     positive_symptom: string;
     negative_symptom: string;
     category?: string;
+    reasoning?: string;
   } | null>(null);
   const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
   const [confirmNeeded, setConfirmNeeded] = useState<boolean>(false);
@@ -257,6 +258,7 @@ const ChatWindow = ({
               positive_symptom: question.positive_symptom,
               negative_symptom: question.negative_symptom,
               category: question.category,
+              reasoning: question.reasoning,
             });
           } else {
             setCurrentQuestion(null);

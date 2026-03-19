@@ -8,6 +8,7 @@ type QuestionBubbleProps = {
   positiveSymptom: string;
   negativeSymptom: string;
   category?: string;
+  reasoning?: string;
   onAnswer: (answer: "yes" | "no", symptom: string, questionId: string) => void;
   disabled?: boolean;
   progress?: string;
@@ -19,6 +20,7 @@ const QuestionBubble = ({
   positiveSymptom,
   negativeSymptom,
   category,
+  reasoning,
   onAnswer,
   disabled = false,
 }: QuestionBubbleProps) => {
@@ -28,6 +30,9 @@ const QuestionBubble = ({
       role="group"
       aria-labelledby={`q-${questionId}`}
     >
+      {reasoning && (
+        <p className="text-xs text-base-content/60 mb-2 italic">{reasoning}</p>
+      )}
       <div className="mb-4">
         <p id={`q-${questionId}`} className="font-medium">
           {question}

@@ -999,14 +999,20 @@ def follow_up_question():
 
         # Log selection
         eig_val = selected_question.get("_eig", 0)
+        eig_boosted = selected_question.get("_eig_boosted", eig_val)
         target_disease = selected_question.get("_disease", "?")
+        is_top_q = selected_question.get("_is_top_disease_q", False)
+        reasoning = selected_question.get("_reasoning", "")
         print(
             f"[FOLLOW-UP] {pred} | Lang: {lang} | Conf: {confidence:.3f} | MI: {uncertainty:.4f} | Asked: {len(asked_questions)}"
         )
         print(
             f"[FOLLOW-UP] EIG selected -> {selected_question['id']}: {selected_question['question']} "
-            f"(EIG={eig_val:.4f}, target={target_disease}, cat={selected_question.get('category', '')})"
+            f"(EIG={eig_val:.4f}, boosted={eig_boosted:.4f}, target={target_disease}, "
+            f"is_top_disease_q={is_top_q}, cat={selected_question.get('category', '')})"
         )
+        if reasoning:
+            print(f"[FOLLOW-UP] Reasoning: {reasoning}")
 
         return (
             jsonify(
@@ -1019,6 +1025,7 @@ def follow_up_question():
                             "positive_symptom": selected_question["positive_symptom"],
                             "negative_symptom": selected_question["negative_symptom"],
                             "category": selected_question.get("category", "secondary"),
+                            "reasoning": reasoning,
                         },
                         "diagnosis": {
                             "pred": pred,
