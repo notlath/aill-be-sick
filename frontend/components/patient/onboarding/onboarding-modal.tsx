@@ -3,11 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   Sparkles,
-  MessageSquare,
-  History,
   Lightbulb,
-  ChevronDown,
-  ChevronUp,
   AlertTriangle,
   ListChecks,
 } from "lucide-react";
@@ -16,7 +12,6 @@ import { LEGAL_CONSTANTS } from "@/constants/legal";
 
 const OnboardingModal = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [showFullExample, setShowFullExample] = useState(false);
 
   // Consent checkboxes state
   const [acceptedMedicalDisclaimer, setAcceptedMedicalDisclaimer] =
@@ -59,11 +54,6 @@ const OnboardingModal = () => {
     setIsOpen(false);
     (document.querySelector(".onboarding-dialog") as HTMLDialogElement)?.close();
   };
-
-  const shortExample =
-    "First I got a very high temperature, a dry cough, profound tiredness, and a runny nose. I found small white spots in my mouth. Yesterday, a rash began at my hairline and spread down my chest.";
-  const longExample =
-    "First I got a very high temperature, a dry cough, profound tiredness, and a runny nose. I found small white spots in my mouth. Yesterday, a rash began at my hairline and spread down my chest.";
 
   return (
     <dialog

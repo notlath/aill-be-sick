@@ -1,41 +1,68 @@
 # Aill-Be-Sick Backend (Flask)
 
-This is the Flask REST API backend for the Aill-Be-Sick disease detection system. It provides endpoints for symptom analysis and disease prediction, serving as the machine learning and data processing layer for the application.
+This is the Flask REST API backend for the Aill-Be-Sick disease detection system. It provides endpoints for symptom analysis, disease prediction, patient clustering, and outbreak surveillance.
 
 ## Features
 
-- **Disease Detection API**: Process symptoms and return disease predictions
-- **REST API**: JSON-based API endpoints for frontend integration
-- **CORS Support**: Cross-Origin Resource Sharing for frontend integration
-- **Lightweight**: Minimal dependencies and fast startup
-- **Simple Deployment**: Easy to deploy and scale
+- **Disease Detection API**: Monte Carlo Dropout classification with uncertainty quantification
+- **Neuro-Symbolic Verification**: Ontology-based concept matching to validate predictions
+- **Model Explainability**: GradientSHAP token-level attribution for transparency
+- **Bilingual Support**: English (BioClinical-ModernBERT) and Tagalog (RoBERTa-Tagalog) models
+- **Dynamic Follow-Up**: Evidence-weighted question selection with deduplication
+- **Patient Clustering**: K-Means clustering with silhouette analysis
+- **Outbreak Surveillance**: Isolation Forest anomaly detection for outbreak identification
+- **REST API**: JSON-based endpoints with CORS support
 
 ## Tech Stack
 
-- **Framework**: Flask 3.0
-- **CORS**: Flask-CORS for frontend integration
-- **Python**: 3.8+
-- **Server**: Gunicorn for production deployment
+- **Framework**: Flask 3.0 with Flask-CORS
+- **ML/AI**: PyTorch, Hugging Face Transformers, SHAP
+- **Clustering**: scikit-learn (K-Means, Isolation Forest)
+- **Database**: PostgreSQL via Supabase
+- **Server**: Gunicorn for production
+- **Python**: 3.10+
 
 ## Prerequisites
 
-Before running this application, make sure you have:
-
-- Python 3.8+ installed
-- pip (Python package installer)
-- Virtual environment support (recommended)
+- Python 3.10+ installed
+- pip or [uv](https://docs.astral.sh/uv/) (recommended)
+- PostgreSQL database (via Supabase)
+- Virtual environment support
 
 ## Project Structure
 
 ```
 backend/
-├── app.py                   # Main Flask application
-├── requirements.txt         # Python dependencies
-├── run_flask.bat           # Windows batch file to run the app
-├── test_flask.py           # Testing utilities
-├── README.md               # This file
-├── README-flask.md         # Flask-specific documentation
-└── MIGRATION_GUIDE.md      # Django to Flask migration guide
+├── app/                          # Application package
+│   ├── __init__.py               # App factory & configuration
+│   ├── config.py                 # Centralized configuration & thresholds
+│   ├── evidence_keywords.py      # Evidence extraction keywords
+│   ├── api/                      # Flask blueprints
+│   │   ├── main.py               # Health check endpoints
+│   │   ├── diagnosis.py          # Diagnosis endpoints
+│   │   ├── cluster.py            # Patient clustering endpoints
+│   │   ├── surveillance.py       # Surveillance endpoints
+│   │   └── outbreak.py           # Outbreak detection endpoints
+│   ├── services/                 # Business logic
+│   │   ├── ml_service.py         # ML classifier with MCD & SHAP
+│   │   ├── verification.py       # Neuro-symbolic verification layer
+│   │   ├── cluster_service.py    # K-Means clustering
+│   │   ├── illness_cluster_service.py  # Illness-based clustering
+│   │   ├── surveillance_service.py     # Surveillance logic
+│   │   ├── outbreak_service.py   # Isolation Forest outbreak detection
+│   │   └── information_gain.py   # Question selection algorithm
+│   ├── models/                   # Data models
+│   │   └── diagnosis_session.py  # Session state management
+│   └── utils/                    # Utilities
+│       ├── database.py           # Database connection
+│       └── scoring.py            # Scoring utilities
+├── run.py                        # Entry point
+├── question_bank.json            # English question bank
+├── question_bank_tagalog.json    # Tagalog question bank
+├── requirements.txt              # Python dependencies
+├── Dockerfile                    # Container configuration
+├── railway.json                  # Railway deployment config
+└── render.yaml                   # Render deployment config
 ```
 
 ## Installation & Setup
@@ -48,301 +75,203 @@ cd backend
 
 ### 2. Create Virtual Environment
 
-**Windows:**
+**Using uv (recommended):**
 
 ```bash
-python -m venv venv
-venv\Scripts\activate
+uv venv && source .venv/bin/activate
 ```
 
-**macOS/Linux:**
+**Using venv:**
 
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+# macOS/Linux
+python3 -m venv .venv && source .venv/bin/activate
+
+# Windows
+python -m venv .venv
+.venv\Scripts\activate
 ```
 
 ### 3. Install Dependencies
 
 ```bash
+# Using pip
 pip install -r requirements.txt
+
+# Using uv (faster)
+uv pip install -r requirements.txt
 ```
 
-### 4. Start Development Server
+### 4. Environment Variables
 
-**Option 1: Direct Python execution**
+Create a `.env` file in `backend/`:
+
+| Variable | Description | Default |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string | *(required)* |
+| `PORT` | Server port | `10000` |
+| `FLASK_DEBUG` | Enable debug mode | `False` |
+| `FLASK_SECRET_KEY` | Session secret key | *(auto-generated)* |
+| `FLASK_ENV` | `development` or `production` | `production` |
+| `SESSION_COOKIE_SECURE` | Cookie security | auto (based on `FLASK_ENV`) |
+| `FRONTEND_URL` | Allowed CORS origin | `http://localhost:3000` |
+
+### 5. Start Development Server
 
 ```bash
-python app.py
+python run.py
 ```
 
-**Option 2: Using the batch file (Windows only)**
+The API will be available at **http://localhost:10000**.
+
+### Production Deployment
 
 ```bash
-run_flask.bat
-```
-
-**Option 3: Using Gunicorn (Production)**
-
-```bash
-gunicorn app:app
-```
-
-The Flask backend will be available at `http://localhost:8000`
-
-## Testing
-
-Run the test script to verify the API is working:
-
-```bash
-python test_flask.py
+gunicorn -w 4 -b 0.0.0.0:10000 "run:app"
 ```
 
 ## API Endpoints
 
-### Classification Endpoints
+### Diagnosis Endpoints
 
-#### GET `/classifications/`
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/diagnosis/` | Health check |
+| `POST` | `/diagnosis/new` | Initial symptom classification |
+| `POST` | `/diagnosis/follow-up` | Follow-up question & re-classification |
+| `POST` | `/diagnosis/explain` | SHAP-based symptom attribution |
 
-- **Description**: Test endpoint to verify API is running
-- **Response**: `{"message": "Hello, world!"}`
-- **Status**: 200 OK
+### Clustering Endpoints
 
-#### POST `/classifications/new`
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/patient-clusters` | K-Means patient clustering |
+| `GET` | `/api/patient-clusters/silhouette` | Silhouette score analysis |
+| `GET` | `/api/illness-clusters` | Illness-based clustering |
 
-- **Description**: Submit symptoms for disease detection
-- **Content-Type**: `application/json`
-- **Request Body**:
-  ```json
-  {
-    "symptoms": ["fever", "cough", "headache"]
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "data": "Detected Disease Name"
-  }
-  ```
-- **Status**: 201 Created
-- **Error Responses**:
-  ```json
-  {
-    "error": "No JSON data provided"
-  }
-  ```
-- **Error Status**: 400 Bad Request
-  - Model administration
+### Surveillance Endpoints
 
-## Development
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/surveillance/outbreaks` | Isolation Forest outbreak detection |
+| `GET` | `/api/surveillance/outbreaks/details` | Detailed outbreak information |
 
-### Adding New Features
+## API Usage Examples
 
-1. **Create new models** in `classifications/models.py`
-2. **Add views** in `classifications/views.py`
-3. **Configure URLs** in `classifications/urls.py`
-4. **Run migrations** for database changes:
-   ```bash
-   python manage.py makemigrations
-   python manage.py migrate
-   ```
-
-### Machine Learning Integration
-
-The current implementation includes a placeholder for disease detection logic in `classifications/views.py`:
-
-```python
-# Insert machine learning stuff
-detected_disease = "Jabetis"  # Placeholder for actual disease detection logic
-```
-
-To integrate actual ML models:
-
-1. Install ML dependencies (scikit-learn, pandas, etc.)
-2. Load trained models in the Flask app
-3. Process symptoms through the model
-4. Return predictions
-
-### Adding Database Support
-
-Flask doesn't include an ORM by default, but you can add one easily:
-
-**Option 1: SQLAlchemy**
+### Initial Diagnosis
 
 ```bash
-pip install flask-sqlalchemy
+curl -X POST http://localhost:10000/diagnosis/new \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symptoms": "I have a high fever and severe headache for 3 days",
+    "language": "en"
+  }'
 ```
 
-**Option 2: Simple JSON file storage**
-
-```python
-import json
-from datetime import datetime
-
-def save_prediction(symptoms, disease):
-    prediction = {
-        "symptoms": symptoms,
-        "predicted_disease": disease,
-        "timestamp": datetime.now().isoformat()
-    }
-    # Save to file or database
+**Response:**
+```json
+{
+  "disease": "DENGUE",
+  "confidence": 0.85,
+  "uncertainty": 0.12,
+  "probabilities": {
+    "DENGUE": 0.85,
+    "TYPHOID": 0.08,
+    "PNEUMONIA": 0.05,
+    "IMPETIGO": 0.02
+  },
+  "model": "BioClinical-ModernBERT",
+  "session_id": "abc123",
+  "follow_up_question": "Do you have any skin rashes?"
+}
 ```
 
-## Configuration
+### Follow-up Question
 
-### Flask Configuration
-
-Configure your Flask app in `app.py`:
-
-```python
-app.config['DEBUG'] = True  # Set to False in production
-app.config['CORS_ORIGINS'] = ['http://localhost:3000']  # Frontend URL
+```bash
+curl -X POST http://localhost:10000/diagnosis/follow-up \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": "abc123",
+    "answer": "Yes, I have red spots on my arms",
+    "language": "en"
+  }'
 ```
 
-### Environment Variables
+### Get Explanation
 
-For production, use environment variables:
-
-```python
-import os
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key')
+```bash
+curl -X POST http://localhost:10000/diagnosis/explain \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symptoms": "high fever and severe headache",
+    "disease": "DENGUE",
+    "language": "en"
+  }'
 ```
+
+### Patient Clustering
+
+```bash
+curl -X GET "http://localhost:10000/api/patient-clusters?n_clusters=4"
+```
+
+### Outbreak Detection
+
+```bash
+curl -X GET http://localhost:10000/api/surveillance/outbreaks
+```
+
+## Key Features Explained
+
+### Monte Carlo Dropout (MCD)
+
+The classifier runs multiple forward passes with dropout enabled to estimate prediction uncertainty. This provides:
+- **Confidence**: Mean probability across passes
+- **Uncertainty**: Variance in predictions (epistemic uncertainty)
+
+### Neuro-Symbolic Verification
+
+An ontology-based layer that:
+- Extracts clinical concepts from input symptoms
+- Validates predictions against known disease-symptom relationships
+- Flags out-of-scope or inconsistent predictions
+
+### GradientSHAP Explanations
+
+Token-level attribution showing which words in the input contributed most to the prediction, enabling model transparency and interpretability.
+
+### Bilingual Models
+
+- **English**: `BioClinical-ModernBERT` - Trained on clinical text
+- **Tagalog**: `RoBERTa-Tagalog` - Localized for Filipino language support
 
 ## Testing
 
-### Running Tests
+Run the integration tests (ensure the server is running):
 
 ```bash
 python test_flask.py
 ```
 
-This will test both API endpoints and verify the Flask app is working correctly.
-
-### Adding Tests
-
-You can extend `test_flask.py` with additional test cases:
-
-```python
-def test_error_handling():
-    """Test error responses"""
-    response = requests.post(f"{base_url}/classifications/new")
-    assert response.status_code == 400
-```
-
-## Deployment
-
-### Production Considerations
-
-1. **Environment Variables**: Use environment variables for sensitive settings
-2. **WSGI Server**: Use Gunicorn for production deployment
-3. **Security**: Configure proper CORS, disable debug mode
-4. **Logging**: Add proper logging configuration
-5. **Process Management**: Use supervisor or systemd for process management
-
-### Production Deployment with Gunicorn
+Or run the test suite:
 
 ```bash
-# Install gunicorn (already in requirements.txt)
-pip install gunicorn
-
-# Run with gunicorn
-gunicorn -w 4 -b 0.0.0.0:8000 app:app
-```
-
-### Example Production Configuration
-
-```python
-import os
-
-class Config:
-    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-key')
-
-app.config.from_object(Config)
-```
-
-## API Usage Examples
-
-### Using curl
-
-```bash
-# Test the API
-curl -X GET http://localhost:8000/classifications/
-
-# Submit symptoms for detection
-curl -X POST http://localhost:8000/classifications/new \
-  -H "Content-Type: application/json" \
-  -d '{"symptoms": ["fever", "cough", "headache"]}'
-```
-
-### Using Python requests
-
-```python
-import requests
-
-# Test endpoint
-response = requests.get('http://localhost:8000/classifications/')
-print(response.json())
-
-# Disease detection
-symptoms_data = {"symptoms": ["fever", "cough", "headache"]}
-response = requests.post('http://localhost:8000/classifications/new',
-                        json=symptoms_data)
-print(response.json())
+cd tests
+pytest
 ```
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Port already in use**: Change port in `app.py`: `app.run(port=8001)`
-2. **CORS errors**: Verify Flask-CORS is installed and configured
-3. **Import errors**: Ensure virtual environment is activated
-4. **Module not found**: Install dependencies with `pip install -r requirements.txt`
-
-### Debug Mode
-
-Debug mode is enabled by default in `app.py`:
-
-```python
-app.run(debug=True)  # Shows detailed error messages
-```
-
-### Logging
-
-Add logging to your Flask app:
-
-```python
-import logging
-logging.basicConfig(level=logging.INFO)
-app.logger.info('Flask app starting...')
-```
-
-## Frontend Integration
-
-This backend is designed to work with the Next.js frontend. The frontend makes requests to:
-
-- `POST /classifications/new` for disease detection
-- Data flows: Frontend symptoms → Backend ML processing → Frontend results display
-
-## Future Enhancements
-
-1. **Machine Learning Models**: Integrate actual ML models for disease prediction
-2. **Database Integration**: Add SQLAlchemy for data persistence
-3. **User Authentication**: Add Flask-Login for user management
-4. **API Documentation**: Implement Flask-RESTX or Swagger for API docs
-5. **Rate Limiting**: Add Flask-Limiter for API rate limiting
-6. **Caching**: Implement Flask-Caching for improved performance
-7. **Input Validation**: Add request validation with marshmallow
-8. **Error Handling**: Implement comprehensive error handling and logging
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
+| Issue | Solution |
+|---|---|
+| Port 10000 in use | Change port via `PORT` env variable |
+| CORS errors | Check `FRONTEND_URL` and allowed origins in `app/__init__.py` |
+| Model loading slow | First run downloads ~500MB of transformer models; cached afterward |
+| Database connection | Verify `DATABASE_URL` in `.env` |
+| Import errors | Ensure virtual environment is activated |
+| Out of memory | Reduce batch size or use CPU-only mode |
 
 ## License
 

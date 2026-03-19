@@ -6,21 +6,35 @@ A full-stack disease screening application combining a **Flask** backend (Monte 
 
 ```text
 aill-be-sick/
-├── backend/                # Flask REST API (Python)
-│   ├── app/                #   Application package
-│   │   ├── api/            #     Blueprints (diagnosis, cluster, surveillance)
-│   │   ├── services/       #     ML classifier, verification, clustering, outbreak detection
-│   │   ├── utils/          #     Helpers, database connection
-│   │   ├── config.py       #     Centralised configuration & thresholds
+├── backend/                  # Flask REST API (Python)
+│   ├── app/                  #   Application package
+│   │   ├── api/              #     Blueprints (diagnosis, cluster, surveillance, outbreak)
+│   │   ├── services/         #     ML classifier, verification, clustering, outbreak detection
+│   │   ├── models/           #     Data models (diagnosis session)
+│   │   ├── utils/            #     Helpers, database connection, scoring
+│   │   ├── config.py         #     Centralised configuration & thresholds
 │   │   └── evidence_keywords.py
-│   ├── run.py              #   Entry point
+│   ├── run.py                #   Entry point
+│   ├── question_bank.json    #   English question bank
+│   ├── question_bank_tagalog.json  # Tagalog question bank
 │   ├── requirements.txt
 │   └── Dockerfile
-├── frontend/               # Next.js app (TypeScript, Prisma, Supabase)
-│   ├── app/                #   App Router pages & layouts
-│   ├── actions/            #   Server actions
-│   ├── components/         #   UI components
-│   ├── prisma/             #   Schema & migrations
+├── frontend/                 # Next.js app (TypeScript, Prisma, Supabase)
+│   ├── app/                  #   App Router pages & layouts
+│   │   ├── (app)/            #     Protected app routes (clinician & patient)
+│   │   └── (auth)/           #     Authentication pages
+│   ├── actions/              #   Server actions (25+ actions)
+│   ├── components/           #   UI components
+│   │   ├── clinicians/       #     Clinician dashboard components
+│   │   ├── patient/          #     Patient interface components
+│   │   ├── shared/           #     Shared components
+│   │   └── ui/               #     Base UI components (shadcn/ui)
+│   ├── hooks/                #   Custom React hooks
+│   ├── stores/               #   Zustand state stores
+│   ├── schemas/              #   Zod validation schemas
+│   ├── utils/                #   Utility functions
+│   ├── types/                #   TypeScript type definitions
+│   ├── prisma/               #   Schema & migrations
 │   └── package.json
 └── README.md
 ```
@@ -79,10 +93,10 @@ Thresholds for symptom validation, confidence, triage levels, etc. are defined i
 python run.py
 
 # Production (Gunicorn)
-gunicorn -w 4 -b 0.0.0.0:8000 "app:create_app()"
+gunicorn -w 4 -b 0.0.0.0:10000 "run:app"
 ```
 
-The API will be available at **http://localhost:8000**.
+The API will be available at **http://localhost:10000**.
 
 ### API Endpoints
 
@@ -95,6 +109,8 @@ The API will be available at **http://localhost:8000**.
 | `GET` | `/api/patient-clusters` | K-Means patient clustering |
 | `GET` | `/api/patient-clusters/silhouette` | Silhouette analysis |
 | `GET` | `/api/surveillance/outbreaks` | Isolation Forest outbreak detection |
+| `GET` | `/api/surveillance/outbreaks/details` | Detailed outbreak information |
+| `GET` | `/api/illness-clusters` | Illness-based clustering |
 
 ### Key Features
 
@@ -166,16 +182,16 @@ The frontend runs at **http://localhost:3000**.
 
 ## Running the Full Application
 
-1. **Backend** — in `backend/`: `python run.py`
-2. **Frontend** — in `frontend/`: `npm run dev`
+1. **Backend** — in `backend/`: `python run.py` (runs on port 10000)
+2. **Frontend** — in `frontend/`: `npm run dev` (runs on port 3000)
 3. Open **http://localhost:3000**
 
 ### User Flows
 
 | Role | Login | Features |
 |---|---|---|
-| Patient | `/login` | Symptom chat → diagnosis → history |
-| Clinician | `/clinician-login` | Dashboard, patient clusters, outbreak surveillance |
+| Patient | `/login` | Symptom chat → diagnosis → history, profile management |
+| Clinician | `/clinician-login` | Dashboard, patient clusters, outbreak surveillance, alerts, healthcare reports, map view |
 
 ---
 
@@ -183,7 +199,7 @@ The frontend runs at **http://localhost:3000**.
 
 | Issue | Fix |
 |---|---|
-| Port conflict (3000/8000) | Kill existing processes or change ports |
+| Port conflict (3000/10000) | Kill existing processes or change ports |
 | CORS errors | Verify `Flask-Cors` is installed; allowed origins are set in `app/__init__.py` |
 | Database connection | Check `DATABASE_URL` in `.env` / `.env.local` |
 | Prisma client stale | Re-run `npx prisma generate` after schema changes |

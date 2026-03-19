@@ -1,8 +1,8 @@
 import Sidebar from "@/components/patient/layout/sidebar";
 import OnboardingModal from "@/components/patient/onboarding/onboarding-modal";
 import ConsentModal from "@/components/consent-modal";
-import LegalFooter from "@/components/shared/legal-footer";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
+import HelpModal from "@/components/patient/layout/help-modal";
 import { getCurrentDbUser } from "@/utils/user";
 import { needsTermsUpdate, getTermsUpdateInfo } from "@/utils/check-terms-version";
 import { forbidden, redirect, unauthorized } from "next/navigation";
@@ -44,11 +44,11 @@ const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
     <LayoutWrapper>
       <Sidebar dbUser={dbUser} />
       <OnboardingModal />
+      <HelpModal />
       {/* Show consent modal if user hasn't accepted terms or needs to re-accept */}
       {requiresConsent && <ConsentModal reasons={reasons} />}
       <div className="flex flex-col flex-1 min-h-screen">
         <main className="flex-1 flex flex-col">{children}</main>
-        <LegalFooter />
       </div>
     </LayoutWrapper>
   );
