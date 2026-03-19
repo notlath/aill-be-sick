@@ -3,7 +3,7 @@ import { DataTable } from "@/components/patient/history-page/data-table";
 import { getChats } from "@/utils/chat";
 import { getCurrentDbUser } from "@/utils/user";
 import { Suspense } from "react";
-import { ExportPdfButton } from "@/components/ui/export-pdf-button";
+import { ExportReportButton } from "@/components/ui/export-report-button";
 import type { PdfColumn } from "@/utils/pdf-export";
 
 async function ChatHistoryList() {
@@ -106,12 +106,16 @@ async function ChatHistoryList() {
         columns={columns}
         data={rows}
         additionalActions={
-          <ExportPdfButton
+          <ExportReportButton
             data={exportData}
             columns={pdfColumns}
-            filename="diagnosis-history"
+            filenameSlug="diagnosis-history"
             title="Diagnosis History"
             subtitle="Your diagnosis history"
+            generatedBy={{
+              name: dbUser.name ?? "Unknown",
+              email: dbUser.email,
+            }}
           />
         }
       />

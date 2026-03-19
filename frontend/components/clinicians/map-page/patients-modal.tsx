@@ -5,6 +5,7 @@ import { columns } from "./patients-columns";
 import { PatientsDataTable } from "./patients-data-table";
 import { DiagnosisDetailModal } from "./diagnosis-detail-modal";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface PatientsModalProps {
   isOpen: boolean;
@@ -26,6 +27,11 @@ export default function PatientsModal({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [selectedDiagnosis, setSelectedDiagnosis] = useState<IllnessRecord | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -57,9 +63,9 @@ export default function PatientsModal({
     setSelectedDiagnosis(null);
   };
 
-  if (!isOpen) return null;
+  if (!isMounted || !isOpen) return null;
 
-  return (
+  const modalContent = (
     <>
       <dialog
         ref={dialogRef}
@@ -99,4 +105,6 @@ export default function PatientsModal({
       />
     </>
   );
+
+  return createPortal(modalContent, document.body);
 }

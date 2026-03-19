@@ -3,7 +3,8 @@ import { getAllDiagnoses } from "@/utils/diagnosis";
 import { DataTable } from "@/components/clinicians/healthcare-reports-page/data-table";
 import { columns } from "@/components/clinicians/healthcare-reports-page/columns";
 import { getReliability } from "@/utils/reliability";
-import { ExportPdfButton } from "@/components/ui/export-pdf-button";
+import { getCurrentDbUser } from "@/utils/user";
+import { ExportReportButton } from "@/components/ui/export-report-button";
 import type { PdfColumn } from "@/utils/pdf-export";
 
 export default function HealthcareReports() {
@@ -38,13 +39,20 @@ export default function HealthcareReports() {
 }
 
 async function DiagnosesData() {
-  const { success: diagnoses, error } = await getAllDiagnoses({});
+  const [{ success: diagnoses, error }, { success: dbUser }] = await Promise.all([
+    getAllDiagnoses({}),
+    getCurrentDbUser(),
+  ]);
 
   if (error) {
     throw new Error(
       typeof error === "string" ? error : "Failed to load healthcare reports",
     );
   }
+
+  const generatedBy = dbUser
+    ? { name: dbUser.name ?? "Unknown", email: dbUser.email }
+    : undefined;
 
   const pdfColumns: PdfColumn[] = [
     { header: "Disease", dataKey: "disease" },
@@ -71,12 +79,13 @@ async function DiagnosesData() {
       columns={columns}
       data={diagnoses || []}
       additionalActions={
-        <ExportPdfButton
+        <ExportReportButton
           data={exportData}
           columns={pdfColumns}
-          filename="healthcare-reports"
+          filenameSlug="healthcare-reports"
           title="Healthcare Reports"
           subtitle="All diagnoses in the system"
+          generatedBy={generatedBy}
         />
       }
     />
