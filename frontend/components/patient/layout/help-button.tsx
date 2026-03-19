@@ -8,7 +8,7 @@ const HelpButton = () => {
     // Open the active role's help dialog without navigation.
     (
       document.querySelector(
-        ".help-dialog, .onboarding-dialog",
+        ".help-guide-dialog",
       ) as HTMLDialogElement | null
     )?.showModal();
   };
