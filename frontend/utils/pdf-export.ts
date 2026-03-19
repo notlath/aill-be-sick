@@ -3,6 +3,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
+import { registerGeistFont } from "./fonts/geist-pdf";
 
 export interface PdfColumn {
   header: string;
@@ -19,7 +20,8 @@ export interface PdfExportOptions {
   generatedBy?: { name: string; email?: string };
 }
 
-const PRIMARY_COLOR: [number, number, number] = [59, 130, 246]; // oklch(59% 0.145 163.225) - matches --color-primary from globals.css
+// --color-primary: oklch(59% 0.145 163.225) from globals.css → teal/green, matches #009764 used in app
+const PRIMARY_COLOR: [number, number, number] = [0, 151, 100];
 const TEXT_COLOR: [number, number, number] = [29, 29, 31]; // #1d1d1f - matches --color-base-content
 const MUTED_COLOR: [number, number, number] = [134, 134, 139]; // #86868b - matches --color-muted
 
@@ -32,6 +34,9 @@ export function exportToPDF({
   generatedBy,
 }: PdfExportOptions) {
   const doc = new jsPDF();
+  registerGeistFont(doc);
+  doc.setFont("GeistSans", "normal");
+
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -41,8 +46,10 @@ export function exportToPDF({
   doc.text(headerText, 14, 15);
 
   doc.setFontSize(20);
+  doc.setFont("GeistSans", "bold");
   doc.setTextColor(...TEXT_COLOR);
   doc.text(title, 14, 28);
+  doc.setFont("GeistSans", "normal");
 
   let currentY = 36;
   if (subtitle) {
@@ -96,13 +103,15 @@ export function exportToPDF({
     body: tableData,
     startY: tableStartY,
     headStyles: {
+      font: "GeistSans",
+      fontStyle: "bold",
       fillColor: PRIMARY_COLOR,
       textColor: [255, 255, 255],
       fontSize: 10,
-      fontStyle: "bold",
       halign: "left",
     },
     bodyStyles: {
+      font: "GeistSans",
       fontSize: 9,
       textColor: TEXT_COLOR,
       halign: "left",
@@ -119,6 +128,7 @@ export function exportToPDF({
     margin: { left: 14, right: 14 },
     theme: "striped",
     styles: {
+      font: "GeistSans",
       lineColor: [232, 232, 237],
       lineWidth: 0.1,
     },

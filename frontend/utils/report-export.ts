@@ -105,6 +105,7 @@ export function exportToExcel(
   columns: ReportColumn[],
   filename: string
 ): void {
+  // Note: SheetJS CE does not support cell styling (font, etc.). Excel will use default font.
   const headers = columns.map((c) => c.header);
   const rows = data.map((row) =>
     columns.map((col) => formatCellValue(row[col.dataKey], col.dataKey))
