@@ -24,7 +24,17 @@ const AlertsPage = async () => {
       <div className="px-8 pb-16 md:px-16 lg:px-24">
         <div className="mx-auto max-w-[1600px] space-y-8">
           <div className="animate-slide-up" style={{ animationDelay: "200ms" }}>
-            <AlertsList currentUserId={dbUser?.id ?? null} />
+            <AlertsList
+              currentUserId={dbUser?.id ?? null}
+              generatedBy={
+                dbUser
+                  ? {
+                      name: dbUser.name ?? "Unknown",
+                      email: dbUser.email,
+                    }
+                  : undefined
+              }
+            />
           </div>
         </div>
       </div>

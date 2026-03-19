@@ -7,7 +7,7 @@ import useAlertsStore from "@/stores/use-alerts-store";
 import { AlertCard } from "./alert-card";
 import { AlertDetailModal } from "./alert-detail-modal";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, X, FileDown, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, X, ChevronFirst, ChevronLast, ChevronLeft, ChevronRight } from "lucide-react";
 import { parseUtcDate } from "@/utils/lib";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,10 +18,11 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import type { Alert, AlertSeverity, AlertType } from "@/types";
-import { exportToPDF, PdfColumn } from "@/utils/pdf-export";
+import { ExportReportButton } from "@/components/ui/export-report-button";
 
 interface AlertsListProps {
   currentUserId: number | null;
+  generatedBy?: { name: string; email?: string };
 }
 
 const TABS = [
@@ -92,7 +93,7 @@ const TYPE_OPTIONS: { value: string; label: string }[] = [
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-const AlertsList = ({ currentUserId }: AlertsListProps) => {
+const AlertsList = ({ currentUserId, generatedBy }: AlertsListProps) => {
   const { alerts, isLoading, error, acknowledge, dismiss, resolve, addNote, editNote } =
     useAlertsStore(
       useShallow((s) => ({
@@ -180,33 +181,30 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
   const rangeStart = filteredAndSortedAlerts.length === 0 ? 0 : currentPage * pageSize + 1;
   const rangeEnd = Math.min((currentPage + 1) * pageSize, filteredAndSortedAlerts.length);
 
-  const handleExportPDF = () => {
-    const columns: PdfColumn[] = [
+  const alertsExportColumns = useMemo(
+    () => [
       { header: "ID", dataKey: "id" },
       { header: "Type", dataKey: "type" },
       { header: "Severity", dataKey: "severity" },
       { header: "Message", dataKey: "message" },
       { header: "Status", dataKey: "status" },
       { header: "Created", dataKey: "createdAt" },
-    ];
+    ],
+    []
+  );
 
-    const exportData = filteredAndSortedAlerts.map((alert) => ({
-      id: alert.id,
-      type: TYPE_LABELS[alert.type] ?? alert.type,
-      severity: alert.severity,
-      message: alert.message,
-      status: alert.status,
-      createdAt: parseUtcDate(alert.createdAt),
-    }));
-
-    exportToPDF({
-      title: "Alerts Report",
-      subtitle: tabLabelMap[activeTab] || "All Alerts",
-      data: exportData,
-      columns,
-      filename: `alerts-${activeTab.toLowerCase()}-${new Date().toISOString().split("T")[0]}`,
-    });
-  };
+  const alertsExportData = useMemo(
+    () =>
+      filteredAndSortedAlerts.map((alert) => ({
+        id: alert.id,
+        type: TYPE_LABELS[alert.type] ?? alert.type,
+        severity: alert.severity,
+        message: alert.message,
+        status: alert.status,
+        createdAt: parseUtcDate(alert.createdAt),
+      })),
+    [filteredAndSortedAlerts]
+  );
 
   // Calculate counts for tabs
   const tabCounts = useMemo(() => {
@@ -338,16 +336,18 @@ const AlertsList = ({ currentUserId }: AlertsListProps) => {
           ) : null}
         </div>
 
-        {/* Export PDF — pushed to the right end */}
+        {/* Export Report — pushed to the right end */}
         {filteredAndSortedAlerts.length > 0 && (
-          <button
-            onClick={handleExportPDF}
-            className="btn btn-outline border-border gap-2 h-10 ml-auto shrink-0"
-            type="button"
-          >
-            <FileDown className="h-4 w-4" />
-            Export PDF
-          </button>
+          <div className="ml-auto shrink-0">
+            <ExportReportButton
+              data={alertsExportData}
+              columns={alertsExportColumns}
+              filenameSlug={`alerts-${activeTab.toLowerCase()}`}
+              title="Alerts Report"
+              subtitle={tabLabelMap[activeTab] || "All Alerts"}
+              generatedBy={generatedBy}
+            />
+          </div>
         )}
       </div>
 

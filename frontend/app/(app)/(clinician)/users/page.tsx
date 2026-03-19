@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { columns, UserRow } from "@/components/clinicians/users-page/columns";
 import { DataTable } from "@/components/clinicians/users-page/data-table";
 import { getAllUsers, getCurrentDbUser } from "@/utils/user";
-import { ExportPdfButton } from "@/components/ui/export-pdf-button";
+import { ExportReportButton } from "@/components/ui/export-report-button";
 import type { PdfColumn } from "@/utils/pdf-export";
 
 function UsersTableSkeleton() {
@@ -36,7 +36,13 @@ function UsersTableSkeleton() {
   );
 }
 
-async function UsersTable({ currentUserRole }: { currentUserRole: string }) {
+async function UsersTable({
+  currentUserRole,
+  generatedBy,
+}: {
+  currentUserRole: string;
+  generatedBy?: { name: string; email?: string };
+}) {
   const { success: users, error } = await getAllUsers(currentUserRole);
 
   if (error) {
@@ -71,12 +77,13 @@ async function UsersTable({ currentUserRole }: { currentUserRole: string }) {
       data={users || []}
       currentUserRole={currentUserRole}
       additionalActions={
-        <ExportPdfButton
+        <ExportReportButton
           data={exportData}
           columns={pdfColumns}
-          filename="users-report"
+          filenameSlug="users-report"
           title="Users Report"
           subtitle="All registered users"
+          generatedBy={generatedBy}
         />
       }
     />
@@ -108,7 +115,17 @@ const UsersPage = async () => {
         <div className="mx-auto max-w-[1600px] space-y-8">
           <div className="animate-slide-up" style={{ animationDelay: "200ms" }}>
             <Suspense fallback={<UsersTableSkeleton />}>
-              <UsersTable currentUserRole={currentUserRole} />
+              <UsersTable
+                currentUserRole={currentUserRole}
+                generatedBy={
+                  dbUser
+                    ? {
+                        name: dbUser.name ?? "Unknown",
+                        email: dbUser.email,
+                      }
+                    : undefined
+                }
+              />
             </Suspense>
           </div>
         </div>
