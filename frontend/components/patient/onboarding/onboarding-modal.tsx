@@ -6,12 +6,21 @@ import {
   Lightbulb,
   AlertTriangle,
   ListChecks,
+  MessageSquare,
+  ChevronUp,
+  ChevronDown,
+  History,
 } from "lucide-react";
 import Link from "next/link";
 import { LEGAL_CONSTANTS } from "@/constants/legal";
 
 const OnboardingModal = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showFullExample, setShowFullExample] = useState(false);
+
+  const shortExample = "I have a fever and cough";
+  const longExample =
+    "I have had a fever of 38.5°C for the past 2 days, along with a dry cough, mild headache, and feeling very tired";
 
   // Consent checkboxes state
   const [acceptedMedicalDisclaimer, setAcceptedMedicalDisclaimer] =
