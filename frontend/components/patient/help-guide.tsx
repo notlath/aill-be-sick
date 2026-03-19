@@ -13,7 +13,7 @@ export const HelpGuide = ({ className, variant = "modal" }: HelpGuideProps) => {
   const [showFullExample, setShowFullExample] = useState(false);
 
   const shortExample =
-    "First I got a very high temperature, a dry cough, profound tiredness, and a runny nose. I found small white spots in my mouth. Yesterday, a rash began at my hairline and spread down my chest.";
+    "First I got a very high temperature, a dry cough, profound tiredness, and a runny nose. I found small white spots...";
   const longExample =
     "First I got a very high temperature, a dry cough, profound tiredness, and a runny nose. I found small white spots in my mouth. Yesterday, a rash began at my hairline and spread down my chest.";
 
