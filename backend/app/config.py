@@ -2,6 +2,7 @@
 Configuration constants for the disease prediction system.
 Centralizes all thresholds and configuration values in one place.
 """
+
 import os
 
 # --- Model Paths ---
@@ -49,15 +50,21 @@ VALID_MAX_CV = float(os.getenv("VALID_MAX_CV", "0.15"))
 VALID_MAX_DISAGREEMENT = float(os.getenv("VALID_MAX_DISAGREEMENT", "0.20"))
 
 # Composite uncertainty: flag if ANY metric exceeds threshold
-USE_COMPOSITE_UNCERTAINTY = os.getenv("USE_COMPOSITE_UNCERTAINTY", "true").lower() == "true"
+USE_COMPOSITE_UNCERTAINTY = (
+    os.getenv("USE_COMPOSITE_UNCERTAINTY", "true").lower() == "true"
+)
 
 # Calibration settings
 CALIBRATION_N_BINS = int(os.getenv("CALIBRATION_N_BINS", "10"))
 TARGET_ECE = float(os.getenv("TARGET_ECE", "0.05"))  # Target Expected Calibration Error
 
 # Temperature scaling for calibration
-USE_TEMPERATURE_SCALING = os.getenv("USE_TEMPERATURE_SCALING", "false").lower() == "true"
-TEMPERATURE = float(os.getenv("TEMPERATURE", "1.0"))  # 1.0 = no scaling, >1 = softer probs
+USE_TEMPERATURE_SCALING = (
+    os.getenv("USE_TEMPERATURE_SCALING", "false").lower() == "true"
+)
+TEMPERATURE = float(
+    os.getenv("TEMPERATURE", "1.0")
+)  # 1.0 = no scaling, >1 = softer probs
 
 # Low confidence - stop asking questions after MAX_QUESTIONS_THRESHOLD
 LOW_CONFIDENCE_THRESHOLD = float(os.getenv("LOW_CONFIDENCE_THRESHOLD", "0.65"))
@@ -65,6 +72,26 @@ LOW_CONFIDENCE_THRESHOLD = float(os.getenv("LOW_CONFIDENCE_THRESHOLD", "0.65"))
 # --- Follow-up Question Limits ---
 MAX_QUESTIONS_THRESHOLD = int(os.getenv("MAX_QUESTIONS_THRESHOLD", "8"))
 EXHAUSTED_QUESTIONS_THRESHOLD = int(os.getenv("EXHAUSTED_QUESTIONS_THRESHOLD", "10"))
+
+# --- EIG (Expected Information Gain) Configuration ---
+# Early stopping: stop asking questions when EIG gain is too small
+MIN_EIG_THRESHOLD = float(os.getenv("MIN_EIG_THRESHOLD", "0.015"))
+EIG_DECAY_FACTOR = float(os.getenv("EIG_DECAY_FACTOR", "0.3"))
+
+# Burden penalty: prefer easy-to-answer questions (burden scores 1-5)
+BURDEN_PENALTY_FACTOR = float(os.getenv("BURDEN_PENALTY_FACTOR", "0.08"))
+
+# Top-k differential EIG: score questions by how well they separate top disease contenders
+TOP_K_DISEASES = int(os.getenv("TOP_K_DISEASES", "3"))
+DIFFERENTIAL_EIG_WEIGHT = float(os.getenv("DIFFERENTIAL_EIG_WEIGHT", "0.7"))
+
+# Confidence-aware mode switching thresholds
+MODE_EXPLORATION_MAX_CONF = float(os.getenv("MODE_EXPLORATION_MAX_CONF", "0.50"))
+MODE_CONFIRMATION_MIN_CONF = float(os.getenv("MODE_CONFIRMATION_MIN_CONF", "0.65"))
+MODE_RULE_OUT_SECOND_MIN = float(os.getenv("MODE_RULE_OUT_SECOND_MIN", "0.20"))
+
+# Novelty penalty: soft-penalize questions similar to already-asked ones
+NOVELTY_PENALTY_WEIGHT = float(os.getenv("NOVELTY_PENALTY_WEIGHT", "0.12"))
 
 # --- Triage Thresholds ---
 # Determine triage level based on confidence and uncertainty
@@ -340,7 +367,6 @@ MEDICAL_KEYWORDS_TL = {
     "labis",
     "aalala",
     "nag-aalala",
-    
     # Additional terminology from research
     "alipunga",
     "alta-presyon",
@@ -434,7 +460,6 @@ CLINICAL_CONCEPTS = {
     "mice": "RISK_RODENT_EXPOSURE",
     "urine": "RISK_CONTAMINATED_WATER",
     "ihi": "RISK_CONTAMINATED_WATER",
-    
     # Distinctive Symptoms - Sensory Loss (COVID-19 indicative)
     "loss of taste": "SX_AGEUSIA",
     "lost taste": "SX_AGEUSIA",
@@ -445,7 +470,6 @@ CLINICAL_CONCEPTS = {
     "no sense of taste": "SX_AGEUSIA",
     "walang panlasa": "SX_AGEUSIA",
     "nawalan ng panlasa": "SX_AGEUSIA",
-    
     "loss of smell": "SX_ANOSMIA",
     "lost smell": "SX_ANOSMIA",
     "can't smell": "SX_ANOSMIA",
@@ -455,7 +479,6 @@ CLINICAL_CONCEPTS = {
     "no sense of smell": "SX_ANOSMIA",
     "walang pang-amoy": "SX_ANOSMIA",
     "nawalan ng pang-amoy": "SX_ANOSMIA",
-    
     # Distinctive Symptoms - Hepatic (Leptospirosis/Hepatitis indicative)
     "yellow skin": "SX_JAUNDICE",
     "naninilaw": "SX_JAUNDICE",
@@ -464,12 +487,10 @@ CLINICAL_CONCEPTS = {
     "kulay tsaa": "SX_DARK_URINE",
     "dark urine": "SX_DARK_URINE",
     "tea-colored urine": "SX_DARK_URINE",
-    
     # Distinctive Symptoms - Ocular (Leptospirosis indicative)
     "red eyes": "SX_CONJUNCTIVAL_SUFFUSION",
     "namumula ang mata": "SX_CONJUNCTIVAL_SUFFUSION",
     "bloodshot eyes": "SX_CONJUNCTIVAL_SUFFUSION",
-
     # Distinctive Symptoms - Diabetes indicative (Out of Scope)
     # SX_POLYURIA (Frequent urination)
     "umihi": "SX_POLYURIA",
@@ -478,7 +499,6 @@ CLINICAL_CONCEPTS = {
     "peeing": "SX_POLYURIA",
     "ihi nang ihi": "SX_POLYURIA",
     "madalas umihi": "SX_POLYURIA",
-    
     # SX_POLYDIPSIA (Excessive thirst)
     "uhaw": "SX_POLYDIPSIA",
     "thirsty": "SX_POLYDIPSIA",
@@ -487,7 +507,6 @@ CLINICAL_CONCEPTS = {
     "tuyong bibig": "SX_POLYDIPSIA",
     "tuyo ang lalamunan": "SX_POLYDIPSIA",
     "tuyong lalamunan": "SX_POLYDIPSIA",
-    
     # SX_POLYPHAGIA (Excessive hunger)
     "gutom": "SX_POLYPHAGIA",
     "hungry": "SX_POLYPHAGIA",
@@ -495,19 +514,16 @@ CLINICAL_CONCEPTS = {
     "kain nang kain": "SX_POLYPHAGIA",
     "lagi akong gutom": "SX_POLYPHAGIA",
     "madalas gutom": "SX_POLYPHAGIA",
-    
     # SX_WEIGHT_LOSS (Unexplained weight loss)
     "pumapayat": "SX_WEIGHT_LOSS",
     "weight loss": "SX_WEIGHT_LOSS",
     "losing weight": "SX_WEIGHT_LOSS",
     "bumababa ang timbang": "SX_WEIGHT_LOSS",
-    
     # SX_SLOW_HEALING (Slow healing wounds)
     "ayaw gumaling": "SX_SLOW_HEALING",
     "not healing": "SX_SLOW_HEALING",
     "sugat na matagal gumaling": "SX_SLOW_HEALING",
-    "sugat": "SX_SLOW_HEALING", # Context sensitive, but often strong signal if persistent
-    
+    "sugat": "SX_SLOW_HEALING",  # Context sensitive, but often strong signal if persistent
     # SX_NEUROPATHY (Numbness/Tingling)
     "manhid": "SX_NEUROPATHY",
     "namamanhid": "SX_NEUROPATHY",
@@ -516,15 +532,12 @@ CLINICAL_CONCEPTS = {
     "tusok-tusok": "SX_NEUROPATHY",
     "tingling": "SX_NEUROPATHY",
     "pins and needles": "SX_NEUROPATHY",
-    
     # SX_BLURRED_VISION
     "labo mata": "SX_BLURRED_VISION",
     "malabo ang mata": "SX_BLURRED_VISION",
     "blurred vision": "SX_BLURRED_VISION",
-    "paningin": "SX_BLURRED_VISION", # Context: "lumalabo na rin yung paningin"
-
+    "paningin": "SX_BLURRED_VISION",  # Context: "lumalabo na rin yung paningin"
     # --- NEW: PH-Specific Red Flags (Per Thesis Requirements) ---
-
     # F1. Dengue Confounders (Lepto, Malaria, Meningo)
     # Leptospirosis - Calf Pain
     "calf pain": "SX_CALF_PAIN",
@@ -552,8 +565,7 @@ CLINICAL_CONCEPTS = {
     "matigas ang leeg": "SX_NECK_STIFFNESS",
     "purple spots": "SX_PURPURA",
     "purple rash": "SX_PURPURA",
-    "pasa-pasa": "SX_PURPURA", # Bruise-like
-
+    "pasa-pasa": "SX_PURPURA",  # Bruise-like
     # F2. Diarrhea Confounders (Cancer, Amoebiasis)
     # Colorectal Cancer
     "pencil thin stool": "SX_PENCIL_STOOL",
@@ -567,7 +579,6 @@ CLINICAL_CONCEPTS = {
     "bloody mucus": "SX_RASPBERRY_STOOL",
     "jelly stool": "SX_RASPBERRY_STOOL",
     "madugo at madulas": "SX_RASPBERRY_STOOL",
-
     # F3. Measles Confounders (Kawasaki, Rubella)
     # Kawasaki Disease
     "strawberry tongue": "SX_STRAWBERRY_TONGUE",
@@ -581,7 +592,6 @@ CLINICAL_CONCEPTS = {
     "lump behind ear": "SX_POST_AURICULAR_LYMPHADENOPATHY",
     "swollen behind ear": "SX_POST_AURICULAR_LYMPHADENOPATHY",
     "bukol sa likod ng tenga": "SX_POST_AURICULAR_LYMPHADENOPATHY",
-
     # F4. Pneumonia Confounders (TB, Heart Failure, Asthma)
     # Tuberculosis
     "coughing blood": "SX_HEMOPTYSIS",
@@ -607,7 +617,6 @@ CLINICAL_CONCEPTS = {
     "whistling breath": "SX_WHEEZING",
     "humuhuni": "SX_WHEEZING",
     "huni": "SX_WHEEZING",
-    
     # NEW: Formal Medical Red Flags (From Research)
     # Dengue
     "tuloy-tuloy na pagsusuka": "SX_PERSISTENT_VOMITING",
@@ -663,7 +672,7 @@ CLINICAL_CONCEPTS = {
 # If these are found in input but NOT in the disease profile, flag OUT_OF_SCOPE.
 HIGH_VALUE_CONCEPTS = {
     "RISK_FLOOD_EXPOSURE",
-    "RISK_RODENT_EXPOSURE", 
+    "RISK_RODENT_EXPOSURE",
     "RISK_CONTAMINATED_WATER",
     "SX_AGEUSIA",
     "SX_ANOSMIA",
@@ -678,30 +687,65 @@ HIGH_VALUE_CONCEPTS = {
     "SX_NEUROPATHY",
     "SX_BLURRED_VISION",
     # PH Red Flags
-    "SX_CALF_PAIN", "SX_OLIGURIA", "SX_RIGORS", "SX_PALLOR", "SX_NECK_STIFFNESS", "SX_PURPURA",
-    "SX_PENCIL_STOOL", "SX_TENESMUS", "SX_RASPBERRY_STOOL",
-    "SX_STRAWBERRY_TONGUE", "SX_PEELING_SKIN", "SX_PROLONGED_FEVER", "SX_POST_AURICULAR_LYMPHADENOPATHY",
-    "SX_HEMOPTYSIS", "SX_NIGHT_SWEATS", "SX_CHRONIC_COUGH", "SX_ORTHOPNEA", "SX_PINK_FROTHY_SPUTUM", "SX_WHEEZING",
+    "SX_CALF_PAIN",
+    "SX_OLIGURIA",
+    "SX_RIGORS",
+    "SX_PALLOR",
+    "SX_NECK_STIFFNESS",
+    "SX_PURPURA",
+    "SX_PENCIL_STOOL",
+    "SX_TENESMUS",
+    "SX_RASPBERRY_STOOL",
+    "SX_STRAWBERRY_TONGUE",
+    "SX_PEELING_SKIN",
+    "SX_PROLONGED_FEVER",
+    "SX_POST_AURICULAR_LYMPHADENOPATHY",
+    "SX_HEMOPTYSIS",
+    "SX_NIGHT_SWEATS",
+    "SX_CHRONIC_COUGH",
+    "SX_ORTHOPNEA",
+    "SX_PINK_FROTHY_SPUTUM",
+    "SX_WHEEZING",
     # Formal Medical Red Flags
-    "SX_PERSISTENT_VOMITING", "SX_HEMORRHAGE", "SX_RETROORBITAL_PAIN", "SX_PETECHIAE",
-    "SX_ROSE_SPOTS", "SX_SEVERE_ABDOMINAL_PAIN", "SX_MELENA", "SX_ALTERED_MENTAL_STATUS",
-    "SX_RICE_WATER_STOOL", "SX_SEVERE_DEHYDRATION",
-    "SX_STEPLADDER_FEVER", "SX_RIGORS_AND_DIAPHORESIS",
+    "SX_PERSISTENT_VOMITING",
+    "SX_HEMORRHAGE",
+    "SX_RETROORBITAL_PAIN",
+    "SX_PETECHIAE",
+    "SX_ROSE_SPOTS",
+    "SX_SEVERE_ABDOMINAL_PAIN",
+    "SX_MELENA",
+    "SX_ALTERED_MENTAL_STATUS",
+    "SX_RICE_WATER_STOOL",
+    "SX_SEVERE_DEHYDRATION",
+    "SX_STEPLADDER_FEVER",
+    "SX_RIGORS_AND_DIAPHORESIS",
     "SX_CALF_MYALGIA",
     "SX_AFTERNOON_EVENING_FEVER",
-    "SX_KOPLIK_SPOTS", "SX_MACULOPAPULAR_RASH",
-    "SX_RUSTY_SPUTUM", "SX_PLEURITIC_CHEST_PAIN", "SX_CHEST_INDRAWING",
+    "SX_KOPLIK_SPOTS",
+    "SX_MACULOPAPULAR_RASH",
+    "SX_RUSTY_SPUTUM",
+    "SX_PLEURITIC_CHEST_PAIN",
+    "SX_CHEST_INDRAWING",
     # Specific Synthetic NotebookLM Concepts
-    "SX_ACUTE_DIARRHEA_HIGH_FREQUENCY", "SX_WATERY_STOOL", "SX_BLOODY_STOOL", "SX_MUCOID_STOOL",
-    "SX_FEVER_AND_CHILLS", "SX_SEVERE_MYALGIA", "SX_SEVERE_FATIGUE",
-    "SX_DRY_COUGH", "SX_SORE_THROAT_AND_CORYZA", "SX_PRODUCTIVE_COUGH_GREEN_SPUTUM", "SX_DYSPNEA_ON_EXERTION",
-    "SX_DESCENDING_RASH", "SX_CONJUNCTIVITIS_AND_PHOTOPHOBIA",
+    "SX_ACUTE_DIARRHEA_HIGH_FREQUENCY",
+    "SX_WATERY_STOOL",
+    "SX_BLOODY_STOOL",
+    "SX_MUCOID_STOOL",
+    "SX_FEVER_AND_CHILLS",
+    "SX_SEVERE_MYALGIA",
+    "SX_SEVERE_FATIGUE",
+    "SX_DRY_COUGH",
+    "SX_SORE_THROAT_AND_CORYZA",
+    "SX_PRODUCTIVE_COUGH_GREEN_SPUTUM",
+    "SX_DYSPNEA_ON_EXERTION",
+    "SX_DESCENDING_RASH",
+    "SX_CONJUNCTIVITIS_AND_PHOTOPHOBIA",
 }
 
 # --- Fuzzy Matching Configuration ---
 # Length-tiered similarity thresholds to mitigate false positives.
 # Short words (e.g., "baha", "ihi") need near-exact match to prevent collisions.
-FUZZY_THRESHOLD_SHORT = 95   # terms <= 5 chars
+FUZZY_THRESHOLD_SHORT = 95  # terms <= 5 chars
 FUZZY_THRESHOLD_MEDIUM = 95  # terms 6–9 chars
-FUZZY_THRESHOLD_LONG = 90    # terms ≥ 10 chars
-FUZZY_MIN_TERM_LENGTH = 3    # skip fuzzy matching for terms shorter than this
+FUZZY_THRESHOLD_LONG = 90  # terms ≥ 10 chars
+FUZZY_MIN_TERM_LENGTH = 3  # skip fuzzy matching for terms shorter than this

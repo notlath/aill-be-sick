@@ -27,12 +27,14 @@ type ChatContainerProps = {
     question: string;
     positive_symptom: string;
     negative_symptom: string;
+    reasoning?: string;
   } | null;
   onQuestionAnswer?: (
     answer: "yes" | "no",
     symptom: string,
     questionId: string,
   ) => void;
+  onSkipToResults?: () => void;
   dbExplanation: Explanation | null;
   userRole?: string;
 };
@@ -95,6 +97,7 @@ const ChatContainer = memo(
         hasDiagnosis,
         currentQuestion,
         onQuestionAnswer,
+        onSkipToResults,
         dbExplanation,
         userRole,
       },
@@ -122,7 +125,9 @@ const ChatContainer = memo(
               positiveSymptom={currentQuestion.positive_symptom}
               negativeSymptom={currentQuestion.negative_symptom}
               category={(currentQuestion as any).category}
+              reasoning={currentQuestion.reasoning}
               onAnswer={onQuestionAnswer}
+              onSkipToResults={onSkipToResults}
               disabled={isCreatingMessage || isDiagnosing}
             />
           )}

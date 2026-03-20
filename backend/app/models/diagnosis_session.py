@@ -44,12 +44,12 @@ def create_session(
                     (session_id, chat_id, initial_symptoms, base_probs,
                      current_probs, disease, confidence, uncertainty,
                      top_diseases, model_used, lang, asked_questions,
-                     evidence_texts, created_at, updated_at)
+                     evidence_texts, question_answers, created_at, updated_at)
                 VALUES
                     (:session_id, :chat_id, :initial_symptoms, :base_probs,
                      :current_probs, :disease, :confidence, :uncertainty,
                      :top_diseases, :model_used, :lang, :asked_questions,
-                     :evidence_texts, :created_at, :updated_at)
+                     :evidence_texts, :question_answers, :created_at, :updated_at)
             """),
             {
                 "session_id": session_id,
@@ -65,6 +65,7 @@ def create_session(
                 "lang": lang,
                 "asked_questions": json.dumps([]),
                 "evidence_texts": json.dumps([]),
+                "question_answers": json.dumps({}),
                 "created_at": _now(),
                 "updated_at": _now(),
             },
@@ -82,10 +83,14 @@ def get_session(session_id: str) -> dict | None:
     engine = get_db_engine()
 
     with engine.connect() as conn:
-        row = conn.execute(
-            text("SELECT * FROM diagnosis_sessions WHERE session_id = :sid"),
-            {"sid": session_id},
-        ).mappings().first()
+        row = (
+            conn.execute(
+                text("SELECT * FROM diagnosis_sessions WHERE session_id = :sid"),
+                {"sid": session_id},
+            )
+            .mappings()
+            .first()
+        )
 
     if not row:
         return None
@@ -97,10 +102,20 @@ def get_session(session_id: str) -> dict | None:
         return None
 
     # Deserialize JSON fields
-    for field in ("base_probs", "current_probs", "top_diseases", "asked_questions", "evidence_texts"):
+    for field in (
+        "base_probs",
+        "current_probs",
+        "top_diseases",
+        "asked_questions",
+        "evidence_texts",
+        "question_answers",
+    ):
         val = data.get(field)
         if isinstance(val, str):
             data[field] = json.loads(val)
+        elif val is None:
+            # Handle missing field for backwards compatibility
+            data[field] = {} if field == "question_answers" else []
 
     return data
 
@@ -110,7 +125,14 @@ def update_session(session_id: str, **kwargs) -> bool:
     Update specific fields of a DiagnosisSession.
     JSON-serializable fields are automatically serialized.
     """
-    json_fields = {"base_probs", "current_probs", "top_diseases", "asked_questions", "evidence_texts"}
+    json_fields = {
+        "base_probs",
+        "current_probs",
+        "top_diseases",
+        "asked_questions",
+        "evidence_texts",
+        "question_answers",
+    }
     params = {"sid": session_id, "updated_at": _now()}
     set_clauses = ["updated_at = :updated_at"]
 
@@ -124,7 +146,9 @@ def update_session(session_id: str, **kwargs) -> bool:
     engine = get_db_engine()
     with engine.connect() as conn:
         result = conn.execute(
-            text(f"UPDATE diagnosis_sessions SET {', '.join(set_clauses)} WHERE session_id = :sid"),
+            text(
+                f"UPDATE diagnosis_sessions SET {', '.join(set_clauses)} WHERE session_id = :sid"
+            ),
             params,
         )
         conn.commit()
