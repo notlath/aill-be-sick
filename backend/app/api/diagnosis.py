@@ -616,6 +616,9 @@ def follow_up_question():
 
         # Request fields
         force_question = data.get("force", False)
+        force_complete = data.get(
+            "force_complete", False
+        )  # User wants to skip to results
         last_answer = data.get("last_answer")
         last_question_id = data.get("last_question_id")
         last_question_text = data.get("last_question_text")
@@ -814,6 +817,35 @@ def follow_up_question():
         )
         session["diagnosis"] = diag
 
+        # ── FORCE COMPLETE (Skip to Results) ──────────────────────────────
+        if force_complete:
+            is_valid = (
+                confidence >= config.VALID_MIN_CONF
+                and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            )
+            reason = "USER_SKIPPED" if is_valid else "USER_SKIPPED_LOW_CONFIDENCE"
+            message = (
+                f"Assessment based on current information: {pred}"
+                if is_valid
+                else "Assessment incomplete. Please consult a healthcare professional for a proper evaluation."
+            )
+            print(
+                f"[FOLLOW-UP] STOP: User skipped to results (conf={confidence:.3f}, valid={is_valid})"
+            )
+            return _stop_response(
+                reason,
+                pred,
+                confidence,
+                uncertainty,
+                probs_formatted,
+                model_used,
+                top_diseases,
+                mean_probs,
+                symptoms_text,
+                message=message,
+                is_valid=is_valid,
+            )
+
         # ── EARLY STOP CHECKS ────────────────────────────────────────────
         if (
             not force_question
@@ -929,18 +961,58 @@ def follow_up_question():
                 f"[FOLLOW-UP] Prerequisite logic blocks {len(blocked_by_prereq)} questions: {blocked_by_prereq}"
             )
 
+        # Get initial_eig from session for early stopping comparison
+        initial_eig = sess.get("initial_eig")
+
         # Use EIG to find the best question across ALL diseases
-        # Now with semantic grouping to avoid redundant questions
-        selected_question = select_best_question_across_diseases(
-            current_probs=current_probs,
-            question_bank=QUESTION_BANK,
-            asked_question_ids=asked_questions,
-            skip_question_ids=skip_ids,
-            disease_labels=CORRECT_ID2LABEL,
-            symptoms_text=symptoms_text,  # Pass symptoms for text-based deduplication
-            use_semantic_grouping=True,  # Enable semantic grouping
-            answered_questions=question_answers,  # Pass answers for prerequisite checking
+        # Now with semantic grouping, burden penalty, novelty penalty, and early stopping
+        selected_question, should_stop_eig, best_eig = (
+            select_best_question_across_diseases(
+                current_probs=current_probs,
+                question_bank=QUESTION_BANK,
+                asked_question_ids=asked_questions,
+                skip_question_ids=skip_ids,
+                disease_labels=CORRECT_ID2LABEL,
+                symptoms_text=symptoms_text,  # Pass symptoms for text-based deduplication
+                use_semantic_grouping=True,  # Enable semantic grouping
+                answered_questions=question_answers,  # Pass answers for prerequisite checking
+                initial_eig=initial_eig,  # Pass initial EIG for early stopping
+            )
         )
+
+        # Track initial_eig in session for the first question
+        if best_eig is not None and initial_eig is None and session_id:
+            update_session(session_id, initial_eig=best_eig)
+            print(f"[FOLLOW-UP] Recorded initial EIG: {best_eig:.4f}")
+
+        # EIG-based early stopping check
+        if should_stop_eig and selected_question is not None:
+            is_valid = (
+                confidence >= config.VALID_MIN_CONF
+                and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            )
+            reason = "EIG_DIMINISHING_RETURNS" if is_valid else "EIG_LOW_CONFIDENCE"
+            message = (
+                f"Assessment based on gathered information: {pred}"
+                if is_valid
+                else "Assessment incomplete but further questions unlikely to help. Please consult a healthcare professional."
+            )
+            print(
+                f"[FOLLOW-UP] STOP: EIG early stopping triggered (best_eig={best_eig:.4f}, initial={initial_eig}, valid={is_valid})"
+            )
+            return _stop_response(
+                reason,
+                pred,
+                confidence,
+                uncertainty,
+                probs_formatted,
+                model_used,
+                top_diseases,
+                mean_probs,
+                symptoms_text,
+                message=message,
+                is_valid=is_valid,
+            )
 
         if not selected_question:
             # All questions exhausted

@@ -34,6 +34,7 @@ type ChatContainerProps = {
     symptom: string,
     questionId: string,
   ) => void;
+  onSkipToResults?: () => void;
   dbExplanation: Explanation | null;
   userRole?: string;
 };
@@ -96,6 +97,7 @@ const ChatContainer = memo(
         hasDiagnosis,
         currentQuestion,
         onQuestionAnswer,
+        onSkipToResults,
         dbExplanation,
         userRole,
       },
@@ -125,6 +127,7 @@ const ChatContainer = memo(
               category={(currentQuestion as any).category}
               reasoning={currentQuestion.reasoning}
               onAnswer={onQuestionAnswer}
+              onSkipToResults={onSkipToResults}
               disabled={isCreatingMessage || isDiagnosing}
             />
           )}

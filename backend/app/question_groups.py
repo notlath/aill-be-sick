@@ -709,3 +709,100 @@ def get_questions_to_skip_from_text(text: str) -> set[str]:
             questions_to_skip.update(POSITIVE_TO_NEGATIVE_QUESTIONS[group_name])
 
     return questions_to_skip
+
+
+# ==================== NOVELTY PENALTY FUNCTIONS ====================
+
+
+def compute_question_similarity(question_id1: str, question_id2: str) -> float:
+    """
+    Compute similarity between two questions based on shared semantic groups.
+
+    Returns a value between 0.0 (no similarity) and 1.0 (same question or
+    in all the same groups).
+
+    Args:
+        question_id1: First question ID (e.g., "dengue_q1")
+        question_id2: Second question ID (e.g., "typhoid_q3")
+
+    Returns:
+        Similarity score from 0.0 to 1.0
+    """
+    if question_id1 == question_id2:
+        return 1.0
+
+    # Find all groups each question belongs to
+    groups1 = set()
+    groups2 = set()
+
+    for group_name, question_ids in QUESTION_GROUPS.items():
+        if question_id1 in question_ids:
+            groups1.add(group_name)
+        if question_id2 in question_ids:
+            groups2.add(group_name)
+
+    # If neither question is in any group, they're not similar
+    if not groups1 and not groups2:
+        return 0.0
+
+    # Jaccard similarity: intersection / union
+    if not groups1 or not groups2:
+        return 0.0
+
+    intersection = len(groups1 & groups2)
+    union = len(groups1 | groups2)
+
+    return intersection / union if union > 0 else 0.0
+
+
+def get_novelty_penalty(
+    candidate_question_id: str,
+    asked_question_ids: list[str],
+    penalty_weight: float = 0.12,
+) -> float:
+    """
+    Calculate a novelty penalty for a candidate question based on similarity
+    to already-asked questions.
+
+    The penalty increases when the candidate question is semantically similar
+    to questions already asked in the session. This encourages the system to
+    ask diverse questions rather than repeatedly probing the same symptom
+    concepts.
+
+    Args:
+        candidate_question_id: The question being evaluated
+        asked_question_ids: List of question IDs already asked in this session
+        penalty_weight: How strongly to penalize similarity (default 0.12)
+
+    Returns:
+        Penalty value from 0.0 (novel question) to penalty_weight (very similar
+        to already-asked questions). This should be SUBTRACTED from the EIG score.
+    """
+    if not asked_question_ids:
+        return 0.0
+
+    # Find max similarity to any already-asked question
+    max_similarity = 0.0
+    for asked_id in asked_question_ids:
+        similarity = compute_question_similarity(candidate_question_id, asked_id)
+        max_similarity = max(max_similarity, similarity)
+
+    # Penalty scales with similarity: 0 similarity = 0 penalty, 1 similarity = full penalty
+    return max_similarity * penalty_weight
+
+
+def get_all_groups_for_question(question_id: str) -> list[str]:
+    """
+    Get all semantic group names that a question belongs to.
+
+    Args:
+        question_id: The question ID (e.g., "dengue_q1")
+
+    Returns:
+        List of group names the question belongs to
+    """
+    groups = []
+    for group_name, question_ids in QUESTION_GROUPS.items():
+        if question_id in question_ids:
+            groups.append(group_name)
+    return groups

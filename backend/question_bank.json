@@ -6,7 +6,8 @@
       "positive_symptom": "I have an extremely high fever and feel like I am burning up",
       "negative_symptom": "I don't have a severe high fever",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "dengue_q2",
@@ -14,7 +15,8 @@
       "positive_symptom": "I have severe generalized muscle and body aches",
       "negative_symptom": "I don't have severe body aches",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "dengue_q3",
@@ -22,7 +24,8 @@
       "positive_symptom": "I have severe pain behind my eyes",
       "negative_symptom": "I don't have pain behind my eyes",
       "weight": 0.94,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "dengue_q4",
@@ -30,7 +33,8 @@
       "positive_symptom": "I have noticed mild bleeding like a nosebleed or bleeding gums",
       "negative_symptom": "I haven't had any unusual bleeding",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "dengue_q5",
@@ -38,7 +42,8 @@
       "positive_symptom": "I have a rash of tiny red spots on my skin",
       "negative_symptom": "I don't have a rash or red spots",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "dengue_q6",
@@ -46,7 +51,8 @@
       "positive_symptom": "I have a severe, pounding headache",
       "negative_symptom": "I don't have a severe headache",
       "weight": 0.89,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "dengue_q7",
@@ -54,7 +60,8 @@
       "positive_symptom": "I have experienced nausea or vomiting",
       "negative_symptom": "I haven't experienced nausea or vomiting",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "dengue_q8",
@@ -62,7 +69,8 @@
       "positive_symptom": "I feel overwhelmingly exhausted and weak",
       "negative_symptom": "I don't feel unusually exhausted",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "dengue_q9",
@@ -70,7 +78,8 @@
       "positive_symptom": "My joints are stiff and sore",
       "negative_symptom": "My joints feel fine",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "dengue_q10",
@@ -78,7 +87,8 @@
       "positive_symptom": "I do not have a cough or runny nose",
       "negative_symptom": "I actually do have a cough or runny nose",
       "weight": 0.9,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     }
   ],
   "Pneumonia": [
@@ -88,7 +98,8 @@
       "positive_symptom": "I have a wet cough bringing up thick or colored phlegm",
       "negative_symptom": "My cough is mostly dry or I don't have one",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "pneumonia_q2",
@@ -96,7 +107,8 @@
       "positive_symptom": "I have sharp chest pain when breathing deeply or coughing",
       "negative_symptom": "I don't have sharp chest pain when breathing",
       "weight": 0.94,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "pneumonia_q3",
@@ -104,7 +116,8 @@
       "positive_symptom": "I am experiencing shortness of breath or difficulty breathing",
       "negative_symptom": "I am breathing normally and can catch my breath",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "pneumonia_q4",
@@ -112,7 +125,8 @@
       "positive_symptom": "I have a fever with sweating and shivering chills",
       "negative_symptom": "I don't have a persistent fever or chills",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "pneumonia_q5",
@@ -120,7 +134,8 @@
       "positive_symptom": "I do not have a runny nose or sniffles",
       "negative_symptom": "I actually do have a runny nose",
       "weight": 0.9,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "pneumonia_q6",
@@ -128,7 +143,8 @@
       "positive_symptom": "I feel extremely weak and have no energy",
       "negative_symptom": "I don't feel unusually tired or weak",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "pneumonia_q7",
@@ -136,7 +152,8 @@
       "positive_symptom": "My body and muscles are aching",
       "negative_symptom": "I don't have general muscle aches",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "pneumonia_q8",
@@ -144,7 +161,8 @@
       "positive_symptom": "I feel nauseous or have been vomiting",
       "negative_symptom": "My stomach feels fine",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "pneumonia_q9",
@@ -152,7 +170,8 @@
       "positive_symptom": "I have a persistent headache",
       "negative_symptom": "I don't have a headache",
       "weight": 0.85,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "pneumonia_q10",
@@ -160,7 +179,8 @@
       "positive_symptom": "My breathing gets worse and I pant when I lie down",
       "negative_symptom": "Lying down doesn't make my breathing worse",
       "weight": 0.89,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 3
     }
   ],
   "Typhoid": [
@@ -170,7 +190,8 @@
       "positive_symptom": "I have a prolonged fever that keeps getting higher over the past week",
       "negative_symptom": "My fever just started or hasn't lasted for many days",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 4
     },
     {
       "id": "typhoid_q2",
@@ -178,7 +199,8 @@
       "positive_symptom": "My stomach is tender and cramping",
       "negative_symptom": "I don't have stomach tenderness or cramps",
       "weight": 0.94,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "typhoid_q3",
@@ -186,7 +208,8 @@
       "positive_symptom": "I am experiencing severe constipation or diarrhea",
       "negative_symptom": "My bowel movements are normal",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "typhoid_q4",
@@ -194,7 +217,8 @@
       "positive_symptom": "I have small pink or red spots on my stomach or chest",
       "negative_symptom": "I don't have any spots or rash",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 4
     },
     {
       "id": "typhoid_q5",
@@ -202,7 +226,8 @@
       "positive_symptom": "My pulse feels unusually slow despite the fever",
       "negative_symptom": "My heart rate feels normal or fast",
       "weight": 0.9,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 5
     },
     {
       "id": "typhoid_q6",
@@ -210,7 +235,8 @@
       "positive_symptom": "I have a constant frontal headache",
       "negative_symptom": "I don't have a constant frontal headache",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "typhoid_q7",
@@ -218,7 +244,8 @@
       "positive_symptom": "I have completely lost my appetite and feel exhausted",
       "negative_symptom": "I still have an appetite and normal energy",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "typhoid_q8",
@@ -226,7 +253,8 @@
       "positive_symptom": "I feel confused, disoriented, or foggy",
       "negative_symptom": "I am thinking clearly and not confused",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 3
     },
     {
       "id": "typhoid_q9",
@@ -234,7 +262,8 @@
       "positive_symptom": "My symptoms started slowly and got worse over many days",
       "negative_symptom": "My symptoms hit me very suddenly",
       "weight": 0.91,
-      "category": "primary"
+      "category": "primary",
+      "burden": 4
     },
     {
       "id": "typhoid_q10",
@@ -242,7 +271,8 @@
       "positive_symptom": "I do not have a severe cough or breathing problems",
       "negative_symptom": "I actually do have a cough and breathing problems",
       "weight": 0.9,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     }
   ],
   "Diarrhea": [
@@ -252,7 +282,8 @@
       "positive_symptom": "My symptoms started suddenly with frequent watery stools",
       "negative_symptom": "My bowel movements are normal and didn't change suddenly",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "diarrhea_q2",
@@ -260,7 +291,8 @@
       "positive_symptom": "I am experiencing severe abdominal cramping and twisting pain in my gut",
       "negative_symptom": "I don't have severe stomach cramps",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "diarrhea_q3",
@@ -268,7 +300,8 @@
       "positive_symptom": "I feel very thirsty, have a dry mouth, and signs of dehydration like low urine output",
       "negative_symptom": "I don't feel unusually thirsty or dehydrated",
       "weight": 0.94,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "diarrhea_q4",
@@ -276,7 +309,8 @@
       "positive_symptom": "I have noticed blood or red streaks in my stool",
       "negative_symptom": "I haven't noticed any blood in my stool",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "diarrhea_q5",
@@ -284,7 +318,8 @@
       "positive_symptom": "I do not have a cough, runny nose, or any respiratory symptoms",
       "negative_symptom": "I actually do have a cough or runny nose",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "diarrhea_q6",
@@ -292,7 +327,8 @@
       "positive_symptom": "I do not have a prolonged fever that has been lasting for days",
       "negative_symptom": "I actually do have a fever that has been getting worse for days",
       "weight": 0.91,
-      "category": "primary"
+      "category": "primary",
+      "burden": 4
     },
     {
       "id": "diarrhea_q7",
@@ -300,7 +336,8 @@
       "positive_symptom": "I feel nauseous and have been vomiting",
       "negative_symptom": "I am not experiencing nausea or vomiting",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "diarrhea_q8",
@@ -308,7 +345,8 @@
       "positive_symptom": "I feel totally drained and extremely weak",
       "negative_symptom": "I don't feel unusually weak",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "diarrhea_q9",
@@ -316,7 +354,8 @@
       "positive_symptom": "I only have a mild fever or feel slightly warm",
       "negative_symptom": "I have an extremely high fever",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "diarrhea_q10",
@@ -324,7 +363,8 @@
       "positive_symptom": "I get sudden, uncontrollable urges to use the bathroom",
       "negative_symptom": "I don't feel sudden or uncontrollable urges",
       "weight": 0.85,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     }
   ],
   "Measles": [
@@ -334,7 +374,8 @@
       "positive_symptom": "I have a rash that started on my head or face and is spreading downwards",
       "negative_symptom": "I don't have a rash spreading down from my face",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "measles_q2",
@@ -342,7 +383,8 @@
       "positive_symptom": "I have a high fever and a persistent hacking cough",
       "negative_symptom": "I don't have a high fever with a cough",
       "weight": 0.94,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "measles_q3",
@@ -350,7 +392,8 @@
       "positive_symptom": "My eyes are very red, watery, and sensitive to light",
       "negative_symptom": "My eyes are not red or sensitive to light",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "measles_q4",
@@ -358,7 +401,8 @@
       "positive_symptom": "My fever and cough started before the rash appeared",
       "negative_symptom": "The symptoms didn't happen in that order",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 4
     },
     {
       "id": "measles_q5",
@@ -366,7 +410,8 @@
       "positive_symptom": "I have a constant runny nose",
       "negative_symptom": "I don't have a runny nose",
       "weight": 0.9,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "measles_q6",
@@ -374,7 +419,8 @@
       "positive_symptom": "I have noticed tiny white spots inside my mouth on my cheeks",
       "negative_symptom": "I haven't noticed white spots in my mouth",
       "weight": 0.89,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 5
     },
     {
       "id": "measles_q7",
@@ -382,7 +428,8 @@
       "positive_symptom": "I do not have any bleeding or severe deep bone pain",
       "negative_symptom": "I actually do have bleeding or severe bone pain",
       "weight": 0.91,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "measles_q8",
@@ -390,7 +437,8 @@
       "positive_symptom": "I feel completely exhausted and wiped out",
       "negative_symptom": "I don't feel unusually fatigued",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "measles_q9",
@@ -398,7 +446,8 @@
       "positive_symptom": "I have a sore throat",
       "negative_symptom": "I don't have a sore throat",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "measles_q10",
@@ -406,7 +455,8 @@
       "positive_symptom": "I have had some mild diarrhea",
       "negative_symptom": "I haven't had any diarrhea",
       "weight": 0.85,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     }
   ],
   "Influenza": [
@@ -416,7 +466,8 @@
       "positive_symptom": "My symptoms and fever hit me very suddenly",
       "negative_symptom": "My symptoms started gradually over many days",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "influenza_q2",
@@ -424,7 +475,8 @@
       "positive_symptom": "I have a dry, hacking cough",
       "negative_symptom": "I don't have a cough",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "influenza_q3",
@@ -432,7 +484,8 @@
       "positive_symptom": "I have sore muscles and body aches all over",
       "negative_symptom": "I don't have severe body aches",
       "weight": 0.94,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "influenza_q4",
@@ -440,7 +493,8 @@
       "positive_symptom": "I feel completely exhausted and wiped out",
       "negative_symptom": "I don't feel unusually tired",
       "weight": 0.89,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "influenza_q5",
@@ -448,7 +502,8 @@
       "positive_symptom": "I have a pounding headache",
       "negative_symptom": "I don't have a headache",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "influenza_q6",
@@ -456,7 +511,8 @@
       "positive_symptom": "I have a sore or scratchy throat",
       "negative_symptom": "I don't have a sore throat",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "influenza_q7",
@@ -464,7 +520,8 @@
       "positive_symptom": "I have a runny or stuffy nose",
       "negative_symptom": "I don't have a runny or stuffy nose",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "influenza_q8",
@@ -472,7 +529,8 @@
       "positive_symptom": "I do not have a skin rash or pain behind my eyes",
       "negative_symptom": "I actually do have a rash or pain behind my eyes",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "influenza_q9",
@@ -480,7 +538,8 @@
       "positive_symptom": "My cough is dry and I am not coughing up colored phlegm",
       "negative_symptom": "I am coughing up thick, colored phlegm",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "influenza_q10",
@@ -488,7 +547,8 @@
       "positive_symptom": "My breathing is fine and I don't have sharp chest pain",
       "negative_symptom": "I do have chest pain or trouble breathing",
       "weight": 0.9,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     }
   ]
 }

@@ -10,6 +10,7 @@ type QuestionBubbleProps = {
   category?: string;
   reasoning?: string;
   onAnswer: (answer: "yes" | "no", symptom: string, questionId: string) => void;
+  onSkipToResults?: () => void;
   disabled?: boolean;
   progress?: string;
 };
@@ -22,6 +23,7 @@ const QuestionBubble = ({
   category,
   reasoning,
   onAnswer,
+  onSkipToResults,
   disabled = false,
 }: QuestionBubbleProps) => {
   return (
@@ -50,29 +52,44 @@ const QuestionBubble = ({
           </div>
         )}
       </div>
-      <div className="flex gap-3">
-        <button
-          onClick={() => onAnswer("yes", positiveSymptom, questionId)}
-          disabled={disabled}
-          className={cn(
-            "flex-1 btn btn-sm",
-            disabled ? "btn-disabled" : "btn-success"
-          )}
-          aria-label={`Yes, I have ${positiveSymptom}`}
-        >
-          Yes
-        </button>
-        <button
-          onClick={() => onAnswer("no", negativeSymptom, questionId)}
-          disabled={disabled}
-          className={cn(
-            "flex-1 btn btn-sm",
-            disabled ? "btn-disabled" : "btn-error"
-          )}
-          aria-label={`No, I don't have ${positiveSymptom}`}
-        >
-          No
-        </button>
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-3">
+          <button
+            onClick={() => onAnswer("yes", positiveSymptom, questionId)}
+            disabled={disabled}
+            className={cn(
+              "flex-1 btn btn-sm",
+              disabled ? "btn-disabled" : "btn-success"
+            )}
+            aria-label={`Yes, I have ${positiveSymptom}`}
+          >
+            Yes
+          </button>
+          <button
+            onClick={() => onAnswer("no", negativeSymptom, questionId)}
+            disabled={disabled}
+            className={cn(
+              "flex-1 btn btn-sm",
+              disabled ? "btn-disabled" : "btn-error"
+            )}
+            aria-label={`No, I don't have ${positiveSymptom}`}
+          >
+            No
+          </button>
+        </div>
+        {onSkipToResults && (
+          <button
+            onClick={onSkipToResults}
+            disabled={disabled}
+            className={cn(
+              "btn btn-sm btn-ghost text-xs",
+              disabled && "btn-disabled"
+            )}
+            aria-label="Skip remaining questions and see results"
+          >
+            Skip to Results
+          </button>
+        )}
       </div>
     </article>
   );

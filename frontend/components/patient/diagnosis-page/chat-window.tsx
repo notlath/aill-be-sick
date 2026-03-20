@@ -676,6 +676,61 @@ const ChatWindow = ({
     }
   };
 
+  const handleSkipToResults = async () => {
+    // Prevent concurrent requests
+    if (followUpPendingRef.current) {
+      console.warn(
+        "[handleSkipToResults] Follow-up request already pending, ignoring duplicate call",
+      );
+      return;
+    }
+
+    // Cancel any in-flight request to prevent race conditions
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    followUpPendingRef.current = true;
+    setCurrentQuestion(null);
+
+    try {
+      // Create a message indicating user skipped to results
+      await createMessageExecute({
+        chatId,
+        content: "I'd like to see the results now.",
+        type: "ANSWER",
+        role: "USER",
+      });
+
+      // Get final diagnosis with force_complete flag
+      await getFollowUpExecute({
+        session_id: diagnosisSessionId || undefined,
+        disease: currentDiagnosis?.disease || "",
+        confidence: currentDiagnosis?.confidence || 0,
+        uncertainty: currentDiagnosis?.uncertainty || 1,
+        asked_questions: askedQuestions,
+        symptoms: getCurrentSymptoms(),
+        top_diseases: currentDiagnosis?.top_diseases || [],
+        current_probs: currentDiagnosis?.mean_probs || undefined,
+        force_complete: true,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.error("[handleSkipToResults] Error:", error);
+        createMessageExecute({
+          chatId,
+          content:
+            "An error occurred while processing your request. Please try again.",
+          type: "ERROR",
+          role: "AI",
+        });
+      }
+    } finally {
+      followUpPendingRef.current = false;
+    }
+  };
+
   const hasRunInitialDiagnosis = useRef<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -770,6 +825,7 @@ const ChatWindow = ({
               hasDiagnosis={chat.hasDiagnosis}
               currentQuestion={currentQuestion as any}
               onQuestionAnswer={handleQuestionAnswer}
+              onSkipToResults={handleSkipToResults}
               dbExplanation={dbExplanation as unknown as TempExplanation}
               userRole={userRole}
             />
