@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { Language } from "@/hooks/use-symptom-checklist";
-import { ArrowLeft, Globe, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, Globe, RotateCcw, X, Languages } from "lucide-react";
 import SymptomChecklist from "./symptom-checklist";
 
 type ChecklistModalProps = {
@@ -97,7 +97,10 @@ const ChecklistModal = ({
               disabled={isPending}
               className="btn btn-ghost btn-sm gap-1.5"
             >
-              <Globe className="size-3.5" strokeWidth={2} />
+              <div className="flex items-center gap-1">
+                <Globe className="size-3.5" strokeWidth={2} />
+                <Languages className="size-3" strokeWidth={2.5} />
+              </div>
               <span className="hidden xs:inline">
                 {language === "en" ? "Filipino" : "English"}
               </span>
