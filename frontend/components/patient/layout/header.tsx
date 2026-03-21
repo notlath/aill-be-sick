@@ -76,9 +76,6 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
             </button>
           </li>
           )}
-          <li>
-            <SignOutBtn />
-          </li>
         </ul>
       </div>
       <SidebarToggle onClick={onToggleSidebar} />
