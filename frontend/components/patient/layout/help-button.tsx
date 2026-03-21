@@ -18,13 +18,11 @@ const HelpButton = () => {
       type="button"
       onClick={handleClick}
       className={cn(
-        "group flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] relative overflow-hidden w-full",
+        "group flex items-center gap-3 px-2.5 py-2 rounded-xl transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] relative overflow-hidden w-full",
         "hover:bg-base-200/60 hover:shadow-sm active:scale-[0.98]",
+        "focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
         "bg-transparent",
       )}
-      style={{
-        transitionProperty: "transform, background-color, box-shadow",
-      }}
       title="View tutorial again"
     >
       {/* Subtle hover gradient overlay */}
@@ -37,7 +35,7 @@ const HelpButton = () => {
 
       <div
         className={cn(
-          "relative z-10 p-2.5 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          "relative z-10 p-2.5 rounded-xl transition-[transform,background-color,color] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
           "group-hover:scale-105",
           "bg-base-100 text-muted group-hover:bg-base-200 group-hover:text-base-content",
         )}
@@ -47,7 +45,7 @@ const HelpButton = () => {
 
       <div
         className={cn(
-          "relative z-10 font-medium text-sm tracking-tight transition-all duration-300",
+          "relative z-10 font-medium text-sm tracking-tight transition-colors duration-300",
           "text-base-content/70 group-hover:text-base-content",
         )}
       >

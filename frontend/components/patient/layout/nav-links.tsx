@@ -2,6 +2,7 @@
 
 import { clinicianNavItems, patientNavItems, adminNavItems } from "@/constants/nav-items";
 import NavLink from "./nav-link";
+import HelpButton from "./help-button";
 import { usePathname } from "next/navigation";
 import { User } from "@/lib/generated/prisma";
 import { useMemo, useEffect, useState } from "react";
@@ -71,6 +72,7 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
           }
         />
       ))}
+      <HelpButton />
     </nav>
   );
 };

@@ -47,7 +47,7 @@ const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
       <HelpModal />
       {/* Show consent modal if user hasn't accepted terms or needs to re-accept */}
       {requiresConsent && <ConsentModal reasons={reasons} />}
-      <div className="flex flex-col flex-1 min-h-screen">
+      <div className="flex flex-col min-h-full">
         <main className="flex-1 flex flex-col">{children}</main>
       </div>
     </LayoutWrapper>

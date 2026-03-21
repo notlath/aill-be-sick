@@ -28,6 +28,9 @@ const nextConfig = {
     authInterrupts: true,
   },
   cacheComponents: true,
+  turbopack: {
+    root: process.cwd(), // Explicitly set the root to avoid Turbopack using the parent directory's lockfiles
+  }
 };
 
 export default nextConfig;
