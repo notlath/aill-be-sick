@@ -4,7 +4,7 @@ import { createChat } from "@/actions/create-chat";
 import { CreateChatSchema, CreateChatSchemaType } from "@/schemas/CreateChatSchema";
 import { useSymptomChecklist, type Language } from "@/hooks/use-symptom-checklist";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUp, ClipboardList, Sparkles } from "lucide-react";
+import { ArrowUp, ClipboardList, Sparkles, Info } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "nextjs-toploader/app";
 import { useEffect, useRef, useState } from "react";
@@ -15,6 +15,7 @@ import LegalFooter from "@/components/shared/legal-footer";
 
 const PatientHomePage = () => {
   const [isChecklistOpen, setIsChecklistOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [language, setLanguage] = useState<Language>("en");
   const checklist = useSymptomChecklist(language);
 
@@ -122,18 +123,21 @@ const PatientHomePage = () => {
           <h1 className="font-semibold text-3xl sm:text-4xl md:text-5xl tracking-tight text-base-content mb-3 leading-tight">
             How are you feeling today?
           </h1>
-          <p className="text-base-content/60 text-base sm:text-lg">
+          <p className="text-base-content/60 text-base sm:text-lg mb-5">
             Describe your symptoms and get helpful insights
           </p>
-        </div>
-
-        {/* Help Guide */}
-        <div className="w-full max-w-2xl mb-8 animate-slide-up" style={{ animationDelay: "100ms" }}>
-          <HelpGuide variant="inline" />
+          <button
+            type="button"
+            onClick={() => setIsHelpOpen(true)}
+            className="btn btn-ghost btn-sm rounded-full gap-2 font-medium text-base-content/60 hover:text-base-content hover:bg-base-200/60 transition-colors duration-200"
+          >
+            <Info className="size-4" />
+            How to use this app
+          </button>
         </div>
 
         {/* Input Form */}
-        <div className="w-full max-w-2xl animate-slide-up" style={{ animationDelay: "200ms" }}>
+        <div className="w-full max-w-2xl animate-slide-up" style={{ animationDelay: "100ms" }}>
           <form onSubmit={form.handleSubmit(handleTextSubmit)} className="w-full">
             <div className="card bg-base-100 shadow-lg border border-base-300/50 overflow-hidden">
               <div className="card-body p-0">
@@ -213,6 +217,29 @@ const PatientHomePage = () => {
           </form>
         </div>
       </div>
+
+      {/* Help Modal */}
+      {isHelpOpen && (
+        <div className="modal modal-open modal-bottom sm:modal-middle" role="dialog" aria-modal="true">
+          <div className="modal-box bg-base-100 p-0 overflow-hidden max-w-xl shadow-2xl">
+            <div className="p-6 pb-2">
+              <HelpGuide variant="modal" />
+            </div>
+            <div className="modal-action p-4 border-t border-base-200/50 bg-base-200/20 m-0 justify-end">
+              <button 
+                type="button" 
+                className="btn btn-ghost hover:bg-base-200/80" 
+                onClick={() => setIsHelpOpen(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+          <div className="modal-backdrop bg-base-300/40 backdrop-blur-sm" onClick={() => setIsHelpOpen(false)}>
+            <button type="button" className="cursor-default" aria-label="Close help modal">close</button>
+          </div>
+        </div>
+      )}
 
       {/* Checklist Modal */}
       <ChecklistModal

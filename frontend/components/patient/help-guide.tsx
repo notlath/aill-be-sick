@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare, History, ChevronDown, ChevronUp, Sparkles, Clock } from "lucide-react";
+import { MessageSquare, History, ChevronDown, ChevronUp, Sparkles, Clock, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/utils/lib";
 
@@ -78,6 +78,27 @@ export const HelpGuide = ({ className, variant = "modal" }: HelpGuideProps) => {
           </div>
 
           {/* Step 2 - Compact Card */}
+          <div className="flex-1 group">
+            <div className="card bg-base-100/80 backdrop-blur-sm border border-base-300/50 shadow-sm hover:shadow-md hover:border-primary/20 transition-[border-color,box-shadow] duration-300">
+              <div className="card-body p-4 sm:p-5">
+                <div className="flex items-start gap-3">
+                  <div className="flex items-center justify-center shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary group-hover:from-primary/20 group-hover:to-primary/10 transition-colors duration-300">
+                    <ClipboardList className="size-4" strokeWidth={2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-sm text-base-content mb-1">
+                      Use the checklist
+                    </h3>
+                    <p className="text-xs text-base-content/60 leading-relaxed">
+                      Tap the clipboard icon to select symptoms from a ready-made list
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 3 - Compact Card */}
           <div className="flex-1 group">
             <div className="card bg-base-100/80 backdrop-blur-sm border border-base-300/50 shadow-sm hover:shadow-md hover:border-primary/20 transition-[border-color,box-shadow] duration-300">
               <div className="card-body p-4 sm:p-5">
@@ -166,6 +187,32 @@ export const HelpGuide = ({ className, variant = "modal" }: HelpGuideProps) => {
             <div className="flex items-start gap-4">
               <div className="flex items-center justify-center shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-success/20 to-success/5 text-success font-bold text-lg">
                 2
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <ClipboardList className="size-5 text-success" />
+                  <h3 className="card-title text-lg text-base-content">
+                    Use the Symptom Checklist
+                  </h3>
+                </div>
+                <p className="text-base-content/70">
+                  Not sure what to type? Click the{" "}
+                  <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-base-200 border border-base-300 text-base-content mx-1 align-middle">
+                    <ClipboardList className="size-3.5" strokeWidth={2.5} />
+                  </span>{" "}
+                  icon next to the input box to select your symptoms from a list, and we&apos;ll build the description for you!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Step 3 */}
+        <div className="card bg-base-200/60 backdrop-blur border border-base-content/5 shadow-sm">
+          <div className="card-body p-5 sm:p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex items-center justify-center shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-success/20 to-success/5 text-success font-bold text-lg">
+                3
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
