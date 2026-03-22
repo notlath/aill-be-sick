@@ -11,6 +11,7 @@ The Outbreak Alert System provides automated, real-time detection of collective 
 - **Healthcare Administrators**: To allocate resources based on the severity and location of detected outbreaks.
 
 ### Key Benefits
+- **DOH PIDSR Compliance**: Implements DOH PIDSR (Philippine Integrated Disease Surveillance and Response) statistical thresholds aligned with national public health standards.
 - **Automated Threshold Monitoring**: Replaces manual calculation of DOH alert/epidemic thresholds.
 - **Spatial Clustering**: Identifies "hotspots" even before they reach a volume-based threshold.
 - **Zero-Latency Notification**: Alerts appear on clinician dashboards within seconds of a triggering diagnosis.
@@ -34,9 +35,9 @@ This section provides a high-level summary of how the system identifies and comm
    Using the 30-day baseline data, the system groups records by *Disease* and *District*. It calculates the **Mean** (average daily cases) and the **Standard Deviation** (how much the cases normally fluctuate) to figure out what is "normal" for that specific area.
 
 4. **Threshold Check (Volume Analysis)**
-   The system then looks at the **Recent 7 days** of data and compares the case volume against the baseline using DOH-style epidemiological thresholds:
-   - **Alert Threshold (High Priority):** If recent cases > Mean + 2 Standard Deviations.
-   - **Epidemic Threshold (Critical Priority):** If recent cases > Mean + 3 Standard Deviations.
+   The system then looks at the **Recent 7 days** of data and compares the case volume against the baseline using DOH PIDSR (Philippine Integrated Disease Surveillance and Response) statistical thresholds:
+   - **Alert Threshold (High Priority):** If recent cases > Mean + 1 Standard Deviation (mean + 1σ).
+   - **Epidemic Threshold (Critical Priority):** If recent cases > Mean + 2 Standard Deviations (mean + 2σ).
 
 5. **K-Means Spatial Clustering (Hotspot Detection)**
    At the same time, the system runs K-Means clustering on the recent data's coordinates. 
@@ -114,33 +115,41 @@ graph TD
 
 ### Statistical Methodology
 
-#### Lineage: CDC EARS C1 Algorithm
-The Outbreak Alert System utilizes a statistical methodology derived from the **CDC's Early Aberration Reporting System (EARS)**, specifically the **C1 (Mild)** algorithm. EARS is the gold standard for syndromic surveillance, designed to detect public health "aberrations" with minimal historical data.
+#### DOH PIDSR Statistical Thresholds
+The Outbreak Alert System implements the **DOH PIDSR (Philippine Integrated Disease Surveillance and Response)** statistical methodology, which is the national standard for outbreak detection in the Philippines. PIDSR is designed to provide early warning signals for disease outbreaks using statistical thresholds based on historical baseline data.
 
 **Key Architectural Comparisons:**
 
-| Feature | Standard EARS C1 | Our Implementation |
+| Feature | DOH PIDSR Standard | Our Implementation |
 | :--- | :--- | :--- |
-| **Baseline Window** | 7 Days | **30 Days (Stable)** |
-| **Analysis Window** | Today only ($t$) | **Last 7 Days (Rolling)** |
-| **Alert Logic** | Mean + 3 StdDev | **Dual: Alert (2σ) & Epidemic (3σ)** |
-| **Spatial Context** | Volumetric only | **Integrated K-Means Clustering** |
+| **Baseline Window** | 3-5 years (weekly/monthly) | **30 Days (adapted for limited historical data)** |
+| **Analysis Window** | Current reporting period | **Last 7 Days (rolling daily aggregation)** |
+| **Alert Threshold** | Mean + 1 StdDev (1σ) | **Mean + 1 StdDev (1σ)** ✓ |
+| **Epidemic Threshold** | Mean + 2 StdDev (2σ) | **Mean + 2 StdDev (2σ)** ✓ |
+| **Spatial Context** | Geographic region | **Integrated K-Means Clustering** |
 
-**Why these changes matter:**
-- **Stability:** A 30-day baseline smooths out "day-of-the-week" effects (e.g., weekend reporting dips) that often cause false alarms in standard EARS C1.
-- **Sensitivity:** By aggregating the last 7 days, the system can detect slow-building outbreaks (like Dengue clusters) that standard 1-day C1 might miss.
-- **Precision:** Pairing volume data with K-Means spatial clustering ensures alerts are tied to localized geographic hotspots.
+**Implementation Notes:**
+- **Baseline Adaptation:** While PIDSR typically uses 3-5 years of historical data, our implementation uses a 30-day rolling baseline due to limited historical data availability in the system. This provides a stable and responsive baseline that adapts to recent trends.
+- **Increased Sensitivity:** PIDSR thresholds (1σ for Alert, 2σ for Epidemic) are more sensitive than CDC EARS C1 (3σ for alerts), enabling earlier detection of outbreaks at lower case volumes.
+- **Daily Aggregation:** The 7-day rolling analysis window captures slow-building outbreaks that might be missed with single-day analysis.
+- **Precision:** Pairing volume-based PIDSR thresholds with K-Means spatial clustering ensures alerts are tied to both statistical significance and localized geographic hotspots.
 
-The system utilizes a dual-layered approach to detect outbreaks, combining traditional epidemiological statistics with modern machine learning.
+**References:**
+- Philippine Statistician Vol. 66, No. 2 (2017) - DOH PIDSR statistical methodology
+- WPSAR 2024 - Application of PIDSR thresholds in typhoid outbreak detection
 
-#### 1. Statistical Thresholds
+The system utilizes a dual-layered approach to detect outbreaks, combining DOH PIDSR statistical thresholds with modern machine learning clustering techniques.
+
+#### 1. DOH PIDSR Statistical Thresholds
 The system maintains a rolling **30-day historical baseline** for every (Disease, District) pair.
 - **Mean ($\mu$)**: The average number of daily cases.
 - **Standard Deviation ($\sigma$)**: The variation in daily case counts.
 
-**Alert Logic**:
-- **Alert Threshold**: $\mu + 2\sigma$. If recent volume exceeds this, it is flagged as **HIGH** severity.
-- **Epidemic Threshold**: $\mu + 3\sigma$. If recent volume exceeds this, it is flagged as **CRITICAL** severity.
+**Alert Logic (DOH PIDSR Standard)**:
+- **Alert Threshold**: $\mu + 1\sigma$ (Mean + 1 Standard Deviation). If recent volume exceeds this, it is flagged as **HIGH** severity.
+- **Epidemic Threshold**: $\mu + 2\sigma$ (Mean + 2 Standard Deviations). If recent volume exceeds this, it is flagged as **CRITICAL** severity.
+
+These thresholds follow the DOH PIDSR methodology, which is more sensitive than CDC EARS C1, enabling earlier outbreak detection.
 
 #### 2. K-Means Clustering (Spatial Density)
 The system uses **unsupervised K-Means clustering** to find geographic "hotspots."
@@ -157,12 +166,12 @@ The following diagram details the internal logic of the Outbreak Service during 
                                                              │
                               ┌──────────────────────────────┴──────────────┐
                               ▼                                             ▼
-                   [ Threshold Engine ]                          [ K-Means Cluster Engine ]
-                   ┌──────────────────┐                          ┌──────────────────┐
-                   │ 1. Calc Baselines│                          │ 1. Calc CH Index │
-                   │ 2. Set Alert (2σ)│                          │ 2. Optimal K     │
-                   │ 3. Set Epid (3σ) │                          │ 3. Run K-Means   │
-                   └──────────┬───────┘                          └──────────┬───────┘
+                    [ Threshold Engine ]                          [ K-Means Cluster Engine ]
+                    ┌──────────────────┐                          ┌──────────────────┐
+                    │ 1. Calc Baselines│                          │ 1. Calc CH Index │
+                    │ 2. Set Alert (1σ)│                          │ 2. Optimal K     │
+                    │ 3. Set Epid (2σ) │                          │ 3. Run K-Means   │
+                    └──────────┬───────┘                          └──────────┬───────┘
                               │                                             │
                               ▼                                             ▼
                    ┌──────────────────┐                          ┌──────────────────┐
@@ -192,8 +201,8 @@ graph LR
         Baseline --> CalcStats[Calculate Mean & StdDev]
         CalcStats --> Compare{Compare Volume}
         Recent --> Compare
-        Compare -- Volume > Mean+3σ --> Critical[Critical Alert]
-        Compare -- Volume > Mean+2σ --> High[High Alert]
+        Compare -- Volume > Mean+2σ --> Critical[Critical Alert - Epidemic]
+        Compare -- Volume > Mean+1σ --> High[High Alert - Alert Threshold]
     end
 
     subgraph Cluster_Engine [K-Means Engine]
@@ -253,8 +262,8 @@ sequenceDiagram
 The core logic resides in the Flask backend. It fetches data through the `illness_cluster_service` and applies the statistical models.
 
 **Key Reason Codes**:
-- `OUTBREAK:EPIDEMIC_THRESHOLD`: Case volume exceeded Mean + 3 StdDev.
-- `OUTBREAK:ALERT_THRESHOLD`: Case volume exceeded Mean + 2 StdDev.
+- `OUTBREAK:EPIDEMIC_THRESHOLD`: Case volume exceeded Mean + 2 StdDev (DOH PIDSR Epidemic Threshold).
+- `OUTBREAK:ALERT_THRESHOLD`: Case volume exceeded Mean + 1 StdDev (DOH PIDSR Alert Threshold).
 - `CLUSTER:DENSE`: K-Means identified a high-density geographic cluster.
 - `OUTBREAK:VOL_SPIKE`: Sudden increase in volume where no historical baseline exists.
 
@@ -301,8 +310,8 @@ When an `OUTBREAK` alert is created, the `metadata` JSON field contains detailed
 | `district` | `string` | The specific district/barangay |
 | `count` | `number` | Number of cases detected in the last 7 days |
 | `baseline_mean` | `number` | The calculated average for the last 30 days |
-| `threshold_alert`| `number` | The value that triggers a High Alert ($\mu+2\sigma$) |
-| `threshold_epidemic` | `number` | The value that triggers a Critical Alert ($\mu+3\sigma$) |
+| `threshold_alert`| `number` | The DOH PIDSR Alert Threshold value ($\mu+1\sigma$) |
+| `threshold_epidemic` | `number` | The DOH PIDSR Epidemic Threshold value ($\mu+2\sigma$) |
 | `is_cluster` | `boolean` | True if K-Means density triggered the alert |
 
 ---
@@ -338,6 +347,24 @@ npx tsx scripts/trigger-outbreak.ts
 
 ---
 
-**Version**: 1.0
-**Last Updated**: March 14, 2026
+**Version**: 2.0 (DOH PIDSR Migration)
+**Last Updated**: March 22, 2026
 **Maintainer**: AI'll Be Sick Research & Development Team
+
+---
+
+## Changelog
+
+### Version 2.0 - March 22, 2026
+- **Migrated from CDC EARS C1 to DOH PIDSR methodology**
+  - Alert Threshold: Changed from mean + 2σ to mean + 1σ
+  - Epidemic Threshold: Changed from mean + 3σ to mean + 2σ
+  - Updated all documentation to reflect DOH PIDSR compliance
+  - Added academic references (Philippine Statistician Vol. 66 No. 2, WPSAR 2024)
+- **Rationale**: Align with Philippines national public health standards for outbreak surveillance
+- **Impact**: More sensitive outbreak detection, enabling earlier public health response
+
+### Version 1.0 - March 14, 2026
+- Initial implementation with CDC EARS C1-derived thresholds
+- K-Means spatial clustering integration
+- Real-time Supabase notifications
