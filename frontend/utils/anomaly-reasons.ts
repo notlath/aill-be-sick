@@ -119,12 +119,12 @@ export const REASON_CODES = {
   "OUTBREAK:EPIDEMIC_THRESHOLD": {
     label: "Epidemic Threshold",
     description:
-      "The case volume in this area has exceeded the DOH Epidemic Threshold, indicating a significant outbreak.",
+      "The case volume has exceeded the DOH PIDSR Epidemic Threshold (mean + 2 standard deviations), indicating a significant outbreak that requires immediate response.",
   },
   "OUTBREAK:ALERT_THRESHOLD": {
     label: "Alert Threshold",
     description:
-      "The case volume in this area has exceeded the Alert Threshold, requiring increased surveillance.",
+      "The case volume has exceeded the DOH PIDSR Alert Threshold (mean + 1 standard deviation), signaling elevated disease activity that requires increased surveillance.",
   },
   "CLUSTER:DENSE": {
     label: "Dense Cluster",

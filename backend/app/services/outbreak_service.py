@@ -1,5 +1,5 @@
 # outbreak_service.py
-# Outbreak Detection Service using Statistical Thresholds and K-Means Clustering
+# Outbreak Detection Service using DOH PIDSR Statistical Thresholds and K-Means Clustering
 import numpy as np
 from datetime import datetime, timedelta
 from sqlalchemy import text
@@ -8,15 +8,16 @@ from sklearn.cluster import KMeans
 from app.utils.database import get_db_engine
 from app.services.illness_cluster_service import fetch_diagnosis_data, run_illness_kmeans
 
-# Reason Codes for Outbreaks
-REASON_OUTBREAK_EPIDEMIC = "OUTBREAK:EPIDEMIC_THRESHOLD"
-REASON_OUTBREAK_ALERT = "OUTBREAK:ALERT_THRESHOLD"
+# Reason Codes for Outbreaks (DOH PIDSR Methodology)
+REASON_OUTBREAK_EPIDEMIC = "OUTBREAK:EPIDEMIC_THRESHOLD"  # Mean + 2σ (PIDSR Epidemic)
+REASON_OUTBREAK_ALERT = "OUTBREAK:ALERT_THRESHOLD"  # Mean + 1σ (PIDSR Alert)
 REASON_CLUSTER_DENSE = "CLUSTER:DENSE"
 REASON_VOL_SPIKE = "OUTBREAK:VOL_SPIKE"
 
 def calculate_statistical_thresholds(diagnoses, days=30):
     """
     Calculate disease-specific thresholds per district based on historical data.
+    Uses DOH PIDSR methodology: Alert = mean + 1σ, Epidemic = mean + 2σ
     Returns a dictionary mapping (disease, district) -> (mean, std_dev, alert_threshold, epidemic_threshold)
     """
     # Group by disease, district, and day
@@ -42,8 +43,8 @@ def calculate_statistical_thresholds(diagnoses, days=30):
         thresholds[key] = {
             "mean": float(v_mean),
             "std": float(v_std),
-            "alert": float(v_mean + 2 * v_std),
-            "epidemic": float(v_mean + 3 * v_std)
+            "alert": float(v_mean + 1 * v_std),  # DOH PIDSR Alert Threshold
+            "epidemic": float(v_mean + 2 * v_std)  # DOH PIDSR Epidemic Threshold
         }
     return thresholds
 
@@ -133,11 +134,11 @@ def detect_outbreaks(db_url=None):
         severity = "LOW"
         
         if stats:
-            # Check for epidemic threshold (Mean + 3 Std)
+            # Check for epidemic threshold (Mean + 2σ per DOH PIDSR)
             if count >= stats['epidemic']:
                 reasons.append(REASON_OUTBREAK_EPIDEMIC)
                 severity = "CRITICAL"
-            # Check for alert threshold (Mean + 2 Std)
+            # Check for alert threshold (Mean + 1σ per DOH PIDSR)
             elif count >= stats['alert']:
                 reasons.append(REASON_OUTBREAK_ALERT)
                 severity = "HIGH"
@@ -154,7 +155,7 @@ def detect_outbreaks(db_url=None):
                 "disease": disease,
                 "district": district,
                 "reasonCodes": reasons,
-                "message": f"Potential {disease} outbreak detected in {district}. Volume ({count} cases) exceeded thresholds.",
+                "message": f"Potential {disease} outbreak detected in {district}. Volume ({count} cases) exceeded DOH PIDSR thresholds.",
                 "metadata": {
                     "disease": disease,
                     "district": district,
