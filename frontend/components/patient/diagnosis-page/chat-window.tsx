@@ -87,7 +87,7 @@ const getOutOfScopeMessage = ({
   const outOfScopeType = diagnosis?.out_of_scope_type;
 
   if (outOfScopeType === "CONFLICTING_MATCH") {
-    return "Your symptoms partially match the suggested condition, but some reported signs do not fully fit it. Because of this mismatch, this result is not reliable enough to confirm a condition. Please consult a healthcare professional as soon as possible.";
+    return "Your symptoms partially match the suggested condition, but some of what you described does not fully fit it. Because of this mismatch, this result is not reliable enough to confirm. Please consult a healthcare professional for a proper evaluation.";
   }
 
   if (reason === "OUT_OF_SCOPE" || reason === "SYMPTOMS_NOT_MATCHING") {

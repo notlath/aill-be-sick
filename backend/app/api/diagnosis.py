@@ -47,9 +47,9 @@ def _build_conflicting_match_message(predicted_disease):
     """Message for partial match with verification conflict."""
     condition = _format_condition_name(predicted_disease)
     return (
-        f"Your symptoms partially match {condition}, but some reported signs do not fully fit this condition. "
-        "Because of this mismatch, this result is not reliable enough to confirm a condition. "
-        "Please consult a healthcare professional as soon as possible."
+        f"Your symptoms partially match {condition}, but some of what you described does not fully fit this condition. "
+        "Because of this mismatch, this result is not reliable enough to confirm. "
+        "Please consult a healthcare professional for a proper evaluation."
     )
 
 
@@ -251,7 +251,7 @@ def new_case():
                 model_used,
             )
             cdss["red_flags"] = cdss.get("red_flags", []) + [
-                f"Symptoms detected that are not typical of {pred}. Please consult a healthcare professional."
+                f"Some symptoms you described are not typical of {pred}. Please consult a healthcare professional."
             ]
             return (
                 jsonify(
@@ -858,9 +858,9 @@ def follow_up_question():
             )
             reason = "USER_SKIPPED" if is_valid else "USER_SKIPPED_LOW_CONFIDENCE"
             message = (
-                f"Assessment based on current information: {pred}"
+                f"Based on the information so far, **{pred}** is the closest match."
                 if is_valid
-                else "Assessment incomplete. Please consult a healthcare professional for a proper evaluation."
+                else "We weren't able to gather enough information to identify a specific condition. For a clearer picture, please consult a healthcare provider."
             )
             print(
                 f"[FOLLOW-UP] STOP: User skipped to results (conf={confidence:.3f}, valid={is_valid})"
@@ -935,7 +935,11 @@ def follow_up_question():
             )
             reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "OUT_OF_SCOPE"
             out_of_scope_message = _build_no_clear_match_message()
-            message = f"Final assessment: {pred}" if is_valid else out_of_scope_message
+            message = (
+                f"Based on all the information gathered, **{pred}** is the closest match."
+                if is_valid
+                else out_of_scope_message
+            )
             print(
                 f"[FOLLOW-UP] STOP: Exhausted questions ({len(asked_questions)}) valid={is_valid}"
             )
@@ -1028,9 +1032,9 @@ def follow_up_question():
             )
             reason = "EIG_DIMINISHING_RETURNS" if is_valid else "EIG_LOW_CONFIDENCE"
             message = (
-                f"Assessment based on gathered information: {pred}"
+                f"Based on your reported symptoms, **{pred}** is the closest match."
                 if is_valid
-                else "Assessment incomplete but further questions unlikely to help. Please consult a healthcare professional."
+                else "Based on the information provided, we could not identify a specific condition with enough certainty. Please consult a healthcare provider for a proper evaluation."
             )
             print(
                 f"[FOLLOW-UP] STOP: EIG early stopping triggered (best_eig={best_eig:.4f}, initial={initial_eig}, valid={is_valid})"
@@ -1057,7 +1061,11 @@ def follow_up_question():
             )
             reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "LOW_CONFIDENCE_FINAL"
             out_of_scope_message = _build_no_clear_match_message()
-            message = f"Final assessment: {pred}" if is_valid else out_of_scope_message
+            message = (
+                f"Based on all the information gathered, **{pred}** is the closest match."
+                if is_valid
+                else out_of_scope_message
+            )
             print(f"[FOLLOW-UP] STOP: No more questions available, valid={is_valid}")
             return _stop_response(
                 reason,
