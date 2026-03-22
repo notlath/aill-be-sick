@@ -33,13 +33,19 @@ CORRECT_ID2LABEL = {
 # Context variables for thread-local MCD control
 mcd_enabled_ctx = contextvars.ContextVar("mcd_enabled", default=False)
 mcd_rate_ctx = contextvars.ContextVar("mcd_rate", default=0.1)
-mcd_generator_ctx = contextvars.ContextVar("mcd_generator", default=None)
+# Changed: Use numpy PCG64 generator instead of torch.Generator for cross-platform determinism
+# torch.Generator produces different random sequences on CPU vs GPU due to floating-point
+# implementation differences. numpy.random.Generator with PCG64 is portable across all platforms.
+mcd_rng_ctx = contextvars.ContextVar("mcd_rng", default=None)
 
 
 class ThreadSafeDropout(torch.nn.Module):
     """
     Thread-safe Dropout layer that respects context variables.
     Does NOT rely on .train() mode, allowing the model to stay in clean eval mode globally.
+
+    Uses numpy PCG64 for dropout mask generation to ensure identical results across
+    CPU, GPU, and different hardware platforms (e.g., local dev vs Railway production).
     """
 
     def __init__(self, p=0.5):
@@ -57,16 +63,16 @@ class ThreadSafeDropout(torch.nn.Module):
             if keep_prob <= 0.0:
                 return torch.zeros_like(x)
 
-            # Deterministic mode: use per-request generator for reproducible masks
-            generator = mcd_generator_ctx.get()
-            if generator is not None:
-                mask = (
-                    torch.rand(x.shape, device=x.device, generator=generator)
-                    < keep_prob
-                )
-                return x * mask.to(dtype=x.dtype) / keep_prob
+            # Deterministic mode: use numpy RNG for cross-platform reproducible masks
+            rng = mcd_rng_ctx.get()
+            if rng is not None:
+                # Generate mask using numpy (portable across CPU/GPU/platforms)
+                # then convert to torch tensor on the correct device
+                mask_np = rng.random(x.shape, dtype=np.float32) < keep_prob
+                mask = torch.from_numpy(mask_np).to(device=x.device, dtype=x.dtype)
+                return x * mask / keep_prob
 
-            # Default stochastic mode
+            # Default stochastic mode (non-deterministic fallback)
             return F.dropout(x, p=dropout_rate, training=True)
         # Otherwise behave like a no-op (eval mode)
         return x
@@ -162,21 +168,17 @@ class MCDClassifierWithSHAP:
         inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
 
         deterministic_seed = None
-        generator = None
+        rng = None
         if config.MCD_DETERMINISTIC:
             deterministic_seed = self._build_deterministic_seed(text)
-            generator_device = (
-                "cuda"
-                if str(self.device).startswith("cuda") and torch.cuda.is_available()
-                else "cpu"
-            )
-            generator = torch.Generator(device=generator_device)
-            generator.manual_seed(deterministic_seed)
+            # Use numpy PCG64 for cross-platform determinism (CPU/GPU/Railway/local all identical)
+            # PCG64 is a high-quality PRNG that produces identical sequences regardless of hardware
+            rng = np.random.Generator(np.random.PCG64(deterministic_seed))
 
         # Set thread-local context for this specific inference call
         token_enabled = mcd_enabled_ctx.set(True)
         token_rate = mcd_rate_ctx.set(self.inference_dropout_rate)
-        token_generator = mcd_generator_ctx.set(generator)
+        token_rng = mcd_rng_ctx.set(rng)
 
         try:
             with torch.no_grad():
@@ -207,7 +209,7 @@ class MCDClassifierWithSHAP:
             # RESET context to prevent leakage to other threads/requests
             mcd_enabled_ctx.reset(token_enabled)
             mcd_rate_ctx.reset(token_rate)
-            mcd_generator_ctx.reset(token_generator)
+            mcd_rng_ctx.reset(token_rng)
 
             # Clean up VRAM
             del inputs, input_ids, attention_mask, outputs, logits, probabilities
