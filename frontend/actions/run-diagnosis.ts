@@ -69,6 +69,10 @@ export const runDiagnosis = actionClient
         cdss,
         skip_followup,
         skip_reason,
+        out_of_scope_type,
+        verification_failure,
+        message,
+        is_valid,
         session_id: diagnosisSessionId,
       } = diagnosis;
 
@@ -217,6 +221,10 @@ Do you want to record this diagnosis?
           cdss: cdss || null,
           skip_followup,
           skip_reason,
+          out_of_scope_type,
+          verification_failure,
+          message,
+          is_valid,
           session_id: diagnosisSessionId || undefined,
         },
         isConfident,

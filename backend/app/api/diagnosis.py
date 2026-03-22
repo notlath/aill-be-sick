@@ -35,6 +35,31 @@ LABEL2IDX = {v: k for k, v in CORRECT_ID2LABEL.items()}
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
+def _format_condition_name(condition):
+    """Convert model label to readable lowercase condition name."""
+    if not condition:
+        return "the suggested condition"
+    return str(condition).strip().lower()
+
+
+def _build_conflicting_match_message(predicted_disease):
+    """Message for partial match with verification conflict."""
+    condition = _format_condition_name(predicted_disease)
+    return (
+        f"Your symptoms partially match {condition}, but some reported signs do not fully fit this condition. "
+        "Because of this mismatch, this result is not reliable enough to confirm a condition. "
+        "Please consult a healthcare professional as soon as possible."
+    )
+
+
+def _build_no_clear_match_message():
+    """Message for out-of-scope cases without a trustworthy match."""
+    return (
+        "Your symptoms do not clearly match the diseases this system currently covers. "
+        "Please consult a healthcare professional for a proper evaluation."
+    )
+
+
 def _stop_response(
     reason,
     pred,
@@ -212,6 +237,7 @@ def new_case():
         verification_result = verification_layer.verify(symptoms, pred)
         if not verification_result["is_valid"]:
             unexplained = verification_result["unexplained_concepts"]
+            conflicting_match_message = _build_conflicting_match_message(pred)
             print(
                 f"[VERIFICATION] FAIL: Unexplained concepts {unexplained} for predicted disease {pred}"
             )
@@ -241,10 +267,12 @@ def new_case():
                             "cdss": cdss,
                             "skip_followup": True,
                             "skip_reason": "OUT_OF_SCOPE",
+                            "out_of_scope_type": "CONFLICTING_MATCH",
+                            "message": conflicting_match_message,
                             "is_valid": False,
                             "verification_failure": {
                                 "unexplained_concepts": list(unexplained),
-                                "message": "Your symptoms include indicators not typically associated with our supported conditions. Please consult a healthcare professional.",
+                                "message": conflicting_match_message,
                             },
                         }
                     }
@@ -745,6 +773,7 @@ def follow_up_question():
         v_result = verification_layer.verify(unified_text, pred)
         if not v_result["is_valid"]:
             unexplained = v_result["unexplained_concepts"]
+            conflicting_match_message = _build_conflicting_match_message(pred)
             print(f"[VERIFICATION-FOLLOWUP] FAIL: {unexplained} for {pred}")
             probs_formatted = [
                 f"{d['disease']}: {(d['probability'] * 100):.2f}%" for d in top_diseases
@@ -755,7 +784,7 @@ def follow_up_question():
                         "data": {
                             "should_stop": True,
                             "reason": "OUT_OF_SCOPE",
-                            "message": "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.",
+                            "message": conflicting_match_message,
                             "diagnosis": {
                                 "pred": pred,
                                 "disease": pred,
@@ -766,6 +795,8 @@ def follow_up_question():
                                 "top_diseases": top_diseases,
                                 "mean_probs": current_probs.tolist(),
                                 "is_valid": False,
+                                "out_of_scope_type": "CONFLICTING_MATCH",
+                                "message": conflicting_match_message,
                                 "cdss": _build_cdss_payload(
                                     symptoms_text,
                                     pred,
@@ -776,7 +807,7 @@ def follow_up_question():
                                 ),
                                 "verification_failure": {
                                     "unexplained_concepts": list(unexplained),
-                                    "message": "Your symptoms include indicators not typically associated with our supported conditions.",
+                                    "message": conflicting_match_message,
                                 },
                             },
                         }
@@ -879,6 +910,7 @@ def follow_up_question():
             print(
                 f"[FOLLOW-UP] STOP: OUT_OF_SCOPE after {len(asked_questions)} questions"
             )
+            out_of_scope_message = _build_no_clear_match_message()
             return _stop_response(
                 "OUT_OF_SCOPE",
                 pred,
@@ -889,8 +921,9 @@ def follow_up_question():
                 top_diseases,
                 mean_probs,
                 symptoms_text,
-                message="Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.",
+                message=out_of_scope_message,
                 is_valid=False,
+                extra_fields={"out_of_scope_type": "NO_CLEAR_MATCH"},
             )
 
         if len(asked_questions) >= config.EXHAUSTED_QUESTIONS_THRESHOLD:
@@ -899,11 +932,8 @@ def follow_up_question():
                 and uncertainty <= config.VALID_MAX_UNCERTAINTY
             )
             reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "OUT_OF_SCOPE"
-            message = (
-                f"Final assessment: {pred}"
-                if is_valid
-                else "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional."
-            )
+            out_of_scope_message = _build_no_clear_match_message()
+            message = f"Final assessment: {pred}" if is_valid else out_of_scope_message
             print(
                 f"[FOLLOW-UP] STOP: Exhausted questions ({len(asked_questions)}) valid={is_valid}"
             )
@@ -919,6 +949,9 @@ def follow_up_question():
                 symptoms_text,
                 message=message,
                 is_valid=is_valid,
+                extra_fields={"out_of_scope_type": "NO_CLEAR_MATCH"}
+                if not is_valid
+                else None,
             )
 
         # ── 5. EIG-BASED QUESTION SELECTION ──────────────────────────────
@@ -1021,11 +1054,8 @@ def follow_up_question():
                 and uncertainty <= config.VALID_MAX_UNCERTAINTY
             )
             reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "LOW_CONFIDENCE_FINAL"
-            message = (
-                f"Final assessment: {pred}"
-                if is_valid
-                else "You may not be experiencing a disease that this system can process."
-            )
+            out_of_scope_message = _build_no_clear_match_message()
+            message = f"Final assessment: {pred}" if is_valid else out_of_scope_message
             print(f"[FOLLOW-UP] STOP: No more questions available, valid={is_valid}")
             return _stop_response(
                 reason,
@@ -1039,6 +1069,9 @@ def follow_up_question():
                 symptoms_text,
                 message=message,
                 is_valid=is_valid,
+                extra_fields={"out_of_scope_type": "NO_CLEAR_MATCH"}
+                if not is_valid
+                else None,
             )
 
         # Evidence-based early stop (from coverage)

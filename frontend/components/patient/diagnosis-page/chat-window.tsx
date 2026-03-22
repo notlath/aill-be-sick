@@ -62,6 +62,41 @@ const mapDisease = (
   }
 };
 
+const getOutOfScopeMessage = ({
+  reason,
+  diagnosis,
+  verificationFailure,
+}: {
+  reason?: string;
+  diagnosis?: any;
+  verificationFailure?: any;
+}) => {
+  const diagnosisMessage = diagnosis?.message;
+  if (typeof diagnosisMessage === "string" && diagnosisMessage.trim().length > 0) {
+    return diagnosisMessage;
+  }
+
+  const verificationMessage = verificationFailure?.message;
+  if (
+    typeof verificationMessage === "string" &&
+    verificationMessage.trim().length > 0
+  ) {
+    return verificationMessage;
+  }
+
+  const outOfScopeType = diagnosis?.out_of_scope_type;
+
+  if (outOfScopeType === "CONFLICTING_MATCH") {
+    return "Your symptoms partially match the suggested condition, but some reported signs do not fully fit it. Because of this mismatch, this result is not reliable enough to confirm a condition. Please consult a healthcare professional as soon as possible.";
+  }
+
+  if (reason === "OUT_OF_SCOPE" || reason === "SYMPTOMS_NOT_MATCHING") {
+    return "Your symptoms do not clearly match the diseases this system currently covers. Please consult a healthcare professional for a proper evaluation.";
+  }
+
+  return "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.";
+};
+
 type ChatWindowProps = {
   chatId: string;
   messages: (Message & { explanation?: Explanation | null })[];
@@ -190,11 +225,11 @@ const ChatWindow = ({
             diagnosis?.is_valid === false
           ) {
             setIsFinalDiagnosis(false);
-            const outOfScopeMessage =
-              diagnosis?.message ||
-              (reason === "OUT_OF_SCOPE"
-                ? "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for a proper evaluation."
-                : "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover. We recommend consulting with a healthcare professional for a proper evaluation.");
+            const outOfScopeMessage = getOutOfScopeMessage({
+              reason,
+              diagnosis,
+              verificationFailure: diagnosis?.verification_failure,
+            });
             createMessageExecute({
               chatId,
               content: outOfScopeMessage,
@@ -440,9 +475,11 @@ const ChatWindow = ({
               setIsFinalDiagnosis(false);
               const verificationFailure = (data.diagnosis as any)
                 ?.verification_failure;
-              const infoMsg =
-                verificationFailure?.message ||
-                "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.";
+              const infoMsg = getOutOfScopeMessage({
+                reason: skipReason,
+                diagnosis: data.diagnosis,
+                verificationFailure,
+              });
 
               createMessageExecute({
                 chatId,

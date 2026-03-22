@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { ExportReportButton } from "@/components/ui/export-report-button";
 import type { PdfColumn } from "@/utils/pdf-export";
 import LegalFooter from "@/components/shared/legal-footer";
+import { getReliability } from "@/utils/reliability";
 
 async function ChatHistoryList() {
   const { success: dbUser, error: userError } = await getCurrentDbUser();
@@ -39,6 +40,9 @@ async function ChatHistoryList() {
     let diagnosis = "";
     let uncertainty: number | null = null;
     let confidence: number | null = null;
+    let reliabilityLabel: string | null = null;
+    let reliabilityBadgeClass: string | null = null;
+    let reliabilityRank: number | null = null;
     let modelUsed: string | null = null;
 
     if (chat.hasDiagnosis && chat.diagnosis) {
@@ -73,11 +77,19 @@ async function ChatHistoryList() {
           : latestMessageContentRaw;
     }
 
+    if (confidence !== null && uncertainty !== null) {
+      const reliability = getReliability(confidence, uncertainty);
+      reliabilityLabel = reliability.label;
+      reliabilityBadgeClass = reliability.badgeClass;
+      reliabilityRank = reliability.rank;
+    }
+
     return {
       id: chat.chatId,
       diagnosis: diagnosis || "No details available",
-      uncertainty,
-      confidence,
+      reliabilityLabel,
+      reliabilityBadgeClass,
+      reliabilityRank,
       modelUsed,
       createdAt: chat.createdAt,
     };
@@ -86,18 +98,14 @@ async function ChatHistoryList() {
   const pdfColumns: PdfColumn[] = [
     { header: "Diagnosis", dataKey: "diagnosis" },
     { header: "Model", dataKey: "modelUsed" },
-    { header: "Uncertainty", dataKey: "uncertainty" },
-    { header: "Confidence", dataKey: "confidence" },
+    { header: "Reliability", dataKey: "reliability" },
     { header: "Date", dataKey: "createdAt" },
   ];
 
   const exportData = rows.map((row) => ({
     diagnosis: row.diagnosis,
     modelUsed: row.modelUsed || "-",
-    uncertainty:
-      row.uncertainty !== null ? `${(row.uncertainty * 100).toFixed(2)}%` : "-",
-    confidence:
-      row.confidence !== null ? `${(row.confidence * 100).toFixed(2)}%` : "-",
+    reliability: row.reliabilityLabel || "-",
     createdAt: new Date(row.createdAt),
   }));
 
