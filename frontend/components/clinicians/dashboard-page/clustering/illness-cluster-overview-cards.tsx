@@ -15,6 +15,8 @@ import {
   type IllnessClusterMapNavigationContext,
 } from "@/utils/illness-cluster-navigation";
 import { CLUSTER_THEMES } from "../../../../constants/cluster-themes";
+import EndemicBadge from "../endemic-badge";
+import { getCensusDataByZone, calculateIncidenceRate } from "@/constants/census-data";
 
 interface IllnessClusterOverviewCardsProps {
   statistics: IllnessClusterStatistics[];
@@ -230,15 +232,48 @@ const IllnessClusterOverviewCards: React.FC<
               </div>
 
               {/* Diagnosis Count - Large and Prominent */}
-              <div className="flex items-baseline gap-2">
-                <span
-                  className={`text-4xl font-semibold tracking-tight ${theme.accentText} tabular-nums`}
-                >
-                  {stat.count}
-                </span>
-                <span className="text-muted text-sm font-medium">
-                  diagnoses
-                </span>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-baseline gap-2">
+                  <span
+                    className={`text-4xl font-semibold tracking-tight ${theme.accentText} tabular-nums`}
+                  >
+                    {stat.count}
+                  </span>
+                  <span className="text-muted text-sm font-medium">
+                    diagnoses
+                  </span>
+                </div>
+                {(() => {
+                  let regionLocation = "";
+                  if (
+                    selectedVariables.district &&
+                    stat.top_districts &&
+                    stat.top_districts.length >= 1
+                  ) {
+                    const topDistrict = stat.top_districts[0];
+                    if (stat.top_districts.length === 1) {
+                      regionLocation = topDistrict.district;
+                    } else if (stat.top_districts.length >= 2) {
+                      const secondDistrict = stat.top_districts[1];
+                      if (topDistrict.count > 0 && (secondDistrict.count === 0 || (topDistrict.count - secondDistrict.count) / secondDistrict.count >= 0.4)) {
+                         regionLocation = topDistrict.district;
+                      }
+                    }
+                  }
+
+                  if (regionLocation) {
+                    const census = getCensusDataByZone(regionLocation);
+                    if (census) {
+                      const incidence = calculateIncidenceRate(stat.count, census.populationTotal);
+                      return (
+                        <div className="text-xs text-base-content/70 mt-1">
+                          <span className="font-medium">{incidence.toFixed(1)}</span> per 1,000 pop. in {regionLocation}
+                        </div>
+                      );
+                    }
+                  }
+                  return null;
+                })()}
               </div>
             </CardHeader>
 
@@ -260,12 +295,13 @@ const IllnessClusterOverviewCards: React.FC<
                         {stat.top_diseases.map((d, idx) => (
                           <div
                             key={idx}
-                            className="flex items-center justify-between text-xs"
+                            className="flex items-center justify-between text-xs gap-2"
                           >
-                            <span className="text-base-content/80">
+                            <span className="flex items-center gap-1.5 text-base-content/80">
                               {d.disease}
+                              <EndemicBadge disease={d.disease} size="sm" />
                             </span>
-                            <span className="text-base-content font-semibold">
+                            <span className="text-base-content font-semibold shrink-0">
                               ({d.count})
                             </span>
                           </div>
@@ -324,12 +360,13 @@ const IllnessClusterOverviewCards: React.FC<
                           {stat.top_diseases.slice(0, 5).map((d, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center justify-between text-xs"
+                              className="flex items-center justify-between text-xs gap-2"
                             >
-                              <span className="text-base-content/80">
+                              <span className="flex items-center gap-1.5 text-base-content/80">
                                 {d.disease}
+                                <EndemicBadge disease={d.disease} size="sm" />
                               </span>
-                              <span className="text-base-content font-semibold">
+                              <span className="text-base-content font-semibold shrink-0">
                                 ({d.count})
                               </span>
                             </div>
@@ -341,12 +378,13 @@ const IllnessClusterOverviewCards: React.FC<
                           {stat.top_diseases.slice(5).map((d, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center justify-between text-xs"
+                              className="flex items-center justify-between text-xs gap-2"
                             >
-                              <span className="text-base-content/80">
+                              <span className="flex items-center gap-1.5 text-base-content/80">
                                 {d.disease}
+                                <EndemicBadge disease={d.disease} size="sm" />
                               </span>
-                              <span className="text-base-content font-semibold">
+                              <span className="text-base-content font-semibold shrink-0">
                                 ({d.count})
                               </span>
                             </div>

@@ -24,7 +24,7 @@ export const columns: ColumnDef<HistoryRow>[] = [
           className="flex items-center gap-1 hover:text-primary"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Diagnosis
+          Suggested Condition
           <ArrowUpDown className="w-4 h-4" />
         </button>
       );

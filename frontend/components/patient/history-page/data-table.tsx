@@ -39,8 +39,8 @@ type SortOption = {
 const sortOptions: SortOption[] = [
   { value: "createdAt", label: "Date (Newest)", desc: true },
   { value: "createdAt", label: "Date (Oldest)", desc: false },
-  { value: "diagnosis", label: "Diagnosis (A-Z)", desc: false },
-  { value: "diagnosis", label: "Diagnosis (Z-A)", desc: true },
+  { value: "diagnosis", label: "Condition (A-Z)", desc: false },
+  { value: "diagnosis", label: "Condition (Z-A)", desc: true },
   { value: "reliabilityRank", label: "Reliability (High-Low)", desc: true },
   { value: "reliabilityRank", label: "Reliability (Low-High)", desc: false },
 ];
@@ -106,7 +106,7 @@ export function DataTable<TData, TValue>({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
             type="text"
-            placeholder="Search diagnosis history..."
+            placeholder="Search assessment history..."
             value={globalFilter ?? ""}
             onChange={(e) => {
               setGlobalFilter(e.target.value);

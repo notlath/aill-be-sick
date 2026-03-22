@@ -41,6 +41,7 @@ model User {
   acknowledgedAlerts Alert[]     @relation("AlertAcknowledger")
   resolvedAlerts     Alert[]     @relation("AlertResolver")
   alertNotes         AlertNote[] @relation("AlertNoteAuthor")
+  diagnosisOverrides DiagnosisOverride[] @relation("OverrideClinicianRelation")
 
   @@index([latitude, longitude])
   @@index([region])
@@ -105,10 +106,19 @@ model Diagnosis {
   province    String?
   barangay    String?
   district    String?
+  // Temperature data (optional - for future analytics)
+  temperature     Float?   // Normalized temperature in Celsius
+  temperatureUnit String?  // Original unit used: "celsius" or "fahrenheit"
+  
+  // BMI data
+  heightCm        Float?
+  weightKg        Float?
+  bmiAdvice       String?  // Store the Gemini response so it doesn't need to be fetched again
   chat        Chat         @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   explanation Explanation?
   alerts      Alert[]
+  override    DiagnosisOverride?
 
   @@index([createdAt])
   @@index([disease])
@@ -125,6 +135,31 @@ model Explanation {
   messageId   Int?       @unique
   diagnosis   Diagnosis? @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
   message     Message?   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// Clinician override of AI diagnosis with full audit logging
+// Tracks both the original AI suggestion and the clinician's final assessment
+model DiagnosisOverride {
+  id               Int      @id @default(autoincrement())
+  diagnosisId      Int      @unique
+  diagnosis        Diagnosis @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
+  
+  // Original AI assessment (preserved for audit)
+  aiDisease        Disease
+  aiConfidence     Float
+  aiUncertainty    Float
+  
+  // Clinician's override
+  clinicianDisease Disease
+  clinicianNotes   String?  // Clinical reasoning for the override
+  
+  // Audit fields
+  clinicianId      Int
+  clinician        User     @relation("OverrideClinicianRelation", fields: [clinicianId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  
+  @@index([clinicianId])
+  @@index([createdAt])
 }
 
 model Alert {

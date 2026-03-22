@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Language } from "@/hooks/use-symptom-checklist";
-import { ArrowLeft, Globe, RotateCcw, X } from "lucide-react";
+import type { Language, TemperatureState } from "@/hooks/use-symptom-checklist";
+import type { TemperatureUnit } from "@/utils/fever-classification";
+import { Globe, RotateCcw, X } from "lucide-react";
 import SymptomChecklist from "./symptom-checklist";
 
 type ChecklistModalProps = {
@@ -20,6 +21,12 @@ type ChecklistModalProps = {
   onLanguageChange: (lang: Language) => void;
   onSubmit: (phrase: string) => void;
   isPending: boolean;
+  // Temperature props
+  temperature?: TemperatureState;
+  onTemperatureChange?: (value: string) => void;
+  onTemperatureUnitChange?: (unit: TemperatureUnit) => void;
+  onTemperatureClassificationChange?: (celsius: number | null) => void;
+  isAutoChecked?: (id: string) => boolean;
 };
 
 const ChecklistModal = ({
@@ -36,6 +43,11 @@ const ChecklistModal = ({
   onLanguageChange,
   onSubmit,
   isPending,
+  temperature,
+  onTemperatureChange,
+  onTemperatureUnitChange,
+  onTemperatureClassificationChange,
+  isAutoChecked,
 }: ChecklistModalProps) => {
   const modalRef = useRef<HTMLDialogElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -144,6 +156,11 @@ const ChecklistModal = ({
             isPending={isPending}
             hideLanguageToggle
             hideHeader={false}
+            temperature={temperature}
+            onTemperatureChange={onTemperatureChange}
+            onTemperatureUnitChange={onTemperatureUnitChange}
+            onTemperatureClassificationChange={onTemperatureClassificationChange}
+            isAutoChecked={isAutoChecked}
           />
         </div>
       </div>

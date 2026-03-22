@@ -44,7 +44,7 @@ const RecordDiagnosisBtn = ({
       {isExecuting ? (
         <span className="loading loading-spinner"></span>
       ) : (
-        "Record diagnosis"
+        "Save result"
       )}
     </button>
   );

@@ -160,6 +160,11 @@ const DiagnosisForm = ({
         onLanguageChange={setLanguage}
         onSubmit={handleChecklistSubmit}
         isPending={isPending}
+        temperature={checklist.temperature}
+        onTemperatureChange={checklist.setTemperatureValue}
+        onTemperatureUnitChange={checklist.setTemperatureUnit}
+        onTemperatureClassificationChange={checklist.handleTemperatureClassification}
+        isAutoChecked={checklist.isAutoChecked}
       />
     </>
   );

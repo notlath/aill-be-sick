@@ -10,12 +10,10 @@ import { useRouter } from "nextjs-toploader/app";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import ChecklistModal from "@/components/patient/diagnosis-page/checklist-modal";
-import HelpGuide from "@/components/patient/help-guide";
 import LegalFooter from "@/components/shared/legal-footer";
 
 const PatientHomePage = () => {
   const [isChecklistOpen, setIsChecklistOpen] = useState(false);
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [language, setLanguage] = useState<Language>("en");
   const checklist = useSymptomChecklist(language);
 
@@ -121,14 +119,14 @@ const PatientHomePage = () => {
           </div>
           
           <h1 className="font-semibold text-3xl sm:text-4xl md:text-5xl tracking-tight text-base-content mb-3 leading-tight">
-            How are you feeling today?
+            How are you <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary italic pr-1">feeling</span> today?
           </h1>
           <p className="text-base-content/60 text-base sm:text-lg mb-5">
             Describe your symptoms and get helpful insights
           </p>
           <button
             type="button"
-            onClick={() => setIsHelpOpen(true)}
+            onClick={() => (document.querySelector(".help-guide-dialog") as HTMLDialogElement)?.showModal()}
             className="btn btn-ghost btn-sm rounded-full gap-2 font-medium text-base-content/60 hover:text-base-content hover:bg-base-200/60 transition-colors duration-200"
           >
             <Info className="size-4" />
@@ -156,18 +154,13 @@ const PatientHomePage = () => {
                   {/* Textarea */}
                   <div className="flex-1 min-w-0 flex items-center">
                     <textarea
-                      className="w-full px-4 py-0 border-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none bg-base-200/50 rounded-xl resize-none overflow-hidden text-base text-base-content placeholder:text-base-content/40 transition-colors duration-200 focus:bg-base-200/80 h-11 sm:h-12 leading-[44px] sm:leading-[48px]"
+                      className="w-full px-4 py-2.5 sm:py-3 border-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none bg-base-200/50 rounded-xl resize-none overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] text-base text-base-content placeholder:text-base-content/40 transition-colors duration-200 focus:bg-base-200/80 h-11 sm:h-12"
                       placeholder="I'm feeling..."
                       aria-label="Describe your symptoms"
                       autoComplete="off"
                       rows={1}
                       suppressHydrationWarning
                       disabled={isLoading}
-                      onInput={(e) => {
-                        const target = e.currentTarget;
-                        target.style.height = "auto";
-                        target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
-                      }}
                       onKeyDown={(e) => {
                         if (
                           e.key === "Enter" &&
@@ -218,28 +211,7 @@ const PatientHomePage = () => {
         </div>
       </div>
 
-      {/* Help Modal */}
-      {isHelpOpen && (
-        <div className="modal modal-open modal-bottom sm:modal-middle" role="dialog" aria-modal="true">
-          <div className="modal-box bg-base-100 p-0 overflow-hidden max-w-xl shadow-2xl">
-            <div className="p-6 pb-2">
-              <HelpGuide variant="modal" />
-            </div>
-            <div className="modal-action p-4 border-t border-base-200/50 bg-base-200/20 m-0 justify-end">
-              <button 
-                type="button" 
-                className="btn btn-ghost hover:bg-base-200/80" 
-                onClick={() => setIsHelpOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-          <div className="modal-backdrop bg-base-300/40 backdrop-blur-sm" onClick={() => setIsHelpOpen(false)}>
-            <button type="button" className="cursor-default" aria-label="Close help modal">close</button>
-          </div>
-        </div>
-      )}
+
 
       {/* Checklist Modal */}
       <ChecklistModal
@@ -256,6 +228,11 @@ const PatientHomePage = () => {
         onLanguageChange={setLanguage}
         onSubmit={handleChecklistSubmit}
         isPending={isLoading}
+        temperature={checklist.temperature}
+        onTemperatureChange={checklist.setTemperatureValue}
+        onTemperatureUnitChange={checklist.setTemperatureUnit}
+        onTemperatureClassificationChange={checklist.handleTemperatureClassification}
+        isAutoChecked={checklist.isAutoChecked}
       />
 
       {/* Footer */}
