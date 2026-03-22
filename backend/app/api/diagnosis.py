@@ -11,6 +11,7 @@ Redesigned with:
 import time
 import traceback
 import numpy as np
+from typing import Any, cast
 from flask import Blueprint, request, jsonify, session, current_app
 
 import app.config as config
@@ -541,11 +542,12 @@ def follow_up_question():
 
         # ── 1. LOAD SESSION STATE ─────────────────────────────────────────
         session_id = data.get("session_id")
-        sess = None
+        sess: dict[str, Any] = {}
 
         if session_id:
-            sess = get_session(session_id)
-            if sess:
+            loaded_session = get_session(session_id)
+            if loaded_session is not None:
+                sess = cast(dict[str, Any], loaded_session)
                 print(f"[FOLLOW-UP] Using DB session: {session_id}")
 
         # Fallback: legacy Flask cookie session or request body
@@ -1086,7 +1088,11 @@ def follow_up_question():
             coverage_primary = sum(
                 1 for q in primary_only if _has_evidence(q, symptoms_lower)
             )
-            if coverage_primary >= 3 and confidence >= 0.78 and uncertainty <= 0.04:
+            if (
+                coverage_primary >= config.EVIDENCE_STOP_PRIMARY_COVERAGE
+                and confidence >= config.EVIDENCE_STOP_CONF_THRESHOLD
+                and uncertainty <= config.EVIDENCE_STOP_MAX_UNCERTAINTY
+            ):
                 print(
                     f"[FOLLOW-UP] STOP: Sufficient evidence (coverage={coverage_primary})"
                 )

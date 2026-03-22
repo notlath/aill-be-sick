@@ -54,17 +54,31 @@ def find_optimal_clusters(data):
     if len(data) < 3:
         return 1
     
-    max_k = min(10, len(data) - 1)
+    unique_count = len(np.unique(data, axis=0))
+    if unique_count < 2:
+        return 1
+        
+    max_k = min(10, len(data) - 1, unique_count)
+    if max_k < 2:
+        return 1
+        
     best_k = 2
     best_score = -1
     
+    import warnings
+    from sklearn.exceptions import ConvergenceWarning
+
     for k in range(2, max_k + 1):
-        kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-        labels = kmeans.fit_predict(data)
-        score = calinski_harabasz_score(data, labels)
-        if score > best_score:
-            best_score = score
-            best_k = k
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=ConvergenceWarning)
+            kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+            labels = kmeans.fit_predict(data)
+            
+        if len(set(labels)) > 1:
+            score = calinski_harabasz_score(data, labels)
+            if score > best_score:
+                best_score = score
+                best_k = k
             
     return best_k
 

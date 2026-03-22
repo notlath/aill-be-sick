@@ -8,6 +8,14 @@ import os
 # --- Model Paths ---
 ENG_MODEL_PATH = "notlath/BioClinical-ModernBERT-base-Symptom2Disease_WITH-DROPOUT-42"
 FIL_MODEL_PATH = "notlath/RoBERTa-Tagalog-base-Symptom2Disease_WITH-DROPOUT-42"
+ENG_MODEL_REVISION = os.getenv("ENG_MODEL_REVISION", "").strip() or None
+FIL_MODEL_REVISION = os.getenv("FIL_MODEL_REVISION", "").strip() or None
+
+# --- Deterministic Inference (MC Dropout) ---
+# Keep stochastic dropout behavior while making outputs reproducible across environments.
+MCD_DETERMINISTIC = os.getenv("MCD_DETERMINISTIC", "true").lower() == "true"
+MCD_BASE_SEED = int(os.getenv("MCD_BASE_SEED", "20260322"))
+MCD_SEED_SALT = os.getenv("MCD_SEED_SALT", "aill-be-sick")
 
 # --- Symptom Validation Thresholds ---
 # Configurable gating thresholds for validating symptom narratives
@@ -29,6 +37,13 @@ SYMPTOM_MIN_CHARS = int(os.getenv("SYMPTOM_MIN_CHARS", "15"))
 # Very high confidence - skip follow-up questions entirely
 HIGH_CONFIDENCE_THRESHOLD = float(os.getenv("HIGH_CONFIDENCE_THRESHOLD", "0.90"))
 LOW_UNCERTAINTY_THRESHOLD = float(os.getenv("LOW_UNCERTAINTY_THRESHOLD", "0.01"))
+
+# Evidence-based stop (after follow-up evidence coverage is already high)
+EVIDENCE_STOP_PRIMARY_COVERAGE = int(os.getenv("EVIDENCE_STOP_PRIMARY_COVERAGE", "3"))
+EVIDENCE_STOP_CONF_THRESHOLD = float(os.getenv("EVIDENCE_STOP_CONF_THRESHOLD", "0.90"))
+EVIDENCE_STOP_MAX_UNCERTAINTY = float(
+    os.getenv("EVIDENCE_STOP_MAX_UNCERTAINTY", "0.03")
+)
 
 # --- Uncertainty Quantification Thresholds ---
 # Multi-metric uncertainty thresholds (data-driven, adjust based on validation)
