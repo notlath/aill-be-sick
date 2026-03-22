@@ -3,19 +3,12 @@
 import { useEffect, useRef } from "react";
 import { IllnessRecord } from "@/types";
 import { getReliability } from "@/utils/reliability";
+import { getAnonymizedPatientId } from "@/utils/patient";
 
 interface DiagnosisDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   diagnosis: IllnessRecord | null;
-}
-
-/**
- * Generate an anonymized patient identifier for privacy compliance.
- */
-function getAnonymizedPatientId(patientId: number): string {
-  const hash = Math.abs(patientId * 2654435761) % 100000;
-  return `P-${hash.toString().padStart(5, "0")}`;
 }
 
 export function DiagnosisDetailModal({

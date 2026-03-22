@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { DiagnosisRow, getAnonymizedPatientId } from "./columns";
+import { DiagnosisRow } from "./columns";
+import { getAnonymizedPatientId } from "@/utils/patient";
 import { getReliability } from "@/utils/reliability";
 import { DiagnosisOverrideModal } from "../diagnosis-override-modal";
 import { FileEdit, CheckCircle2 } from "lucide-react";

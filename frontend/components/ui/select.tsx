@@ -104,9 +104,9 @@ const SelectTrigger = React.forwardRef<
       className={cn(
         "flex items-center gap-2 w-full justify-between",
         "px-4 py-2.5 rounded-[10px]",
-        "bg-white/50 backdrop-blur-sm",
+        "bg-base-200/50 backdrop-blur-sm",
         "border border-border",
-        "hover:bg-white/70 hover:border-base-300/70",
+        "hover:bg-base-200 hover:border-base-300/70",
         "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40",
         "transition-all duration-200",
         "text-sm  text-base-content",
@@ -152,7 +152,7 @@ const SelectContent = React.forwardRef<
       ref={ref}
       className={cn(
         "absolute top-full left-0 z-50 menu mt-2 p-1.5 shadow-lg",
-        "bg-white/95 backdrop-blur-xl",
+        "bg-base-200/95 backdrop-blur-xl",
         "border border-base-300/50",
         "rounded-[12px] w-full min-w-[200px]",
         "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2",
@@ -163,7 +163,7 @@ const SelectContent = React.forwardRef<
       {...props}
     >
       {ctx?.showSearch && (
-        <div className="px-2 pb-2 pt-1 sticky top-0 bg-white/95 backdrop-blur-xl z-10 border-b border-border/50 mb-1">
+        <div className="px-2 pb-2 pt-1 sticky top-0 bg-base-200/95 backdrop-blur-xl z-10 border-b border-border/50 mb-1">
           <input
             className="w-full px-3 py-1.5 text-sm bg-base-200/50 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
             placeholder="Search..."

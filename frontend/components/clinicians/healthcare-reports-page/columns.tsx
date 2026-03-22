@@ -4,6 +4,7 @@ import { User } from "@/lib/generated/prisma";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, ExternalLink, FileCheck2 } from "lucide-react";
 import { getReliability } from "@/utils/reliability";
+import { getAnonymizedPatientId } from "@/utils/patient";
 
 export type DiagnosisOverrideRow = {
   clinicianDisease: string;
@@ -24,17 +25,6 @@ export type DiagnosisRow = {
   user?: User;
   override?: DiagnosisOverrideRow | null;
 };
-
-/**
- * Generate an anonymized patient identifier for privacy compliance.
- * Format: "P-XXXXX" where XXXXX is a hash derived from the user ID.
- * This allows clinicians to track cases without exposing patient names.
- */
-export function getAnonymizedPatientId(userId: number): string {
-  // Use a simple hash to create a consistent but anonymized identifier
-  const hash = Math.abs(userId * 2654435761) % 100000;
-  return `P-${hash.toString().padStart(5, "0")}`;
-}
 
 export const columns: ColumnDef<DiagnosisRow>[] = [
   {

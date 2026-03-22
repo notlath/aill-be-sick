@@ -86,7 +86,7 @@ const TabsList = React.forwardRef<
       {/* Sliding highlight indicator */}
       <div
         className={cn(
-          "absolute bg-white shadow-sm rounded-[10px] pointer-events-none",
+          "absolute bg-base-100 shadow-sm rounded-[10px] pointer-events-none",
           ready
             ? "transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
             : "transition-none"

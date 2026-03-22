@@ -31,7 +31,7 @@ const DistrictStatsCards = ({
     <>
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className="text-sm font-medium text-base-content/60">
             Total Cases
           </CardTitle>
           <Activity className="h-4 w-4 text-primary" />
@@ -40,7 +40,7 @@ const DistrictStatsCards = ({
           <div className="text-2xl font-bold">
             {totalCases.toLocaleString()}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-base-content/60 mt-1">
             For the selected disease and period
           </p>
         </CardContent>
@@ -48,7 +48,7 @@ const DistrictStatsCards = ({
 
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className="text-sm font-medium text-base-content/60">
             Most Affected Area
           </CardTitle>
           <AlertTriangle className="h-4 w-4 text-destructive" />
@@ -60,7 +60,7 @@ const DistrictStatsCards = ({
           >
             {highestDistrict}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-base-content/60 mt-1">
             With {highestCases.toLocaleString()} reported cases
           </p>
         </CardContent>
@@ -68,7 +68,7 @@ const DistrictStatsCards = ({
 
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className="text-sm font-medium text-base-content/60">
             Affected Districts
           </CardTitle>
           <MapPin className="h-4 w-4 text-orange-500" />
@@ -77,7 +77,7 @@ const DistrictStatsCards = ({
           <div className="text-2xl font-bold">
             {affectedDistrictsCount.toLocaleString()}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-base-content/60 mt-1">
             Areas with at least 1 case
           </p>
         </CardContent>
@@ -85,7 +85,7 @@ const DistrictStatsCards = ({
 
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className="text-sm font-medium text-base-content/60">
             Average Cases
           </CardTitle>
           <TrendingUp className="h-4 w-4 text-emerald-500" />
@@ -94,7 +94,7 @@ const DistrictStatsCards = ({
           <div className="text-2xl font-bold">
             {averageCases.toLocaleString()}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-base-content/60 mt-1">
             Per affected district
           </p>
         </CardContent>
@@ -144,7 +144,7 @@ const CoordinatesStatsCards = ({
         onClick={onTotalClick}
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className="text-sm font-medium text-base-content/60">
             Total Cases
           </CardTitle>
           <Activity className="h-4 w-4 text-primary" />
@@ -153,7 +153,7 @@ const CoordinatesStatsCards = ({
           <div className="text-2xl font-bold">
             {totalAllCases.toLocaleString()}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-base-content/60 mt-1">
             For the selected disease and period
           </p>
         </CardContent>
@@ -161,14 +161,14 @@ const CoordinatesStatsCards = ({
 
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className="text-sm font-medium text-base-content/60">
             Most Recent Case
           </CardTitle>
           <Clock className="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent className="p-6 pt-0">
           <div className="text-2xl font-bold">{newestCaseLabel}</div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-base-content/60 mt-1">
             {newestCaseSubtitle}
           </p>
         </CardContent>
@@ -176,7 +176,7 @@ const CoordinatesStatsCards = ({
 
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className="text-sm font-medium text-base-content/60">
             Unique Patients
           </CardTitle>
           <Users className="h-4 w-4 text-emerald-500" />
@@ -185,7 +185,7 @@ const CoordinatesStatsCards = ({
           <div className="text-2xl font-bold">
             {uniquePatientsCount.toLocaleString()}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-base-content/60 mt-1">
             Individual patients with this condition
           </p>
         </CardContent>
@@ -193,7 +193,7 @@ const CoordinatesStatsCards = ({
 
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardTitle className="text-sm font-medium text-base-content/60">
             Cases This Week
           </CardTitle>
           <CalendarDays className="h-4 w-4 text-primary" />
@@ -202,7 +202,7 @@ const CoordinatesStatsCards = ({
           <div className="text-2xl font-bold">
             {casesThisWeek.toLocaleString()}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-base-content/60 mt-1">
             {casesThisWeekSubtitle}
           </p>
         </CardContent>

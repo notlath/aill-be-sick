@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import { getAllDiagnoses } from "@/utils/diagnosis";
 import { DataTable } from "@/components/clinicians/healthcare-reports-page/data-table";
-import { columns, getAnonymizedPatientId } from "@/components/clinicians/healthcare-reports-page/columns";
+import { columns } from "@/components/clinicians/healthcare-reports-page/columns";
+import { getAnonymizedPatientId } from "@/utils/patient";
 import { getReliability } from "@/utils/reliability";
 import { getCurrentDbUser } from "@/utils/user";
 import { ExportReportButton } from "@/components/ui/export-report-button";
