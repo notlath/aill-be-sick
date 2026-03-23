@@ -20,6 +20,14 @@ If guidance conflicts, follow this order unless a task explicitly states otherwi
   - `backend/.github/skills/flask-diagnostic-api/SKILL.md`
 - D3 or custom visualizations:
   - `frontend/.github/skills/d3-viz/SKILL.md`
+- Skill discovery or skill installation requests:
+  - `find-skills`
+- Frontend UI implementation tasks requiring polished visual design (when available in local skills):
+  - `frontend-design`
+- Frontend UI/UX tasks (mobile-first):
+  - `accessibility-compliance` (first)
+  - `vercel-react-best-practices` (second)
+  - `vercel-composition-patterns` when component API/composition refactors are involved
 
 ## Duplicate skill policy (Document-only strategy)
 
@@ -44,6 +52,7 @@ Do not change compatibility copy wording independently.
 - Frontend mutations follow schema + server-action pattern.
 - Revalidation is applied after mutations where needed.
 - User-facing medical text is plain-language and non-absolute.
+- Frontend UI changes preserve mobile usability at small breakpoints.
 - No contradictory style guidance introduced in docs.
 
 ## Change sync checklist
@@ -65,3 +74,4 @@ Use this checklist whenever AI guidance files are updated:
 ## Lightweight change log
 
 - 2026-03-23: Added hybrid Copilot operating model, prompt library, and domain skill routing.
+- 2026-03-23: Added skill discovery routing (`find-skills`) and mobile-first UI/UX default routing notes.
