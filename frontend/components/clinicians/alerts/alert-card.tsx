@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Info, AlertOctagon, AlertTriangle, ShieldAlert, MapPin } from "lucide-react";
+import { Info, AlertOctagon, AlertTriangle, ShieldAlert, MapPin, Clock, Stethoscope, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 import { parseUtcDate } from "@/utils/lib";
-import { getSeverityBadgeClass, getSeverityLabel } from "@/utils/alert-severity";
+import { getSeverityLabel } from "@/utils/alert-severity";
 import type { Alert, AlertStatus } from "@/types";
 import { getDistrictCentroid } from "@/constants/bagong-silangan-districts";
 
@@ -18,25 +18,47 @@ interface AlertCardProps {
   onResolve: (id: number) => Promise<void>;
 }
 
-const severityIcon = {
-  CRITICAL: ShieldAlert,
-  HIGH: AlertOctagon,
-  MEDIUM: AlertTriangle,
-  LOW: Info,
+// Standarized UI colors independent of DaisyUI themes
+const severityConfig = {
+  CRITICAL: {
+    icon: ShieldAlert,
+    color: "#ef4444", // red-500
+    bg: "bg-[#ef4444]/10",
+    text: "text-[#ef4444]",
+    border: "border-[#ef4444]/30",
+    borderLeft: "border-l-[#ef4444]",
+  },
+  HIGH: {
+    icon: AlertOctagon,
+    color: "#f97316", // orange-500
+    bg: "bg-[#f97316]/10",
+    text: "text-[#f97316]",
+    border: "border-[#f97316]/30",
+    borderLeft: "border-l-[#f97316]",
+  },
+  MEDIUM: {
+    icon: AlertTriangle,
+    color: "#eab308", // yellow-500
+    bg: "bg-[#eab308]/10",
+    text: "text-[#eab308]",
+    border: "border-[#eab308]/30",
+    borderLeft: "border-l-[#eab308]",
+  },
+  LOW: {
+    icon: Info,
+    color: "#3b82f6", // blue-500
+    bg: "bg-[#3b82f6]/10",
+    text: "text-[#3b82f6]",
+    border: "border-[#3b82f6]/30",
+    borderLeft: "border-l-[#3b82f6]",
+  },
 };
 
-const statusLabel: Record<AlertStatus, string> = {
-  NEW: "New",
-  ACKNOWLEDGED: "Acknowledged",
-  DISMISSED: "Dismissed",
-  RESOLVED: "Resolved",
-};
-
-const statusBadgeClass: Record<AlertStatus, string> = {
-  NEW: "bg-error/10 text-error border-error/20",
-  ACKNOWLEDGED: "bg-success/10 text-success border-success/20",
-  DISMISSED: "bg-base-200 text-base-content/70 border-base-300",
-  RESOLVED: "bg-info/10 text-info border-info/20",
+const statusConfig: Record<AlertStatus, { label: string; classes: string }> = {
+  NEW: { label: "New", classes: "bg-[#8b5cf6]/10 text-[#8b5cf6] border-[#8b5cf6]/20" }, // violet-500
+  ACKNOWLEDGED: { label: "Acknowledged", classes: "bg-[#0ea5e9]/10 text-[#0ea5e9] border-[#0ea5e9]/20" }, // sky-500
+  DISMISSED: { label: "Dismissed", classes: "bg-[#64748b]/10 text-[#64748b] border-[#64748b]/20" }, // slate-500
+  RESOLVED: { label: "Resolved", classes: "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20" }, // emerald-500
 };
 
 export function AlertCard({
@@ -97,111 +119,125 @@ export function AlertCard({
   const isPending = alert.status === "NEW";
   const date = parseUtcDate(alert.createdAt);
   const timeAgo = formatDistanceToNow(date, { addSuffix: true });
-  const Icon = severityIcon[alert.severity as keyof typeof severityIcon];
+  
+  const severityKey = alert.severity as keyof typeof severityConfig;
+  const config = severityConfig[severityKey] || severityConfig.LOW;
+  const Icon = config.icon;
+  const statusInfo = statusConfig[alert.status];
 
   return (
-    <Card className="hover:border-primary/30 group cursor-pointer" onClick={() => onViewDetails(alert)}>
-      <CardContent className="p-5 flex flex-col sm:flex-row gap-4">
-        {/* Left Icon Area */}
-        <div className="flex-none pt-1">
-          <div className={`p-2.5 rounded-full ${alert.severity === "CRITICAL" ? "bg-error/10 text-error inline-flex relative" :
-            alert.severity === "HIGH" ? "bg-warning/10 text-warning" :
-              alert.severity === "MEDIUM" ? "bg-info/10 text-info" :
-                "bg-base-200 text-base-content/60"
-            }`}>
-            <Icon className="w-6 h-6" />
-            {alert.severity === "CRITICAL" ? (
-              <span className="absolute top-0 right-0 w-3 h-3 bg-error rounded-full animate-ping opacity-75" />
-            ) : null}
-            {alert.severity === "CRITICAL" ? (
-              <span className="absolute top-0 right-0 w-3 h-3 bg-error rounded-full" />
-            ) : null}
-          </div>
-        </div>
-
+    <Card 
+      className={`group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-md border-l-4 ${config.borderLeft} bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800`}
+      onClick={() => onViewDetails(alert)}
+    >
+      <CardContent className="p-0 flex flex-col sm:flex-row h-full">
         {/* Main Content Area */}
-        <div className="flex-1 min-w-0 space-y-1.5 flex flex-col">
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className={`px-2 py-0.5 rounded-md text-xs font-semibold border ${statusBadgeClass[alert.status]}`}>
-              {statusLabel[alert.status]}
-            </span>
-            <span className={`badge badge-sm border-none ${getSeverityBadgeClass(alert.severity)}`}>
-              {getSeverityLabel(alert.severity)}
-            </span>
-            {(alert.metadata as any)?.disease ? (
-              <span className="text-xs text-base-content/60 bg-base-200 px-2 py-0.5 rounded font-medium">
-                {(alert.metadata as any).disease}
+        <div className="flex-1 p-5 space-y-4">
+          {/* Header Row */}
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${statusInfo.classes}`}>
+                {statusInfo.label}
               </span>
-            ) : null}
+              <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${config.bg} ${config.text} ${config.border}`}>
+                <Icon className="w-3.5 h-3.5" />
+                {getSeverityLabel(alert.severity)}
+              </span>
+              {alert.severity === "CRITICAL" && isPending && (
+                <span className="flex h-2.5 w-2.5 relative ml-1">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ef4444] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ef4444]"></span>
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center text-xs font-medium text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+              <Clock className="w-3.5 h-3.5 mr-1.5" />
+              {timeAgo}
+            </div>
           </div>
 
-          <p className="text-base font-medium text-base-content leading-snug line-clamp-2 title-tooltip" title={alert.message}>
-            {alert.message}
-          </p>
-          {(alert.metadata as any)?.district || (alert.metadata as any)?.barangay ? (
-            <p className="text-xs text-base-content/50 flex items-center gap-1">
-              <MapPin className="w-3 h-3 shrink-0" />
-              {[(alert.metadata as any).district, (alert.metadata as any).barangay]
-                .filter(Boolean)
-                .join(" · ")}
-            </p>
-          ) : null}
-          <div className="text-xs text-base-content/40 mt-auto flex items-center gap-1.5">
-            <span>{timeAgo}</span>
+          {/* Message Content */}
+          <div className="pr-4">
+            <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2">
+              {alert.message}
+            </h3>
+          </div>
+
+          {/* Metadata Row */}
+          <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+            {(alert.metadata as any)?.disease && (
+              <div className="flex items-center gap-1.5">
+                <Stethoscope className="w-4 h-4 text-zinc-400" />
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                  {(alert.metadata as any).disease}
+                </span>
+              </div>
+            )}
+            
+            {((alert.metadata as any)?.district || (alert.metadata as any)?.barangay) && (
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-zinc-400" />
+                <span className="font-medium">
+                  {[(alert.metadata as any).district, (alert.metadata as any).barangay]
+                    .filter(Boolean)
+                    .join(", ")}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Actions Area */}
-        <div className="flex sm:flex-row justify-end items-end gap-2 pt-1 sm:pl-4" onClick={(e) => e.stopPropagation()}>
-          {isPending ? (
+        {/* Actions Sidebar (Desktop) / Bottom bar (Mobile) */}
+        <div className="flex sm:flex-col justify-end sm:justify-center items-stretch gap-2 p-4 sm:p-5 bg-zinc-50 dark:bg-zinc-800/50 sm:border-l border-t sm:border-t-0 border-zinc-200 dark:border-zinc-800 sm:w-48 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {isPending && (
             <>
               <button
                 onClick={handleAcknowledge}
                 disabled={isAcknowledging || isDismissing}
-                className="btn btn-sm btn-outline border-primary/30 hover:bg-primary hover:border-primary text-primary hover:text-primary-content h-8 min-h-0"
+                className={`w-full py-2 px-3 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center
+                  ${isAcknowledging 
+                    ? "bg-zinc-200 text-zinc-500 cursor-not-allowed dark:bg-zinc-800" 
+                    : `bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${config.text} hover:border-current`}`}
               >
                 {isAcknowledging ? (
-                  <>
-                    <span className="loading loading-spinner loading-xs"></span>
-                    Wait...
-                  </>
-                ) : (
-                  "Acknowledge"
-                )}
+                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                ) : "Acknowledge"}
               </button>
+              
               <button
                 onClick={handleDismiss}
                 disabled={isAcknowledging || isDismissing}
-                className="btn btn-sm btn-outline border-border hover:bg-base-200 text-base-content/50 hover:text-base-content/80 h-8 min-h-0"
+                className="w-full py-2 px-3 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center disabled:opacity-50"
               >
                 {isDismissing ? (
-                  <>
-                    <span className="loading loading-spinner loading-xs"></span>
-                    Wait...
-                  </>
-                ) : (
-                  "Dismiss"
-                )}
+                  <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                ) : "Dismiss"}
               </button>
             </>
-          ) : null}
+          )}
+
           {((alert.type === "ANOMALY" && (alert.metadata as any)?.latitude) ||
-            (alert.type === "OUTBREAK" && (alert.metadata as any)?.district)) ? (
+            (alert.type === "OUTBREAK" && (alert.metadata as any)?.district)) && (
             <button
               onClick={handleViewOnMap}
-              className="btn btn-sm btn-outline border-border hover:bg-base-200 text-base-content/50 hover:text-base-content/80 h-8 min-h-0"
+              className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center group-button"
             >
-              <MapPin className="w-4 h-4 mr-1" /> View on map
+              <MapPin className="w-4 h-4 mr-2 opacity-70" /> 
+              Map View
             </button>
-          ) : null}
+          )}
+
           <button
             onClick={() => onViewDetails(alert)}
-            className="btn btn-sm btn-outline border-border hover:bg-base-200 text-base-content/50 hover:text-base-content/80 h-8 min-h-0"
+            className="w-full py-2 px-3 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center"
           >
-            View details
+            Details
+            <ChevronRight className="w-4 h-4 ml-1 opacity-50" />
           </button>
         </div>
       </CardContent>
     </Card>
   );
 }
+

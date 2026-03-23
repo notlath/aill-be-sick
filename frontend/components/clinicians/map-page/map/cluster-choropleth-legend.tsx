@@ -26,7 +26,7 @@ const ClusterChoroplethLegend = ({
       div.style.backdropFilter = "blur(8px)";
       div.style.borderRadius = "12px";
       div.style.padding = "12px 14px";
-      div.style.fontFamily = "var(--font-geist-sans), sans-serif";
+      div.style.fontFamily = "var(--font-geist-sans), 'Geist Fallback'";
       div.style.fontWeight = "500";
 
       div.innerHTML += `<h4 style=\"margin: 0 0 8px 0; font-weight: 600; font-size: 14px;\">${title}</h4>`;

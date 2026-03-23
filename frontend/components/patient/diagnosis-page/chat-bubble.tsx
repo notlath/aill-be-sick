@@ -17,6 +17,8 @@ type ChatBubbleProps = {
   isGettingExplanations: boolean;
   explanation: Explanation | null;
   userRole?: string;
+  /** The user's original symptom description (for generating AI insights) */
+  symptomsText?: string;
 } & Message;
 
 // EKG / pulse line — universally recognised as a medical indicator
@@ -72,6 +74,7 @@ const ChatBubble = ({
   isGettingExplanations,
   explanation,
   userRole,
+  symptomsText,
 }: ChatBubbleProps) => {
   const [showClinicianDetails, setShowClinicianDetails] = useState(false);
 
@@ -212,6 +215,8 @@ const ChatBubble = ({
           <InsightsModal
             tokens={explanation.tokens}
             importances={explanation.importances}
+            disease={tempDiagnosis?.disease}
+            symptoms={symptomsText}
           />
         )}
       </article>
@@ -228,7 +233,7 @@ const ChatBubble = ({
         ? "border border-blue-300 bg-blue-50 text-blue-900"
         : role === "USER"
           ? "bg-primary text-primary-content chat-bubble-user"
-          : "bg-gray-100 chat-bubble-ai",
+          : "bg-base-200 text-base-content chat-bubble-ai",
   );
 
   return (

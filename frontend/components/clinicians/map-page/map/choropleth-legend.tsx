@@ -22,7 +22,7 @@ const ChoroplethLegend = ({ label = "Legend" }: ChoroplethLegendProps) => {
       div.style.backdropFilter = "blur(8px)";
       div.style.borderRadius = "12px";
       div.style.padding = "12px 14px";
-      div.style.fontFamily = "var(--font-geist-sans), sans-serif";
+      div.style.fontFamily = "var(--font-geist-sans), 'Geist Fallback'";
       div.style.fontWeight = "500";
 
       const grades = [0, 1, 10, 20, 50, 100];
