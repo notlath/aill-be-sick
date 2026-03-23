@@ -81,6 +81,7 @@ async function DiagnosesData() {
       data={diagnoses || []}
       additionalActions={
         <ExportReportButton
+          key="export-report"
           data={exportData}
           columns={pdfColumns}
           filenameSlug="healthcare-reports"

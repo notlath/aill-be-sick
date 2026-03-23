@@ -116,6 +116,7 @@ async function ChatHistoryList() {
         data={rows}
         additionalActions={
           <ExportReportButton
+            key="export-report"
             data={exportData}
             columns={pdfColumns}
             filenameSlug="assessment-history"

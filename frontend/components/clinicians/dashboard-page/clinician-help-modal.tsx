@@ -24,7 +24,7 @@ const ClinicianHelpModal = () => {
 
   return (
     <dialog
-      className={`help-dialog clinician-help-dialog modal ${isOpen ? "modal-open" : ""}`}
+      className={`help-dialog clinician-help-dialog help-guide-dialog modal ${isOpen ? "modal-open" : ""}`}
     >
       <div className="modal-box w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
         <form method="dialog">
