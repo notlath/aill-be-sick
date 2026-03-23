@@ -4,10 +4,10 @@ import { SYMPTOM_CATEGORIES } from "@/constants/symptom-options";
 import type { Language, TemperatureState } from "@/hooks/use-symptom-checklist";
 import type { TemperatureUnit } from "@/utils/fever-classification";
 import {
+  ArrowLeftRight,
   ArrowUp,
   Check,
   ChevronDown,
-  Globe,
   RotateCcw,
 } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
@@ -64,8 +64,12 @@ const SymptomChecklist = ({
   isAutoChecked,
 }: SymptomChecklistProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const sectionHeaderRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const scrollAnchorRef = useRef<{ sectionId: string; top: number } | null>(null);
+  const sectionHeaderRefs = useRef<Record<string, HTMLButtonElement | null>>(
+    {},
+  );
+  const scrollAnchorRef = useRef<{ sectionId: string; top: number } | null>(
+    null,
+  );
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(SYMPTOM_CATEGORIES.map((c) => c.id)),
   );
@@ -86,14 +90,13 @@ const SymptomChecklist = ({
     } else {
       scrollAnchorRef.current = null;
     }
-    
+
     setExpandedSections((prev) => {
       const next = new Set(prev);
       if (next.has(sectionId)) next.delete(sectionId);
       else next.add(sectionId);
       return next;
     });
-    
   };
 
   useLayoutEffect(() => {
@@ -137,7 +140,7 @@ const SymptomChecklist = ({
               onClick={() => onLanguageChange(language === "en" ? "tl" : "en")}
               disabled={!isInteractive}
             >
-              <Globe className="size-3.5" strokeWidth={2} />
+              <ArrowLeftRight className="size-3.5" strokeWidth={2} />
               {language === "en" ? "Filipino" : "English"}
             </button>
           )}
@@ -145,7 +148,10 @@ const SymptomChecklist = ({
       )}
 
       {/* ── Symptom categories ────────────────────────────────── */}
-      <div ref={scrollContainerRef} className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1 overscroll-contain will-change-scroll">
+      <div
+        ref={scrollContainerRef}
+        className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1 overscroll-contain will-change-scroll"
+      >
         {SYMPTOM_CATEGORIES.map((category) => {
           const isExpanded = expandedSections.has(category.id);
           const checkedInCategory = category.symptoms.filter((s) =>
@@ -158,15 +164,15 @@ const SymptomChecklist = ({
               className="border border-base-300/50 rounded-xl overflow-hidden transition-colors duration-200"
             >
               {/* Section header */}
-                <button
-                  type="button"
-                  ref={(el) => {
-                    sectionHeaderRefs.current[category.id] = el;
-                  }}
-                  className="flex items-center justify-between w-full min-h-[44px] px-3.5 py-2.5 text-left hover:bg-base-200/50 transition-colors duration-200"
-                  onClick={() => toggleSection(category.id)}
-                  disabled={!isInteractive}
-                >
+              <button
+                type="button"
+                ref={(el) => {
+                  sectionHeaderRefs.current[category.id] = el;
+                }}
+                className="flex items-center justify-between w-full min-h-[44px] px-3.5 py-2.5 text-left hover:bg-base-200/50 transition-colors duration-200"
+                onClick={() => toggleSection(category.id)}
+                disabled={!isInteractive}
+              >
                 <div className="flex items-center gap-2.5">
                   <span className="text-sm font-medium text-base-content">
                     {category.title[language]}
@@ -273,7 +279,9 @@ const SymptomChecklist = ({
         <div className="flex flex-col gap-2 h-[88px] shrink-0 animate-in fade-in duration-300">
           <div className="flex items-center justify-between h-[20px] shrink-0 gap-2">
             <p className="text-xs font-medium text-base-content/60 truncate">
-              {language === "en" ? "Generated description" : "Nabuong paglalarawan"}
+              {language === "en"
+                ? "Generated description"
+                : "Nabuong paglalarawan"}
             </p>
             <button
               type="button"

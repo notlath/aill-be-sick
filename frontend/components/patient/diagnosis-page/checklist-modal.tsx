@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { Language, TemperatureState } from "@/hooks/use-symptom-checklist";
 import type { TemperatureUnit } from "@/utils/fever-classification";
-import { Globe, Languages, RotateCcw, X } from "lucide-react";
+import { ArrowLeftRight, RotateCcw, X } from "lucide-react";
 import SymptomChecklist from "./symptom-checklist";
 
 type ChecklistModalProps = {
@@ -109,10 +109,7 @@ const ChecklistModal = ({
               disabled={isPending}
               className="btn btn-ghost btn-sm gap-1.5"
             >
-              <div className="flex items-center gap-1">
-                <Globe className="size-3.5" strokeWidth={2} />
-                <Languages className="size-3" strokeWidth={2.5} />
-              </div>
+              <ArrowLeftRight className="size-3.5" strokeWidth={2} />
               <span className="hidden xs:inline">
                 {language === "en" ? "Filipino" : "English"}
               </span>
