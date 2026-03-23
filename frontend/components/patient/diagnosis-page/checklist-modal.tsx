@@ -162,7 +162,9 @@ const ChecklistModal = ({
             temperature={temperature}
             onTemperatureChange={onTemperatureChange}
             onTemperatureUnitChange={onTemperatureUnitChange}
-            onTemperatureClassificationChange={onTemperatureClassificationChange}
+            onTemperatureClassificationChange={
+              onTemperatureClassificationChange
+            }
             isAutoChecked={isAutoChecked}
           />
         </div>
