@@ -127,6 +127,16 @@ const ChatBubble = ({
           provider.
         </div>
 
+        {/* Actionable guidance for low-confidence diagnoses */}
+        {tempDiagnosis && tempDiagnosis.confidence < 0.7 && (
+          <div className="mx-4 mb-3 rounded-md bg-info/10 px-3 py-2 text-xs text-base-content/70">
+            <p>
+              Consider noting your symptoms and when they started before
+              visiting a healthcare provider.
+            </p>
+          </div>
+        )}
+
         {/* Clinician / developer details (collapsed by default) */}
         {shouldShowToggle && (
           <div className="border-t border-base-300 px-4 py-3">

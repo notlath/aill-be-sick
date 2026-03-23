@@ -8,8 +8,9 @@ import DeleteChatButton from "./delete-chat-button";
 export type HistoryRow = {
   id: string; // chatId
   diagnosis: string;
-  uncertainty: number | null;
-  confidence: number | null;
+  reliabilityLabel: string | null;
+  reliabilityBadgeClass: string | null;
+  reliabilityRank: number | null;
   modelUsed: string | null;
   createdAt: Date;
 };
@@ -23,7 +24,7 @@ export const columns: ColumnDef<HistoryRow>[] = [
           className="flex items-center gap-1 hover:text-primary"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Diagnosis
+          Suggested Condition
           <ArrowUpDown className="w-4 h-4" />
         </button>
       );
@@ -49,41 +50,35 @@ export const columns: ColumnDef<HistoryRow>[] = [
     },
   },
   {
-    accessorKey: "uncertainty",
+    accessorKey: "reliabilityRank",
     header: ({ column }) => {
       return (
         <button
           className="flex items-center gap-1 hover:text-primary"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Uncertainty
+          Reliability
           <ArrowUpDown className="w-4 h-4" />
         </button>
       );
     },
     cell: ({ row }) => {
-      const uncertainty = row.getValue("uncertainty") as number | null;
-      if (uncertainty === null) return <span className="text-muted">—</span>;
-      return <span>{(uncertainty * 100).toFixed(2)}%</span>;
-    },
-  },
-  {
-    accessorKey: "confidence",
-    header: ({ column }) => {
+      const rank = row.getValue("reliabilityRank") as number | null;
+      if (rank === null) {
+        return <span className="text-muted">—</span>;
+      }
+
+      const label = row.original.reliabilityLabel;
+      const badgeClass = row.original.reliabilityBadgeClass;
+      if (!label || !badgeClass) {
+        return <span className="text-muted">—</span>;
+      }
+
       return (
-        <button
-          className="flex items-center gap-1 hover:text-primary"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-        >
-          Confidence
-          <ArrowUpDown className="w-4 h-4" />
-        </button>
+        <span className={`badge ${badgeClass} badge-sm whitespace-nowrap`}>
+          {label}
+        </span>
       );
-    },
-    cell: ({ row }) => {
-      const confidence = row.getValue("confidence") as number | null;
-      if (confidence === null) return <span className="text-muted">—</span>;
-      return <span>{(confidence * 100).toFixed(2)}%</span>;
     },
   },
   {

@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { ExportReportButton } from "@/components/ui/export-report-button";
 import type { PdfColumn } from "@/utils/pdf-export";
 import LegalFooter from "@/components/shared/legal-footer";
+import { getReliability } from "@/utils/reliability";
 
 async function ChatHistoryList() {
   const { success: dbUser, error: userError } = await getCurrentDbUser();
@@ -30,7 +31,7 @@ async function ChatHistoryList() {
   if (chats.length === 0) {
     return (
       <p className="text-muted text-lg mt-8 text-center">
-        You don't have any diagnosis history yet.
+        You don't have any assessment history yet.
       </p>
     );
   }
@@ -39,6 +40,9 @@ async function ChatHistoryList() {
     let diagnosis = "";
     let uncertainty: number | null = null;
     let confidence: number | null = null;
+    let reliabilityLabel: string | null = null;
+    let reliabilityBadgeClass: string | null = null;
+    let reliabilityRank: number | null = null;
     let modelUsed: string | null = null;
 
     if (chat.hasDiagnosis && chat.diagnosis) {
@@ -73,31 +77,35 @@ async function ChatHistoryList() {
           : latestMessageContentRaw;
     }
 
+    if (confidence !== null && uncertainty !== null) {
+      const reliability = getReliability(confidence, uncertainty);
+      reliabilityLabel = reliability.label;
+      reliabilityBadgeClass = reliability.badgeClass;
+      reliabilityRank = reliability.rank;
+    }
+
     return {
       id: chat.chatId,
       diagnosis: diagnosis || "No details available",
-      uncertainty,
-      confidence,
+      reliabilityLabel,
+      reliabilityBadgeClass,
+      reliabilityRank,
       modelUsed,
       createdAt: chat.createdAt,
     };
   });
 
   const pdfColumns: PdfColumn[] = [
-    { header: "Diagnosis", dataKey: "diagnosis" },
+    { header: "Suggested Condition", dataKey: "diagnosis" },
     { header: "Model", dataKey: "modelUsed" },
-    { header: "Uncertainty", dataKey: "uncertainty" },
-    { header: "Confidence", dataKey: "confidence" },
+    { header: "Reliability", dataKey: "reliability" },
     { header: "Date", dataKey: "createdAt" },
   ];
 
   const exportData = rows.map((row) => ({
     diagnosis: row.diagnosis,
     modelUsed: row.modelUsed || "-",
-    uncertainty:
-      row.uncertainty !== null ? `${(row.uncertainty * 100).toFixed(2)}%` : "-",
-    confidence:
-      row.confidence !== null ? `${(row.confidence * 100).toFixed(2)}%` : "-",
+    reliability: row.reliabilityLabel || "-",
     createdAt: new Date(row.createdAt),
   }));
 
@@ -108,11 +116,12 @@ async function ChatHistoryList() {
         data={rows}
         additionalActions={
           <ExportReportButton
+            key="export-report"
             data={exportData}
             columns={pdfColumns}
-            filenameSlug="diagnosis-history"
-            title="Diagnosis History"
-            subtitle="Your diagnosis history"
+            filenameSlug="assessment-history"
+            title="Assessment History"
+            subtitle="Your symptom check history"
             generatedBy={{
               name: dbUser.name ?? "Unknown",
               email: dbUser.email,
@@ -183,23 +192,23 @@ function ChatHistorySkeleton() {
 
 const HistoryPage = async () => {
   return (
-    <>
-      <main className="space-y-8 lg:space-y-10 mx-auto p-4 pt-8 lg:p-8 lg:pt-12 max-w-5xl flex-1 w-full relative">
+    <div className="flex flex-col min-h-full">
+      <div className="space-y-8 lg:space-y-10 mx-auto p-4 pt-8 lg:p-8 lg:pt-12 max-w-5xl flex-1 w-full relative">
         <div className="space-y-2">
           <h1 className="mb-1 font-semibold text-base-content text-3xl lg:text-4xl tracking-tight">
-            Diagnosis history
+            Assessment history
           </h1>
           <p className="text-muted text-base lg:text-lg">
-            You can view all your previous diagnoses and their details here.
+            View your previous symptom checks and suggested conditions. These are AI suggestions, not medical diagnoses.
           </p>
         </div>
 
         <Suspense fallback={<ChatHistorySkeleton />}>
           <ChatHistoryList />
         </Suspense>
-      </main>
+      </div>
       <LegalFooter />
-    </>
+    </div>
   );
 };
 

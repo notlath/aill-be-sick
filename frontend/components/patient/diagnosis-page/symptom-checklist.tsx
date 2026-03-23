@@ -1,7 +1,8 @@
 "use client";
 
 import { SYMPTOM_CATEGORIES } from "@/constants/symptom-options";
-import type { Language } from "@/hooks/use-symptom-checklist";
+import type { Language, TemperatureState } from "@/hooks/use-symptom-checklist";
+import type { TemperatureUnit } from "@/utils/fever-classification";
 import {
   ArrowUp,
   Check,
@@ -10,6 +11,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
+import FeverInput from "./fever-input";
 
 type SymptomChecklistProps = {
   checkedIds: Set<string>;
@@ -28,6 +30,16 @@ type SymptomChecklistProps = {
   hideLanguageToggle?: boolean;
   /** Hide the instruction header text */
   hideHeader?: boolean;
+  /** Temperature state */
+  temperature?: TemperatureState;
+  /** Called when temperature value changes */
+  onTemperatureChange?: (value: string) => void;
+  /** Called when temperature unit changes */
+  onTemperatureUnitChange?: (unit: TemperatureUnit) => void;
+  /** Called when temperature classification changes */
+  onTemperatureClassificationChange?: (celsius: number | null) => void;
+  /** Check if a symptom was auto-checked by temperature */
+  isAutoChecked?: (id: string) => boolean;
 };
 
 const SymptomChecklist = ({
@@ -45,6 +57,11 @@ const SymptomChecklist = ({
   disabled = false,
   hideLanguageToggle = false,
   hideHeader = false,
+  temperature,
+  onTemperatureChange,
+  onTemperatureUnitChange,
+  onTemperatureClassificationChange,
+  isAutoChecked,
 }: SymptomChecklistProps) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const sectionHeaderRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -180,8 +197,30 @@ const SymptomChecklist = ({
                       {category.description[language]}
                     </p>
                   )}
+
+                  {/* Temperature input - only show in General category */}
+                  {category.id === "general" &&
+                    temperature &&
+                    onTemperatureChange &&
+                    onTemperatureUnitChange && (
+                      <div className="mb-3 pb-3 border-b border-base-300/30">
+                        <FeverInput
+                          value={temperature.value}
+                          onChange={onTemperatureChange}
+                          unit={temperature.unit}
+                          onUnitChange={onTemperatureUnitChange}
+                          language={language}
+                          disabled={!isInteractive}
+                          onClassificationChange={
+                            onTemperatureClassificationChange
+                          }
+                        />
+                      </div>
+                    )}
+
                   {category.symptoms.map((symptom) => {
                     const isChecked = checkedIds.has(symptom.id);
+                    const autoChecked = isAutoChecked?.(symptom.id) ?? false;
                     return (
                       <label
                         key={symptom.id}
@@ -213,6 +252,12 @@ const SymptomChecklist = ({
                         <span className="text-sm text-base-content leading-snug">
                           {symptom.label[language]}
                         </span>
+                        {/* Auto-checked indicator */}
+                        {autoChecked && isChecked && (
+                          <span className="badge badge-ghost badge-xs text-base-content/50 ml-auto">
+                            {language === "en" ? "auto" : "awtomatiko"}
+                          </span>
+                        )}
                       </label>
                     );
                   })}

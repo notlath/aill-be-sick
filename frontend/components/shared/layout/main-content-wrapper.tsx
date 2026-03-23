@@ -25,7 +25,7 @@ const MainContentWrapper = ({ children }: MainContentWrapperProps) => {
     >
       <div
         className={cn(
-          "bg-base-100 shadow-sm rounded-2xl sidebar:rounded-3xl w-full h-[calc(100dvh-1.5rem)] sidebar:h-[calc(100vh-3rem)] overflow-y-auto",
+          "bg-base-100 shadow-sm rounded-2xl sidebar:rounded-3xl w-full h-[calc(100dvh-1.5rem)] sidebar:h-[calc(100vh-3rem)] overflow-y-auto flex flex-col",
           pathname !== "/diagnosis" && "border border-border/50"
         )}
         style={{

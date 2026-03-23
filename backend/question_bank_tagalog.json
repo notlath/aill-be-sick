@@ -6,7 +6,8 @@
       "positive_symptom": "Nakakaranas ako ng pananakit o hindi komportable sa aking katawan",
       "negative_symptom": "Wala akong nararamdamang matinding pananakit o hindi komportable",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "dengue_q2",
@@ -14,7 +15,8 @@
       "positive_symptom": "Nakakaranas ako ng matinding pananakit ng joints o kalamnan",
       "negative_symptom": "Wala akong matinding pananakit ng joints o kalamnan",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "dengue_q3",
@@ -22,7 +24,8 @@
       "positive_symptom": "Mayroon akong lagnat o tumaas na temperatura ng katawan",
       "negative_symptom": "Wala akong lagnat",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "dengue_q4",
@@ -30,7 +33,8 @@
       "positive_symptom": "Mayroon akong pantal o pulang spot sa aking balat",
       "negative_symptom": "Wala akong pantal o pulang spot sa aking balat",
       "weight": 0.91,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "dengue_q5",
@@ -38,7 +42,8 @@
       "positive_symptom": "Nakapansin ako ng pamumula ng balat o namamagang bahagi",
       "negative_symptom": "Wala akong napapansin na pamumula ng balat",
       "weight": 0.9,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "dengue_q6",
@@ -46,7 +51,8 @@
       "positive_symptom": "Nakakaranas ako ng pananakit sa mata o sa likod ng aking mga mata",
       "negative_symptom": "Wala akong pananakit sa mata",
       "weight": 0.89,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 3
     },
     {
       "id": "dengue_q7",
@@ -54,7 +60,8 @@
       "positive_symptom": "Nakakaranas ako ng panginginig o pakiramdam na sobrang lamig",
       "negative_symptom": "Hindi ako nakakaranas ng panginginig",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "dengue_q8",
@@ -62,7 +69,8 @@
       "positive_symptom": "Nakaranas ako ng pagduduwal o pagsusuka",
       "negative_symptom": "Hindi ako nakaranas ng pagduduwal o pagsusuka",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "dengue_q9",
@@ -70,7 +78,8 @@
       "positive_symptom": "Nakakaramdam ako ng hindi pangkaraniwang pagod o panghihina",
       "negative_symptom": "Hindi ako nakakaramdam ng hindi pangkaraniwang pagod",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "dengue_q10",
@@ -78,7 +87,8 @@
       "positive_symptom": "Nakaranas ako ng pananakit ng ulo",
       "negative_symptom": "Wala akong pananakit ng ulo",
       "weight": 0.85,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     }
   ],
   "Pneumonia": [
@@ -88,7 +98,8 @@
       "positive_symptom": "Umuubo ako ng plema o sipon",
       "negative_symptom": "Hindi ako umuubo ng plema o sipon",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "pneumonia_q2",
@@ -96,7 +107,8 @@
       "positive_symptom": "Labis akong pinagpapawisan o nararamdaman ang matinding pagpapawis",
       "negative_symptom": "Hindi ako labis na pinagpapawisan",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "pneumonia_q3",
@@ -104,7 +116,8 @@
       "positive_symptom": "Nakakaranas ako ng pananakit ng dibdib o hindi komportable sa dibdib",
       "negative_symptom": "Wala akong pananakit ng dibdib",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "pneumonia_q4",
@@ -112,7 +125,8 @@
       "positive_symptom": "Nakakaranas ako ng pananakit sa aking katawan",
       "negative_symptom": "Wala akong pananakit sa aking katawan",
       "weight": 0.91,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "pneumonia_q5",
@@ -120,7 +134,8 @@
       "positive_symptom": "Nakakaramdam ako ng hindi pangkaraniwang pagod o panghihina",
       "negative_symptom": "Hindi ako nakakaramdam ng hindi pangkaraniwang pagod",
       "weight": 0.9,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "pneumonia_q6",
@@ -128,7 +143,8 @@
       "positive_symptom": "Nakakaranas ako ng nanginginig sa ginaw o pakiramdam na sobrang lamig",
       "negative_symptom": "Hindi ako nakakaranas ng panginginig",
       "weight": 0.89,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "pneumonia_q7",
@@ -136,7 +152,8 @@
       "positive_symptom": "Mayroon akong ubo",
       "negative_symptom": "Wala akong ubo",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "pneumonia_q8",
@@ -144,7 +161,8 @@
       "positive_symptom": "Mayroon akong lagnat o tumaas na temperatura ng katawan",
       "negative_symptom": "Wala akong lagnat",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "pneumonia_q9",
@@ -152,7 +170,8 @@
       "positive_symptom": "Nahihirapan ako sa paghinga, kulang sa hininga, o mabilis ang paghinga",
       "negative_symptom": "Hindi ako nahihirapan sa paghinga",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "pneumonia_q10",
@@ -160,7 +179,8 @@
       "positive_symptom": "Nakakaranas ako ng pananakit ng joints o kalamnan",
       "negative_symptom": "Wala akong pananakit ng joints o kalamnan",
       "weight": 0.85,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     }
   ],
   "Typhoid": [
@@ -170,7 +190,8 @@
       "positive_symptom": "Nakakaranas ako ng pananakit ng tiyan o hindi komportable sa tiyan",
       "negative_symptom": "Wala akong pananakit ng tiyan o hindi komportable",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "typhoid_q2",
@@ -178,7 +199,8 @@
       "positive_symptom": "Nakakaranas ako ng pananakit sa anumang bahagi ng aking katawan",
       "negative_symptom": "Wala akong pananakit sa aking katawan",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "typhoid_q3",
@@ -186,7 +208,8 @@
       "positive_symptom": "Mayroon akong lagnat o tumaas na temperatura ng katawan",
       "negative_symptom": "Wala akong lagnat",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "typhoid_q4",
@@ -194,7 +217,8 @@
       "positive_symptom": "Nakakaramdam ako ng hindi pangkaraniwang pagod o panghihina",
       "negative_symptom": "Hindi ako nakakaramdam ng hindi pangkaraniwang pagod",
       "weight": 0.91,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "typhoid_q5",
@@ -202,7 +226,8 @@
       "positive_symptom": "Nakaranas ako ng pagduduwal o pagsusuka",
       "negative_symptom": "Hindi ako nakaranas ng pagduduwal o pagsusuka",
       "weight": 0.9,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "typhoid_q6",
@@ -210,7 +235,8 @@
       "positive_symptom": "Mayroon akong pagtatae o malambot na dumi",
       "negative_symptom": "Wala akong pagtatae o malambot na dumi",
       "weight": 0.89,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "typhoid_q7",
@@ -218,7 +244,8 @@
       "positive_symptom": "Nahihirapan ako sa pagtae o nakakaranas ng constipation",
       "negative_symptom": "Hindi ako nahihirapan sa pagtae",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "typhoid_q8",
@@ -226,7 +253,8 @@
       "positive_symptom": "Nakaranas ako ng pananakit ng ulo",
       "negative_symptom": "Wala akong pananakit ng ulo",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "typhoid_q9",
@@ -234,7 +262,8 @@
       "positive_symptom": "Nakakaranas ako ng panginginig o pakiramdam na sobrang lamig",
       "negative_symptom": "Hindi ako nakakaranas ng panginginig",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "typhoid_q10",
@@ -242,7 +271,8 @@
       "positive_symptom": "Nahihirapan ako na manatiling hydrated o pakiramdam na dehydrated",
       "negative_symptom": "Hindi ako nahihirapan na manatiling hydrated",
       "weight": 0.85,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 3
     }
   ],
   "Diarrhea": [
@@ -252,7 +282,8 @@
       "positive_symptom": "Madalas akong dumumi ng matubig o malabnaw",
       "negative_symptom": "Normal naman ang dalas at itsura ng dumi ko",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "diarrhea_q2",
@@ -260,7 +291,8 @@
       "positive_symptom": "Napansin ko na may dugo sa aking dumi",
       "negative_symptom": "Wala akong napansing dugo sa aking dumi",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "diarrhea_q3",
@@ -268,7 +300,8 @@
       "positive_symptom": "Nakakaranas ako ng sakit ng tiyan o pulikat",
       "negative_symptom": "Wala akong matinding sakit ng tiyan",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "diarrhea_q4",
@@ -276,7 +309,8 @@
       "positive_symptom": "Nakakaramdam ako ng uhaw, tuyong bibig, o dehydrated",
       "negative_symptom": "Hindi ako nakakaramdam ng matinding uhaw",
       "weight": 0.91,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "diarrhea_q5",
@@ -284,7 +318,8 @@
       "positive_symptom": "Mayroon akong lagnat",
       "negative_symptom": "Wala akong lagnat",
       "weight": 0.90,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "diarrhea_q6",
@@ -292,7 +327,8 @@
       "positive_symptom": "Nakakaranas ako ng pagduduwal o pagsusuka",
       "negative_symptom": "Hindi ako nakakaranas ng pagduduwal o pagsusuka",
       "weight": 0.89,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "diarrhea_q7",
@@ -300,7 +336,8 @@
       "positive_symptom": "Napansin ko na may uhog o slime sa aking dumi",
       "negative_symptom": "Wala akong napansing uhog sa aking dumi",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 3
     },
     {
       "id": "diarrhea_q8",
@@ -308,7 +345,8 @@
       "positive_symptom": "Nakakaramdam ako ng matinding pangangailangan dumumi nang madalas",
       "negative_symptom": "Wala akong nararamdamang ganun",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "diarrhea_q9",
@@ -316,7 +354,8 @@
       "positive_symptom": "Nakakaramdam ako ng matinding panghihina o pagod",
       "negative_symptom": "Hindi ako nakakaramdam ng matinding hihina",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "diarrhea_q10",
@@ -324,7 +363,8 @@
       "positive_symptom": "Nawalan ako ng gana kumain",
       "negative_symptom": "Hindi ako nawalan ng gana kumain",
       "weight": 0.85,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     }
   ],
   "Measles": [
@@ -334,7 +374,8 @@
       "positive_symptom": "Mayroon akong pantal na nagsimula sa aking mukha",
       "negative_symptom": "Wala akong pantal",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "measles_q2",
@@ -342,7 +383,8 @@
       "positive_symptom": "Mayroon akong mataas na lagnat",
       "negative_symptom": "Wala akong mataas na lagnat",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "measles_q3",
@@ -350,7 +392,8 @@
       "positive_symptom": "Mayroon akong tuyong ubo",
       "negative_symptom": "Wala akong ubo",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "measles_q4",
@@ -358,7 +401,8 @@
       "positive_symptom": "Mayroon akong sipon",
       "negative_symptom": "Wala akong sipon",
       "weight": 0.91,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "measles_q5",
@@ -366,7 +410,8 @@
       "positive_symptom": "Namumula o nagluluha ang aking mga mata",
       "negative_symptom": "Normal naman ang aking mga mata",
       "weight": 0.90,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "measles_q6",
@@ -374,7 +419,8 @@
       "positive_symptom": "Napansin ko ang maliliit na puting spot sa loob ng aking bibig",
       "negative_symptom": "Wala akong napansing puting spot sa bibig ko",
       "weight": 0.89,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 5
     },
     {
       "id": "measles_q7",
@@ -382,7 +428,8 @@
       "positive_symptom": "Sensitibo sa liwanag ang aking mga mata",
       "negative_symptom": "Hindi sensitibo sa liwanag ang aking mga mata",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "measles_q8",
@@ -390,7 +437,8 @@
       "positive_symptom": "Nakakaranas ako ng pananakit ng kalamnan o katawan",
       "negative_symptom": "Wala akong pananakit ng kalamnan",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 2
     },
     {
       "id": "measles_q9",
@@ -398,7 +446,8 @@
       "positive_symptom": "Masakit ang aking lalamunan",
       "negative_symptom": "Hindi masakit ang aking lalamunan",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "measles_q10",
@@ -406,7 +455,8 @@
       "positive_symptom": "Nakakaramdam ako ng matinding pagod",
       "negative_symptom": "Hindi ako nakakaramdam ng matinding pagod",
       "weight": 0.85,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     }
   ],
   "Influenza": [
@@ -416,7 +466,8 @@
       "positive_symptom": "Bigla ang pagsimula ng aking mga sintomas na may lagnat",
       "negative_symptom": "Unti-unti ang pagsimula ng aking mga sintomas",
       "weight": 0.95,
-      "category": "primary"
+      "category": "primary",
+      "burden": 3
     },
     {
       "id": "influenza_q2",
@@ -424,7 +475,8 @@
       "positive_symptom": "Nakakaranas ako ng matinding pananakit ng kalamnan o katawan",
       "negative_symptom": "Wala akong matinding pananakit ng katawan",
       "weight": 0.93,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "influenza_q3",
@@ -432,7 +484,8 @@
       "positive_symptom": "Nakakaranas ako ng panginginig o pagpapawis",
       "negative_symptom": "Hindi ako nakakaranas ng panginginig",
       "weight": 0.92,
-      "category": "primary"
+      "category": "primary",
+      "burden": 2
     },
     {
       "id": "influenza_q4",
@@ -440,7 +493,8 @@
       "positive_symptom": "Mayroon akong tuyo at paulit-ulit na ubo",
       "negative_symptom": "Wala akong paulit-ulit na ubo",
       "weight": 0.91,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "influenza_q5",
@@ -448,7 +502,8 @@
       "positive_symptom": "Nakakaramdam ako ng labis na pagod o panghihina",
       "negative_symptom": "Hindi ako nakakaramdam ng labis na pagod",
       "weight": 0.90,
-      "category": "primary"
+      "category": "primary",
+      "burden": 1
     },
     {
       "id": "influenza_q6",
@@ -456,7 +511,8 @@
       "positive_symptom": "Masakit ang aking ulo",
       "negative_symptom": "Hindi masakit ang aking ulo",
       "weight": 0.89,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "influenza_q7",
@@ -464,7 +520,8 @@
       "positive_symptom": "Masakit ang aking lalamunan",
       "negative_symptom": "Hindi masakit ang aking lalamunan",
       "weight": 0.88,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "influenza_q8",
@@ -472,7 +529,8 @@
       "positive_symptom": "Mayroon akong sipon o baradong ilong",
       "negative_symptom": "Wala akong sipon o baradong ilong",
       "weight": 0.87,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     },
     {
       "id": "influenza_q9",
@@ -480,7 +538,8 @@
       "positive_symptom": "Mayroon akong sakit sa likod ng mata o sensitibo sa liwanag",
       "negative_symptom": "Wala akong sakit sa mata",
       "weight": 0.86,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 3
     },
     {
       "id": "influenza_q10",
@@ -488,7 +547,8 @@
       "positive_symptom": "Nakaranas ako ng pagsusuka o pagtatae",
       "negative_symptom": "Hindi ako nakaranas ng pagsusuka o pagtatae",
       "weight": 0.85,
-      "category": "secondary"
+      "category": "secondary",
+      "burden": 1
     }
   ]
 }

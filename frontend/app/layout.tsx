@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "@/components/ui/toaster";
+import { ThemeProvider } from "@/components/shared/theme-provider";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 
@@ -53,9 +54,16 @@ export default async function RootLayout({
         // See: https://react.dev/link/hydration-mismatch
         className={`${geistSans.variable} ${geistSans.className} ${geistMono.variable} w-full bg-base-300 antialiased`}
       >
-        <NextTopLoader showSpinner={false} color="#009764" />
-        {children}
-        <Toaster />
+        <ThemeProvider
+          attribute="data-theme"
+          defaultTheme="system"
+          enableSystem
+          themes={["light", "dark"]}
+        >
+          <NextTopLoader showSpinner={false} color="#009764" />
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

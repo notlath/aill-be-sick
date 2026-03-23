@@ -39,12 +39,10 @@ type SortOption = {
 const sortOptions: SortOption[] = [
   { value: "createdAt", label: "Date (Newest)", desc: true },
   { value: "createdAt", label: "Date (Oldest)", desc: false },
-  { value: "diagnosis", label: "Diagnosis (A-Z)", desc: false },
-  { value: "diagnosis", label: "Diagnosis (Z-A)", desc: true },
-  { value: "uncertainty", label: "Uncertainty (High-Low)", desc: true },
-  { value: "uncertainty", label: "Uncertainty (Low-High)", desc: false },
-  { value: "confidence", label: "Confidence (High-Low)", desc: true },
-  { value: "confidence", label: "Confidence (Low-High)", desc: false },
+  { value: "diagnosis", label: "Condition (A-Z)", desc: false },
+  { value: "diagnosis", label: "Condition (Z-A)", desc: true },
+  { value: "reliabilityRank", label: "Reliability (High-Low)", desc: true },
+  { value: "reliabilityRank", label: "Reliability (Low-High)", desc: false },
 ];
 
 export function DataTable<TData, TValue>({
@@ -108,7 +106,7 @@ export function DataTable<TData, TValue>({
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
             type="text"
-            placeholder="Search diagnosis history..."
+            placeholder="Search assessment history..."
             value={globalFilter ?? ""}
             onChange={(e) => {
               setGlobalFilter(e.target.value);
@@ -167,7 +165,7 @@ export function DataTable<TData, TValue>({
             </SelectContent>
           </Select>
 
-          {additionalActions}
+          {additionalActions && <div key="additional-actions">{additionalActions}</div>}
         </div>
       </div>
 
@@ -177,8 +175,8 @@ export function DataTable<TData, TValue>({
           table.getRowModel().rows.map((row) => {
             const original = row.original as any;
             const diagnosis = original.diagnosis as string;
-            const uncertainty = original.uncertainty as number | null;
-            const confidence = original.confidence as number | null;
+            const reliabilityLabel = original.reliabilityLabel as string | null;
+            const reliabilityBadgeClass = original.reliabilityBadgeClass as string | null;
             const modelUsed = original.modelUsed as string | null;
             const createdAt = original.createdAt as Date;
 
@@ -207,50 +205,19 @@ export function DataTable<TData, TValue>({
                       })}
                     </p>
                   </div>
-                  {modelUsed && (
-                    <span className="badge badge-sm badge-ghost shrink-0 w-fit">
-                      {modelUsed}
-                    </span>
-                  )}
-                </div>
-
-                {/* Stats row */}
-                {(confidence !== null || uncertainty !== null) && (
-                  <div className="flex gap-3">
-                    {confidence !== null && (
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted">Confidence</span>
-                          <span className="text-xs font-medium text-base-content">
-                            {(confidence * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="h-1.5 w-full bg-base-300 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-success rounded-full transition-all duration-500"
-                            style={{ width: `${Math.min(confidence * 100, 100)}%` }}
-                          />
-                        </div>
-                      </div>
+                  <div className="flex items-center flex-wrap gap-2">
+                    {modelUsed && (
+                      <span className="badge badge-sm badge-ghost shrink-0 w-fit">
+                        {modelUsed}
+                      </span>
                     )}
-                    {uncertainty !== null && (
-                      <div className="flex-1 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted">Uncertainty</span>
-                          <span className="text-xs font-medium text-base-content">
-                            {(uncertainty * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                        <div className="h-1.5 w-full bg-base-300 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-warning rounded-full transition-all duration-500"
-                            style={{ width: `${Math.min(uncertainty * 100, 100)}%` }}
-                          />
-                        </div>
-                      </div>
+                    {reliabilityLabel && reliabilityBadgeClass && (
+                      <span className={`badge badge-sm shrink-0 w-fit ${reliabilityBadgeClass}`}>
+                        {reliabilityLabel}
+                      </span>
                     )}
                   </div>
-                )}
+                </div>
 
                 {/* Actions row */}
                 <div className="flex justify-end pt-1">

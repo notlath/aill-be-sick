@@ -288,7 +288,7 @@ export function AlertDetailModal({
                   count !== undefined && disease
                     ? `In the last 7 days, ${count} ${count === 1 ? "case" : "cases"} of ${disease} ${count === 1 ? "was" : "were"} recorded${locationParts ? ` in ${locationParts}` : ""}.`
                     : null,
-                  `This has passed the ${thresholdLabel} — above the usual level for this area.${basePart}`,
+                  `This has passed the DOH PIDSR ${thresholdLabel} — above the usual level for this area.${basePart}`,
                   isCluster ? "Cases appear to be concentrated in a small area of the district." : null,
                 ].filter(Boolean).join(" ");
 

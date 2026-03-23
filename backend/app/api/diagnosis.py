@@ -11,6 +11,7 @@ Redesigned with:
 import time
 import traceback
 import numpy as np
+from typing import Any, cast
 from flask import Blueprint, request, jsonify, session, current_app
 
 import app.config as config
@@ -20,6 +21,11 @@ from app.utils.scoring import bayesian_evidence_update, lookup_question_metadata
 from app.evidence_keywords import EVIDENCE_KEYWORDS
 from app.models.diagnosis_session import create_session, get_session, update_session
 from app.services.information_gain import select_best_question_across_diseases
+from app.question_groups import (
+    expand_asked_questions,
+    get_questions_to_skip_from_text,
+    get_questions_blocked_by_prerequisites,
+)
 
 diagnosis_bp = Blueprint("diagnosis", __name__)
 
@@ -29,10 +35,46 @@ LABEL2IDX = {v: k for k, v in CORRECT_ID2LABEL.items()}
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _stop_response(reason, pred, confidence, uncertainty, probs,
-                   model_used, top_diseases, mean_probs,
-                   symptoms_text, message=None, is_valid=True,
-                   extra_fields=None):
+
+def _format_condition_name(condition):
+    """Convert model label to readable lowercase condition name."""
+    if not condition:
+        return "the suggested condition"
+    return str(condition).strip().lower()
+
+
+def _build_conflicting_match_message(predicted_disease):
+    """Message for partial match with verification conflict."""
+    condition = _format_condition_name(predicted_disease)
+    return (
+        f"Your symptoms partially match {condition}, but some of what you described does not fully fit this condition. "
+        "Because of this mismatch, this result is not reliable enough to confirm. "
+        "Please consult a healthcare professional for a proper evaluation."
+    )
+
+
+def _build_no_clear_match_message():
+    """Message for out-of-scope cases without a trustworthy match."""
+    return (
+        "Your symptoms do not clearly match the diseases this system currently covers. "
+        "Please consult a healthcare professional for a proper evaluation."
+    )
+
+
+def _stop_response(
+    reason,
+    pred,
+    confidence,
+    uncertainty,
+    probs,
+    model_used,
+    top_diseases,
+    mean_probs,
+    symptoms_text,
+    message=None,
+    is_valid=True,
+    extra_fields=None,
+):
     """Build a standard 'should_stop' response dict."""
     data = {
         "should_stop": True,
@@ -48,8 +90,12 @@ def _stop_response(reason, pred, confidence, uncertainty, probs,
             "mean_probs": mean_probs,
             "is_valid": is_valid,
             "cdss": _build_cdss_payload(
-                symptoms_text, pred, confidence,
-                uncertainty, top_diseases, model_used,
+                symptoms_text,
+                pred,
+                confidence,
+                uncertainty,
+                top_diseases,
+                model_used,
             ),
         },
     }
@@ -64,7 +110,7 @@ def _stop_response(reason, pred, confidence, uncertainty, probs,
 def _normalize_mean_probs(mean_probs):
     """Flatten nested probability lists to a simple float list."""
     flat = []
-    for item in (mean_probs or []):
+    for item in mean_probs or []:
         if isinstance(item, (list, tuple)):
             for sub in item:
                 flat.append(float(sub))
@@ -117,7 +163,9 @@ def _clamp_impossible_diseases(
             continue  # Already near-zero, skip verification overhead
         result = verification_layer.verify(symptoms_text, label)
         if not result["is_valid"]:
-            print(f"[CLAMP] Clamping {label} to 0 (unexplained: {result['unexplained_concepts']})")
+            print(
+                f"[CLAMP] Clamping {label} to 0 (unexplained: {result['unexplained_concepts']})"
+            )
             probs[idx] = 1e-10
             clamped_any = True
 
@@ -139,6 +187,7 @@ def _has_evidence(q, symptoms_lower: str) -> bool:
 
 
 # ── /diagnosis/new ────────────────────────────────────────────────────────────
+
 
 @diagnosis_bp.route("/diagnosis/new", methods=["POST"])
 def new_case():
@@ -189,14 +238,20 @@ def new_case():
         verification_result = verification_layer.verify(symptoms, pred)
         if not verification_result["is_valid"]:
             unexplained = verification_result["unexplained_concepts"]
+            conflicting_match_message = _build_conflicting_match_message(pred)
             print(
                 f"[VERIFICATION] FAIL: Unexplained concepts {unexplained} for predicted disease {pred}"
             )
             cdss = _build_cdss_payload(
-                symptoms, pred, confidence, uncertainty, top_diseases, model_used,
+                symptoms,
+                pred,
+                confidence,
+                uncertainty,
+                top_diseases,
+                model_used,
             )
             cdss["red_flags"] = cdss.get("red_flags", []) + [
-                f"Symptoms detected that are not typical of {pred}. Please consult a healthcare professional."
+                f"Some symptoms you described are not typical of {pred}. Please consult a healthcare professional."
             ]
             return (
                 jsonify(
@@ -213,11 +268,13 @@ def new_case():
                             "cdss": cdss,
                             "skip_followup": True,
                             "skip_reason": "OUT_OF_SCOPE",
+                            "out_of_scope_type": "CONFLICTING_MATCH",
+                            "message": conflicting_match_message,
                             "is_valid": False,
                             "verification_failure": {
                                 "unexplained_concepts": list(unexplained),
-                                "message": "Your symptoms include indicators not typically associated with our supported conditions. Please consult a healthcare professional."
-                            }
+                                "message": conflicting_match_message,
+                            },
                         }
                     }
                 ),
@@ -227,8 +284,7 @@ def new_case():
         # ── Create DB-backed session ──────────────────────────────────────
         lang_detected = (
             "tl"
-            if "Tagalog" in str(model_used)
-            or "TAGALOG" in str(model_used).upper()
+            if "Tagalog" in str(model_used) or "TAGALOG" in str(model_used).upper()
             else "en"
         )
         mean_probs_list = _normalize_mean_probs(mean_probs)
@@ -243,7 +299,9 @@ def new_case():
             confidence=float(confidence),
             uncertainty=float(uncertainty),
             top_diseases=top_diseases_serialized,
-            model_used=str(model_used) if model_used is not None else "BioClinical ModernBERT",
+            model_used=str(model_used)
+            if model_used is not None
+            else "BioClinical ModernBERT",
             lang=lang_detected,
         )
         print(f"[NEW CASE] Created DB session: {session_id}")
@@ -259,17 +317,27 @@ def new_case():
             "current_probs": mean_probs_list,
             "symptoms_text": symptoms,
             "lang": lang_detected,
-            "model_used": str(model_used) if model_used is not None else "BioClinical ModernBERT",
+            "model_used": str(model_used)
+            if model_used is not None
+            else "BioClinical ModernBERT",
             "start_time": time.time(),
         }
 
         # EARLY STOP: Very high confidence -> skip follow-ups
-        if confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
+        if (
+            confidence >= config.HIGH_CONFIDENCE_THRESHOLD
+            and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD
+        ):
             print(
                 f"[NEW CASE] STOP: Very high confidence (conf={confidence:.3f}, MI={uncertainty:.4f})"
             )
             cdss = _build_cdss_payload(
-                symptoms, pred, confidence, uncertainty, top_diseases, model_used,
+                symptoms,
+                pred,
+                confidence,
+                uncertainty,
+                top_diseases,
+                model_used,
             )
             return (
                 jsonify(
@@ -300,7 +368,12 @@ def new_case():
                 and uncertainty <= config.SYMPTOM_SOFT_MAX_MI
             ):
                 cdss = _build_cdss_payload(
-                    symptoms, pred, confidence, uncertainty, top_diseases, model_used,
+                    symptoms,
+                    pred,
+                    confidence,
+                    uncertainty,
+                    top_diseases,
+                    model_used,
                 )
                 return (
                     jsonify(
@@ -330,7 +403,12 @@ def new_case():
             detailed_enough = _count_words(symptoms) >= 12 or len(symptoms) >= 120
             if detailed_enough:
                 cdss = _build_cdss_payload(
-                    symptoms, pred, confidence, uncertainty, top_diseases, model_used,
+                    symptoms,
+                    pred,
+                    confidence,
+                    uncertainty,
+                    top_diseases,
+                    model_used,
                 )
                 return (
                     jsonify(
@@ -374,7 +452,12 @@ def new_case():
             )
 
         cdss = _build_cdss_payload(
-            symptoms, pred, confidence, uncertainty, top_diseases, model_used,
+            symptoms,
+            pred,
+            confidence,
+            uncertainty,
+            top_diseases,
+            model_used,
         )
         return (
             jsonify(
@@ -441,6 +524,7 @@ def new_case():
 
 # ── /diagnosis/follow-up ─────────────────────────────────────────────────────
 
+
 @diagnosis_bp.route("/diagnosis/follow-up", methods=["POST"])
 def follow_up_question():
     """
@@ -458,38 +542,55 @@ def follow_up_question():
 
         # ── 1. LOAD SESSION STATE ─────────────────────────────────────────
         session_id = data.get("session_id")
-        sess = None
+        sess: dict[str, Any] = {}
 
         if session_id:
-            sess = get_session(session_id)
-            if sess:
+            loaded_session = get_session(session_id)
+            if loaded_session is not None:
+                sess = cast(dict[str, Any], loaded_session)
                 print(f"[FOLLOW-UP] Using DB session: {session_id}")
 
         # Fallback: legacy Flask cookie session or request body
         if not sess:
             legacy_session = session.get("diagnosis")
-            if legacy_session:
+            legacy_chat_id = data.get("chat_id")
+            if legacy_session and (
+                not legacy_chat_id or legacy_session.get("chat_id") == legacy_chat_id
+            ):
                 sess = {
                     "initial_symptoms": legacy_session.get("symptoms_text", ""),
-                    "base_probs": legacy_session.get("base_probs", legacy_session.get("mean_probs", [])),
-                    "current_probs": legacy_session.get("current_probs", legacy_session.get("mean_probs", [])),
+                    "base_probs": legacy_session.get(
+                        "base_probs", legacy_session.get("mean_probs", [])
+                    ),
+                    "current_probs": legacy_session.get(
+                        "current_probs", legacy_session.get("mean_probs", [])
+                    ),
                     "disease": legacy_session.get("disease", ""),
                     "confidence": legacy_session.get("confidence", 0),
                     "uncertainty": legacy_session.get("uncertainty", 1),
                     "top_diseases": legacy_session.get("top_diseases", []),
-                    "model_used": legacy_session.get("model_used", "BioClinical ModernBERT"),
+                    "model_used": legacy_session.get(
+                        "model_used", "BioClinical ModernBERT"
+                    ),
                     "lang": legacy_session.get("lang", "en"),
                     "asked_questions": [],
                     "evidence_texts": [],
                     "created_at": legacy_session.get("start_time", time.time()),
                 }
                 print("[FOLLOW-UP] Using legacy Flask cookie session (fallback)")
+            elif legacy_session and legacy_chat_id:
+                print(
+                    "[FOLLOW-UP] Ignoring legacy cookie session due to chat_id mismatch "
+                    f"(cookie={legacy_session.get('chat_id')} request={legacy_chat_id})"
+                )
             elif data.get("disease"):
                 # Final fallback: construct from request payload
                 sess = {
                     "initial_symptoms": data.get("symptoms", ""),
                     "base_probs": data.get("current_probs", data.get("mean_probs", [])),
-                    "current_probs": data.get("current_probs", data.get("mean_probs", [])),
+                    "current_probs": data.get(
+                        "current_probs", data.get("mean_probs", [])
+                    ),
                     "disease": data.get("disease", ""),
                     "confidence": data.get("confidence", 0),
                     "uncertainty": data.get("uncertainty", 1),
@@ -503,11 +604,13 @@ def follow_up_question():
                 print("[FOLLOW-UP] Using request-body fallback (no session found)")
             else:
                 return (
-                    jsonify({
-                        "error": "SESSION_EXPIRED",
-                        "message": "Your session has expired. Please start a new diagnosis.",
-                        "code": "SESSION_EXPIRED",
-                    }),
+                    jsonify(
+                        {
+                            "error": "SESSION_EXPIRED",
+                            "message": "Your session has expired. Please start a new diagnosis.",
+                            "code": "SESSION_EXPIRED",
+                        }
+                    ),
                     440,
                 )
 
@@ -518,18 +621,24 @@ def follow_up_question():
                 pass
             session.clear()
             return (
-                jsonify({
-                    "error": "SESSION_EXPIRED",
-                    "message": "Your session has timed out. Please start over.",
-                }),
+                jsonify(
+                    {
+                        "error": "SESSION_EXPIRED",
+                        "message": "Your session has timed out. Please start over.",
+                    }
+                ),
                 440,
             )
 
         # Extract state from session
         initial_symptoms = sess.get("initial_symptoms", "")
-        current_probs = np.array(sess.get("current_probs", []), dtype=np.float64).flatten()
+        current_probs = np.array(
+            sess.get("current_probs", []), dtype=np.float64
+        ).flatten()
         evidence_texts = list(sess.get("evidence_texts", []))
         asked_questions_from_session = set(sess.get("asked_questions", []))
+        # Track question answers for prerequisite checking
+        question_answers: dict[str, str] = dict(sess.get("question_answers", {}))
 
         # Merge client-provided asked_questions with session (union)
         client_asked = set(data.get("asked_questions", []))
@@ -537,6 +646,9 @@ def follow_up_question():
 
         # Request fields
         force_question = data.get("force", False)
+        force_complete = data.get(
+            "force_complete", False
+        )  # User wants to skip to results
         last_answer = data.get("last_answer")
         last_question_id = data.get("last_question_id")
         last_question_text = data.get("last_question_text")
@@ -548,13 +660,16 @@ def follow_up_question():
         QUESTION_BANK_EN = current_app.config["QUESTION_BANK_EN"]
         QUESTION_BANK_TL = current_app.config["QUESTION_BANK_TL"]
 
-        pred = sess.get("disease", "")
+        pred = str(sess.get("disease", "") or "")
         confidence = float(sess.get("confidence", 0))
         uncertainty = float(sess.get("uncertainty", 1))
         top_diseases = sess.get("top_diseases", [])
         model_used = sess.get("model_used", "BioClinical ModernBERT")
 
         if last_answer and last_question_id:
+            # Track the answer for prerequisite checking
+            question_answers[last_question_id] = str(last_answer).lower()
+
             session_lang = sess.get("lang", "en")
             qb = QUESTION_BANK_TL if session_lang in ["tl", "fil"] else QUESTION_BANK_EN
             q_meta = lookup_question_metadata(last_question_id, qb)
@@ -569,7 +684,7 @@ def follow_up_question():
                 )
 
                 current_probs = np.array(update_result["probs"])
-                pred = update_result["predicted_label"]
+                pred = str(update_result["predicted_label"])
                 confidence = update_result["confidence"]
                 uncertainty = update_result["uncertainty"]
                 top_diseases = update_result["top_diseases"]
@@ -580,14 +695,18 @@ def follow_up_question():
                     f"conf={confidence:.3f}, MI={uncertainty:.4f}"
                 )
             else:
-                print(f"[FOLLOW-UP] Question {last_question_id} not in bank, using prior state")
+                print(
+                    f"[FOLLOW-UP] Question {last_question_id} not in bank, using prior state"
+                )
 
             # ── 3. BUILD EVIDENCE TEXT FOR UNIFIED INFERENCE ──────────────
             if last_question_text:
                 if str(last_answer).lower() == "yes":
                     # Find positive_symptom text from question bank
                     pos_text = None
-                    for disease_qs in list(QUESTION_BANK_EN.values()) + list(QUESTION_BANK_TL.values()):
+                    for disease_qs in list(QUESTION_BANK_EN.values()) + list(
+                        QUESTION_BANK_TL.values()
+                    ):
                         for q in disease_qs:
                             if q.get("id") == last_question_id:
                                 pos_text = q.get("positive_symptom", "")
@@ -597,10 +716,14 @@ def follow_up_question():
                     if pos_text:
                         evidence_texts.append(f"Patient confirms: {pos_text}")
                     else:
-                        evidence_texts.append(f"Patient confirms symptom from: {last_question_text}")
+                        evidence_texts.append(
+                            f"Patient confirms symptom from: {last_question_text}"
+                        )
                 else:
                     neg_text = None
-                    for disease_qs in list(QUESTION_BANK_EN.values()) + list(QUESTION_BANK_TL.values()):
+                    for disease_qs in list(QUESTION_BANK_EN.values()) + list(
+                        QUESTION_BANK_TL.values()
+                    ):
                         for q in disease_qs:
                             if q.get("id") == last_question_id:
                                 neg_text = q.get("negative_symptom", "")
@@ -610,7 +733,9 @@ def follow_up_question():
                     if neg_text:
                         evidence_texts.append(f"Patient denies: {neg_text}")
                     else:
-                        evidence_texts.append(f"Patient denies symptom from: {last_question_text}")
+                        evidence_texts.append(
+                            f"Patient denies symptom from: {last_question_text}"
+                        )
 
         # ── 4. NEURO-SYMBOLIC CLAMPING ────────────────────────────────────
         # Clamp impossible diseases DURING the loop, not just at the end.
@@ -618,63 +743,85 @@ def follow_up_question():
         unified_text = _build_evidence_text(initial_symptoms, evidence_texts)
 
         clamped_probs = _clamp_impossible_diseases(
-            current_probs, unified_text, verification_layer, CORRECT_ID2LABEL,
+            current_probs,
+            unified_text,
+            verification_layer,
+            CORRECT_ID2LABEL,
         )
 
         if not np.allclose(clamped_probs, current_probs, atol=1e-8):
             current_probs = clamped_probs
             pred_idx = int(np.argmax(current_probs))
-            pred = CORRECT_ID2LABEL.get(pred_idx, pred)
+            pred = str(CORRECT_ID2LABEL.get(pred_idx, pred) or pred)
             confidence = float(np.max(current_probs))
             from scipy.stats import entropy as _ent
+
             raw_h = float(_ent(current_probs))
             max_h = float(np.log(len(current_probs)))
             uncertainty = raw_h / max_h if max_h > 0 else 0.0
             top_diseases = [
-                {"disease": CORRECT_ID2LABEL.get(i, f"D{i}"), "probability": float(current_probs[i])}
+                {
+                    "disease": CORRECT_ID2LABEL.get(i, f"D{i}"),
+                    "probability": float(current_probs[i]),
+                }
                 for i in range(len(current_probs))
             ]
             top_diseases.sort(key=lambda x: x["probability"], reverse=True)
-            print(f"[FOLLOW-UP] Post-clamp: {pred} conf={confidence:.3f} MI={uncertainty:.4f}")
+            print(
+                f"[FOLLOW-UP] Post-clamp: {pred} conf={confidence:.3f} MI={uncertainty:.4f}"
+            )
 
         # Final verification on the top disease
         v_result = verification_layer.verify(unified_text, pred)
         if not v_result["is_valid"]:
             unexplained = v_result["unexplained_concepts"]
+            conflicting_match_message = _build_conflicting_match_message(pred)
             print(f"[VERIFICATION-FOLLOWUP] FAIL: {unexplained} for {pred}")
             probs_formatted = [
-                f"{d['disease']}: {(d['probability']*100):.2f}%" for d in top_diseases
+                f"{d['disease']}: {(d['probability'] * 100):.2f}%" for d in top_diseases
             ]
             return (
-                jsonify({
-                    "data": {
-                        "should_stop": True,
-                        "reason": "OUT_OF_SCOPE",
-                        "message": "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.",
-                        "diagnosis": {
-                            "pred": pred, "disease": pred,
-                            "confidence": confidence, "uncertainty": uncertainty,
-                            "probs": probs_formatted, "model_used": model_used,
-                            "top_diseases": top_diseases,
-                            "mean_probs": current_probs.tolist(),
-                            "is_valid": False,
-                            "cdss": _build_cdss_payload(
-                                symptoms_text, pred, confidence, uncertainty, top_diseases, model_used,
-                            ),
-                            "verification_failure": {
-                                "unexplained_concepts": list(unexplained),
-                                "message": "Your symptoms include indicators not typically associated with our supported conditions."
-                            }
-                        },
+                jsonify(
+                    {
+                        "data": {
+                            "should_stop": True,
+                            "reason": "OUT_OF_SCOPE",
+                            "message": conflicting_match_message,
+                            "diagnosis": {
+                                "pred": pred,
+                                "disease": pred,
+                                "confidence": confidence,
+                                "uncertainty": uncertainty,
+                                "probs": probs_formatted,
+                                "model_used": model_used,
+                                "top_diseases": top_diseases,
+                                "mean_probs": current_probs.tolist(),
+                                "is_valid": False,
+                                "out_of_scope_type": "CONFLICTING_MATCH",
+                                "message": conflicting_match_message,
+                                "cdss": _build_cdss_payload(
+                                    symptoms_text,
+                                    pred,
+                                    confidence,
+                                    uncertainty,
+                                    top_diseases,
+                                    model_used,
+                                ),
+                                "verification_failure": {
+                                    "unexplained_concepts": list(unexplained),
+                                    "message": conflicting_match_message,
+                                },
+                            },
+                        }
                     }
-                }),
+                ),
                 200,
             )
 
         # ── PERSIST UPDATED STATE ─────────────────────────────────────────
         mean_probs = current_probs.tolist()
         probs_formatted = [
-            f"{d['disease']}: {(d['probability']*100):.2f}%" for d in top_diseases
+            f"{d['disease']}: {(d['probability'] * 100):.2f}%" for d in top_diseases
         ]
 
         if session_id:
@@ -687,25 +834,70 @@ def follow_up_question():
                 top_diseases=top_diseases,
                 asked_questions=list(asked_questions),
                 evidence_texts=evidence_texts,
+                question_answers=question_answers,
             )
 
         # Also update legacy Flask session for backward compat
         diag = session.get("diagnosis", {})
-        diag.update({
-            "current_probs": mean_probs,
-            "confidence": confidence,
-            "uncertainty": uncertainty,
-            "disease": pred,
-            "top_diseases": top_diseases,
-        })
+        diag.update(
+            {
+                "current_probs": mean_probs,
+                "confidence": confidence,
+                "uncertainty": uncertainty,
+                "disease": pred,
+                "top_diseases": top_diseases,
+            }
+        )
         session["diagnosis"] = diag
 
-        # ── EARLY STOP CHECKS ────────────────────────────────────────────
-        if not force_question and confidence >= config.HIGH_CONFIDENCE_THRESHOLD and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD:
-            print(f"[FOLLOW-UP] STOP: High confidence (conf={confidence:.3f}, MI={uncertainty:.4f})")
+        # ── FORCE COMPLETE (Skip to Results) ──────────────────────────────
+        if force_complete:
+            is_valid = (
+                confidence >= config.VALID_MIN_CONF
+                and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            )
+            reason = "USER_SKIPPED" if is_valid else "USER_SKIPPED_LOW_CONFIDENCE"
+            message = (
+                f"Based on the information so far, **{pred}** is the closest match."
+                if is_valid
+                else "We weren't able to gather enough information to identify a specific condition. For a clearer picture, please consult a healthcare provider."
+            )
+            print(
+                f"[FOLLOW-UP] STOP: User skipped to results (conf={confidence:.3f}, valid={is_valid})"
+            )
             return _stop_response(
-                "HIGH_CONFIDENCE_FINAL", pred, confidence, uncertainty,
-                probs_formatted, model_used, top_diseases, mean_probs, symptoms_text,
+                reason,
+                pred,
+                confidence,
+                uncertainty,
+                probs_formatted,
+                model_used,
+                top_diseases,
+                mean_probs,
+                symptoms_text,
+                message=message,
+                is_valid=is_valid,
+            )
+
+        # ── EARLY STOP CHECKS ────────────────────────────────────────────
+        if (
+            not force_question
+            and confidence >= config.HIGH_CONFIDENCE_THRESHOLD
+            and uncertainty <= config.LOW_UNCERTAINTY_THRESHOLD
+        ):
+            print(
+                f"[FOLLOW-UP] STOP: High confidence (conf={confidence:.3f}, MI={uncertainty:.4f})"
+            )
+            return _stop_response(
+                "HIGH_CONFIDENCE_FINAL",
+                pred,
+                confidence,
+                uncertainty,
+                probs_formatted,
+                model_used,
+                top_diseases,
+                mean_probs,
+                symptoms_text,
             )
 
         is_valid_prediction = (
@@ -713,27 +905,59 @@ def follow_up_question():
             and uncertainty <= config.VALID_MAX_UNCERTAINTY
         )
 
-        if len(asked_questions) >= config.MAX_QUESTIONS_THRESHOLD and not is_valid_prediction:
-            print(f"[FOLLOW-UP] STOP: OUT_OF_SCOPE after {len(asked_questions)} questions")
+        if (
+            len(asked_questions) >= config.MAX_QUESTIONS_THRESHOLD
+            and not is_valid_prediction
+        ):
+            print(
+                f"[FOLLOW-UP] STOP: OUT_OF_SCOPE after {len(asked_questions)} questions"
+            )
+            out_of_scope_message = _build_no_clear_match_message()
             return _stop_response(
-                "OUT_OF_SCOPE", pred, confidence, uncertainty,
-                probs_formatted, model_used, top_diseases, mean_probs, symptoms_text,
-                message="Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.",
+                "OUT_OF_SCOPE",
+                pred,
+                confidence,
+                uncertainty,
+                probs_formatted,
+                model_used,
+                top_diseases,
+                mean_probs,
+                symptoms_text,
+                message=out_of_scope_message,
                 is_valid=False,
+                extra_fields={"out_of_scope_type": "NO_CLEAR_MATCH"},
             )
 
         if len(asked_questions) >= config.EXHAUSTED_QUESTIONS_THRESHOLD:
-            is_valid = confidence >= config.VALID_MIN_CONF and uncertainty <= config.VALID_MAX_UNCERTAINTY
-            reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "OUT_OF_SCOPE"
-            message = (
-                f"Final assessment: {pred}" if is_valid
-                else "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional."
+            is_valid = (
+                confidence >= config.VALID_MIN_CONF
+                and uncertainty <= config.VALID_MAX_UNCERTAINTY
             )
-            print(f"[FOLLOW-UP] STOP: Exhausted questions ({len(asked_questions)}) valid={is_valid}")
+            reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "OUT_OF_SCOPE"
+            out_of_scope_message = _build_no_clear_match_message()
+            message = (
+                f"Based on all the information gathered, **{pred}** is the closest match."
+                if is_valid
+                else out_of_scope_message
+            )
+            print(
+                f"[FOLLOW-UP] STOP: Exhausted questions ({len(asked_questions)}) valid={is_valid}"
+            )
             return _stop_response(
-                reason, pred, confidence, uncertainty,
-                probs_formatted, model_used, top_diseases, mean_probs, symptoms_text,
-                message=message, is_valid=is_valid,
+                reason,
+                pred,
+                confidence,
+                uncertainty,
+                probs_formatted,
+                model_used,
+                top_diseases,
+                mean_probs,
+                symptoms_text,
+                message=message,
+                is_valid=is_valid,
+                extra_fields={"out_of_scope_type": "NO_CLEAR_MATCH"}
+                if not is_valid
+                else None,
             )
 
         # ── 5. EIG-BASED QUESTION SELECTION ──────────────────────────────
@@ -757,53 +981,157 @@ def follow_up_question():
         if skip_ids:
             print(f"[FOLLOW-UP] Skipping {len(skip_ids)} already-evidenced questions")
 
+        # Log semantic grouping statistics
+        expanded_by_groups = expand_asked_questions(asked_questions) - asked_questions
+        skipped_by_text = get_questions_to_skip_from_text(symptoms_text)
+        if expanded_by_groups:
+            print(
+                f"[FOLLOW-UP] Semantic grouping adds {len(expanded_by_groups)} related questions to skip list"
+            )
+        if skipped_by_text:
+            print(
+                f"[FOLLOW-UP] Text-based detection skips {len(skipped_by_text)} questions from symptom mentions"
+            )
+
+        # Log prerequisite blocking
+        blocked_by_prereq = get_questions_blocked_by_prerequisites(question_answers)
+        if blocked_by_prereq:
+            print(
+                f"[FOLLOW-UP] Prerequisite logic blocks {len(blocked_by_prereq)} questions: {blocked_by_prereq}"
+            )
+
+        # Get initial_eig from session for early stopping comparison
+        initial_eig = sess.get("initial_eig")
+
         # Use EIG to find the best question across ALL diseases
-        selected_question = select_best_question_across_diseases(
-            current_probs=current_probs,
-            question_bank=QUESTION_BANK,
-            asked_question_ids=asked_questions,
-            skip_question_ids=skip_ids,
-            disease_labels=CORRECT_ID2LABEL,
+        # Now with semantic grouping, burden penalty, novelty penalty, and early stopping
+        selected_question, should_stop_eig, best_eig = (
+            select_best_question_across_diseases(
+                current_probs=current_probs,
+                question_bank=QUESTION_BANK,
+                asked_question_ids=asked_questions,
+                skip_question_ids=skip_ids,
+                disease_labels=CORRECT_ID2LABEL,
+                symptoms_text=symptoms_text,  # Pass symptoms for text-based deduplication
+                use_semantic_grouping=True,  # Enable semantic grouping
+                answered_questions=question_answers,  # Pass answers for prerequisite checking
+                initial_eig=initial_eig,  # Pass initial EIG for early stopping
+            )
         )
+
+        # Track initial_eig in session for the first question
+        if best_eig is not None and initial_eig is None and session_id:
+            update_session(session_id, initial_eig=best_eig)
+            print(f"[FOLLOW-UP] Recorded initial EIG: {best_eig:.4f}")
+
+        # EIG-based early stopping check
+        if should_stop_eig and selected_question is not None:
+            is_valid = (
+                confidence >= config.VALID_MIN_CONF
+                and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            )
+            reason = "EIG_DIMINISHING_RETURNS" if is_valid else "EIG_LOW_CONFIDENCE"
+            message = (
+                f"Based on your reported symptoms, **{pred}** is the closest match."
+                if is_valid
+                else "Based on the information provided, we could not identify a specific condition with enough certainty. Please consult a healthcare provider for a proper evaluation."
+            )
+            print(
+                f"[FOLLOW-UP] STOP: EIG early stopping triggered (best_eig={best_eig:.4f}, initial={initial_eig}, valid={is_valid})"
+            )
+            return _stop_response(
+                reason,
+                pred,
+                confidence,
+                uncertainty,
+                probs_formatted,
+                model_used,
+                top_diseases,
+                mean_probs,
+                symptoms_text,
+                message=message,
+                is_valid=is_valid,
+            )
 
         if not selected_question:
             # All questions exhausted
-            is_valid = confidence >= config.VALID_MIN_CONF and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            is_valid = (
+                confidence >= config.VALID_MIN_CONF
+                and uncertainty <= config.VALID_MAX_UNCERTAINTY
+            )
             reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "LOW_CONFIDENCE_FINAL"
+            out_of_scope_message = _build_no_clear_match_message()
             message = (
-                f"Final assessment: {pred}" if is_valid
-                else "You may not be experiencing a disease that this system can process."
+                f"Based on all the information gathered, **{pred}** is the closest match."
+                if is_valid
+                else out_of_scope_message
             )
             print(f"[FOLLOW-UP] STOP: No more questions available, valid={is_valid}")
             return _stop_response(
-                reason, pred, confidence, uncertainty,
-                probs_formatted, model_used, top_diseases, mean_probs, symptoms_text,
-                message=message, is_valid=is_valid,
+                reason,
+                pred,
+                confidence,
+                uncertainty,
+                probs_formatted,
+                model_used,
+                top_diseases,
+                mean_probs,
+                symptoms_text,
+                message=message,
+                is_valid=is_valid,
+                extra_fields={"out_of_scope_type": "NO_CLEAR_MATCH"}
+                if not is_valid
+                else None,
             )
 
         # Evidence-based early stop (from coverage)
         current_disease = pred
         if current_disease in QUESTION_BANK:
             primary_questions = QUESTION_BANK[current_disease]
-            primary_only = [q for q in primary_questions if (q.get("category") or "").lower() == "primary"]
-            coverage_primary = sum(1 for q in primary_only if _has_evidence(q, symptoms_lower))
-            if coverage_primary >= 3 and confidence >= 0.78 and uncertainty <= 0.04:
-                print(f"[FOLLOW-UP] STOP: Sufficient evidence (coverage={coverage_primary})")
+            primary_only = [
+                q
+                for q in primary_questions
+                if (q.get("category") or "").lower() == "primary"
+            ]
+            coverage_primary = sum(
+                1 for q in primary_only if _has_evidence(q, symptoms_lower)
+            )
+            if (
+                coverage_primary >= config.EVIDENCE_STOP_PRIMARY_COVERAGE
+                and confidence >= config.EVIDENCE_STOP_CONF_THRESHOLD
+                and uncertainty <= config.EVIDENCE_STOP_MAX_UNCERTAINTY
+            ):
+                print(
+                    f"[FOLLOW-UP] STOP: Sufficient evidence (coverage={coverage_primary})"
+                )
                 return _stop_response(
-                    "High confidence reached", pred, confidence, uncertainty,
-                    probs_formatted, model_used, top_diseases, mean_probs, symptoms_text,
+                    "High confidence reached",
+                    pred,
+                    confidence,
+                    uncertainty,
+                    probs_formatted,
+                    model_used,
+                    top_diseases,
+                    mean_probs,
+                    symptoms_text,
                 )
 
         # Log selection
         eig_val = selected_question.get("_eig", 0)
+        eig_boosted = selected_question.get("_eig_boosted", eig_val)
         target_disease = selected_question.get("_disease", "?")
+        is_top_q = selected_question.get("_is_top_disease_q", False)
+        reasoning = selected_question.get("_reasoning", "")
         print(
             f"[FOLLOW-UP] {pred} | Lang: {lang} | Conf: {confidence:.3f} | MI: {uncertainty:.4f} | Asked: {len(asked_questions)}"
         )
         print(
             f"[FOLLOW-UP] EIG selected -> {selected_question['id']}: {selected_question['question']} "
-            f"(EIG={eig_val:.4f}, target={target_disease}, cat={selected_question.get('category', '')})"
+            f"(EIG={eig_val:.4f}, boosted={eig_boosted:.4f}, target={target_disease}, "
+            f"is_top_disease_q={is_top_q}, cat={selected_question.get('category', '')})"
         )
+        if reasoning:
+            print(f"[FOLLOW-UP] Reasoning: {reasoning}")
 
         return (
             jsonify(
@@ -816,6 +1144,7 @@ def follow_up_question():
                             "positive_symptom": selected_question["positive_symptom"],
                             "negative_symptom": selected_question["negative_symptom"],
                             "category": selected_question.get("category", "secondary"),
+                            "reasoning": reasoning,
                         },
                         "diagnosis": {
                             "pred": pred,
@@ -827,8 +1156,12 @@ def follow_up_question():
                             "top_diseases": top_diseases,
                             "mean_probs": mean_probs,
                             "cdss": _build_cdss_payload(
-                                symptoms_text, pred, confidence,
-                                uncertainty, top_diseases, model_used,
+                                symptoms_text,
+                                pred,
+                                confidence,
+                                uncertainty,
+                                top_diseases,
+                                model_used,
                             ),
                         },
                         "session_id": session_id,
@@ -854,6 +1187,7 @@ def follow_up_question():
 
 # ── /diagnosis/explain ────────────────────────────────────────────────────────
 
+
 @diagnosis_bp.route("/diagnosis/explain", methods=["POST"])
 def explain_diagnosis():
     try:
@@ -874,7 +1208,9 @@ def explain_diagnosis():
             if isinstance(mean_probs[0], list):
                 # Nested list format [[p1, p2, ...]] - flatten to [p1, p2, ...]
                 mean_probs = mean_probs[0]
-                print(f"[EXPLAIN] Flattened mean_probs from nested to {len(mean_probs)} classes")
+                print(
+                    f"[EXPLAIN] Flattened mean_probs from nested to {len(mean_probs)} classes"
+                )
 
         result = explainer(text, mean_probs)
 

@@ -62,6 +62,41 @@ const mapDisease = (
   }
 };
 
+const getOutOfScopeMessage = ({
+  reason,
+  diagnosis,
+  verificationFailure,
+}: {
+  reason?: string;
+  diagnosis?: any;
+  verificationFailure?: any;
+}) => {
+  const diagnosisMessage = diagnosis?.message;
+  if (typeof diagnosisMessage === "string" && diagnosisMessage.trim().length > 0) {
+    return diagnosisMessage;
+  }
+
+  const verificationMessage = verificationFailure?.message;
+  if (
+    typeof verificationMessage === "string" &&
+    verificationMessage.trim().length > 0
+  ) {
+    return verificationMessage;
+  }
+
+  const outOfScopeType = diagnosis?.out_of_scope_type;
+
+  if (outOfScopeType === "CONFLICTING_MATCH") {
+    return "Your symptoms partially match the suggested condition, but some of what you described does not fully fit it. Because of this mismatch, this result is not reliable enough to confirm. Please consult a healthcare professional for a proper evaluation.";
+  }
+
+  if (reason === "OUT_OF_SCOPE" || reason === "SYMPTOMS_NOT_MATCHING") {
+    return "Your symptoms do not clearly match the diseases this system currently covers. Please consult a healthcare professional for a proper evaluation.";
+  }
+
+  return "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.";
+};
+
 type ChatWindowProps = {
   chatId: string;
   messages: (Message & { explanation?: Explanation | null })[];
@@ -91,6 +126,7 @@ const ChatWindow = ({
     positive_symptom: string;
     negative_symptom: string;
     category?: string;
+    reasoning?: string;
   } | null>(null);
   const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
   const [confirmNeeded, setConfirmNeeded] = useState<boolean>(false);
@@ -115,6 +151,8 @@ const ChatWindow = ({
 
   const lastDiagnosisRef = useRef<any>(null);
   const initialSymptomsRef = useRef<string>("");
+  // Mount guard: prevents onSuccess callbacks from firing after unmount
+  const isMountedRef = useRef<boolean>(true);
 
   const getCurrentSymptoms = () => {
     return (
@@ -140,6 +178,8 @@ const ChatWindow = ({
   const { execute: getFollowUpExecute, isExecuting: isGettingQuestion } =
     useAction(getFollowUpQuestion, {
       onSuccess: ({ data }) => {
+        // Guard: ignore callbacks after unmount to prevent stale state updates
+        if (!isMountedRef.current) return;
         if (data?.success) {
           const { question, should_stop, reason, diagnosis, session_id } =
             data.success as any;
@@ -185,11 +225,11 @@ const ChatWindow = ({
             diagnosis?.is_valid === false
           ) {
             setIsFinalDiagnosis(false);
-            const outOfScopeMessage =
-              diagnosis?.message ||
-              (reason === "OUT_OF_SCOPE"
-                ? "Your symptoms may not match the diseases this system covers (Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza). Please consult a healthcare professional for a proper evaluation."
-                : "Based on your responses, your symptoms don't strongly match any of the conditions we currently cover. We recommend consulting with a healthcare professional for a proper evaluation.");
+            const outOfScopeMessage = getOutOfScopeMessage({
+              reason,
+              diagnosis,
+              verificationFailure: diagnosis?.verification_failure,
+            });
             createMessageExecute({
               chatId,
               content: outOfScopeMessage,
@@ -253,6 +293,7 @@ const ChatWindow = ({
               positive_symptom: question.positive_symptom,
               negative_symptom: question.negative_symptom,
               category: question.category,
+              reasoning: question.reasoning,
             });
           } else {
             setCurrentQuestion(null);
@@ -278,6 +319,8 @@ const ChatWindow = ({
 
   const { execute: autoRecordExecute } = useAction(autoRecordDiagnosis, {
     onSuccess: ({ data }) => {
+      // Guard: ignore callbacks after unmount
+      if (!isMountedRef.current) return;
       if (data?.success) {
         if (data.requiresManualRecord) {
           // Low-confidence diagnosis - requires user consent
@@ -293,6 +336,8 @@ const ChatWindow = ({
       }
     },
     onError: ({ error }) => {
+      // Guard: ignore callbacks after unmount
+      if (!isMountedRef.current) return;
       console.error("[ChatWindow] Auto-record request failed:", error);
     },
   });
@@ -300,6 +345,8 @@ const ChatWindow = ({
   const { execute: getExplanations, isExecuting: isGettingExplanations } =
     useAction(explainDiagnosis, {
       onSuccess: ({ data }) => {
+        // Guard: ignore callbacks after unmount
+        if (!isMountedRef.current) return;
         if (data?.success && data.explanation) {
           const messageId = lastExplanationMessageIdRef.current;
           if (messageId !== null) {
@@ -345,6 +392,8 @@ const ChatWindow = ({
         }
       },
       onError: ({ error }) => {
+        // Guard: ignore callbacks after unmount
+        if (!isMountedRef.current) return;
         console.error("[ChatWindow] Explanation request failed:", error);
       },
     });
@@ -353,6 +402,8 @@ const ChatWindow = ({
     runDiagnosis,
     {
       onSuccess: ({ data }) => {
+        // Guard: ignore callbacks after unmount to prevent stale state updates
+        if (!isMountedRef.current) return;
         if (data?.error) {
           let errorMessage = "";
 
@@ -424,9 +475,11 @@ const ChatWindow = ({
               setIsFinalDiagnosis(false);
               const verificationFailure = (data.diagnosis as any)
                 ?.verification_failure;
-              const infoMsg =
-                verificationFailure?.message ||
-                "Your symptoms may not match the diseases this system covers. Please consult a healthcare professional.";
+              const infoMsg = getOutOfScopeMessage({
+                reason: skipReason,
+                diagnosis: data.diagnosis,
+                verificationFailure,
+              });
 
               createMessageExecute({
                 chatId,
@@ -515,6 +568,8 @@ const ChatWindow = ({
       return [...currentMessages, newMessage];
     },
     onSuccess: ({ data }) => {
+      // Guard: ignore callbacks after unmount to prevent stale state updates
+      if (!isMountedRef.current) return;
       if (data.success) {
         const created = data.success as any;
 
@@ -583,6 +638,8 @@ const ChatWindow = ({
       }
     },
     onError: ({ error }) => {
+      // Guard: ignore callbacks after unmount
+      if (!isMountedRef.current) return;
       // If DIAGNOSIS creation failed, allow a subsequent stop response to retry.
       finalDiagnosisInFlightRef.current = false;
       console.error("Failed to create message:", error);
@@ -645,7 +702,7 @@ const ChatWindow = ({
         createMessageExecute({
           chatId,
           content:
-            "An error occurred while processing your answer. Please try again or start a new diagnosis.",
+            "An error occurred while processing your answer. Please try again or start a new symptom check.",
           type: "ERROR",
           role: "AI",
         });
@@ -656,12 +713,71 @@ const ChatWindow = ({
     }
   };
 
+  const handleSkipToResults = async () => {
+    // Prevent concurrent requests
+    if (followUpPendingRef.current) {
+      console.warn(
+        "[handleSkipToResults] Follow-up request already pending, ignoring duplicate call",
+      );
+      return;
+    }
+
+    // Cancel any in-flight request to prevent race conditions
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    followUpPendingRef.current = true;
+    setCurrentQuestion(null);
+
+    try {
+      // Create a message indicating user skipped to results
+      await createMessageExecute({
+        chatId,
+        content: "I'd like to see the results now.",
+        type: "ANSWER",
+        role: "USER",
+      });
+
+      // Get final diagnosis with force_complete flag
+      await getFollowUpExecute({
+        session_id: diagnosisSessionId || undefined,
+        disease: currentDiagnosis?.disease || "",
+        confidence: currentDiagnosis?.confidence || 0,
+        uncertainty: currentDiagnosis?.uncertainty || 1,
+        asked_questions: askedQuestions,
+        symptoms: getCurrentSymptoms(),
+        top_diseases: currentDiagnosis?.top_diseases || [],
+        current_probs: currentDiagnosis?.mean_probs || undefined,
+        force_complete: true,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.error("[handleSkipToResults] Error:", error);
+        createMessageExecute({
+          chatId,
+          content:
+            "An error occurred while processing your request. Please try again.",
+          type: "ERROR",
+          role: "AI",
+        });
+      }
+    } finally {
+      followUpPendingRef.current = false;
+    }
+  };
+
   const hasRunInitialDiagnosis = useRef<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Cleanup on unmount - cancel any in-flight requests to prevent memory leaks
   useEffect(() => {
+    // Mark as mounted when effect runs
+    isMountedRef.current = true;
     return () => {
+      // Mark as unmounted to stop onSuccess callbacks from firing
+      isMountedRef.current = false;
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
         abortControllerRef.current = null;
@@ -746,6 +862,7 @@ const ChatWindow = ({
               hasDiagnosis={chat.hasDiagnosis}
               currentQuestion={currentQuestion as any}
               onQuestionAnswer={handleQuestionAnswer}
+              onSkipToResults={handleSkipToResults}
               dbExplanation={dbExplanation as unknown as TempExplanation}
               userRole={userRole}
             />
@@ -763,10 +880,10 @@ const ChatWindow = ({
                     ✕
                   </button>
                 </form>
-                <h3 className="font-bold text-lg">Diagnosis recorded</h3>
+                <h3 className="font-bold text-lg">Result saved</h3>
                 <p className="py-4 text-muted">
-                  This diagnosis has been successfully stored and saved in the
-                  records!
+                  This assessment has been successfully saved to your records.
+                  Remember to consult a healthcare provider for proper evaluation.
                 </p>
               </div>
             </dialog>

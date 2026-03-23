@@ -27,6 +27,7 @@ const FollowUpSchema = z.object({
     )
     .optional(),
   force: z.boolean().optional(),
+  force_complete: z.boolean().optional(), // User wants to skip to results
   mode: z.enum(["adaptive", "legacy"]).optional(),
   last_answer: z.enum(["yes", "no"]).optional(),
   last_question_id: z.string().optional(),
@@ -45,6 +46,7 @@ export const getFollowUpQuestion = actionClient
       asked_questions,
       top_diseases,
       force,
+      force_complete,
       symptoms,
       last_answer,
       last_question_id,
@@ -64,6 +66,7 @@ export const getFollowUpQuestion = actionClient
         asked_questions: asked_questions || [],
         symptoms: symptoms || "",
         force: force || false,
+        force_complete: force_complete || false, // Skip to results
         top_diseases: top_diseases || [],
         mode: process.env.NEXT_PUBLIC_DIAGNOSIS_MODE || "adaptive",
 

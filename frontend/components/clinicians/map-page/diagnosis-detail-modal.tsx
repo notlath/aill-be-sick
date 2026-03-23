@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { IllnessRecord } from "@/types";
 import { getReliability } from "@/utils/reliability";
+import { getAnonymizedPatientId } from "@/utils/patient";
 
 interface DiagnosisDetailModalProps {
   isOpen: boolean;
@@ -57,7 +58,7 @@ export function DiagnosisDetailModal({
         >
           ✕
         </button>
-        <h3 className="font-bold text-2xl mb-6">Diagnosis Details</h3>
+        <h3 className="font-bold text-2xl mb-6">Case Details</h3>
 
         <div className="space-y-4">
           {/* Reliability badge — prominent at the top */}
@@ -74,12 +75,12 @@ export function DiagnosisDetailModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-base-200/50 p-4 rounded-lg">
-              <p className="text-sm text-base-content/60 mb-1">Diagnosis</p>
+              <p className="text-sm text-base-content/60 mb-1">Suggested Condition</p>
               <p className="font-medium">{diagnosis.disease}</p>
             </div>
             <div className="bg-base-200/50 p-4 rounded-lg">
-              <p className="text-sm text-base-content/60 mb-1">Patient</p>
-              <p className="font-medium">{diagnosis.patient_name ?? "Unknown"}</p>
+              <p className="text-sm text-base-content/60 mb-1">Patient ID</p>
+              <p className="font-mono text-sm">{getAnonymizedPatientId(diagnosis.patient_id)}</p>
             </div>
             <div className="bg-base-200/50 p-4 rounded-lg">
               <p className="text-sm text-base-content/60 mb-1">Age</p>
@@ -98,17 +99,13 @@ export function DiagnosisDetailModal({
               <p className="text-sm text-base-content/60 mb-1">Location</p>
               <p className="font-medium">{location}</p>
             </div>
-            <div className="bg-base-200/50 p-4 rounded-lg">
-              <p className="text-sm text-base-content/60 mb-1">Date Diagnosed</p>
+            <div className="bg-base-200/50 p-4 rounded-lg col-span-2">
+              <p className="text-sm text-base-content/60 mb-1">Assessment Date</p>
               <p className="font-medium">
                 {diagnosis.diagnosed_at
                   ? new Date(diagnosis.diagnosed_at).toLocaleDateString()
                   : "—"}
               </p>
-            </div>
-            <div className="bg-base-200/50 p-4 rounded-lg">
-              <p className="text-sm text-base-content/60 mb-1">Patient ID</p>
-              <p className="font-medium">{diagnosis.patient_id}</p>
             </div>
           </div>
 

@@ -2,7 +2,15 @@
 
 ## Project Overview
 
-AI'll Be Sick is an AI-assisted symptom checker and clinician dashboard application built with Next.js. The project enables users to input symptoms and receive AI-powered disease predictions for dengue, pneumonia, typhoid, and impetigo. It integrates with a Django backend for disease detection algorithms, handles user authentication via Supabase, and manages patient cases with detailed confidence and uncertainty metrics.
+AI'll Be Sick is an AI-assisted symptom checker and clinician dashboard application built with Next.js. The project enables users to input symptoms and receive AI-powered disease predictions for dengue, pneumonia, typhoid, and impetigo. It integrates with a Flask backend for disease detection algorithms, handles user authentication via Supabase, and manages patient cases with detailed confidence and uncertainty metrics.
+
+## Copilot Skill Files
+
+For AI-assisted frontend work, use:
+
+- `frontend/.github/skills/medical-diagnosis-actions/SKILL.md` for server actions, Zod schemas, and diagnosis flow changes.
+- `frontend/.github/skills/clinical-copywriting/SKILL.md` for patient/clinician-facing medical copy updates.
+- `frontend/.github/skills/d3-viz/SKILL.md` for custom D3/map/chart visualization work.
 
 ### Key Features
 
@@ -10,7 +18,7 @@ AI'll Be Sick is an AI-assisted symptom checker and clinician dashboard applicat
 - **User Authentication**: Secure login/signup with Supabase Auth
 - **Role-Based Access**: Support for PATIENT, CLINICIAN, and DEVELOPER roles
 - **Multi-language Models**: Supports BioClinical-ModernBERT and RoBERTa-Tagalog models
-- **Real-time Analysis**: Integration with Django backend for symptom processing
+- **Real-time Analysis**: Integration with Flask backend for symptom processing
 - **Geolocation Support**: Tracks user location data for epidemiological analysis
 - **Explanation Interface**: Provides model explainability for diagnosis decisions
 
@@ -51,7 +59,7 @@ ALWAYS follow this template for creating a pull request.
 - Node.js 18+
 - PostgreSQL database
 - Supabase project
-- Backend Django server running on `http://localhost:8000` or custom backend URL
+- Backend Flask server running on `http://localhost:10000` or custom backend URL
 - Bun (optional, but available)
 
 ### Installation & Setup
@@ -70,7 +78,7 @@ bun install
 DATABASE_URL="your_postgresql_connection_string"
 NEXT_PUBLIC_SUPABASE_URL="your_supabase_project_url"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your_supabase_anon_key"
-NEXT_PUBLIC_BACKEND_URL="http://localhost:8000" # Or your backend URL
+NEXT_PUBLIC_BACKEND_URL="http://127.0.0.1:10000" # Or your backend URL
 ```
 
 1. Set up the database:
@@ -183,9 +191,9 @@ Models support multiple diseases (DENGUE, PNEUMONIA, TYPHOID, IMPETIGO) and AI m
 
 ## API Integration
 
-The frontend communicates with the Django backend for disease detection:
+The frontend communicates with the Flask backend for disease detection:
 
-- **Endpoint**: `POST http://localhost:8000/diagnosis/new` (configurable via NEXT_PUBLIC_BACKEND_URL)
+- **Endpoint**: `POST http://localhost:10000/diagnosis/new` (configurable via NEXT_PUBLIC_BACKEND_URL)
 - **Payload**: `{ "symptoms": ["symptom1", "symptom2", ...] }`
 - **Response**: Contains disease prediction, confidence, uncertainty, probability distributions, and model metadata
 - The system evaluates confidence and uncertainty scores to determine if results should be presented to users
@@ -374,18 +382,19 @@ While no explicit test files were visible during the analysis, the codebase incl
 
 1. **Database Connection Errors**: Verify your `DATABASE_URL` in environment variables
 2. **Supabase Authentication Issues**: Check Supabase URL and ANON key
-3. **Backend Connection Errors**: Ensure the Django server is running at the configured URL
+3. **Backend Connection Errors**: Ensure the Flask server is running at `http://localhost:10000` (or your configured `NEXT_PUBLIC_BACKEND_URL`)
 4. **Prisma Client Errors**: Run `npx prisma generate` to regenerate the client
 5. **Model Confidence Issues**: The system shows different warning messages based on confidence/uncertainty combinations
 
 ## Styling Guidelines
 
-The project uses **Tailwind CSS** and **shadcn/ui** components for styling. UI components are located in `@/components/ui`. While based on Tailwind, the project aims for a consistent look and feel by reusing and composing these `shadcn/ui` components rather than applying arbitrary Tailwind classes.
+The project uses **Tailwind CSS with DaisyUI** and reusable components in `@/components/ui`. Prefer existing project components and DaisyUI patterns before introducing new styling approaches.
 
-- **ALWAYS** prefer composing existing `shadcn/ui` components from `@/components/ui`.
-- **USE** Tailwind CSS utility classes for layout, spacing, and custom styling when composing components.
+- **ALWAYS** prefer composing existing reusable components from `@/components/ui`.
+- **ALWAYS** use DaisyUI component classes for common UI primitives.
+- **USE** Tailwind utility classes for layout/spacing only when needed to compose existing patterns.
 - **USE** `lucide-react` for icons, importing from `lucide-react`.
-- **MAINTAIN** consistency with the established visual language (colors, spacing, rounding, etc.).
+- **MAINTAIN** consistency with the established visual language (colors, spacing, rounding, and interaction patterns).
 
 ### Navigation Links
 

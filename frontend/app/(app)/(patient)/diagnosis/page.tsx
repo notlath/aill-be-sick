@@ -4,13 +4,12 @@ import { createChat } from "@/actions/create-chat";
 import { CreateChatSchema, CreateChatSchemaType } from "@/schemas/CreateChatSchema";
 import { useSymptomChecklist, type Language } from "@/hooks/use-symptom-checklist";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUp, ClipboardList } from "lucide-react";
+import { ArrowUp, ClipboardList, Sparkles, Info } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "nextjs-toploader/app";
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import ChecklistModal from "@/components/patient/diagnosis-page/checklist-modal";
-import HelpGuide from "@/components/patient/help-guide";
 import LegalFooter from "@/components/shared/legal-footer";
 
 const PatientHomePage = () => {
@@ -29,10 +28,24 @@ const PatientHomePage = () => {
 
   // Guard: only navigate on an intentional submission within this lifecycle.
   const hasSubmittedRef = useRef(false);
+  const isMountedRef = useRef(true);
   const [isNavigating, setIsNavigating] = useState(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    // If this page is restored from router cache, clear stale loading UI.
+    setIsNavigating(false);
+    hasSubmittedRef.current = false;
+
+    return () => {
+      isMountedRef.current = false;
+      hasSubmittedRef.current = false;
+    };
+  }, []);
 
   const { execute, isExecuting } = useAction(createChat, {
     onSuccess: ({ data }) => {
+      if (!isMountedRef.current) return;
       if (!hasSubmittedRef.current) return;
       hasSubmittedRef.current = false;
       if (data?.success) {
@@ -47,6 +60,7 @@ const PatientHomePage = () => {
       }
     },
     onError: () => {
+      if (!isMountedRef.current) return;
       setIsNavigating(false);
     },
   });
@@ -71,95 +85,133 @@ const PatientHomePage = () => {
   };
 
   return (
-    <main className="relative flex flex-col justify-center items-center space-y-12 h-full flex-1 min-h-full bg-black overflow-hidden">
-      {/* Green gradient orb from below */}
-      <div
-        className="absolute bottom-[-300px] md:bottom-[-1000px] left-1/2 -translate-x-1/2 min-w-[800px] min-h-[800px] w-[150vw] md:w-[100vw] h-[150vw] md:h-[100vw] max-w-[1600px] max-h-[1600px] rounded-full pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(16, 185, 129, 0.5) 0%, rgba(16, 185, 129, 0.3) 30%, rgba(16, 185, 129, 0.1) 60%, transparent 100%)",
-          filter: "blur(80px)",
-        }}
-      />
-
-      {/* Content */}
-      <div className="relative z-10 space-y-3 text-center px-4 mt-12 md:mt-4">
-        <h1 className="font-semibold text-4xl sm:text-5xl md:text-6xl tracking-[-0.04em] text-white mb-1 leading-[1.1]">
-          How are you feeling today?
-        </h1>
-        <p className="text-gray-400 text-base md:text-lg font-light">
-          Describe your symptoms
-        </p>
+    <main className="relative flex flex-col flex-1 bg-base-200 overflow-hidden">
+      {/* Decorative gradient background */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Primary gradient orb */}
+        <div
+          className="absolute -bottom-1/4 left-1/2 -translate-x-1/2 w-[150%] aspect-square max-w-[1200px] rounded-full opacity-30"
+          style={{
+            background:
+              "radial-gradient(circle, oklch(69% 0.17 162.48 / 0.4) 0%, oklch(69% 0.17 162.48 / 0.2) 30%, oklch(69% 0.17 162.48 / 0.05) 60%, transparent 80%)",
+            filter: "blur(60px)",
+          }}
+        />
+        {/* Secondary accent orb */}
+        <div
+          className="absolute -top-1/4 -right-1/4 w-[60%] aspect-square rounded-full opacity-20"
+          style={{
+            background:
+              "radial-gradient(circle, oklch(71% 0.203 305.504 / 0.3) 0%, transparent 70%)",
+            filter: "blur(80px)",
+          }}
+        />
       </div>
 
-      <div className="relative z-10 w-full max-w-2xl mb-4 px-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 fill-mode-both">
-        <HelpGuide variant="inline" className="mb-0 sm:mb-0 transform scale-95 opacity-80 hover:opacity-100 transition-opacity duration-500" />
-      </div>
-
-      {/* Form with inline checklist button */}
-      <div className="relative z-10 w-full max-w-2xl px-4">
-        <form onSubmit={form.handleSubmit(handleTextSubmit)} className="w-full">
-          <div className="flex justify-between items-center shadow-xl bg-base-100/90 border border-base-300/30 rounded-2xl outline-none w-full h-auto px-4 py-3 backdrop-blur-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]">
-            {/* Checklist button */}
-            <button
-              type="button"
-              onClick={() => setIsChecklistOpen(true)}
-              disabled={isLoading}
-              aria-label="Open symptom checklist"
-              className="shrink-0 mr-3 w-10 h-10 md:w-12 md:h-12 rounded-xl bg-base-200/80 text-base-content/60 flex items-center justify-center hover:bg-base-300 hover:text-base-content active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-base-200/80 disabled:active:scale-100"
-            >
-              <ClipboardList className="size-5" strokeWidth={2} />
-            </button>
-
-            <textarea
-              className="flex-1 pl-1 border-none outline-none bg-transparent resize-none overflow-hidden text-base text-base-content placeholder:text-muted transition-all duration-300 min-h-[44px] py-2.5 md:min-h-[48px] md:py-3 my-auto"
-              placeholder="I'm feeling..."
-              rows={1}
-              suppressHydrationWarning
-              disabled={isLoading}
-              onInput={(e) => {
-                const target = e.currentTarget;
-                target.style.height = "auto";
-                target.style.height = `${target.scrollHeight}px`;
-              }}
-              onKeyDown={(e) => {
-                if (
-                  e.key === "Enter" &&
-                  !e.shiftKey &&
-                  !(e.nativeEvent as any)?.isComposing
-                ) {
-                  e.preventDefault();
-                  void form.handleSubmit(handleTextSubmit)();
-                }
-              }}
-              {...form.register("symptoms")}
-            />
-            <button
-              type="submit"
-              disabled={isLoading}
-              aria-busy={isLoading}
-              aria-live="polite"
-              className="ml-3 p-0 w-12 h-12 aspect-square rounded-xl bg-primary text-primary-content shadow-md hover:shadow-xl hover:bg-primary/90 active:scale-95 transition-all duration-200 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:scale-100"
-            >
-              {isLoading ? (
-                <span className="loading loading-spinner loading-sm" />
-              ) : (
-                <ArrowUp className="size-5" strokeWidth={2.5} />
-              )}
-            </button>
+      {/* Main content area */}
+      <div className="relative z-10 flex flex-col flex-1 justify-center items-center px-4 py-12 sm:py-16">
+        {/* Hero section */}
+        <div className="text-center mb-8 sm:mb-10 max-w-2xl animate-fade-in">
+          {/* AI Badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
+            <Sparkles className="size-3.5" />
+            AI-Powered Symptom Analysis
           </div>
-          {form.formState.errors.symptoms && (
-            <div
-              role="alert"
-              className="border border-error/30 rounded-xl alert alert-error alert-soft mt-2 text-left"
-            >
-              <span className="font-medium text-error">
-                Error! {form.formState.errors.symptoms.message}
-              </span>
+          
+          <h1 className="font-semibold text-3xl sm:text-4xl md:text-5xl tracking-tight text-base-content mb-3 leading-tight">
+            How are you <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary italic pr-1">feeling</span> today?
+          </h1>
+          <p className="text-base-content/60 text-base sm:text-lg mb-5">
+            Describe your symptoms and get helpful insights
+          </p>
+          <button
+            type="button"
+            onClick={() => (document.querySelector(".help-guide-dialog") as HTMLDialogElement)?.showModal()}
+            className="btn btn-ghost btn-sm rounded-full gap-2 font-medium text-base-content/60 hover:text-base-content hover:bg-base-200/60 transition-colors duration-200"
+          >
+            <Info className="size-4" />
+            How to use this app
+          </button>
+        </div>
+
+        {/* Input Form */}
+        <div className="w-full max-w-2xl animate-slide-up" style={{ animationDelay: "100ms" }}>
+          <form onSubmit={form.handleSubmit(handleTextSubmit)} className="w-full">
+            <div className="card bg-base-100 shadow-lg border border-base-300/50 overflow-hidden">
+              <div className="card-body p-0">
+                <div className="flex items-center gap-2 px-3 py-3 sm:px-4 sm:py-4">
+                  {/* Checklist button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsChecklistOpen(true)}
+                    disabled={isLoading}
+                    aria-label="Open symptom checklist"
+                    className="btn btn-square btn-ghost shrink-0 h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-base-200/80 hover:bg-base-300 text-base-content/60 hover:text-base-content transition-[color,background-color] duration-200 disabled:opacity-50"
+                  >
+                    <ClipboardList className="size-5" strokeWidth={2} />
+                  </button>
+
+                  {/* Textarea */}
+                  <div className="flex-1 min-w-0 flex items-center">
+                    <textarea
+                      className="w-full px-4 py-2.5 sm:py-3 border-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none bg-base-200/50 rounded-xl resize-none overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] text-base text-base-content placeholder:text-base-content/40 transition-colors duration-200 focus:bg-base-200/80 h-11 sm:h-12"
+                      placeholder="I'm feeling..."
+                      aria-label="Describe your symptoms"
+                      autoComplete="off"
+                      rows={1}
+                      suppressHydrationWarning
+                      disabled={isLoading}
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === "Enter" &&
+                          !e.shiftKey &&
+                          !(e.nativeEvent as any)?.isComposing
+                        ) {
+                          e.preventDefault();
+                          void form.handleSubmit(handleTextSubmit)();
+                        }
+                      }}
+                      {...form.register("symptoms")}
+                    />
+                  </div>
+
+                  {/* Submit button */}
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    aria-busy={isLoading}
+                    aria-live="polite"
+                    aria-label="Submit symptoms"
+                    className="btn btn-primary btn-square shrink-0 h-11 w-11 sm:h-12 sm:w-12 rounded-xl shadow-md hover:shadow-lg transition-[transform,background-color,box-shadow,opacity] duration-200 disabled:opacity-60"
+                  >
+                    {isLoading ? (
+                      <span className="loading loading-spinner loading-sm" />
+                    ) : (
+                      <ArrowUp className="size-5" strokeWidth={2.5} />
+                    )}
+                  </button>
+                </div>
+
+                {/* Input hint */}
+                <div className="px-3 pb-3 pt-0 sm:px-4 sm:pb-4 flex items-center justify-between text-xs text-base-content/40">
+                  <span>Press Enter to submit, Shift + Enter for new line</span>
+                </div>
+              </div>
             </div>
-          )}
-        </form>
+
+            {/* Error message */}
+            {form.formState.errors.symptoms && (
+              <div role="alert" className="alert alert-error alert-soft mt-3">
+                <span className="font-medium">
+                  {form.formState.errors.symptoms.message}
+                </span>
+              </div>
+            )}
+          </form>
+        </div>
       </div>
+
+
 
       {/* Checklist Modal */}
       <ChecklistModal
@@ -176,12 +228,15 @@ const PatientHomePage = () => {
         onLanguageChange={setLanguage}
         onSubmit={handleChecklistSubmit}
         isPending={isLoading}
+        temperature={checklist.temperature}
+        onTemperatureChange={checklist.setTemperatureValue}
+        onTemperatureUnitChange={checklist.setTemperatureUnit}
+        onTemperatureClassificationChange={checklist.handleTemperatureClassification}
+        isAutoChecked={checklist.isAutoChecked}
       />
 
-      {/* Footer embedded in dark background */}
-      <div className="absolute bottom-0 w-full z-20">
-        <LegalFooter />
-      </div>
+      {/* Footer */}
+      <LegalFooter />
     </main>
   );
 };
