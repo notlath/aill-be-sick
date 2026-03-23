@@ -2,6 +2,35 @@
 
 This is the frontend application for the Aill-Be-Sick disease detection system, built with [Next.js](https://nextjs.org) and bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Copilot Quickstart
+
+For AI-assisted frontend implementation, use this order:
+
+1. Read root guidance:
+
+- `../.instructions.md`
+- `../.prompt.md`
+- `../COPILOT_CONFIG.md`
+
+2. Apply frontend overlay:
+
+- `./.instructions.md`
+
+3. Use matching frontend skills:
+
+- `./.github/skills/medical-diagnosis-actions/SKILL.md`
+- `./.github/skills/clinical-copywriting/SKILL.md`
+- `./.github/skills/d3-viz/SKILL.md`
+
+Starter prompt:
+
+```text
+Implement [feature] in frontend.
+Follow ../.instructions.md + ./.instructions.md.
+Use the appropriate skill file and keep changes minimal.
+Run npx tsc --noEmit and summarize changed files + validation results.
+```
+
 ## Features
 
 - **Disease Detection**: Enter symptoms and get AI-powered disease predictions with confidence/uncertainty scoring
@@ -130,12 +159,14 @@ frontend/
 ## Key Pages
 
 ### Patient Routes
+
 - `/` - Home page (redirects based on role)
 - `/diagnosis` - Symptom input and AI-powered disease detection
 - `/history` - View past diagnoses and cases
 - `/profile` - User profile management
 
 ### Clinician Routes
+
 - `/dashboard` - Main clinician dashboard with clustering and surveillance
 - `/alerts` - Alert management and notifications
 - `/map` - Geospatial visualization of cases
@@ -144,6 +175,7 @@ frontend/
 - `/clinician-profile` - Clinician profile settings
 
 ### Authentication
+
 - `/login` - Patient login
 - `/clinician-login` - Clinician login
 - `/signup` - New user registration

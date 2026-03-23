@@ -2,6 +2,16 @@
 
 This document provides a high-level overview of the project, focusing on the repository's structure, technologies, and purpose. It is intended to be used as a reference for developers and contributors.
 
+## Copilot Workflow Files
+
+Use these files for AI-assisted development workflow:
+
+- `.instructions.md`: concise operational defaults for Copilot.
+- `.prompt.md`: reusable prompt templates for common implementation tasks.
+- `COPILOT_CONFIG.md`: guidance hierarchy, skill routing, and sync policy.
+- `.github/pull_request_template.md`: PR template with AI quality checklist.
+- `find-skills`: use when discovering or installing additional skills.
+
 ## Project Overview
 
 This repository contains a full-stack application for disease detection based on symptoms. The application is built with a Flask backend and a Next.js (App Router) frontend. It uses TypeScript, Prisma, and Supabase for the database and authentication.
@@ -56,9 +66,9 @@ The project is organized into the following main directories:
     ```
 4.  **Start the development server:**
     ```bash
-    python app.py
+    python run.py
     ```
-    The backend will be available at `http://localhost:8000`.
+    The backend will be available at `http://localhost:10000`.
 
 ### Frontend (Next.js)
 
@@ -90,7 +100,7 @@ The project is organized into the following main directories:
 
 ### Key Backend Files
 
-- `app.py`: The main Flask application file.
+- `run.py`: The main Flask application entry point.
 - `requirements.txt`: The Python dependencies for the backend.
 - `run_flask.bat`: A batch file for running the Flask application on Windows.
 - `test_flask.py`: The tests for the Flask application.
@@ -302,7 +312,7 @@ While no explicit test files were visible during the analysis, the codebase incl
 
 1. **Database Connection Errors**: Verify your `DATABASE_URL` in environment variables
 2. **Supabase Authentication Issues**: Check Supabase URL and ANON key
-3. **Backend Connection Errors**: Ensure the Django server is running at the configured URL
+3. **Backend Connection Errors**: Ensure the Flask server is running at `http://localhost:10000` (or your configured `NEXT_PUBLIC_BACKEND_URL`)
 4. **Prisma Client Errors**: Run `npx prisma generate` to regenerate the client
 5. **Model Confidence Issues**: The system shows different warning messages based on confidence/uncertainty combinations
 

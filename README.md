@@ -2,6 +2,32 @@
 
 A full-stack disease screening application combining a **Flask** backend (Monte Carlo Dropout classification, neuro-symbolic verification, SHAP explanations) with a **Next.js** frontend (TypeScript, Prisma, Supabase).
 
+## Copilot Prompt-to-Task Quickstart
+
+Use this flow when asking Copilot to implement work in this repository:
+
+1. Start from root operational guidance:
+   - `.instructions.md`
+   - `.prompt.md`
+   - `COPILOT_CONFIG.md`
+2. For frontend tasks, also include:
+   - `frontend/.instructions.md`
+   - `frontend/.github/skills/medical-diagnosis-actions/SKILL.md`
+   - `frontend/.github/skills/clinical-copywriting/SKILL.md`
+3. For backend tasks, also include:
+   - `backend/.instructions.md`
+   - `backend/.github/skills/flask-diagnostic-api/SKILL.md`
+4. Use one template from `.prompt.md`, then replace placeholders with the exact task.
+
+Example starter prompt:
+
+```text
+Implement [feature] in [frontend/backend].
+Follow .instructions.md + scoped .instructions.md for that folder.
+Use the matching skill file and keep changes minimal.
+Run targeted validation and summarize changed files + test/typecheck results.
+```
+
 ## Project Structure
 
 ```text
@@ -78,10 +104,10 @@ uv pip install -r requirements.txt
 
 Create a `.env` file in `backend/` (or set these in your shell):
 
-| Variable | Description | Default |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | *(required)* |
-| `FLASK_ENV` | `development` or `production` | `production` |
+| Variable                | Description                                 | Default                     |
+| ----------------------- | ------------------------------------------- | --------------------------- |
+| `DATABASE_URL`          | PostgreSQL connection string                | _(required)_                |
+| `FLASK_ENV`             | `development` or `production`               | `production`                |
 | `SESSION_COOKIE_SECURE` | `true` / `false` — override cookie security | auto (based on `FLASK_ENV`) |
 
 Thresholds for symptom validation, confidence, triage levels, etc. are defined in [`app/config.py`](backend/app/config.py) and can be overridden with environment variables where noted.
@@ -100,17 +126,17 @@ The API will be available at **http://localhost:10000**.
 
 ### API Endpoints
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/diagnosis/` | Health check |
-| `POST` | `/diagnosis/new` | Initial symptom classification |
-| `POST` | `/diagnosis/follow-up` | Follow-up question & re-classification |
-| `POST` | `/diagnosis/explain` | SHAP-based symptom attribution |
-| `GET` | `/api/patient-clusters` | K-Means patient clustering |
-| `GET` | `/api/patient-clusters/silhouette` | Silhouette analysis |
-| `GET` | `/api/surveillance/outbreaks` | Isolation Forest outbreak detection |
-| `GET` | `/api/surveillance/outbreaks/details` | Detailed outbreak information |
-| `GET` | `/api/illness-clusters` | Illness-based clustering |
+| Method | Path                                  | Description                            |
+| ------ | ------------------------------------- | -------------------------------------- |
+| `GET`  | `/diagnosis/`                         | Health check                           |
+| `POST` | `/diagnosis/new`                      | Initial symptom classification         |
+| `POST` | `/diagnosis/follow-up`                | Follow-up question & re-classification |
+| `POST` | `/diagnosis/explain`                  | SHAP-based symptom attribution         |
+| `GET`  | `/api/patient-clusters`               | K-Means patient clustering             |
+| `GET`  | `/api/patient-clusters/silhouette`    | Silhouette analysis                    |
+| `GET`  | `/api/surveillance/outbreaks`         | Isolation Forest outbreak detection    |
+| `GET`  | `/api/surveillance/outbreaks/details` | Detailed outbreak information          |
+| `GET`  | `/api/illness-clusters`               | Illness-based clustering               |
 
 ### Key Features
 
@@ -188,22 +214,22 @@ The frontend runs at **http://localhost:3000**.
 
 ### User Flows
 
-| Role | Login | Features |
-|---|---|---|
-| Patient | `/login` | Symptom chat → diagnosis → history, profile management |
+| Role      | Login              | Features                                                                                 |
+| --------- | ------------------ | ---------------------------------------------------------------------------------------- |
+| Patient   | `/login`           | Symptom chat → diagnosis → history, profile management                                   |
 | Clinician | `/clinician-login` | Dashboard, patient clusters, outbreak surveillance, alerts, healthcare reports, map view |
 
 ---
 
 ## Troubleshooting
 
-| Issue | Fix |
-|---|---|
-| Port conflict (3000/10000) | Kill existing processes or change ports |
-| CORS errors | Verify `Flask-Cors` is installed; allowed origins are set in `app/__init__.py` |
-| Database connection | Check `DATABASE_URL` in `.env` / `.env.local` |
-| Prisma client stale | Re-run `npx prisma generate` after schema changes |
-| Model loading slow | First run downloads transformer models (~500 MB); subsequent starts use cache |
+| Issue                      | Fix                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| Port conflict (3000/10000) | Kill existing processes or change ports                                        |
+| CORS errors                | Verify `Flask-Cors` is installed; allowed origins are set in `app/__init__.py` |
+| Database connection        | Check `DATABASE_URL` in `.env` / `.env.local`                                  |
+| Prisma client stale        | Re-run `npx prisma generate` after schema changes                              |
+| Model loading slow         | First run downloads transformer models (~500 MB); subsequent starts use cache  |
 
 ---
 
