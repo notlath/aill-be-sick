@@ -10,6 +10,7 @@ Use these files for AI-assisted development workflow:
 - `.prompt.md`: reusable prompt templates for common implementation tasks.
 - `COPILOT_CONFIG.md`: guidance hierarchy, skill routing, and sync policy.
 - `.github/pull_request_template.md`: PR template with AI quality checklist.
+- `find-skills`: use when discovering or installing additional skills.
 
 ## Project Overview
 
