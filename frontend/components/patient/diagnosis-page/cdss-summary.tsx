@@ -33,6 +33,8 @@ type CDSSSummaryProps = {
   cdss: CDSSPayload;
   /** ISO-8601 string or Date. Falls back to component render time when absent. */
   generatedAt?: string | Date;
+  confidence?: number;
+  uncertainty?: number;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -65,7 +67,7 @@ const formatTimestamp = (date: Date): string =>
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-const CDSSSummary = ({ cdss, generatedAt }: CDSSSummaryProps) => {
+const CDSSSummary = ({ cdss, generatedAt, confidence, uncertainty }: CDSSSummaryProps) => {
   if (!cdss) return null;
 
   // Fix #7 — clinical outputs need temporal context.
@@ -93,6 +95,17 @@ const CDSSSummary = ({ cdss, generatedAt }: CDSSSummaryProps) => {
           )}
         </div>
       </div>
+
+      {/* Confidence/Uncertainty Warning */}
+      {((typeof confidence === 'number' && confidence < 0.95) || (typeof uncertainty === 'number' && uncertainty > 0.05)) && (
+        <div className="alert alert-warning mb-4 rounded-lg shadow-sm border border-warning/20">
+          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-5 w-5" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <div>
+            <h4 className="font-bold text-sm">Model is uncertain</h4>
+            <div className="text-xs">The AI model is not highly confident in this assessment. Please interpret the following differentials and recommendations with caution.</div>
+          </div>
+        </div>
+      )}
 
       {/* Triage — Fix #2: severity-based badge styling */}
       {cdss.triage && (
