@@ -210,10 +210,10 @@ const FeverInput = ({
           <div
             className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium animate-in fade-in zoom-in-95 duration-300 border ${
               feverLevel === FeverLevel.NORMAL
-                ? "bg-success/10 text-success-content border-success/20"
+                ? "bg-success/10 text-success border-success/20"
                 : feverLevel === FeverLevel.LOW_GRADE
-                  ? "bg-warning/10 text-warning-content border-warning/20"
-                  : "bg-error/10 text-error-content border-error/20"
+                  ? "bg-warning/10 text-warning border-warning/20"
+                  : "bg-error/10 text-error border-error/20"
             }`}
           >
             <span

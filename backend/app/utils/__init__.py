@@ -226,7 +226,7 @@ def _build_cdss_payload(
     if red_flags:
         triage_level = "Emergent"
         triage_reasons = ["One or more red flags present"] + red_flags
-        care_setting = "ER"
+        care_setting = "Emergency Room"
         actions = [
             "Seek emergency evaluation immediately",
             "Avoid delays; consider calling local emergency number",

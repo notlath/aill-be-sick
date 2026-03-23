@@ -212,9 +212,11 @@ model diagnosis_sessions {
   model_used       String
   lang             String @default("en")
   asked_questions  String @default("[]")
+  question_answers String @default("{}")
   evidence_texts   String @default("[]")
   created_at       Float
   updated_at       Float
+  initial_eig      Float?
 
   @@index([chat_id], map: "idx_diagnosis_sessions_chat_id")
   @@index([created_at], map: "idx_diagnosis_sessions_created_at")

@@ -28,7 +28,7 @@ const QuestionBubble = ({
 }: QuestionBubbleProps) => {
   return (
     <article
-      className="self-start bg-gray-200 p-4 rounded-xl max-w-[60%] shadow-sm"
+      className="self-start bg-base-200 text-base-content p-4 rounded-xl max-w-[60%] shadow-sm"
       role="group"
       aria-labelledby={`q-${questionId}`}
     >

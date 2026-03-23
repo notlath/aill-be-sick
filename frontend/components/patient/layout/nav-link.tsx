@@ -44,14 +44,12 @@ const NavLink = ({ name, href, icon: Icon, isActive, badge }: NavLinkProps) => {
       // glitch where prefetch={false} + useSearchParams causes Suspense fallbacks on click.
       className={cn(
         "group flex items-center gap-3 px-2.5 py-2 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] relative overflow-hidden",
+        "[transition-property:transform,background-color,box-shadow]",
         "hover:bg-base-200/60 hover:shadow-sm active:scale-[0.98]",
         isActive
           ? "bg-gradient-to-r from-primary/10 to-primary/5 shadow-sm"
           : "bg-transparent",
       )}
-      style={{
-        transitionProperty: "transform, background-color, box-shadow",
-      }}
     >
       <div
         className={cn(

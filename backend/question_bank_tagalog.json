@@ -83,12 +83,13 @@
     },
     {
       "id": "dengue_q10",
-      "question": "Nakaranas ka ba ng pananakit ng ulo?",
-      "positive_symptom": "Nakaranas ako ng pananakit ng ulo",
-      "negative_symptom": "Wala akong pananakit ng ulo",
-      "weight": 0.85,
-      "category": "secondary",
-      "burden": 1
+      "question": "Mayroon ka bang ubo o sipon?",
+      "positive_symptom": "Mayroon akong ubo o sipon",
+      "negative_symptom": "Wala akong ubo o sipon",
+      "weight": 0.9,
+      "category": "primary",
+      "burden": 1,
+      "is_negative": true
     }
   ],
   "Pneumonia": [
@@ -130,12 +131,13 @@
     },
     {
       "id": "pneumonia_q5",
-      "question": "Nakakaramdam ka ba ng hindi pangkaraniwang pagod o panghihina?",
-      "positive_symptom": "Nakakaramdam ako ng hindi pangkaraniwang pagod o panghihina",
-      "negative_symptom": "Hindi ako nakakaramdam ng hindi pangkaraniwang pagod",
+      "question": "Mayroon ka bang sipon o baradong ilong?",
+      "positive_symptom": "Mayroon akong sipon o baradong ilong",
+      "negative_symptom": "Wala akong sipon o baradong ilong",
       "weight": 0.9,
       "category": "primary",
-      "burden": 1
+      "burden": 1,
+      "is_negative": true
     },
     {
       "id": "pneumonia_q6",
@@ -267,12 +269,13 @@
     },
     {
       "id": "typhoid_q10",
-      "question": "Nahihirapan ka ba na manatiling hydrated o pakiramdam na dehydrated?",
-      "positive_symptom": "Nahihirapan ako na manatiling hydrated o pakiramdam na dehydrated",
-      "negative_symptom": "Hindi ako nahihirapan na manatiling hydrated",
-      "weight": 0.85,
-      "category": "secondary",
-      "burden": 3
+      "question": "Mayroon ka bang malubhang ubo o problema sa paghinga?",
+      "positive_symptom": "Mayroon akong malubhang ubo o problema sa paghinga",
+      "negative_symptom": "Wala akong malubhang ubo o problema sa paghinga",
+      "weight": 0.9,
+      "category": "primary",
+      "burden": 1,
+      "is_negative": true
     }
   ],
   "Diarrhea": [
@@ -314,21 +317,23 @@
     },
     {
       "id": "diarrhea_q5",
-      "question": "Mayroon ka bang lagnat?",
-      "positive_symptom": "Mayroon akong lagnat",
-      "negative_symptom": "Wala akong lagnat",
-      "weight": 0.90,
+      "question": "Mayroon ka bang ubo, sipon, o hirap sa paghinga?",
+      "positive_symptom": "Mayroon akong ubo, sipon, o hirap sa paghinga",
+      "negative_symptom": "Wala akong ubo, sipon, o hirap sa paghinga",
+      "weight": 0.92,
       "category": "primary",
-      "burden": 1
+      "burden": 1,
+      "is_negative": true
     },
     {
       "id": "diarrhea_q6",
-      "question": "Nakakaranas ka ba ng pagduduwal o pagsusuka?",
-      "positive_symptom": "Nakakaranas ako ng pagduduwal o pagsusuka",
-      "negative_symptom": "Hindi ako nakakaranas ng pagduduwal o pagsusuka",
-      "weight": 0.89,
-      "category": "secondary",
-      "burden": 1
+      "question": "Mayroon ka bang mataas na lagnat na tumatagal at lumalala ng mahigit isang linggo?",
+      "positive_symptom": "Mayroon akong matagal na lagnat na lumalala sa mga nakaraang araw",
+      "negative_symptom": "Wala akong matagal na lagnat na lumalala",
+      "weight": 0.91,
+      "category": "primary",
+      "burden": 4,
+      "is_negative": true
     },
     {
       "id": "diarrhea_q7",
@@ -424,12 +429,13 @@
     },
     {
       "id": "measles_q7",
-      "question": "Sensitibo ba sa liwanag ang iyong mga mata?",
-      "positive_symptom": "Sensitibo sa liwanag ang aking mga mata",
-      "negative_symptom": "Hindi sensitibo sa liwanag ang aking mga mata",
-      "weight": 0.88,
-      "category": "secondary",
-      "burden": 2
+      "question": "Mayroon ka bang di-pangkaraniwang pagdurugo o matinding pananakit ng buto?",
+      "positive_symptom": "Mayroon akong di-pangkaraniwang pagdurugo o matinding pananakit ng buto",
+      "negative_symptom": "Wala akong pagdurugo o matinding pananakit ng buto",
+      "weight": 0.91,
+      "category": "primary",
+      "burden": 2,
+      "is_negative": true
     },
     {
       "id": "measles_q8",
@@ -525,12 +531,13 @@
     },
     {
       "id": "influenza_q8",
-      "question": "Mayroon ka bang sipon o baradong ilong?",
-      "positive_symptom": "Mayroon akong sipon o baradong ilong",
-      "negative_symptom": "Wala akong sipon o baradong ilong",
-      "weight": 0.87,
-      "category": "secondary",
-      "burden": 1
+      "question": "Mayroon ka bang pantal sa balat o matinding pananakit sa likod ng mga mata?",
+      "positive_symptom": "Mayroon akong pantal sa balat o pananakit sa likod ng mga mata",
+      "negative_symptom": "Wala akong pantal sa balat o pananakit sa likod ng mga mata",
+      "weight": 0.92,
+      "category": "primary",
+      "burden": 2,
+      "is_negative": true
     },
     {
       "id": "influenza_q9",

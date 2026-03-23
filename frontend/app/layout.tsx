@@ -10,11 +10,13 @@ import "leaflet/dist/leaflet.css";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  fallback: ["Geist Fallback"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  fallback: ["Geist Fallback"],
 });
 
 export const metadata: Metadata = {

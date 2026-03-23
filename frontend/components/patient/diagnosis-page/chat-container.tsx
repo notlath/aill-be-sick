@@ -103,6 +103,10 @@ const ChatContainer = memo(
       },
       ref,
     ) => {
+      // Extract the user's original symptoms text for use in AI insights
+      const symptomsMessage = messages.find((m) => m.type === "SYMPTOMS");
+      const symptomsText = symptomsMessage?.content || "";
+
       return (
         <section className="flex flex-col flex-1 space-y-2 py-8 px-4 w-full max-w-[768px]">
           {messages.map((message, idx) => (
@@ -115,6 +119,7 @@ const ChatContainer = memo(
               explanation={message.explanation || dbExplanation || null}
               tempDiagnosis={message.tempDiagnosis}
               userRole={userRole}
+              symptomsText={symptomsText}
               {...message}
             />
           ))}
@@ -132,7 +137,7 @@ const ChatContainer = memo(
             />
           )}
           {(isDiagnosing || isCreatingMessage) && (
-            <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
+            <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[60%]">
               <div className="flex items-center gap-1.5">
                 <LazyMarkdown components={MARKDOWN_COMPONENTS}>
                   Diagnosing
@@ -142,7 +147,7 @@ const ChatContainer = memo(
             </article>
           )}
           {isGettingQuestion && !currentQuestion && (
-            <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
+            <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[60%]">
               <div className="flex items-center gap-1.5">
                 <LazyMarkdown components={MARKDOWN_COMPONENTS}>
                   Asking you follow-up questions
@@ -152,7 +157,7 @@ const ChatContainer = memo(
             </article>
           )}
           {isGettingExplanations && (
-            <article className="self-start bg-gray-100 p-3 px-4 rounded-xl max-w-[60%]">
+            <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[60%]">
               <div className="flex items-center gap-1.5">
                 <LazyMarkdown components={MARKDOWN_COMPONENTS}>
                   Generating insights for your diagnosis

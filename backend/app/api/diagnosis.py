@@ -26,6 +26,7 @@ from app.question_groups import (
     get_questions_to_skip_from_text,
     get_questions_blocked_by_prerequisites,
 )
+from app.utils.scoring import apply_text_evidence_boosts
 
 diagnosis_bp = Blueprint("diagnosis", __name__)
 
@@ -666,6 +667,40 @@ def follow_up_question():
         top_diseases = sess.get("top_diseases", [])
         model_used = sess.get("model_used", "BioClinical ModernBERT")
 
+        # ── TEXT EVIDENCE BOOSTS (first follow-up only) ───────────────────
+        # CRITICAL FIX: Apply Bayesian boosts for symptoms detected in the
+        # initial text BEFORE any follow-up questions are asked.
+        # This ensures textbook descriptions (e.g., "high fever, muscle pain,
+        # bleeding gums" for Dengue) get proper probability boosts.
+        session_lang = sess.get("lang", "en")
+        qb_for_boost = (
+            QUESTION_BANK_TL if session_lang in ["tl", "fil"] else QUESTION_BANK_EN
+        )
+
+        if not asked_questions and initial_symptoms:
+            boost_result = apply_text_evidence_boosts(
+                current_probs=current_probs,
+                symptoms_text=initial_symptoms,
+                question_bank=qb_for_boost,
+                disease_labels=CORRECT_ID2LABEL,
+                evidence_keywords=EVIDENCE_KEYWORDS,
+            )
+
+            if boost_result["boost_count"] > 0:
+                current_probs = np.array(boost_result["probs"])
+                pred = str(boost_result["predicted_label"])
+                confidence = boost_result["confidence"]
+                uncertainty = boost_result["uncertainty"]
+                top_diseases = boost_result["top_diseases"]
+
+                print(
+                    f"[FOLLOW-UP] Applied text evidence boosts for {boost_result['boost_count']} symptoms: "
+                    f"{boost_result['boosted_questions']}"
+                )
+                print(
+                    f"[FOLLOW-UP] Post-boost: {pred} conf={confidence:.3f} MI={uncertainty:.4f}"
+                )
+
         if last_answer and last_question_id:
             # Track the answer for prerequisite checking
             question_answers[last_question_id] = str(last_answer).lower()
@@ -681,6 +716,7 @@ def follow_up_question():
                     question_weight=q_meta["weight"],
                     target_disease_idx=q_meta["disease_idx"],
                     disease_labels=CORRECT_ID2LABEL,
+                    is_negative=q_meta.get("is_negative", False),
                 )
 
                 current_probs = np.array(update_result["probs"])

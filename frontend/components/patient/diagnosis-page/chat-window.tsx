@@ -868,9 +868,13 @@ const ChatWindow = ({
             />
             {isFinalDiagnosis &&
               currentDiagnosis?.cdss &&
-              (currentDiagnosis?.confidence ?? 0) >= 0.95 && (
+              (
                 <div className="mt-2 w-full">
-                  <CDSSSummary cdss={currentDiagnosis.cdss} />
+                  <CDSSSummary 
+                    cdss={currentDiagnosis.cdss} 
+                    confidence={currentDiagnosis.confidence ?? undefined}
+                    uncertainty={currentDiagnosis.uncertainty ?? undefined}
+                  />
                 </div>
               )}
             <dialog id="record_success_modal" className="modal">

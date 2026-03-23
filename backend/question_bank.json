@@ -83,12 +83,13 @@
     },
     {
       "id": "dengue_q10",
-      "question": "Are you experiencing these symptoms completely without a cough or runny nose?",
-      "positive_symptom": "I do not have a cough or runny nose",
-      "negative_symptom": "I actually do have a cough or runny nose",
+      "question": "Do you have a cough or runny nose?",
+      "positive_symptom": "I have a cough or runny nose",
+      "negative_symptom": "I don't have a cough or runny nose",
       "weight": 0.9,
       "category": "primary",
-      "burden": 1
+      "burden": 1,
+      "is_negative": true
     }
   ],
   "Pneumonia": [
@@ -130,12 +131,13 @@
     },
     {
       "id": "pneumonia_q5",
-      "question": "Are you experiencing these severe chest and breathing symptoms completely without a runny nose or sniffles?",
-      "positive_symptom": "I do not have a runny nose or sniffles",
-      "negative_symptom": "I actually do have a runny nose",
+      "question": "Do you have a runny nose or sniffles?",
+      "positive_symptom": "I have a runny nose or sniffles",
+      "negative_symptom": "I don't have a runny nose or sniffles",
       "weight": 0.9,
       "category": "primary",
-      "burden": 1
+      "burden": 1,
+      "is_negative": true
     },
     {
       "id": "pneumonia_q6",
@@ -267,12 +269,13 @@
     },
     {
       "id": "typhoid_q10",
-      "question": "Are you experiencing these fever and stomach symptoms completely without a severe cough or breathing problems?",
-      "positive_symptom": "I do not have a severe cough or breathing problems",
-      "negative_symptom": "I actually do have a cough and breathing problems",
+      "question": "Do you have a severe cough or breathing problems?",
+      "positive_symptom": "I have a severe cough or breathing problems",
+      "negative_symptom": "I don't have a severe cough or breathing problems",
       "weight": 0.9,
       "category": "primary",
-      "burden": 1
+      "burden": 1,
+      "is_negative": true
     }
   ],
   "Diarrhea": [
@@ -314,21 +317,23 @@
     },
     {
       "id": "diarrhea_q5",
-      "question": "Are you experiencing these stomach issues completely without a cough, runny nose, or difficulty breathing?",
-      "positive_symptom": "I do not have a cough, runny nose, or any respiratory symptoms",
-      "negative_symptom": "I actually do have a cough or runny nose",
+      "question": "Do you have a cough, runny nose, or difficulty breathing?",
+      "positive_symptom": "I have a cough, runny nose, or respiratory symptoms",
+      "negative_symptom": "I don't have a cough, runny nose, or respiratory symptoms",
       "weight": 0.92,
       "category": "primary",
-      "burden": 1
+      "burden": 1,
+      "is_negative": true
     },
     {
       "id": "diarrhea_q6",
-      "question": "Can you confirm that you DO NOT have a high fever that has been lasting and getting worse for over a week?",
-      "positive_symptom": "I do not have a prolonged fever that has been lasting for days",
-      "negative_symptom": "I actually do have a fever that has been getting worse for days",
+      "question": "Do you have a high fever that has been lasting and getting worse for over a week?",
+      "positive_symptom": "I have a prolonged fever that has been lasting for days",
+      "negative_symptom": "I don't have a prolonged fever getting worse for days",
       "weight": 0.91,
       "category": "primary",
-      "burden": 4
+      "burden": 4,
+      "is_negative": true
     },
     {
       "id": "diarrhea_q7",
@@ -424,12 +429,13 @@
     },
     {
       "id": "measles_q7",
-      "question": "Are you experiencing these symptoms completely without any unusual bleeding or severe, deep bone pain?",
-      "positive_symptom": "I do not have any bleeding or severe deep bone pain",
-      "negative_symptom": "I actually do have bleeding or severe bone pain",
+      "question": "Do you have any unusual bleeding or severe, deep bone pain?",
+      "positive_symptom": "I have unusual bleeding or severe deep bone pain",
+      "negative_symptom": "I don't have any bleeding or severe deep bone pain",
       "weight": 0.91,
       "category": "primary",
-      "burden": 2
+      "burden": 2,
+      "is_negative": true
     },
     {
       "id": "measles_q8",
@@ -525,12 +531,13 @@
     },
     {
       "id": "influenza_q8",
-      "question": "Are you experiencing these symptoms completely without a skin rash or deep pain behind your eyes?",
-      "positive_symptom": "I do not have a skin rash or pain behind my eyes",
-      "negative_symptom": "I actually do have a rash or pain behind my eyes",
+      "question": "Do you have a skin rash or deep pain behind your eyes?",
+      "positive_symptom": "I have a skin rash or pain behind my eyes",
+      "negative_symptom": "I don't have a skin rash or pain behind my eyes",
       "weight": 0.92,
       "category": "primary",
-      "burden": 2
+      "burden": 2,
+      "is_negative": true
     },
     {
       "id": "influenza_q9",

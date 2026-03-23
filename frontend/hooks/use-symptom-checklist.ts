@@ -87,13 +87,12 @@ export const useSymptomChecklist = (language: Language = "en") => {
       setCheckedIds((prev) => {
         const next = new Set(prev);
 
-        // Uncheck symptoms that were auto-checked but no longer apply
+        // When a temperature is provided, uncheck ALL fever symptoms that
+        // no longer apply — including ones the user may have manually selected.
+        // Temperature input has authority over fever-related checkboxes.
         for (const id of symptomsToUncheck) {
-          // Only uncheck if it was auto-checked (not manually selected by user)
-          if (autoCheckedRef.current.has(id)) {
-            next.delete(id);
-            autoCheckedRef.current.delete(id);
-          }
+          next.delete(id);
+          autoCheckedRef.current.delete(id);
         }
 
         // Check new symptoms based on temperature
