@@ -17,11 +17,9 @@ const MainContentWrapper = ({ children }: MainContentWrapperProps) => {
     <div
       className={cn(
         "flex-1 p-3 sidebar:p-6 w-full max-w-[100vw] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        "[transition-property:padding-left,margin-left]",
         !isOpen && "sidebar:pl-20"
       )}
-      style={{
-        transitionProperty: "padding-left, margin-left",
-      }}
     >
       <div
         className={cn(
