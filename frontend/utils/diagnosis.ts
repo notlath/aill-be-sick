@@ -18,6 +18,11 @@ const diagnosisWithUserSelect = {
   barangay: true,
   latitude: true,
   longitude: true,
+  temperature: true,
+  temperatureUnit: true,
+  heightCm: true,
+  weightKg: true,
+  bmiAdvice: true,
   userId: true,
   chatId: true,
   createdAt: true,
@@ -77,18 +82,29 @@ export const getAllDiagnoses = async ({
   take?: number;
 }) => {
   try {
+    const includeRelations = {
+      user: true,
+      override: {
+        select: {
+          clinicianDisease: true,
+          clinicianNotes: true,
+          createdAt: true,
+        },
+      },
+    };
+
     if (skip || take) {
       const diagnoses = await prisma.diagnosis.findMany({
         skip,
         take,
-        include: { user: true },
+        include: includeRelations,
       });
 
       return { success: diagnoses };
     }
 
     const diagnoses = await prisma.diagnosis.findMany({
-      include: { user: true },
+      include: includeRelations,
     });
 
     return { success: diagnoses };

@@ -2,8 +2,15 @@
 
 import { User } from "@/lib/generated/prisma";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, ExternalLink } from "lucide-react";
+import { ArrowUpDown, ExternalLink, FileCheck2 } from "lucide-react";
 import { getReliability } from "@/utils/reliability";
+import { getAnonymizedPatientId } from "@/utils/patient";
+
+export type DiagnosisOverrideRow = {
+  clinicianDisease: string;
+  clinicianNotes: string | null;
+  createdAt: Date;
+};
 
 export type DiagnosisRow = {
   id: number;
@@ -16,6 +23,7 @@ export type DiagnosisRow = {
   barangay?: string | null;
   createdAt: Date;
   user?: User;
+  override?: DiagnosisOverrideRow | null;
 };
 
 export const columns: ColumnDef<DiagnosisRow>[] = [
@@ -26,10 +34,30 @@ export const columns: ColumnDef<DiagnosisRow>[] = [
         className="flex items-center gap-1 hover:text-primary"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Disease
+        Condition
         <ArrowUpDown className="w-4 h-4" />
       </button>
     ),
+    cell: ({ row }) => {
+      const hasOverride = row.original.override != null;
+      const displayDisease = hasOverride
+        ? row.original.override!.clinicianDisease
+        : row.original.disease;
+
+      return (
+        <div className="flex items-center gap-1.5">
+          <span>{displayDisease}</span>
+          {hasOverride && (
+            <span
+              className="tooltip tooltip-right"
+              data-tip="Clinician reviewed"
+            >
+              <FileCheck2 className="size-4 text-success" strokeWidth={2} />
+            </span>
+          )}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "symptoms",
@@ -45,16 +73,16 @@ export const columns: ColumnDef<DiagnosisRow>[] = [
   },
   {
     id: "patient",
-    header: "Patient",
-    cell: ({ row, table }) => {
-      const name = row.original.user?.name ?? "Unknown";
+    header: "Patient ID",
+    cell: ({ row }) => {
+      const anonymizedId = getAnonymizedPatientId(row.original.userId);
       return (
-        <button
-          onClick={() => (table.options.meta as any)?.openPatientModal?.(row.original.user)}
-          className="font-medium text-primary hover:underline text-left"
+        <span
+          className="font-mono text-sm text-base-content/80"
+          title="Anonymized patient identifier for privacy"
         >
-          {name}
-        </button>
+          {anonymizedId}
+        </span>
       );
     },
   },

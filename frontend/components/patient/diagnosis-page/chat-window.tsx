@@ -702,7 +702,7 @@ const ChatWindow = ({
         createMessageExecute({
           chatId,
           content:
-            "An error occurred while processing your answer. Please try again or start a new diagnosis.",
+            "An error occurred while processing your answer. Please try again or start a new symptom check.",
           type: "ERROR",
           role: "AI",
         });
@@ -880,10 +880,10 @@ const ChatWindow = ({
                     ✕
                   </button>
                 </form>
-                <h3 className="font-bold text-lg">Diagnosis recorded</h3>
+                <h3 className="font-bold text-lg">Result saved</h3>
                 <p className="py-4 text-muted">
-                  This diagnosis has been successfully stored and saved in the
-                  records!
+                  This assessment has been successfully saved to your records.
+                  Remember to consult a healthcare provider for proper evaluation.
                 </p>
               </div>
             </dialog>

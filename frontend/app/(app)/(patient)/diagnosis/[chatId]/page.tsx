@@ -107,6 +107,12 @@ const ChatDataLoader = async ({
         userRole={userRole}
         dbCdss={(diagnosis as any)?.cdss ?? null}
         dbConfidence={diagnosis?.confidence ?? null}
+        diagnosisId={diagnosis?.id}
+        initialBmiData={{
+          heightCm: diagnosis?.heightCm ?? null,
+          weightKg: diagnosis?.weightKg ?? null,
+          bmiAdvice: diagnosis?.bmiAdvice ?? null,
+        }}
       />
     );
   }

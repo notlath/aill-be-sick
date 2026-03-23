@@ -1,5 +1,6 @@
 import IllnessClusters from "@/components/clinicians/dashboard-page/illness-clusters";
 import IllnessPatternsExplainer from "@/components/clinicians/dashboard-page/illness-patterns-explainer";
+import EndemicDiseaseSummary from "@/components/clinicians/dashboard-page/endemic-disease-summary";
 
 const ClinicianHomePage = () => {
   return (
@@ -18,6 +19,16 @@ const ClinicianHomePage = () => {
       {/* Main Content */}
       <div className="w-full px-4 pb-12 sm:pb-16 md:px-8 lg:px-12">
         <div className="mx-auto w-full max-w-7xl flex flex-col gap-6 sm:gap-8">
+          {/* Endemic Disease Awareness - Sidebar-style on large screens */}
+          <section
+            className="animate-slide-up"
+            style={{ animationDelay: "100ms" }}
+          >
+            <div className="lg:max-w-sm">
+              <EndemicDiseaseSummary />
+            </div>
+          </section>
+
           {/* Illness Clusters - Full Width Premium Card */}
           <section
             className="animate-slide-up flex flex-col gap-4 sm:gap-6"

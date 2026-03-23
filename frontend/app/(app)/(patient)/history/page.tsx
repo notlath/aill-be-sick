@@ -31,7 +31,7 @@ async function ChatHistoryList() {
   if (chats.length === 0) {
     return (
       <p className="text-muted text-lg mt-8 text-center">
-        You don't have any diagnosis history yet.
+        You don't have any assessment history yet.
       </p>
     );
   }
@@ -96,7 +96,7 @@ async function ChatHistoryList() {
   });
 
   const pdfColumns: PdfColumn[] = [
-    { header: "Diagnosis", dataKey: "diagnosis" },
+    { header: "Suggested Condition", dataKey: "diagnosis" },
     { header: "Model", dataKey: "modelUsed" },
     { header: "Reliability", dataKey: "reliability" },
     { header: "Date", dataKey: "createdAt" },
@@ -116,11 +116,12 @@ async function ChatHistoryList() {
         data={rows}
         additionalActions={
           <ExportReportButton
+            key="export-report"
             data={exportData}
             columns={pdfColumns}
-            filenameSlug="diagnosis-history"
-            title="Diagnosis History"
-            subtitle="Your diagnosis history"
+            filenameSlug="assessment-history"
+            title="Assessment History"
+            subtitle="Your symptom check history"
             generatedBy={{
               name: dbUser.name ?? "Unknown",
               email: dbUser.email,
@@ -195,10 +196,10 @@ const HistoryPage = async () => {
       <div className="space-y-8 lg:space-y-10 mx-auto p-4 pt-8 lg:p-8 lg:pt-12 max-w-5xl flex-1 w-full relative">
         <div className="space-y-2">
           <h1 className="mb-1 font-semibold text-base-content text-3xl lg:text-4xl tracking-tight">
-            Diagnosis history
+            Assessment history
           </h1>
           <p className="text-muted text-base lg:text-lg">
-            You can view all your previous diagnoses and their details here.
+            View your previous symptom checks and suggested conditions. These are AI suggestions, not medical diagnoses.
           </p>
         </div>
 

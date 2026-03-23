@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { DiagnosisRow } from "./columns";
-import { PatientDetailModal } from "./patient-detail-modal";
 import { ReportDetailModal } from "./report-detail-modal";
 
 interface DataTableProps<TData, TValue> {
@@ -62,9 +61,7 @@ export function DataTable<TData, TValue>({
   });
 
   const [selectedDiagnosis, setSelectedDiagnosis] = useState<TData | null>(null);
-  const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -125,10 +122,6 @@ export function DataTable<TData, TValue>({
       openDiagnosisModal: (row: any) => {
         setSelectedDiagnosis(row);
         setIsReportModalOpen(true);
-      },
-      openPatientModal: (user: any) => {
-        setSelectedPatient(user);
-        setIsPatientModalOpen(true);
       },
     },
   });
@@ -446,18 +439,6 @@ export function DataTable<TData, TValue>({
             setTimeout(() => setSelectedDiagnosis(null), 300);
           }}
           report={selectedDiagnosis as unknown as DiagnosisRow}
-        />,
-        document.body
-      ) : null}
-
-      {isMounted && selectedPatient ? createPortal(
-        <PatientDetailModal
-          isOpen={isPatientModalOpen}
-          onClose={() => {
-            setIsPatientModalOpen(false);
-            setTimeout(() => setSelectedPatient(null), 300);
-          }}
-          patient={selectedPatient}
         />,
         document.body
       ) : null}

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getAllDiagnoses } from "@/utils/diagnosis";
 import { DataTable } from "@/components/clinicians/healthcare-reports-page/data-table";
 import { columns } from "@/components/clinicians/healthcare-reports-page/columns";
+import { getAnonymizedPatientId } from "@/utils/patient";
 import { getReliability } from "@/utils/reliability";
 import { getCurrentDbUser } from "@/utils/user";
 import { ExportReportButton } from "@/components/ui/export-report-button";
@@ -56,7 +57,7 @@ async function DiagnosesData() {
 
   const pdfColumns: PdfColumn[] = [
     { header: "Disease", dataKey: "disease" },
-    { header: "Patient", dataKey: "patientName" },
+    { header: "Patient ID", dataKey: "patientId" },
     { header: "District", dataKey: "district" },
     { header: "Barangay", dataKey: "barangay" },
     { header: "Symptoms", dataKey: "symptoms" },
@@ -66,7 +67,7 @@ async function DiagnosesData() {
 
   const exportData = (diagnoses || []).map((d) => ({
     disease: d.disease,
-    patientName: (d as any).user?.name ?? "Unknown",
+    patientId: getAnonymizedPatientId(d.userId),
     district: d.district ?? "—",
     barangay: d.barangay ?? "—",
     symptoms: d.symptoms,
@@ -80,6 +81,7 @@ async function DiagnosesData() {
       data={diagnoses || []}
       additionalActions={
         <ExportReportButton
+          key="export-report"
           data={exportData}
           columns={pdfColumns}
           filenameSlug="healthcare-reports"

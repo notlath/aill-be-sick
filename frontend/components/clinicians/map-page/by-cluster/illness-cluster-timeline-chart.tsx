@@ -190,27 +190,27 @@ export function IllnessClusterTimelineChart({
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="hsl(var(--heroui-default-200))"
+                stroke="var(--color-base-300)"
                 vertical={false}
               />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+                tick={{ fontSize: 11, fill: "var(--color-base-content)" }}
                 tickLine={false}
-                axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+                axisLine={{ stroke: "var(--color-base-300)" }}
               />
               <YAxis
                 allowDecimals={false}
-                tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+                tick={{ fontSize: 11, fill: "var(--color-base-content)" }}
                 tickLine={false}
-                axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+                axisLine={{ stroke: "var(--color-base-300)" }}
               />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (!active || !payload || !payload.length) return null;
                   const data = payload[0].payload as TimeBucket;
                   return (
-                    <div className="bg-white border border-base-300 rounded shadow-sm px-3 py-2 text-xs">
+                    <div className="bg-base-200 text-base-content border border-base-300 rounded shadow-sm px-3 py-2 text-xs">
                       <p className="font-semibold mb-1">
                         {granularity === "week"
                           ? `${data.periodStart} – ${data.periodEnd}`

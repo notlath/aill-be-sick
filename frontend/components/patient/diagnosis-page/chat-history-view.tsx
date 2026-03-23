@@ -5,6 +5,7 @@ import { Explanation as TempExplanation } from "@/types";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import ChatContainer from "./chat-container";
+import BmiAdviceSection from "./bmi-advice-section";
 
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
 
@@ -16,6 +17,12 @@ type ChatHistoryViewProps = {
   userRole?: string;
   dbCdss?: any | null;
   dbConfidence?: number | null;
+  diagnosisId?: number;
+  initialBmiData?: {
+    heightCm: number | null;
+    weightKg: number | null;
+    bmiAdvice: string | null;
+  };
 };
 
 /**
@@ -34,6 +41,8 @@ const ChatHistoryView = ({
   userRole,
   dbCdss,
   dbConfidence,
+  diagnosisId,
+  initialBmiData,
 }: ChatHistoryViewProps) => {
   const processedMessages = useMemo(
     () =>
@@ -60,6 +69,15 @@ const ChatHistoryView = ({
       {dbCdss && (dbConfidence ?? 0) >= 0.95 && (
         <div className="w-full max-w-[768px] mx-auto mt-3 px-4">
           <CDSSSummary cdss={dbCdss} />
+        </div>
+      )}
+      
+      {diagnosisId && (
+        <div className="w-full max-w-[768px] mx-auto mt-3 px-4 pb-8">
+          <BmiAdviceSection 
+            diagnosisId={diagnosisId} 
+            initialData={initialBmiData} 
+          />
         </div>
       )}
       <dialog id="record_success_modal" className="modal">

@@ -32,12 +32,12 @@ const DiscardDiagnosisBtn = ({ chatId, disabled }: DiscardDiagnosisBtnProps) => 
         disabled={isExecuting || disabled}
         className="flex-1 border border-error text-error btn btn-outline hover:bg-error hover:text-error-content"
         onClick={handleDiscardDiagnosis}
-        title="Discard this diagnosis without saving it to your record"
+        title="Discard this result without saving it to your record"
       >
         {isExecuting ? (
           <span className="loading loading-spinner"></span>
         ) : (
-          "Discard diagnosis"
+          "Don't save"
         )}
       </button>
 
@@ -45,11 +45,11 @@ const DiscardDiagnosisBtn = ({ chatId, disabled }: DiscardDiagnosisBtnProps) => 
       <dialog id="discard_success_modal" className="modal">
         <div className="modal-box">
           <h3 className="font-bold text-lg text-success">
-            Diagnosis Discarded
+            Result Discarded
           </h3>
           <p className="py-4">
-            The diagnosis has been discarded and will not be saved to your
-            medical record. You can start a new diagnosis session if needed.
+            This result has been discarded and will not be saved to your
+            record. You can start a new symptom check if needed.
           </p>
           <div className="modal-action">
             <form method="dialog">
@@ -69,8 +69,8 @@ const DiscardDiagnosisBtn = ({ chatId, disabled }: DiscardDiagnosisBtnProps) => 
             Failed to Discard
           </h3>
           <p className="py-4">
-            Unable to discard the diagnosis. This may happen if the diagnosis
-            has already been recorded or if there was a technical error.
+            Unable to discard this result. This may happen if the result
+            has already been saved or if there was a technical error.
           </p>
           <div className="modal-action">
             <form method="dialog">

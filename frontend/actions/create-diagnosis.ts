@@ -74,6 +74,8 @@ export const createDiagnosis = actionClient
       symptoms,
       messageId,
       cdss,
+      temperature,
+      temperatureUnit,
     } = parsedInput;
     const { success: dbUser, error } = await getCurrentDbUser();
 
@@ -111,6 +113,9 @@ export const createDiagnosis = actionClient
           region: dbUser.region,
           barangay: dbUser.barangay,
           district: dbUser.district,
+          // Store temperature data for future analytics
+          temperature: temperature ?? null,
+          temperatureUnit: temperatureUnit ?? null,
           ...(explanation
             ? {
                 explanation: {
