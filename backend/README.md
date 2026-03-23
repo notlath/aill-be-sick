@@ -2,6 +2,34 @@
 
 This is the Flask REST API backend for the Aill-Be-Sick disease detection system. It provides endpoints for symptom analysis, disease prediction, patient clustering, and outbreak surveillance.
 
+## Copilot Quickstart
+
+For AI-assisted backend implementation, use this order:
+
+1. Read root guidance:
+
+- `../.instructions.md`
+- `../.prompt.md`
+- `../COPILOT_CONFIG.md`
+
+2. Apply backend overlay:
+
+- `./.instructions.md`
+
+3. Use backend skill:
+
+- `./.github/skills/flask-diagnostic-api/SKILL.md`
+
+Starter prompt:
+
+```text
+Implement [feature] in backend.
+Follow ../.instructions.md + ./.instructions.md.
+Use ./.github/skills/flask-diagnostic-api/SKILL.md patterns.
+Keep route logic in app/api and reusable logic in app/services.
+Run targeted pytest files and summarize changed files + test results.
+```
+
 ## Features
 
 - **Disease Detection API**: Monte Carlo Dropout classification with uncertainty quantification
@@ -106,15 +134,15 @@ uv pip install -r requirements.txt
 
 Create a `.env` file in `backend/`:
 
-| Variable | Description | Default |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | *(required)* |
-| `PORT` | Server port | `10000` |
-| `FLASK_DEBUG` | Enable debug mode | `False` |
-| `FLASK_SECRET_KEY` | Session secret key | *(auto-generated)* |
-| `FLASK_ENV` | `development` or `production` | `production` |
-| `SESSION_COOKIE_SECURE` | Cookie security | auto (based on `FLASK_ENV`) |
-| `FRONTEND_URL` | Allowed CORS origin | `http://localhost:3000` |
+| Variable                | Description                   | Default                     |
+| ----------------------- | ----------------------------- | --------------------------- |
+| `DATABASE_URL`          | PostgreSQL connection string  | _(required)_                |
+| `PORT`                  | Server port                   | `10000`                     |
+| `FLASK_DEBUG`           | Enable debug mode             | `False`                     |
+| `FLASK_SECRET_KEY`      | Session secret key            | _(auto-generated)_          |
+| `FLASK_ENV`             | `development` or `production` | `production`                |
+| `SESSION_COOKIE_SECURE` | Cookie security               | auto (based on `FLASK_ENV`) |
+| `FRONTEND_URL`          | Allowed CORS origin           | `http://localhost:3000`     |
 
 ### 5. Start Development Server
 
@@ -134,27 +162,27 @@ gunicorn -w 4 -b 0.0.0.0:10000 "run:app"
 
 ### Diagnosis Endpoints
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/diagnosis/` | Health check |
-| `POST` | `/diagnosis/new` | Initial symptom classification |
+| Method | Path                   | Description                            |
+| ------ | ---------------------- | -------------------------------------- |
+| `GET`  | `/diagnosis/`          | Health check                           |
+| `POST` | `/diagnosis/new`       | Initial symptom classification         |
 | `POST` | `/diagnosis/follow-up` | Follow-up question & re-classification |
-| `POST` | `/diagnosis/explain` | SHAP-based symptom attribution |
+| `POST` | `/diagnosis/explain`   | SHAP-based symptom attribution         |
 
 ### Clustering Endpoints
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/patient-clusters` | K-Means patient clustering |
-| `GET` | `/api/patient-clusters/silhouette` | Silhouette score analysis |
-| `GET` | `/api/illness-clusters` | Illness-based clustering |
+| Method | Path                               | Description                |
+| ------ | ---------------------------------- | -------------------------- |
+| `GET`  | `/api/patient-clusters`            | K-Means patient clustering |
+| `GET`  | `/api/patient-clusters/silhouette` | Silhouette score analysis  |
+| `GET`  | `/api/illness-clusters`            | Illness-based clustering   |
 
 ### Surveillance Endpoints
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/surveillance/outbreaks` | Isolation Forest outbreak detection |
-| `GET` | `/api/surveillance/outbreaks/details` | Detailed outbreak information |
+| Method | Path                                  | Description                         |
+| ------ | ------------------------------------- | ----------------------------------- |
+| `GET`  | `/api/surveillance/outbreaks`         | Isolation Forest outbreak detection |
+| `GET`  | `/api/surveillance/outbreaks/details` | Detailed outbreak information       |
 
 ## API Usage Examples
 
@@ -170,6 +198,7 @@ curl -X POST http://localhost:10000/diagnosis/new \
 ```
 
 **Response:**
+
 ```json
 {
   "disease": "DENGUE",
@@ -228,12 +257,14 @@ curl -X GET http://localhost:10000/api/surveillance/outbreaks
 ### Monte Carlo Dropout (MCD)
 
 The classifier runs multiple forward passes with dropout enabled to estimate prediction uncertainty. This provides:
+
 - **Confidence**: Mean probability across passes
 - **Uncertainty**: Variance in predictions (epistemic uncertainty)
 
 ### Neuro-Symbolic Verification
 
 An ontology-based layer that:
+
 - Extracts clinical concepts from input symptoms
 - Validates predictions against known disease-symptom relationships
 - Flags out-of-scope or inconsistent predictions
@@ -264,14 +295,14 @@ pytest
 
 ## Troubleshooting
 
-| Issue | Solution |
-|---|---|
-| Port 10000 in use | Change port via `PORT` env variable |
-| CORS errors | Check `FRONTEND_URL` and allowed origins in `app/__init__.py` |
-| Model loading slow | First run downloads ~500MB of transformer models; cached afterward |
-| Database connection | Verify `DATABASE_URL` in `.env` |
-| Import errors | Ensure virtual environment is activated |
-| Out of memory | Reduce batch size or use CPU-only mode |
+| Issue               | Solution                                                           |
+| ------------------- | ------------------------------------------------------------------ |
+| Port 10000 in use   | Change port via `PORT` env variable                                |
+| CORS errors         | Check `FRONTEND_URL` and allowed origins in `app/__init__.py`      |
+| Model loading slow  | First run downloads ~500MB of transformer models; cached afterward |
+| Database connection | Verify `DATABASE_URL` in `.env`                                    |
+| Import errors       | Ensure virtual environment is activated                            |
+| Out of memory       | Reduce batch size or use CPU-only mode                             |
 
 ## License
 
