@@ -115,6 +115,7 @@ def _simulate_posterior(
     answer: str,
     question_weight: float,
     target_disease_idx: int,
+    is_negative: bool = False,
 ) -> np.ndarray:
     """
     Simulate what the posterior distribution would look like if the user
@@ -123,11 +124,25 @@ def _simulate_posterior(
     Uses the same likelihood model as the existing Bayesian update in
     scoring.py so that the actual update and the simulated update are
     consistent.
+
+    Args:
+        probs: Current probability distribution
+        answer: "yes" or "no"
+        question_weight: Weight of the question
+        target_disease_idx: Index of target disease
+        is_negative: If True, invert the effective answer (for questions where
+                     "no" supports the target disease, like "do you have cough?"
+                     for Dengue where no cough supports Dengue)
     """
     num_classes = len(probs)
     likelihood = np.ones(num_classes, dtype=np.float64)
 
-    if answer == "yes":
+    # For negative questions, invert the effective answer
+    effective_answer = answer
+    if is_negative:
+        effective_answer = "no" if answer == "yes" else "yes"
+
+    if effective_answer == "yes":
         boost = 1.0 + question_weight
         penalty = max(1.0 - question_weight * 0.35, 0.1)
         likelihood[target_disease_idx] = boost
@@ -154,6 +169,7 @@ def compute_eig(
     question_weight: float,
     target_disease_idx: int,
     p_yes: float | None = None,
+    is_negative: bool = False,
 ) -> float:
     """
     Compute the Expected Information Gain for a single candidate question.
@@ -163,6 +179,10 @@ def compute_eig(
     This is a reasonable prior: if the model thinks disease X is likely,
     questions about X-specific symptoms are more likely to be answered yes.
 
+    For negative questions (is_negative=True), the p_yes logic is inverted:
+    - High probability of target disease -> user likely answers "no"
+      (e.g., Dengue likely -> user likely has no cough)
+
     Returns:
         EIG in nats (≥ 0). Higher = more informative question.
     """
@@ -170,15 +190,22 @@ def compute_eig(
     probs = probs / probs.sum()
 
     if p_yes is None:
-        p_yes = float(probs[target_disease_idx])
+        # For standard questions: high disease prob -> likely yes
+        # For negative questions: high disease prob -> likely no (invert)
+        if is_negative:
+            p_yes = 1.0 - float(probs[target_disease_idx])
+        else:
+            p_yes = float(probs[target_disease_idx])
     p_no = 1.0 - p_yes
 
     h_current = _shannon_entropy(probs)
 
     posterior_yes = _simulate_posterior(
-        probs, "yes", question_weight, target_disease_idx
+        probs, "yes", question_weight, target_disease_idx, is_negative
     )
-    posterior_no = _simulate_posterior(probs, "no", question_weight, target_disease_idx)
+    posterior_no = _simulate_posterior(
+        probs, "no", question_weight, target_disease_idx, is_negative
+    )
 
     h_yes = _shannon_entropy(posterior_yes)
     h_no = _shannon_entropy(posterior_no)
@@ -195,6 +222,7 @@ def compute_differential_eig(
     question_weight: float,
     target_disease_idx: int,
     top_k_indices: list[int],
+    is_negative: bool = False,
 ) -> float:
     """
     Compute how well a question separates the top-k disease contenders.
@@ -207,6 +235,7 @@ def compute_differential_eig(
         question_weight: Weight of the question
         target_disease_idx: Which disease this question targets
         top_k_indices: Indices of the top-k most likely diseases
+        is_negative: If True, the question has inverted semantics
 
     Returns:
         Differential EIG score (higher = better at separating top diseases)
@@ -228,30 +257,52 @@ def compute_differential_eig(
     # Compute entropy reduction within the top-k subset
     h_current = _shannon_entropy(top_k_probs)
 
-    # Simulate posteriors within top-k
-    p_yes = float(top_k_probs[local_target_idx])
+    # For negative questions, invert the p_yes logic
+    if is_negative:
+        p_yes = 1.0 - float(top_k_probs[local_target_idx])
+    else:
+        p_yes = float(top_k_probs[local_target_idx])
     p_no = 1.0 - p_yes
 
     # Simplified posterior simulation for top-k only
     posterior_yes = top_k_probs.copy()
     posterior_no = top_k_probs.copy()
 
-    # Yes answer boosts target, penalizes others
+    # Determine effective answers based on is_negative
+    # Yes answer boosts target, penalizes others (or inverted for is_negative)
     boost = 1.0 + question_weight
     penalty = max(1.0 - question_weight * 0.35, 0.1)
-    posterior_yes[local_target_idx] *= boost
-    for i in range(len(top_k_indices)):
-        if i != local_target_idx:
-            posterior_yes[i] *= penalty
+
+    if is_negative:
+        # "yes" to negative question -> penalize target
+        posterior_yes[local_target_idx] *= penalty
+        for i in range(len(top_k_indices)):
+            if i != local_target_idx:
+                posterior_yes[i] *= boost
+    else:
+        # "yes" to standard question -> boost target
+        posterior_yes[local_target_idx] *= boost
+        for i in range(len(top_k_indices)):
+            if i != local_target_idx:
+                posterior_yes[i] *= penalty
     posterior_yes = posterior_yes / posterior_yes.sum()
 
-    # No answer penalizes target, slightly boosts others
+    # No answer penalizes target, slightly boosts others (or inverted)
     no_penalty = max(1.0 - question_weight * 0.35, 0.05)
     no_boost = 1.0 + question_weight * 0.1
-    posterior_no[local_target_idx] *= no_penalty
-    for i in range(len(top_k_indices)):
-        if i != local_target_idx:
-            posterior_no[i] *= no_boost
+
+    if is_negative:
+        # "no" to negative question -> boost target
+        posterior_no[local_target_idx] *= boost
+        for i in range(len(top_k_indices)):
+            if i != local_target_idx:
+                posterior_no[i] *= penalty
+    else:
+        # "no" to standard question -> penalize target
+        posterior_no[local_target_idx] *= no_penalty
+        for i in range(len(top_k_indices)):
+            if i != local_target_idx:
+                posterior_no[i] *= no_boost
     posterior_no = posterior_no / posterior_no.sum()
 
     h_yes = _shannon_entropy(posterior_yes)
@@ -484,12 +535,15 @@ def select_best_question(
         question_id = q.get("id", "")
         weight = q.get("weight", 0.85)
         burden = q.get("burden", 3)  # Default to average burden if not specified
+        is_negative = q.get("is_negative", False)  # Handle negative questions
 
-        # Compute raw EIG
-        eig_raw = compute_eig(probs, weight, target_idx)
+        # Compute raw EIG (with is_negative handling)
+        eig_raw = compute_eig(probs, weight, target_idx, is_negative=is_negative)
 
-        # Compute differential EIG for top-k separation
-        diff_eig = compute_differential_eig(probs, weight, target_idx, top_k_indices)
+        # Compute differential EIG for top-k separation (with is_negative handling)
+        diff_eig = compute_differential_eig(
+            probs, weight, target_idx, top_k_indices, is_negative=is_negative
+        )
 
         # Determine question classification
         is_top_disease_q = disease_name == top_disease
