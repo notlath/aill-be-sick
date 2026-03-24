@@ -35,7 +35,7 @@ const ClinicianLoginPage = () => {
       onError: ({ error }) => {
         toast.error("An unexpected error occurred during login.");
       },
-    }
+    },
   );
   const { execute: execSignup, isExecuting: isSigningUp } = useAction(
     emailSignup,
@@ -44,14 +44,16 @@ const ClinicianLoginPage = () => {
         if (data?.error) {
           toast.error(data.error);
         } else {
-          toast.success("Check your email to confirm your account.");
-          router.push("/clinician-login");
+          toast.success(
+            "Signup complete. Please verify your email and wait for admin approval.",
+          );
+          router.push("/waiting-for-approval");
         }
       },
       onError: ({ error }) => {
         toast.error("An unexpected error occurred during signup.");
       },
-    }
+    },
   );
 
   const handleLogin = form.handleSubmit((formData) => {
@@ -69,14 +71,18 @@ const ClinicianLoginPage = () => {
         <div className="w-full max-w-md mx-auto space-y-8">
           <div className="space-y-3 text-center lg:text-left">
             <h1 className="text-6xl font-bold tracking-tight">AI'll Be Sick</h1>
-            <p className="text-muted text-lg">
-              Clinician Portal Access
+            <p className="text-muted text-lg">Clinician Portal Access</p>
+            <p className="text-sm text-muted">
+              New clinician accounts require admin approval before access.
             </p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="email">
+              <label
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                htmlFor="email"
+              >
                 Email address
               </label>
               <Input
@@ -95,7 +101,10 @@ const ClinicianLoginPage = () => {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="password">
+                <label
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  htmlFor="password"
+                >
                   Password
                 </label>
                 <Link
@@ -139,7 +148,9 @@ const ClinicianLoginPage = () => {
                   <span className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-base-200/50 px-2 text-muted-foreground bg-base-100">Or</span>
+                  <span className="bg-base-200/50 px-2 text-muted-foreground bg-base-100">
+                    Or
+                  </span>
                 </div>
               </div>
 
@@ -159,14 +170,20 @@ const ClinicianLoginPage = () => {
 
             <p className="text-center text-sm text-muted pt-4">
               Not a clinician? Click{" "}
-              <Link href="/login" className="text-primary font-medium hover:underline transition-all cursor-pointer">
+              <Link
+                href="/login"
+                className="text-primary font-medium hover:underline transition-all cursor-pointer"
+              >
                 here
               </Link>{" "}
               to log in as a patient
             </p>
             <p className="text-center text-sm text-muted mt-2">
               Admin? Click{" "}
-              <Link href="/admin-login" className="text-primary font-medium hover:underline transition-all cursor-pointer">
+              <Link
+                href="/admin-login"
+                className="text-primary font-medium hover:underline transition-all cursor-pointer"
+              >
                 here
               </Link>
             </p>

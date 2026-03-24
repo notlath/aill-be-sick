@@ -6,6 +6,7 @@ import {
   Stethoscope,
   User,
   FileText,
+  UserCheck,
 } from "lucide-react";
 import { DEFAULT_LANDING_PATH_BY_ROLE } from "./default-landing-path";
 
@@ -61,8 +62,13 @@ export const clinicianNavItems: NavItem[] = [
 
 export const adminNavItems: NavItem[] = [
   {
+    name: "Approvals",
+    href: "/pending-clinicians",
+    icon: UserCheck,
+  },
+  {
     name: "Surveillance",
-    href: DEFAULT_LANDING_PATH_BY_ROLE.ADMIN,
+    href: "/map",
     icon: MapPin,
   },
   {

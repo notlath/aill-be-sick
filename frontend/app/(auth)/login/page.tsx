@@ -23,7 +23,7 @@ import { useState } from "react";
 const HomePage = () => {
   const supabase = createClient();
   const router = useRouter();
-  const [isSignupMode, setIsSignupMode] = useState(false);
+  const [isSignupMode] = useState(false);
 
   // Login form (simple, no consent needed)
   const loginForm = useForm<EmailAuthSchemaType>({
@@ -57,7 +57,7 @@ const HomePage = () => {
       onError: () => {
         toast.error("An unexpected error occurred during login.");
       },
-    }
+    },
   );
 
   const { execute: execSignup, isExecuting: isSigningUp } = useAction(
@@ -74,7 +74,7 @@ const HomePage = () => {
       onError: () => {
         toast.error("An unexpected error occurred during signup.");
       },
-    }
+    },
   );
 
   const handleLogin = loginForm.handleSubmit((formData) => {
@@ -111,10 +111,9 @@ const HomePage = () => {
 
   // Switch between login and signup modes
   const toggleMode = () => {
-    setIsSignupMode(!isSignupMode);
-    // Reset forms when switching
-    loginForm.reset();
-    signupForm.reset();
+    toast.info(
+      "Patient accounts are created by clinicians only. Please contact your clinician for access.",
+    );
   };
 
   return (
@@ -199,7 +198,7 @@ const HomePage = () => {
                   disabled={isExecuting}
                   className="btn btn-outline border-border w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium bg-base-100 text-base-content"
                 >
-                  Create patient account
+                  Need an account?
                 </button>
               </div>
 
@@ -369,7 +368,10 @@ const HomePage = () => {
                 </label>
                 {signupForm.formState.errors.acceptedTermsAndPrivacy && (
                   <span className="text-error text-xs font-medium block ml-7">
-                    {signupForm.formState.errors.acceptedTermsAndPrivacy.message}
+                    {
+                      signupForm.formState.errors.acceptedTermsAndPrivacy
+                        .message
+                    }
                   </span>
                 )}
               </div>

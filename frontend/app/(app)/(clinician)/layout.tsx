@@ -6,7 +6,10 @@ import ConsentModal from "@/components/consent-modal";
 import LegalFooter from "@/components/shared/legal-footer";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import { getCurrentDbUser } from "@/utils/user";
-import { needsTermsUpdate, getTermsUpdateInfo } from "@/utils/check-terms-version";
+import {
+  needsTermsUpdate,
+  getTermsUpdateInfo,
+} from "@/utils/check-terms-version";
 import { redirect } from "next/navigation";
 import { ReactNode, Suspense } from "react";
 
@@ -42,8 +45,22 @@ const ClinicianLayoutContent = async ({
   }
 
   // Keep invalid-role users out of clinician routes without falling back to 404.
-  if (dbUser.role !== "CLINICIAN" && dbUser.role !== ("DEVELOPER" as any) && dbUser.role !== "ADMIN") {
+  if (
+    dbUser.role !== "CLINICIAN" &&
+    dbUser.role !== ("DEVELOPER" as any) &&
+    dbUser.role !== "ADMIN"
+  ) {
     redirect("/");
+  }
+
+  if (dbUser.role === "CLINICIAN") {
+    if (dbUser.approvalStatus === "PENDING_ADMIN_APPROVAL") {
+      redirect("/waiting-for-approval");
+    }
+
+    if (dbUser.approvalStatus === "REJECTED") {
+      redirect("/clinician-login");
+    }
   }
 
   // Check if user needs to accept terms

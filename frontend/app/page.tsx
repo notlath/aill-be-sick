@@ -28,6 +28,14 @@ const HomeContent = async () => {
   const role = dbUser.role as "PATIENT" | "CLINICIAN" | "ADMIN" | "DEVELOPER";
 
   if (role === "CLINICIAN") {
+    if (dbUser.approvalStatus === "PENDING_ADMIN_APPROVAL") {
+      redirect("/waiting-for-approval");
+    }
+
+    if (dbUser.approvalStatus === "REJECTED") {
+      redirect("/clinician-login");
+    }
+
     redirect(getDefaultLandingPath(role));
   }
 

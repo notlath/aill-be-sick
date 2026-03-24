@@ -26,6 +26,36 @@ export const emailLogin = actionClient
       return { error: `Error logging in with email: ${error.message}` };
     }
 
+    const user = await prisma.user.findUnique({
+      where: { authId: data.user.id },
+      select: { role: true, approvalStatus: true },
+    });
+
+    if (!user || user.role !== "CLINICIAN") {
+      await supabase.auth.signOut();
+      return {
+        error: "This portal is for clinician accounts only.",
+      };
+    }
+
+    if (user.approvalStatus === "PENDING_ADMIN_APPROVAL") {
+      await supabase.auth.signOut();
+      return {
+        code: "PENDING_ADMIN_APPROVAL",
+        error:
+          "Your account is waiting for admin approval. Please check your email for updates.",
+      };
+    }
+
+    if (user.approvalStatus === "REJECTED") {
+      await supabase.auth.signOut();
+      return {
+        code: "REJECTED",
+        error:
+          "Your clinician account was not approved. Please contact your administrator.",
+      };
+    }
+
     revalidatePath("/", "layout");
     redirect("/");
   });
@@ -63,8 +93,17 @@ export const emailSignup = actionClient
           name: data.user.user_metadata!.name || "",
           authId: data.user.id,
           role: "CLINICIAN",
+          approvalStatus: "PENDING_ADMIN_APPROVAL",
         },
-        update: {},
+        update: {
+          authId: data.user.id,
+          role: "CLINICIAN",
+          approvalStatus: "PENDING_ADMIN_APPROVAL",
+          rejectedAt: null,
+          approvedAt: null,
+          approvalNotes: null,
+          approvedBy: null,
+        },
       });
 
       await prisma.allowedClinicianEmail.delete({

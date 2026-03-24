@@ -6,6 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -17,6 +18,11 @@ model User {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @default(now()) @updatedAt
   role        Role        @default(PATIENT)
+  approvalStatus ApprovalStatus @default(ACTIVE)
+  approvedAt  DateTime?
+  rejectedAt  DateTime?
+  approvalNotes String?
+  approvedBy  Int?
   city        String?
   address     String?
   latitude    Float?
@@ -284,4 +290,10 @@ enum AlertStatus {
   ACKNOWLEDGED
   RESOLVED
   DISMISSED
+}
+
+enum ApprovalStatus {
+  PENDING_ADMIN_APPROVAL
+  ACTIVE
+  REJECTED
 }

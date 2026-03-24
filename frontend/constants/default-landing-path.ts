@@ -10,7 +10,7 @@ export const DEFAULT_LANDING_PATH_BY_ROLE: Record<
 > = {
   PATIENT: "/diagnosis",
   CLINICIAN: "/map",
-  ADMIN: "/map",
+  ADMIN: "/pending-clinicians",
 };
 
 export const getDefaultLandingPathForDeveloperView = (
