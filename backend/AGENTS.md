@@ -9,7 +9,7 @@ This project is the backend for "Aill-Be-Sick," a Flask-based REST API for a dis
 For AI-assisted backend work, use:
 
 - `backend/.github/skills/flask-diagnostic-api/SKILL.md` for blueprint/service/config-driven API changes.
-- Root `.instructions.md` and `COPILOT_CONFIG.md` for cross-repo operational guidance.
+- Root `AGENTS.md` for cross-repo operational guidance, skill routing, and AI validation checklist.
 
 The core of the application uses sophisticated machine learning models for its predictions. It leverages `torch` and Hugging Face `transformers` (specifically `BioClinical-ModernBERT` for English and `RoBERTa-Tagalog` for Tagalog) to classify symptoms into one of four diseases: Dengue, Pneumonia, Typhoid, or Impetigo. The system is designed to be robust, with logic to handle uncertainty in predictions through Monte Carlo Dropout, and it includes a follow-up question mechanism to refine diagnoses.
 

@@ -1,125 +1,199 @@
-# AI'll Be Sick Overview
+# AI'll Be Sick — Agent Guide
 
-This document provides a high-level overview of the project, focusing on the repository's structure, technologies, and purpose. It is intended to be used as a reference for developers and contributors.
+This file is the single source of truth for AI-assisted development on this project. It covers architecture, conventions, commands, skill routing, and guardrails.
 
-## Copilot Workflow Files
+> Sub-directories have their own scoped `AGENTS.md` files (`frontend/AGENTS.md`, `backend/AGENTS.md`). Always prefer those for in-directory work; use this file for cross-repo context.
 
-Use these files for AI-assisted development workflow:
-
-- `.instructions.md`: concise operational defaults for Copilot.
-- `.prompt.md`: reusable prompt templates for common implementation tasks.
-- `COPILOT_CONFIG.md`: guidance hierarchy, skill routing, and sync policy.
-- `.github/pull_request_template.md`: PR template with AI quality checklist.
-- `find-skills`: use when discovering or installing additional skills.
+---
 
 ## Project Overview
 
-This repository contains a full-stack application for disease detection based on symptoms. The application is built with a Flask backend and a Next.js (App Router) frontend. It uses TypeScript, Prisma, and Supabase for the database and authentication.
+AI'll Be Sick is a full-stack disease detection application. Users submit symptoms and receive AI-powered disease predictions. The system supports both English and Tagalog, serves patient and clinician roles, and includes epidemiological surveillance features.
 
-The project is divided into two main parts:
-
-- **`backend/`**: A Flask REST API that processes symptoms and returns disease predictions.
-- **`frontend/`**: A Next.js application that provides the user interface for the application.
+- **`backend/`** — Flask REST API. Processes symptoms, runs ML inference, and returns predictions.
+- **`frontend/`** — Next.js App Router UI. Patient diagnosis flow, clinician dashboard, maps, alerts.
+- **`notebooks/`** — Jupyter notebooks for data analysis and model experimentation.
+- **`docs/`** — User manuals, technical reports, and research notes.
 
 ### Architecture
 
-- **Backend**: Flask REST API
-- **Frontend**: Next.js App Router
-- **Database**: PostgreSQL with Prisma ORM and Supabase for authentication
+| Layer | Technology |
+|-------|-----------|
+| Backend API | Python, Flask (port `10000`) |
+| ML Models | BioClinical-ModernBERT (EN), RoBERTa-Tagalog (FIL) |
+| Frontend | TypeScript, Next.js 15 App Router |
+| Database | PostgreSQL + Prisma ORM |
+| Auth | Supabase Auth |
+| Styling | Tailwind CSS + DaisyUI |
+| Icons | Lucide React |
 
-### Technologies
+---
 
-- **Backend**: Python, Flask
-- **Frontend**: TypeScript, Next.js, React, Tailwind CSS
-- **Database**: PostgreSQL, Prisma, Supabase
-
-## Project Structure
-
-The project is organized into the following main directories:
-
-- **`backend/`**: Contains the Flask REST API. See the `backend/README.md` for more details.
-- **`frontend/`**: Contains the Next.js application. See the `frontend/AGENTS.md` and `frontend/README.md` for more details.
-- **`notebooks/`**: Contains Jupyter notebooks for data analysis and model experimentation.
-
-## Build and Run Commands
+## Commands
 
 ### Backend (Flask)
 
-1.  **Navigate to the backend directory:**
-    ```bash
-    cd backend
-    ```
-2.  **Create a virtual environment:**
-    - **Windows:**
-      ```bash
-      python -m venv venv
-      venv\Scripts/activate
-      ```
-    - **macOS/Linux:**
-      ```bash
-      python3 -m venv venv
-      source venv/bin/activate
-      ```
-3.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-4.  **Start the development server:**
-    ```bash
-    python run.py
-    ```
-    The backend will be available at `http://localhost:10000`.
+```bash
+# From /backend — create and activate virtualenv
+python3 -m venv venv && source venv/bin/activate   # macOS/Linux
+# python -m venv venv && venv\Scripts\activate      # Windows
+
+pip install -r requirements.txt
+python run.py                                        # Runs on http://localhost:10000
+```
+
+**Testing:**
+```bash
+# Run targeted test files relevant to your change
+pytest backend/tests/<test_file>.py
+python test_flask.py   # Integration smoke test (requires server running)
+```
 
 ### Frontend (Next.js)
 
-1.  **Navigate to the frontend directory:**
-    ```bash
-    cd frontend
-    ```
-2.  **Install dependencies:**
-    ```bash
-    bun install
-    ```
-3.  **Set up environment variables:**
-    Create a `.env.local` file in the `frontend` directory with the following content:
-    ```env
-    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-    DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
-    ```
-4.  **Generate Prisma client and apply schema:**
-    ```bash
-    npx prisma generate
-    npx prisma db push
-    ```
-5.  **Start the development server:**
-    ```bash
-    bun dev
-    ```
-    The frontend will be available at `http://localhost:3000`.
+```bash
+# From /frontend
+bun install
 
-### Key Backend Files
+# Configure .env.local:
+# NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+# NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:10000   ← backend URL (includes localhost normalization in frontend/utils/backend-url.ts)
+# DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
 
-- `run.py`: The main Flask application entry point.
-- `requirements.txt`: The Python dependencies for the backend.
-- `run_flask.bat`: A batch file for running the Flask application on Windows.
-- `test_flask.py`: The tests for the Flask application.
+npx prisma generate && npx prisma db push
+bun dev                                              # Runs on http://localhost:3000
+```
 
-For more detailed information about the backend, see the `backend/README.md` file.
+**Available scripts:**
+```bash
+bun run build          # Production build
+bun run start          # Production server
+bun run lint           # Next.js linting
+npx tsc --noEmit       # TypeScript type check (run before committing)
+node scripts/seed-diagnoses.js   # Seed diagnosis data
+```
 
-### Key Frontend Files
+---
 
-- `app/`: The Next.js App Router pages and layouts.
-- `actions/`: Server actions for authentication, case management, and disease detection.
-- `prisma/`: The database schema and Prisma client.
-- `utils/`: Utility functions, including Supabase clients.
-- `public/`: Static assets.
+## Code Style & Conventions
 
-For more detailed information about the frontend, see the `frontend/README.md` file.
+### General
 
-### Making a Pull Request
+- TypeScript for all frontend code.
+- Follow conventional commit format: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`.
+- Write tests for new backend features in `backend/tests/`.
 
-ALWAYS follow this template for creating a pull request.
+### Frontend: Data Fetching
+
+- **ALWAYS** fetch data in Server Components or Server Actions using Prisma directly.
+- **NEVER** use `useEffect` or client-side fetching for initial data loads that can be done server-side.
+- **NEVER** use Server Actions for data fetching — they are strictly for mutations.
+- **ALWAYS** put data-fetching utility functions in `frontend/utils/`.
+- **ALWAYS** use `revalidatePath` or `revalidateTag` after successful mutations.
+
+```typescript
+// app/dashboard/page.tsx — correct Server Component pattern
+import prisma from "@/lib/prisma";
+
+async function DashboardPage() {
+  const patients = await prisma.patient.findMany();
+  return <PatientList patients={patients} />;
+}
+```
+
+### Frontend: Data Mutation (Server Actions)
+
+The project uses `next-safe-action` for all mutations. Every action needs a paired Zod schema.
+
+- **ALWAYS** define a Zod schema in `frontend/schemas/`.
+- **ALWAYS** create the action in `frontend/actions/` using `actionClient` from `actions/client.ts`.
+- **NEVER** expose direct API endpoints for mutations.
+
+```typescript
+// schemas/CreatePatientSchema.ts
+import * as z from "zod";
+export const CreatePatientSchema = z.object({
+  name: z.string().min(1, "Patient name is required"),
+  email: z.string().email("Invalid email address"),
+});
+
+// actions/create-patient.ts
+"use server";
+import { actionClient } from "./client";
+import { CreatePatientSchema } from "@/schemas/CreatePatientSchema";
+import prisma from "@/prisma/prisma";
+import { revalidatePath } from "next/cache";
+
+export const createPatient = actionClient
+  .inputSchema(CreatePatientSchema)
+  .action(async ({ parsedInput }) => {
+    const { name, email } = parsedInput;
+    try {
+      const newPatient = await prisma.patient.create({ data: { name, email } });
+      revalidatePath("/dashboard");
+      return { success: newPatient };
+    } catch (error) {
+      console.error(`Error creating new patient: ${error}`);
+      return { error: "Failed to create new patient." };
+    }
+  });
+```
+
+### Backend Conventions
+
+- Keep routes in Flask blueprints under `backend/app/api/`.
+- Keep reusable logic in `backend/app/services/`.
+- Read all tunables/thresholds from `backend/app/config.py` and environment variables — **never hardcode threshold literals in endpoints**.
+- Keep endpoint failures explicit and safe for API consumers.
+
+---
+
+## Styling Guidelines
+
+### DaisyUI Only Policy
+
+- **ALWAYS** use DaisyUI components and classes (buttons, cards, modals, alerts, badges, etc.)
+- **NEVER** use custom Tailwind classes for decorative styling (no custom gradients, shadows, transitions on top of DaisyUI's system)
+- **USE** `lucide-react` for all icons
+- **NEVER** create custom gradients or visual effects — use DaisyUI's built-in options
+
+**Common classes:**
+
+| Type | Classes |
+|------|---------|
+| Buttons | `btn btn-primary`, `btn-secondary`, `btn-success`, `btn-ghost`, `btn-outline` |
+| Cards | `card card-body card-title card-actions` |
+| Modals | `modal modal-box modal-backdrop modal-open` |
+| Alerts | `alert alert-info alert-success alert-warning alert-error` |
+| Badges | `badge badge-primary badge-secondary badge-outline` |
+| Layout | `bg-base-100 bg-base-200 bg-base-300 text-base-content` |
+
+### Navigation Links
+
+When creating new sidebar navigation items, copy from `nav-link.tsx`:
+- Icon size: `size-4.5` with `strokeWidth={2.5}`
+- Animation curve: `ease-[cubic-bezier(0.32,0.72,0,1)]`
+- Always include: hover gradient overlay, active state, consistent spacing
+
+---
+
+## Copywriting Guidelines
+
+This is a medical app for adult non-technical users — millennials through older adults.
+
+- Use plain language and short sentences; explain medical terms when needed.
+- Tone: calm, respectful, supportive. No slang, sarcasm, or alarmist language.
+- **NEVER** make absolute diagnosis claims. Avoid wording that implies guaranteed results.
+- Prefer actionable text that tells users what to do next.
+- **NEVER** use the word "cluster" in user-facing text. Use "group" instead.
+- **ALWAYS** proofread user-facing copy for clarity, grammar, and spelling before shipping.
+
+---
+
+## Git Workflow
+
+### Pull Request Template
 
 ```md
 ## What does this PR do?
@@ -135,240 +209,75 @@ ALWAYS follow this template for creating a pull request.
 - A description of the tests that were performed to verify the changes
 ```
 
-### Seeding the database
+### Commit Convention
 
-To seed the database with initial data, run the following command in the `frontend` directory:
+Use [Conventional Commits](https://www.conventionalcommits.org/):
+`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `perf:`, `test:`
 
-```bash
-node scripts/seed-diagnoses.js
-```
+---
 
-## Development Conventions
+## Skill Routing
 
-### Backend
+Use the appropriate skill file for AI-assisted work:
 
-- The backend is a standard Flask application.
-- Follow the conventions in the existing code.
-- Write tests for new features in the `backend/tests` directory.
+| Task type | Skill file |
+|-----------|------------|
+| Diagnosis server actions, Zod schemas, diagnosis flow | `frontend/.github/skills/medical-diagnosis-actions/SKILL.md` |
+| Patient/clinician-facing copy | `frontend/.github/skills/clinical-copywriting/SKILL.md` |
+| Flask endpoints, services, config-driven API changes | `backend/.github/skills/flask-diagnostic-api/SKILL.md` |
+| D3 charts, map visualizations | `frontend/.github/skills/d3-viz/SKILL.md` (canonical) |
+| Discovering or installing new skills | `find-skills` |
+| Frontend UI (polished visual design) | `frontend-design` skill (when available locally) |
+| Frontend UI/UX (mobile-first) | `accessibility-compliance` → `vercel-react-best-practices` → `vercel-composition-patterns` |
 
-### Frontend
+### Duplicate Skill Policy
 
-- The frontend is a Next.js application with the App Router.
-- Use TypeScript for all new code.
-- Use Prisma for all database interactions.
-- Use Supabase for authentication.
-- Follow the conventions in the existing code.
-- Write tests for new features.
+The `d3-viz` skill may have compatibility copies across tool folders (`.gemini/`, `.agent/`, `.agents/`, `.qwen/`). The canonical copy is `frontend/.github/skills/d3-viz/SKILL.md`. When updating it, mirror the exact content to all compatibility copies **in the same PR**.
 
-### Commits
+---
 
-- Follow the conventional commit format.
+## AI Validation Checklist
 
-## Miscellaneous
+Before committing AI-generated changes, verify:
 
-- The `notebooks/` directory contains Jupyter notebooks for data analysis and model experimentation.
-- The project was bootstrapped with `create-next-app`.
-- The backend was migrated from Django to Flask. See `backend/MIGRATION_GUIDE.md` for more details.
+- [ ] Architecture facts are correct (Flask backend on port `10000`, Next.js App Router)
+- [ ] Frontend mutations follow the schema + server-action pattern (`next-safe-action`)
+- [ ] `revalidatePath` / `revalidateTag` is applied after mutations where needed
+- [ ] User-facing medical text is plain-language, calm, and non-absolute
+- [ ] Frontend UI changes are mobile-usable at small breakpoints
+- [ ] No contradictory style guidance introduced in docs
+- [ ] `npx tsc --noEmit` passes in `frontend/`
+- [ ] Relevant `pytest` tests pass in `backend/tests/`
 
-## Development Conventions
+### Change Sync Checklist
 
-- Server Actions are used extensively for data mutations
-- Zod schemas validate input data for server actions
-- TypeScript is used throughout the application
-- Tailwind CSS with DaisyUI for consistent styling
-- Shadcn components for reusable UI elements
-- Prisma is used with the Next.js workaround plugin for monorepo compatibility
-- Error handling follows a pattern with success/error return objects
+When AI guidance files are updated:
 
-### Data Fetching
+1. If architecture/runtime facts change (ports, backend type, entrypoints) — update `AGENTS.md`, `frontend/AGENTS.md`, `backend/AGENTS.md`, `README.md`, `frontend/README.md`, `backend/README.md`
+2. If a skill path changes — update the Skill Routing table above
+3. If the duplicate-skill policy applies — canonical change + mirrored copies in same PR
 
-- **ALWAYS** fetch data directly within Server Components or Server Actions using Prisma.
-- **NEVER** use `useEffect` or client-side fetching mechanisms for initial data loads that can be done on the server.
-- **ALWAYS** use `revalidatePath` or `revalidateTag` from `next/cache` for revalidating cached data after mutations.
-- **Example (Server Component):**
+---
 
-  ```typescript
-  // app/dashboard/page.tsx
-  import prisma from "@/lib/prisma";
+## Boundaries
 
-  async function DashboardPage() {
-    const patients = await prisma.patient.findMany();
-    return {
-      /* ... render patients ... */
-    };
-  }
-  ```
+The agent should **never**:
 
-### Data Mutation with Server Actions
+- Hardcode threshold literals in Flask endpoints — always use `config.py` and env vars
+- Use `useEffect` for initial data loading in the frontend
+- Create Server Actions for data fetching (actions are for mutations only)
+- Introduce custom CSS gradients/shadows that bypass DaisyUI
+- Use the word "cluster" in any user-facing string
+- Make absolute medical claims in UI copy
 
-The project uses `next-safe-action` to create type-safe server actions. This library enforces a strict pattern for defining actions, handling input validation with Zod, and returning structured responses.
+---
 
-- **ALWAYS** perform data mutations using the `next-safe-action` pattern. This is the established convention in the project.
-- **NEVER** expose direct API endpoints for mutations; use a Server Action instead.
-- **ALWAYS** define a Zod schema for the action's input in the `/schemas` directory.
-- **ALWAYS** create the server action in the `/actions` directory.
-- **ALWAYS** use the `actionClient` from `/actions/client.ts` to build the action.
-- **ALWAYS** chain the `.inputSchema()` method with your Zod schema and the `.action()` method containing the logic.
-- **ALWAYS** revalidate the necessary data path using `revalidatePath` from `next/cache` after a successful mutation.
+## Troubleshooting
 
-**Example: Creating a new Patient**
-
-1.  **Define the Schema (in `schemas/CreatePatientSchema.ts`)**
-
-    ```typescript
-    import * as z from "zod";
-
-    export const CreatePatientSchema = z.object({
-      name: z.string().min(1, "Patient name is required"),
-      email: z.string().email("Invalid email address"),
-    });
-    ```
-
-2.  **Define the Server Action (in `actions/create-patient.ts`)**
-
-    ```typescript
-    "use server";
-
-    import { actionClient } from "./client";
-    import { CreatePatientSchema } from "@/schemas/CreatePatientSchema";
-    import prisma from "@/prisma/prisma";
-    import { revalidatePath } from "next/cache";
-
-    export const createPatient = actionClient
-      .inputSchema(CreatePatientSchema)
-      .action(async ({ parsedInput }) => {
-        const { name, email } = parsedInput;
-
-        try {
-          const newPatient = await prisma.patient.create({
-            data: {
-              name,
-              email,
-            },
-          });
-
-          // Revalidate the dashboard to show the new patient
-          revalidatePath("/dashboard");
-
-          return { success: newPatient };
-        } catch (error) {
-          console.error(`Error creating new patient: ${error}`);
-          return { error: "Failed to create new patient." };
-        }
-      });
-    ```
-
-3.  **Using the Action in a Client Component**
-
-    ```tsx
-    // In a form component
-    import { useAction } from "next-safe-action/hooks";
-    import { createPatient } from "@/actions/create-patient";
-
-    function PatientForm() {
-      const { execute, status } = useAction(createPatient, {
-        onSuccess: (data) => {
-          console.log("Patient created successfully:", data);
-        },
-        onError: (error) => {
-          console.error("Failed to create patient:", error);
-        },
-      });
-
-      const onSubmit = (formData: FormData) => {
-        // next-safe-action can directly take the schema type
-        // For simplicity with forms, you might construct the object
-        const name = formData.get("name") as string;
-        const email = formData.get("email") as string;
-        execute({ name, email });
-      };
-
-      return (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            onSubmit(new FormData(e.currentTarget));
-          }}
-        >
-          {/* ... form fields for name and email ... */}
-          <button type="submit" disabled={status === "executing"}>
-            {status === "executing" ? "Creating..." : "Create Patient"}
-          </button>
-        </form>
-      );
-    }
-    ```
-
-## Testing & Quality Assurance
-
-While no explicit test files were visible during the analysis, the codebase includes:
-
-- Zod validation schemas for input validation
-- Error handling in server actions
-- Type safety through TypeScript
-- Confidence/uncertainty metrics to assess AI prediction reliability
-
-## Common Issues & Troubleshooting
-
-1. **Database Connection Errors**: Verify your `DATABASE_URL` in environment variables
-2. **Supabase Authentication Issues**: Check Supabase URL and ANON key
-3. **Backend Connection Errors**: Ensure the Flask server is running at `http://localhost:10000` (or your configured `NEXT_PUBLIC_BACKEND_URL`)
-4. **Prisma Client Errors**: Run `npx prisma generate` to regenerate the client
-5. **Model Confidence Issues**: The system shows different warning messages based on confidence/uncertainty combinations
-
-## Styling Guidelines
-
-The project follows strict DaisyUI styling policies:
-
-### DaisyUI Only Policy
-
-- **ALWAYS use DaisyUI components and classes** (buttons, cards, modals, alerts, badges, etc.)
-- **NEVER use custom Tailwind classes for styling** (no custom gradients, shadows, transitions)
-- **Use Lucide React for icons** - import from `lucide-react`
-- **NEVER create custom gradients or effects** - use DaisyUI's built-in options
-
-### Common DaisyUI Classes
-
-- **Buttons**: `btn`, `btn-primary`, `btn-secondary`, `btn-success`, `btn-ghost`, `btn-outline`
-- **Cards**: `card`, `card-body`, `card-title`, `card-actions`
-- **Modals**: `modal`, `modal-box`, `modal-backdrop`, `modal-open`
-- **Alerts**: `alert`, `alert-info`, `alert-success`, `alert-warning`, `alert-error`
-- **Badges**: `badge`, `badge-primary`, `badge-secondary`, `badge-outline`
-- **Layout**: `bg-base-100`, `bg-base-200`, `bg-base-300`, `text-base-content`
-
-### Example - Correct usage
-
-```tsx
-<button className="btn btn-success btn-lg">Click me</button>
-```
-
-### Navigation Links
-
-When creating new sidebar navigation items:
-
-- Always copy the design from existing `nav-link.tsx`
-- Use the same styling structure, icon sizes (`size-4.5`), and animation curves
-- Maintain consistency with icon containers and hover effects
-- Use the same styling structure with:
-  - Icon container with hover effects and transitions
-  - Gradient overlay on hover
-  - Active state handling
-  - Consistent spacing and sizing
-- Maintain the same animation curve: `ease-[cubic-bezier(0.32,0.72,0,1)]`
-- Keep icon size consistent: `size-4.5` with `strokeWidth={2.5}`
-
-### When in doubt
-
-- Check [DaisyUI documentation](https://daisyui.com/components/)
-- Use DaisyUI's pre-built components and utilities
-- Keep it simple with DaisyUI classes
-
-## Copywriting Guidelines
-
-- **ALWAYS** review user-facing text for clarity, grammar, and spelling before finalizing.
-- This app is for all ages, but writing should prioritize adult millennials through older, non-technical users.
-- Use plain language, short sentences, and familiar terms; explain medical jargon when needed.
-- Keep tone calm, respectful, and supportive. Avoid slang, sarcasm, and alarmist wording.
-- Because this is a medical app, avoid absolute claims and avoid wording that sounds like a guaranteed diagnosis.
-- Prefer practical, actionable wording that helps users understand what to do next.
-- **NEVER** use the word "cluster" in user-facing text. Use "group" instead, as most users will not understand technical clustering terminology.
+| Problem | Solution |
+|---------|---------|
+| Database connection error | Check `DATABASE_URL` in `.env.local` |
+| Supabase auth failure | Check `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| Backend not responding | Ensure Flask is running on `http://localhost:10000`; check `NEXT_PUBLIC_BACKEND_URL` |
+| Prisma client errors | Run `npx prisma generate` |
+| Model confidence warnings | System uses different UI paths based on confidence/uncertainty combos — expected behavior |
