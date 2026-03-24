@@ -189,6 +189,12 @@ Models support multiple diseases (DENGUE, PNEUMONIA, TYPHOID, IMPETIGO) and AI m
 - `/diagnosis` - Patient diagnosis interface (for PATIENT role)
 - `/comparison` - Comparison views
 
+### Navigation Documentation Sync (Required)
+
+- If any frontend change affects App Router paths, redirects, role-based guards, or visible navigation links/actions, update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` in the same PR.
+- Treat the flowchart doc as a required sync artifact for route/navigation behavior changes, not optional documentation.
+- Validate Mermaid syntax after updates to avoid broken diagrams.
+
 ## API Integration
 
 The frontend communicates with the Flask backend for disease detection:

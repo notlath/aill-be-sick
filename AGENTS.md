@@ -248,6 +248,7 @@ Before committing AI-generated changes, verify:
 - [ ] `revalidatePath` / `revalidateTag` is applied after mutations where needed
 - [ ] User-facing medical text is plain-language, calm, and non-absolute
 - [ ] Frontend UI changes are mobile-usable at small breakpoints
+- [ ] If frontend routes, role guards, or navigation UI changed, `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` is updated in the same PR
 - [ ] No contradictory style guidance introduced in docs
 - [ ] `npx tsc --noEmit` passes in `frontend/`
 - [ ] Relevant `pytest` tests pass in `backend/tests/`
@@ -259,6 +260,7 @@ When AI guidance files are updated:
 1. If architecture/runtime facts change (ports, backend type, entrypoints) — update `AGENTS.md`, `frontend/AGENTS.md`, `backend/AGENTS.md`, `README.md`, `frontend/README.md`, `backend/README.md`
 2. If a skill path changes — update the Skill Routing table above
 3. If the duplicate-skill policy applies — canonical change + mirrored copies in same PR
+4. If App Router pages, redirects/guards, role access, or nav links change — update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` in the same PR so docs stay in sync with UX behavior
 
 ---
 
