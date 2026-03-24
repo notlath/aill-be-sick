@@ -1,4 +1,3 @@
-import SignOutBtn from "./sign-out-btn";
 import SidebarToggle from "./sidebar-toggle";
 import ViewSwitcherBtn from "./view-switcher-btn";
 import Image from "next/image";
@@ -15,6 +14,7 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
   const router = useRouter();
   const resolvedProfileLink = useMemo(() => {
     switch (dbUser.role) {
+      case "ADMIN":
       case "CLINICIAN":
         return "/clinician-profile";
       default:
@@ -65,17 +65,15 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
               <ViewSwitcherBtn />
             </li>
           )}
-          {dbUser.role !== "ADMIN" && (
-            <li>
-              <button
-                onClick={() => router.push(resolvedProfileLink)}
-                role="button"
-                className="rounded-xl transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-200/80 active:scale-95 font-medium text-base-content/80 hover:text-base-content"
-              >
-                Profile
-              </button>
-            </li>
-          )}
+          <li>
+            <button
+              onClick={() => router.push(resolvedProfileLink)}
+              role="button"
+              className="rounded-xl transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-200/80 active:scale-95 font-medium text-base-content/80 hover:text-base-content"
+            >
+              Profile
+            </button>
+          </li>
         </ul>
       </div>
       <SidebarToggle onClick={onToggleSidebar} />

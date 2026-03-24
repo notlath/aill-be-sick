@@ -62,11 +62,6 @@ export const clinicianNavItems: NavItem[] = [
 
 export const adminNavItems: NavItem[] = [
   {
-    name: "Approvals",
-    href: "/pending-clinicians",
-    icon: UserCheck,
-  },
-  {
     name: "Surveillance",
     href: "/map",
     icon: MapPin,
@@ -90,5 +85,10 @@ export const adminNavItems: NavItem[] = [
     name: "Users",
     href: "/users",
     icon: User,
+  },
+  {
+    name: "Approvals",
+    href: "/pending-clinicians",
+    icon: UserCheck,
   },
 ];
