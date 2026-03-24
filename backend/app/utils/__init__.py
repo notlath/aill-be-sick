@@ -10,7 +10,6 @@ __all__ = [
     "clean_token",
     "aggregate_subword_attributions",
     "_has_medical_keywords",
-    "_detect_red_flags",
     "_build_cdss_payload",
     "detect_language_heuristic",
 ]
@@ -145,72 +144,6 @@ def _has_medical_keywords(text: str, lang: str = "en") -> bool:
     return has_en_keyword or has_tl_keyword
 
 
-def _detect_red_flags(text: str) -> list:
-    """Very simple keyword-based red flag detection (EN/TL).
-    This complements ML with rule-based triage cues.
-    """
-    t = (text or "").lower()
-    red_flags = []
-
-    # Respiratory difficulty
-    if any(
-        k in t
-        for k in [
-            "difficulty breathing",
-            "shortness of breath",
-            "can't breathe",
-            "cannot breathe",
-            "hirap sa paghinga",
-            "hirap huminga",
-            "kulang sa hangin",
-            "singal",
-        ]
-    ):
-        red_flags.append("Respiratory difficulty")
-
-    # Chest pain
-    if any(
-        k in t
-        for k in [
-            "chest pain",
-            "pananakit ng dibdib",
-            "sakit sa dibdib",
-            "chest tightness",
-        ]
-    ):
-        red_flags.append("Chest pain")
-
-    # Bleeding
-    if any(
-        k in t
-        for k in [
-            "bleeding",
-            "mucosal bleed",
-            "pagdurugo",
-            "dumudugo",
-            "nosebleed",
-            "nose bleed",
-        ]
-    ):
-        red_flags.append("Active bleeding")
-
-    # Severe abdominal pain or persistent vomiting (dengue warning sign proxy)
-    if any(
-        k in t
-        for k in [
-            "severe abdominal pain",
-            "matinding pananakit ng tiyan",
-            "persistent vomiting",
-            "tuloy-tuloy na pagsusuka",
-            "vomiting for",
-            "walang tigil na pagsusuka",
-        ]
-    ):
-        red_flags.append("Severe abdominal pain or persistent vomiting")
-
-    return red_flags
-
-
 def _build_cdss_payload(
     symptoms: str,
     disease: str,
@@ -219,43 +152,37 @@ def _build_cdss_payload(
     top_diseases: list,
     model_used: str,
 ) -> dict:
-    """Construct a structured CDSS payload to accompany narrative output."""
-    red_flags = _detect_red_flags(symptoms)
+    """Construct a structured CDSS payload to accompany narrative output.
 
-    # Triage determination
-    if red_flags:
-        triage_level = "Emergent"
-        triage_reasons = ["One or more red flags present"] + red_flags
-        care_setting = "Emergency Room"
+    Triage determination is based purely on ML model confidence and uncertainty
+    thresholds from config. No keyword-based escalation is performed, as CDSS
+    should not autonomously label symptoms as emergent without clinician review.
+    """
+    # Triage determination based on model confidence/uncertainty only
+    if (
+        confidence >= config.TRIAGE_HIGH_CONFIDENCE
+        and uncertainty <= config.TRIAGE_LOW_UNCERTAINTY
+    ):
+        triage_level = "Non-urgent"
+        triage_reasons = [
+            f"High model confidence (>= {config.TRIAGE_HIGH_CONFIDENCE})",
+            f"Low uncertainty (<= {config.TRIAGE_LOW_UNCERTAINTY})",
+        ]
+        care_setting = "Home care or routine clinic"
         actions = [
-            "Seek emergency evaluation immediately",
-            "Avoid delays; consider calling local emergency number",
+            "Home care guidance and monitoring",
+            "Consider routine clinic follow-up if symptoms persist or worsen",
         ]
     else:
-        if (
-            confidence >= config.TRIAGE_HIGH_CONFIDENCE
-            and uncertainty <= config.TRIAGE_LOW_UNCERTAINTY
-        ):
-            triage_level = "Non-urgent"
-            triage_reasons = [
-                f"High model confidence (≥ {config.TRIAGE_HIGH_CONFIDENCE})",
-                f"Low uncertainty (≤ {config.TRIAGE_LOW_UNCERTAINTY})",
-            ]
-            care_setting = "Home care or routine clinic"
-            actions = [
-                "Home care guidance and monitoring",
-                "Consider routine clinic follow-up if symptoms persist or worsen",
-            ]
-        else:
-            triage_level = "Urgent"
-            triage_reasons = [
-                "Model requires clinician review due to confidence/uncertainty"
-            ]
-            care_setting = "Clinic visit"
-            actions = [
-                "Consult a healthcare professional",
-                "Provide additional history, vitals, and exam if available",
-            ]
+        triage_level = "Urgent"
+        triage_reasons = [
+            "Model requires clinician review due to confidence/uncertainty"
+        ]
+        care_setting = "Clinic visit"
+        actions = [
+            "Consult a healthcare professional",
+            "Provide additional history, vitals, and exam if available",
+        ]
 
     # Differential list from top_diseases (already sorted in caller)
     differential = [
@@ -360,7 +287,6 @@ def _build_cdss_payload(
             "level": triage_level,
             "reasons": triage_reasons,
         },
-        "red_flags": red_flags,
         "recommendation": {
             "care_setting": care_setting,
             "actions": actions,

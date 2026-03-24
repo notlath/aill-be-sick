@@ -27,7 +27,6 @@ type CDSSPayload = {
     level: string;
     reasons?: string[];
   };
-  red_flags?: string[];
   recommendation?: {
     care_setting?: string;
     actions?: string[];
@@ -228,31 +227,6 @@ const CDSSSummary = ({
                     </ul>
                   )}
                 </div>
-              </div>
-            </section>
-          )}
-
-          {/* ── Red Flags ────────────────────────────────────────── */}
-          {cdss.red_flags && cdss.red_flags.length > 0 && (
-            <section role="alert" aria-live="assertive">
-              <SectionLabel
-                icon={<AlertTriangle className="w-3.5 h-3.5 text-error" strokeWidth={2.5} />}
-                label="Warning signs detected"
-                labelClassName="text-error"
-              />
-              <p className="text-xs text-base-content/60 mt-1 mb-2.5">
-                Based on your reported symptoms, we noted the following:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {cdss.red_flags.map((rf, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-error/10 border border-error/20 text-error text-xs font-semibold"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-error flex-shrink-0" />
-                    {rf}
-                  </span>
-                ))}
               </div>
             </section>
           )}
