@@ -2,31 +2,18 @@
 
 A full-stack disease screening application combining a **Flask** backend (Monte Carlo Dropout classification, neuro-symbolic verification, SHAP explanations) with a **Next.js** frontend (TypeScript, Prisma, Supabase).
 
-## Copilot Prompt-to-Task Quickstart
+## AI-Assisted Development
 
-Use this flow when asking Copilot to implement work in this repository:
+For AI-assisted work in this repository, the single source of truth is `AGENTS.md` (root). Sub-directories have their own scoped files — prefer `frontend/AGENTS.md` or `backend/AGENTS.md` for in-directory work.
 
-1. Start from root operational guidance:
-   - `.instructions.md`
-   - `.prompt.md`
-   - `COPILOT_CONFIG.md`
-2. For frontend tasks, also include:
-   - `frontend/.instructions.md`
-   - `frontend/.github/skills/medical-diagnosis-actions/SKILL.md`
-   - `frontend/.github/skills/clinical-copywriting/SKILL.md`
-3. For backend tasks, also include:
-   - `backend/.instructions.md`
-   - `backend/.github/skills/flask-diagnostic-api/SKILL.md`
-4. Use one template from `.prompt.md`, then replace placeholders with the exact task.
+Skill files for targeted tasks:
 
-Example starter prompt:
-
-```text
-Implement [feature] in [frontend/backend].
-Follow .instructions.md + scoped .instructions.md for that folder.
-Use the matching skill file and keep changes minimal.
-Run targeted validation and summarize changed files + test/typecheck results.
-```
+| Task type | Skill file |
+|-----------|------------|
+| Diagnosis server actions, Zod schemas | `frontend/.github/skills/medical-diagnosis-actions/SKILL.md` |
+| Patient/clinician-facing copy | `frontend/.github/skills/clinical-copywriting/SKILL.md` |
+| Flask endpoints & config-driven API | `backend/.github/skills/flask-diagnostic-api/SKILL.md` |
+| D3 charts, map visualizations | `frontend/.github/skills/d3-viz/SKILL.md` |
 
 ## Project Structure
 
@@ -49,19 +36,23 @@ aill-be-sick/
 │   ├── app/                  #   App Router pages & layouts
 │   │   ├── (app)/            #     Protected app routes (clinician & patient)
 │   │   └── (auth)/           #     Authentication pages
-│   ├── actions/              #   Server actions (25+ actions)
+│   ├── actions/              #   Server actions (mutations via next-safe-action)
 │   ├── components/           #   UI components
 │   │   ├── clinicians/       #     Clinician dashboard components
 │   │   ├── patient/          #     Patient interface components
 │   │   ├── shared/           #     Shared components
-│   │   └── ui/               #     Base UI components (shadcn/ui)
+│   │   └── ui/               #     Base UI components
+│   ├── constants/            #   Static data (disease definitions, census data)
+│   ├── documentations/       #   Feature write-ups and PR notes
 │   ├── hooks/                #   Custom React hooks
 │   ├── stores/               #   Zustand state stores
 │   ├── schemas/              #   Zod validation schemas
-│   ├── utils/                #   Utility functions
+│   ├── utils/                #   Utility functions (data fetching, backend URL resolver)
 │   ├── types/                #   TypeScript type definitions
 │   ├── prisma/               #   Schema & migrations
 │   └── package.json
+├── docs/                     # Project-level manuals, research, and QA guides
+├── notebooks/                # Jupyter notebooks for data analysis & model experiments
 └── README.md
 ```
 
@@ -136,7 +127,7 @@ The API will be available at **http://localhost:10000**.
 | `GET`  | `/api/patient-clusters/silhouette`    | Silhouette analysis                    |
 | `GET`  | `/api/surveillance/outbreaks`         | Isolation Forest outbreak detection    |
 | `GET`  | `/api/surveillance/outbreaks/details` | Detailed outbreak information          |
-| `GET`  | `/api/illness-clusters`               | Illness-based clustering               |
+| `GET`  | `/api/illness-clusters`              | Illness-based clustering               |
 
 ### Key Features
 
@@ -145,6 +136,8 @@ The API will be available at **http://localhost:10000**.
 - **GradientSHAP Explanations** — token-level attribution for model transparency
 - **Bilingual Support** — English and Tagalog symptom input with automatic language detection
 - **Dynamic Follow-Up** — evidence-weighted question selection with deduplication and early stopping
+
+**Supported diseases:** Dengue, Pneumonia, Typhoid, Impetigo, Diarrhea, Measles, Influenza
 
 ---
 
@@ -155,11 +148,11 @@ The API will be available at **http://localhost:10000**.
 ```bash
 cd frontend
 
-# Using npm
-npm install
-
-# Using bun (faster)
+# Using bun (recommended)
 bun install
+
+# Or using npm
+npm install
 ```
 
 ### 2. Environment Variables
@@ -169,55 +162,61 @@ Create `.env.local` in `frontend/`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:10000
 DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
 ```
+
+> `NEXT_PUBLIC_BACKEND_URL` is normalized at runtime through `frontend/utils/backend-url.ts` to ensure consistent localhost resolution across environments.
 
 ### 3. Database & Prisma
 
 ```bash
-# Using npm
 npx prisma generate
 npx prisma db push
 
-# Using bun
-bunx prisma generate
-bunx prisma db push
+# Optional: seed diagnosis data
+node scripts/seed-diagnoses.js
 ```
 
 ### 4. Start Dev Server
 
 ```bash
-# Using npm
-npm run dev
-
-# Using bun
-bun dev
+bun dev       # preferred
+npm run dev   # alternative
 ```
 
 The frontend runs at **http://localhost:3000**.
 
 ### Key Technologies
 
-- Next.js (App Router, TypeScript)
+- Next.js 15 (App Router, TypeScript)
 - Prisma ORM with PostgreSQL
 - Supabase authentication & middleware
-- Tailwind CSS
-- Server Actions for chat/diagnosis flows
+- Tailwind CSS + DaisyUI component library
+- `next-safe-action` for type-safe server mutations paired with Zod schemas
+- Lucide React for icons
 
 ---
 
 ## Running the Full Application
 
 1. **Backend** — in `backend/`: `python run.py` (runs on port 10000)
-2. **Frontend** — in `frontend/`: `npm run dev` (runs on port 3000)
+2. **Frontend** — in `frontend/`: `bun dev` (runs on port 3000)
 3. Open **http://localhost:3000**
 
 ### User Flows
 
-| Role      | Login              | Features                                                                                 |
-| --------- | ------------------ | ---------------------------------------------------------------------------------------- |
-| Patient   | `/login`           | Symptom chat → diagnosis → history, profile management                                   |
-| Clinician | `/clinician-login` | Dashboard, patient clusters, outbreak surveillance, alerts, healthcare reports, map view |
+| Role      | Login              | Features                                                                                              |
+| --------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
+| Patient   | `/login`           | Symptom chat → diagnosis → BMI & temperature input → history, profile management                     |
+| Clinician | `/clinician-login` | Dashboard, patient groups, outbreak surveillance, diagnosis override, alerts, healthcare reports, map |
+
+### Notable Features (Recent)
+
+- **Clinician Diagnosis Override** — clinicians can override AI assessments with a full audit trail preserving the original AI prediction, confidence, and uncertainty scores
+- **BMI & Temperature Tracking** — patients can optionally log height/weight (BMI) and temperature during a session; BMI advice is generated via AI and cached against the diagnosis record
+- **Endemic Disease Tracking** — dashboard surfaces endemic disease summaries and badges for regional patterns
+- **AI Insights Explanation** — extended SHAP-based token explanations surfaced in the Insights modal
 
 ---
 
@@ -230,6 +229,7 @@ The frontend runs at **http://localhost:3000**.
 | Database connection        | Check `DATABASE_URL` in `.env` / `.env.local`                                  |
 | Prisma client stale        | Re-run `npx prisma generate` after schema changes                              |
 | Model loading slow         | First run downloads transformer models (~500 MB); subsequent starts use cache  |
+| Supabase auth failure      | Check `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`          |
 
 ---
 
