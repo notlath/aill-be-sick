@@ -53,6 +53,7 @@ Do not change compatibility copy wording independently.
 - Revalidation is applied after mutations where needed.
 - User-facing medical text is plain-language and non-absolute.
 - Frontend UI changes preserve mobile usability at small breakpoints.
+- If routes/navigation/role-guard behavior changes, `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` is updated in the same PR.
 - No contradictory style guidance introduced in docs.
 
 **NEW — Fool-Proof + Clinical Rigor Framework:**
@@ -82,6 +83,7 @@ Use this checklist whenever AI guidance files are updated:
 5. If prompt templates change, verify `.prompt.md` examples still match current code patterns.
 6. Keep the duplicate-skill policy enforced: canonical skill change + mirrored compatibility copies in same PR.
 7. Include the AI checklist section in PR descriptions for guidance-only changes.
+8. If App Router pages, redirects, role access rules, or nav link structure changes, update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` and ensure Mermaid still renders.
 
 ## Lightweight change log
 
