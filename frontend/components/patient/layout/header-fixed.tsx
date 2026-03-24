@@ -60,9 +60,9 @@ const Header = ({ dbUser, onToggleSidebar }: HeaderProps) => {
               "0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08)",
           }}
         >
-          {dbUser.role === "DEVELOPER" && (
+          {(dbUser.role === "DEVELOPER" || dbUser.role === "ADMIN") && (
             <li>
-              <ViewSwitcherBtn />
+              <ViewSwitcherBtn isDeveloper={dbUser.role === "DEVELOPER"} />
             </li>
           )}
           {dbUser.role !== "ADMIN" && (
