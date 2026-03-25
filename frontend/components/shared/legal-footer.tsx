@@ -11,7 +11,7 @@ import { LEGAL_CONSTANTS } from "@/constants/legal";
  */
 const LegalFooter = () => {
   return (
-    <footer className="relative z-10 mt-auto w-full py-4 px-4 bg-base-100/50 border-t border-base-300/50 backdrop-blur-sm">
+    <footer className="relative z-10 mt-auto w-full py-4 px-4 bg-base-100/50 border-t border-base-300/50 dark:bg-transparent dark:border-none">
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 text-xs tracking-wide text-base-content/50">
         <div className="flex items-center gap-4">
           <Link 

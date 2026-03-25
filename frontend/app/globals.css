@@ -4,14 +4,13 @@
 @plugin "daisyui/theme" {
   name: "light";
   default: true; /* set as default */
-  
   color-scheme: light; /* color of browser-provided UI */
   --color-base-100: #F9F9F8;
   --color-base-200: #FFFFFF;
   --color-base-300: #F3F4F3;
   --color-base-content: #191C1C;
   --color-muted: #738080;
-  --color-border: #F3F4F3;
+  --color-border: #e7e7e7;
   --color-primary: #22C55E;
   --color-primary-content: #FFFFFF;
   --color-secondary: #10B981;
@@ -29,7 +28,7 @@
   --color-error: #EF4444;
   --color-error-content: #ffffff;
   --radius-selector: 0.25rem;
-  --radius-field: 0.75rem;
+  --radius-field: 10px;
   --radius-box: 1.25rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
@@ -41,11 +40,10 @@
 @theme inline {
   --breakpoint-xs: 360px;
   --breakpoint-sidebar: 1180px;
-  --color-muted: #86868b;
-  --color-border: #e8e8ed;
   --font-sans: var(--font-geist-sans), "Geist Fallback";
   --font-mono: var(--font-geist-mono);
-
+  --color-border: var(--color-border);
+  --color-muted: var(--color-muted);
   /* Fluid typography (xs to 2xl) */
   --text-xs: clamp(0.75rem, 0.71rem + 0.2vw, 0.8125rem);
   --text-sm: clamp(0.9375rem, 0.9rem + 0.18vw, 1rem);
@@ -190,14 +188,15 @@ h6 {
 }
 
 @plugin "daisyui/theme" {
-  name: "dark"; prefersdark: true;
+  name: "dark";
+  prefersdark: true;
   color-scheme: dark;
   --color-base-100: #0B1326;
   --color-base-200: #1E293B;
   --color-base-300: #334155;
   --color-base-content: #ffffff;
   --color-muted: #94A3B8;
-  --color-border: #1E293B;
+  --color-border: #2d394d !important;
   --color-primary: #22C55E;
   --color-primary-content: #0B1326;
   --color-secondary: #4BE277;
@@ -215,11 +214,28 @@ h6 {
   --color-error: #EF4444;
   --color-error-content: #ffffff;
   --radius-selector: 0.25rem;
-  --radius-field: 0.75rem;
+  --radius-field: 10px;
   --radius-box: 1.25rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
   --depth: 0;
   --noise: 0;
+}
+
+.btn {
+  /* @apply bg-base-200/50 hover:bg-base-200 hover:border-base-300; */
+}
+
+/* Leaflet map dark mode styles */
+:root {
+  --map-tiles-filter: brightness(0.6) invert(1) contrast(3) hue-rotate(175deg) saturate(0.4) brightness(0.75);
+}
+
+[data-theme="dark"] .map-tiles {
+  filter: var(--map-tiles-filter);
+}
+
+[data-theme="dark"] .leaflet-container {
+  background: #0B1326;
 }

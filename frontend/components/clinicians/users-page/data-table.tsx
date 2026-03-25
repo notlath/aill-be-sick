@@ -230,7 +230,7 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Data Table */}
-      <div className="bg-base-100 border border-border rounded-xl overflow-x-auto">
+      <div className="bg-base-200 border border-border rounded-xl overflow-x-auto">
         <table className="table w-full">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (

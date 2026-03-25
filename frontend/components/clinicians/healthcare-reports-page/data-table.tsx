@@ -315,7 +315,7 @@ export function DataTable<TData, TValue>({
         </div>
 
         {/* Data Table */}
-        <div className="bg-base-100 border border-border rounded-xl mx-auto overflow-hidden">
+        <div className="bg-base-200 border border-border rounded-xl mx-auto overflow-hidden">
           <div className="overflow-x-auto w-full">
             <table className="table w-full whitespace-nowrap lg:whitespace-normal">
               <thead>

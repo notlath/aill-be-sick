@@ -151,8 +151,6 @@ export function IllnessClusterTimelineChart({
 
   return (
     <Card className="relative overflow-hidden border">
-      <div className="absolute inset-0 bg-base-100 opacity-90" />
-
       <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
         <p className="font-semibold text-base">Illnesses Over Time</p>
         <Select

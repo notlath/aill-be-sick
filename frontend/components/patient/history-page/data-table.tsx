@@ -1,27 +1,27 @@
 "use client";
 
 import {
-    ColumnDef,
-    ColumnFiltersState,
-    PaginationState,
-    SortingState,
-    flexRender,
-    getCoreRowModel,
-    getFilteredRowModel,
-    getPaginationRowModel,
-    getSortedRowModel,
-    useReactTable,
+  ColumnDef,
+  ColumnFiltersState,
+  PaginationState,
+  SortingState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
 } from "@tanstack/react-table";
 import { Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 interface DataTableProps<TData, TValue> {
@@ -103,7 +103,7 @@ export function DataTable<TData, TValue>({
       {/* Search and Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 z-10 -translate-y-1/2 text-muted" />
           <Input
             type="text"
             placeholder="Search assessment history..."
@@ -247,7 +247,7 @@ export function DataTable<TData, TValue>({
       {/* ===== Desktop Table View (lg and above) ===== */}
       <div className="hidden lg:block bg-base-100 border border-border rounded-xl mx-auto overflow-hidden">
         <div className="overflow-x-auto w-full">
-          <table className="table w-full whitespace-nowrap lg:whitespace-normal">
+          <table className="table bg-base-200 w-full whitespace-nowrap lg:whitespace-normal">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
