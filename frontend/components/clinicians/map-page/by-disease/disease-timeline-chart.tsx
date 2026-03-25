@@ -308,8 +308,6 @@ export function DiseaseTimelineChart({
 
   return (
     <Card className="relative overflow-hidden border">
-      <div className="absolute inset-0 bg-base-100 opacity-90" />
-
       <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
         <p className="font-semibold text-base">
           {disease === "all" ? "All Diseases" : disease} — Cases Over Time
@@ -334,27 +332,27 @@ export function DiseaseTimelineChart({
         <div className="w-full h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             {isAllDiseases ? (
-              <LineChart
+                <LineChart
                 data={chartData}
                 margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
                 accessibilityLayer
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="hsl(var(--heroui-default-200))"
+                  stroke="var(--color-base-300)"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+                  tick={{ fontSize: 11, fill: "var(--color-base-content)" }}
                   tickLine={false}
-                  axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+                  axisLine={{ stroke: "var(--color-base-300)" }}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+                  tick={{ fontSize: 11, fill: "var(--color-base-content)" }}
                   tickLine={false}
-                  axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+                  axisLine={{ stroke: "var(--color-base-300)" }}
                 />
                 <Tooltip
                   content={
@@ -389,20 +387,20 @@ export function DiseaseTimelineChart({
                 </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
-                  stroke="hsl(var(--heroui-default-200))"
+                  stroke="var(--color-base-300)"
                   vertical={false}
                 />
                 <XAxis
                   dataKey="label"
-                  tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+                  tick={{ fontSize: 11, fill: "var(--color-base-content)" }}
                   tickLine={false}
-                  axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+                  axisLine={{ stroke: "var(--color-base-300)" }}
                 />
                 <YAxis
                   allowDecimals={false}
-                  tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+                  tick={{ fontSize: 11, fill: "var(--color-base-content)" }}
                   tickLine={false}
-                  axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+                  axisLine={{ stroke: "var(--color-base-300)" }}
                 />
                 <Tooltip content={<ChartTooltip granularity={granularity} />} />
                 <Area

@@ -103,8 +103,8 @@ const SelectTrigger = React.forwardRef<
       type="button"
       className={cn(
         "flex items-center gap-2 w-full justify-between",
-        "px-4 py-2.5 rounded-[10px]",
-        "bg-base-200/50 backdrop-blur-sm",
+        "px-4 py-2 h-10 rounded-[10px]",
+        "bg-base-200 backdrop-blur-sm",
         "border border-border",
         "hover:bg-base-200 hover:border-base-300/70",
         "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40",

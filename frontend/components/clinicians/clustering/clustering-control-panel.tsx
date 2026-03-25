@@ -1115,7 +1115,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="card card-body bg-base-100 border-base-300 border p-4 sm:p-6 sm:px-8">
+      <div className="card card-body bg-base-200 border-base-300 border p-4 sm:p-6 sm:px-8">
         <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-6 xl:gap-4 relative">
           <form
             onSubmit={onSubmitK}
