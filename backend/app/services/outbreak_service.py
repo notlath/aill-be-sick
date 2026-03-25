@@ -14,6 +14,9 @@ REASON_OUTBREAK_ALERT = "OUTBREAK:ALERT_THRESHOLD"  # Mean + 1σ (PIDSR Alert)
 REASON_CLUSTER_DENSE = "CLUSTER:DENSE"
 REASON_VOL_SPIKE = "OUTBREAK:VOL_SPIKE"
 
+# Diseases that trigger on single case per DOH PIDSR
+ONE_CASE_DISEASES = {"MEASLES"}
+
 def calculate_statistical_thresholds(diagnoses, days=30):
     """
     Calculate disease-specific thresholds per district based on historical data.
@@ -125,25 +128,29 @@ def detect_outbreaks(db_url=None):
     for key, count in recent_counts.items():
         disease, district = key
         stats = thresholds.get(key)
-        
-        # Minimum volume of 3 cases in 7 days to trigger an outbreak alert
-        if count < 3:
+        is_one_case_disease = disease.upper() in ONE_CASE_DISEASES
+
+        if not is_one_case_disease and count < 3:
             continue
-            
+
         reasons = []
         severity = "LOW"
-        
-        if stats:
-            # Check for epidemic threshold (Mean + 2σ per DOH PIDSR)
+
+        if is_one_case_disease:
+            if count >= 2:
+                reasons.append(REASON_OUTBREAK_EPIDEMIC)
+                severity = "CRITICAL"
+            elif count >= 1:
+                reasons.append(REASON_OUTBREAK_ALERT)
+                severity = "HIGH"
+        elif stats:
             if count >= stats['epidemic']:
                 reasons.append(REASON_OUTBREAK_EPIDEMIC)
                 severity = "CRITICAL"
-            # Check for alert threshold (Mean + 1σ per DOH PIDSR)
             elif count >= stats['alert']:
                 reasons.append(REASON_OUTBREAK_ALERT)
                 severity = "HIGH"
         else:
-            # No baseline data - if we see a sudden cluster, mark as alert
             if count >= 5:
                 reasons.append(REASON_VOL_SPIKE)
                 severity = "MEDIUM"
@@ -167,7 +174,6 @@ def detect_outbreaks(db_url=None):
             })
 
     # 5. Cluster-based detection (K-Means)
-    # Filter encoded data to only include recent diagnoses for cluster density check
     recent_indices = [i for i, d in enumerate(illness_info) if datetime.fromisoformat(d['diagnosed_at']) >= analysis_cutoff]
     if len(recent_indices) >= 5:
         recent_encoded = encoded_data[recent_indices]
@@ -179,18 +185,14 @@ def detect_outbreaks(db_url=None):
         for cluster_id in range(optimal_k):
             cluster_items = [recent_info[i] for i, cid in enumerate(clusters) if cid == cluster_id]
             if len(cluster_items) >= 5:
-                # Dense cluster detected
-                # Check if this cluster's disease/district already has a threshold alert
                 diseases = [d['disease'] for d in cluster_items]
                 most_common_disease = max(set(diseases), key=diseases.count)
                 districts = [d.get('district') or "UNKNOWN" for d in cluster_items]
                 most_common_district = max(set(districts), key=districts.count)
                 
-                # Check if we already have an alert for this disease/district
                 existing = [o for o in outbreaks if o['disease'] == most_common_disease and o['district'] == most_common_district]
                 
                 if existing:
-                    # Add CLUSTER:DENSE to existing alert
                     if REASON_CLUSTER_DENSE not in existing[0]['reasonCodes']:
                         existing[0]['reasonCodes'].append(REASON_CLUSTER_DENSE)
                 else:

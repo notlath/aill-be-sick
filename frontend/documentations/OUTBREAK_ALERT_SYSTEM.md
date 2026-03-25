@@ -156,6 +156,131 @@ The system uses **unsupervised K-Means clustering** to find geographic "hotspots
 - **Optimal K Selection**: The system automatically calculates the best number of clusters ($k=2$ to $10$) using the **Calinski-Harabasz Index**, which measures cluster density and separation.
 - **Density Check**: If a cluster contains $\ge 5$ cases within a 7-day window, it triggers a **MEDIUM** severity alert (`CLUSTER:DENSE`).
 
+---
+
+## Disease-Specific Thresholds
+
+The Outbreak Alert System applies different detection thresholds based on disease characteristics and DOH PIDSR guidelines.
+
+### One-Case Diseases (Immediate Alert)
+
+Certain diseases are considered high-priority and trigger alerts on **single case detection** per DOH PIDSR surveillance requirements:
+
+| Disease | Alert Trigger | Epidemic Trigger | Severity | Rationale |
+| :--- | :--- | :--- | :--- | :--- |
+| **Measles (Tigdas)** | ≥ 1 case | ≥ 2 cases | HIGH → CRITICAL | Elimination-phase disease; zero tolerance for community transmission |
+
+**Implementation:**
+```python
+ONE_CASE_DISEASES = {"MEASLES"}
+
+# Logic in outbreak_service.py
+is_one_case_disease = disease.upper() in ONE_CASE_DISEASES
+
+if is_one_case_disease:
+    if count >= 2:
+        severity = "CRITICAL"  # Epidemic threshold
+    elif count >= 1:
+        severity = "HIGH"  # Alert threshold
+```
+
+**Why Measles is One-Case:**
+- Measles is in the **elimination phase** in the Philippines
+- Single cases indicate potential importation or vaccination gaps
+- DOH PIDSR requires immediate investigation of any measles case
+- High R0 (12-18) means rapid exponential spread if unchecked
+
+### Standard Diseases (Volume-Based Thresholds)
+
+For common diseases like **Dengue**, **Influenza**, **Typhoid Fever**, etc., the system uses statistical thresholds:
+
+| Disease | Minimum Count | Alert Threshold | Epidemic Threshold | Severity Progression |
+| :--- | :--- | :--- | :--- | :--- |
+| **Dengue** | ≥ 3 cases | Mean + 1σ | Mean + 2σ | MEDIUM → HIGH → CRITICAL |
+| **Influenza** | ≥ 3 cases | Mean + 1σ | Mean + 2σ | MEDIUM → HIGH → CRITICAL |
+| **Typhoid Fever** | ≥ 3 cases | Mean + 1σ | Mean + 2σ | MEDIUM → HIGH → CRITICAL |
+| **Diarrhea** | ≥ 3 cases | Mean + 1σ | Mean + 2σ | MEDIUM → HIGH → CRITICAL |
+| **Pneumonia** | ≥ 3 cases | Mean + 1σ | Mean + 2σ | MEDIUM → HIGH → CRITICAL |
+| **All others** | ≥ 3 cases | Mean + 1σ | Mean + 2σ | MEDIUM → HIGH → CRITICAL |
+
+**Implementation:**
+```python
+# Minimum count filter for standard diseases
+if not is_one_case_disease and count < 3:
+    continue  # Skip detection
+
+# Threshold-based severity assignment
+if stats:  # Has historical baseline
+    if count >= stats['epidemic']:  # Mean + 2σ
+        severity = "CRITICAL"
+    elif count >= stats['alert']:  # Mean + 1σ
+        severity = "HIGH"
+else:  # No baseline available
+    if count >= 5:
+        severity = "MEDIUM"  # Volume spike only
+```
+
+**Minimum Count Rationale:**
+- **≥ 3 cases** prevents false positives from random fluctuations
+- Balances sensitivity with specificity for endemic diseases
+- Aligns with DOH PIDSR event-based surveillance guidelines
+
+### Volume Spike Detection (No Baseline)
+
+When no historical baseline exists (new disease or district), the system uses absolute thresholds:
+
+| Condition | Threshold | Severity | Reason Code |
+| :--- | :--- | :--- | :--- |
+| **Volume Spike** | ≥ 5 cases in 7 days | MEDIUM | `OUTBREAK:VOL_SPIKE` |
+
+This ensures detection even in data-sparse scenarios.
+
+### Cluster Density Detection (Spatial)
+
+K-Means clustering operates independently of disease type:
+
+| Condition | Threshold | Severity | Reason Code |
+| :--- | :--- | :--- | :--- |
+| **Dense Cluster** | ≥ 5 cases in tight geographic cluster | MEDIUM | `CLUSTER:DENSE` |
+
+**Cluster Detection Logic:**
+- Runs on **all diseases simultaneously**
+- Uses Calinski-Harabasz Index to find optimal k (2-10 clusters)
+- Flags clusters with ≥ 5 cases in 7-day window
+- Can trigger **even if volume thresholds are not met**
+
+**Why Cluster Detection Matters:**
+- Detects **localized transmission** before volume explodes
+- Example: 8 Dengue cases in 2 blocks vs. 10 cases scattered across district
+- Early warning for **point-source outbreaks** (contaminated water, mosquito breeding sites)
+
+---
+
+## Threshold Configuration Summary
+
+| Parameter | Value | Configurable | Location |
+| :--- | :--- | :--- | :--- |
+| **Baseline Window** | 30 days | ✓ (env var) | `outbreak_service.py` |
+| **Analysis Window** | 7 days | ✓ (env var) | `outbreak_service.py` |
+| **One-Case Diseases** | `{"MEASLES"}` | ✓ (code) | `outbreak_service.py:18` |
+| **Standard Min Count** | 3 cases | ✓ (code) | `outbreak_service.py:133` |
+| **Alert Threshold** | Mean + 1σ | Formula | `outbreak_service.py:49` |
+| **Epidemic Threshold** | Mean + 2σ | Formula | `outbreak_service.py:50` |
+| **Volume Spike** | 5 cases | ✓ (code) | `outbreak_service.py:148` |
+| **Cluster Min Count** | 5 cases | ✓ (code) | `outbreak_service.py:167` |
+| **Cluster K Range** | 2-10 | ✓ (code) | `outbreak_service.py:75` |
+| **Duplicate Window** | 24 hours | ✓ (code) | Frontend action |
+
+**Environment Variables (Future Enhancement):**
+```bash
+# Add to backend/.env
+OUTBREAK_BASELINE_DAYS=30
+OUTBREAK_ANALYSIS_DAYS=7
+OUTBREAK_MIN_COUNT_STANDARD=3
+OUTBREAK_MIN_COUNT_CLUSTER=5
+ONE_CASE_DISEASES=MEASLES,CHOLERA,DIPHTHERIA
+```
+
 ### Detection Pipeline Flow
 The following diagram details the internal logic of the Outbreak Service during a single detection cycle:
 
