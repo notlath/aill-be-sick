@@ -55,9 +55,11 @@ const fmtPct = (p?: number) =>
 
 const getTriageLevel = (level: string) => {
   switch (level.toUpperCase()) {
+    case "HIGH PRIORITY":
+    case "HIGH":
+    case "RED":
     case "EMERGENT":
     case "URGENT":
-    case "HIGH":
       return {
         badgeClass: "badge-error",
         accentColor: "var(--color-error)",
@@ -67,8 +69,10 @@ const getTriageLevel = (level: string) => {
         barColor: "var(--color-error)",
         label: level,
       };
-    case "MODERATE":
+    case "MEDIUM PRIORITY":
     case "MEDIUM":
+    case "YELLOW":
+    case "MODERATE":
       return {
         badgeClass: "badge-warning",
         accentColor: "var(--color-warning)",
@@ -78,15 +82,17 @@ const getTriageLevel = (level: string) => {
         barColor: "var(--color-warning)",
         label: level,
       };
+    case "LOW PRIORITY":
     case "LOW":
+    case "GREEN":
     case "NON-URGENT":
       return {
-        badgeClass: "badge-info",
-        accentColor: "var(--color-info)",
-        bgColor: "bg-info/10",
-        borderColor: "border-info/20",
-        textColor: "text-info",
-        barColor: "var(--color-info)",
+        badgeClass: "badge-success",
+        accentColor: "var(--color-success)",
+        bgColor: "bg-success/10",
+        borderColor: "border-success/20",
+        textColor: "text-success",
+        barColor: "var(--color-success)",
         label: level,
       };
     default:
@@ -104,18 +110,24 @@ const getTriageLevel = (level: string) => {
 
 const getTriageDescription = (level: string): string => {
   switch (level.toUpperCase()) {
+    case "HIGH PRIORITY":
+    case "HIGH":
+    case "RED":
     case "EMERGENT":
     case "URGENT":
-    case "HIGH":
-      return "Seek medical attention immediately.";
-    case "MODERATE":
+      return "Seek medical attention promptly. Physician evaluation recommended.";
+    case "MEDIUM PRIORITY":
     case "MEDIUM":
-      return "Please consult a healthcare provider soon.";
+    case "YELLOW":
+    case "MODERATE":
+      return "Please consult a healthcare professional within 24 hours for clinical assessment.";
+    case "LOW PRIORITY":
     case "LOW":
+    case "GREEN":
     case "NON-URGENT":
-      return "You can manage this at home or schedule a routine visit if symptoms persist.";
+      return "Safe for home care and monitoring. Schedule routine follow-up if symptoms persist.";
     default:
-      return "Please consult a healthcare provider.";
+      return "Please consult a healthcare provider for clinical evaluation.";
   }
 };
 

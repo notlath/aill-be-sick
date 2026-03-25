@@ -253,7 +253,19 @@ def select_next_question_with_uncertainty(current_symptoms, candidate_questions)
 ### Context
 A hospital implements a 3-tier triage system based on prediction reliability.
 
-### Risk Stratification Matrix
+### ✅ Production Implementation (March 2026)
+
+The 3-tier triage system described in this scenario has been **fully implemented** in production with the following configuration:
+
+| Triage Level | Confidence | Uncertainty (MI) | Clinical Action | Care Setting |
+|--------------|------------|------------------|-----------------|--------------|
+| **Low Priority (Green)** | ≥ 90% | ≤ 0.03 | Automated diagnosis | Home care or routine clinic |
+| **Medium Priority (Yellow)** | 70-90% | 0.03-0.08 | Nurse review | Clinic visit within 24 hours |
+| **High Priority (Red)** | < 70% | > 0.08 | Physician evaluation | Prompt physician evaluation |
+
+**Note:** The production implementation uses a simplified 2-metric approach (confidence + mutual information) for operational efficiency. Ensemble disagreement is computed but not used in the primary triage decision logic.
+
+### Original Design (Full Multi-Metric Framework)
 
 | Confidence | Uncertainty (MI) | Ensemble Disagreement | Action |
 |------------|------------------|----------------------|--------|
@@ -264,50 +276,61 @@ A hospital implements a 3-tier triage system based on prediction reliability.
 ### Implementation
 
 ```python
-def triage_decision(prediction_result):
-    confidence = prediction_result["confidence"]
-    mi = prediction_result["mutual_information"]
-    disagreement = prediction_result["ensemble_disagreement"]
-    
-    # Green tier: High confidence, low uncertainty
-    if (confidence > 0.90 and 
-        mi < 0.03 and 
-        disagreement < 0.10):
+# Production Implementation (backend/app/utils/__init__.py)
+def build_cdss_payload(confidence, uncertainty, ...):
+    # LOW PRIORITY (Green): High confidence, low uncertainty
+    if (confidence >= 0.90 and uncertainty <= 0.03):
         return {
-            "level": "GREEN",
-            "action": "Automated diagnosis - no review needed",
-            "wait_time": "0 minutes"
+            "level": "Low Priority",
+            "care_setting": "Home care or routine clinic visit",
+            "actions": [
+                "Home care guidance and symptom monitoring",
+                "Schedule routine clinic follow-up if symptoms persist or worsen",
+                "Return immediately if warning signs develop",
+            ]
         }
     
-    # Yellow tier: Moderate confidence or uncertainty
-    elif (confidence > 0.70 and 
-          mi < 0.08 and 
-          disagreement < 0.25):
+    # MEDIUM PRIORITY (Yellow): Moderate confidence or uncertainty
+    elif (confidence >= 0.70 and uncertainty <= 0.08):
         return {
-            "level": "YELLOW",
-            "action": "Nurse review required",
-            "wait_time": "15-30 minutes"
+            "level": "Medium Priority",
+            "care_setting": "Clinic visit within 24 hours",
+            "actions": [
+                "Consult a healthcare professional within 24 hours",
+                "Nurse assessment recommended for initial evaluation",
+                "Provide additional history, vitals, and physical exam",
+                "Monitor for symptom progression or warning signs",
+            ]
         }
     
-    # Red tier: Low confidence or high uncertainty
+    # HIGH PRIORITY (Red): Low confidence or high uncertainty
     else:
         return {
-            "level": "RED",
-            "action": "Physician review required",
-            "wait_time": "30-60 minutes"
+            "level": "High Priority",
+            "care_setting": "Prompt physician evaluation required",
+            "actions": [
+                "Consult a healthcare professional promptly",
+                "Physician evaluation required for clinical decision-making",
+                "Consider additional diagnostic tests (labs, imaging) as clinically indicated",
+                "Provide comprehensive history, vitals, and physical examination",
+            ]
         }
 
-# Real case:
+# Real-world case example:
 # Patient with atypical symptoms
-# Confidence: 0.75 (looks like Yellow)
-# MI: 0.12 (⚠️ High)
-# Disagreement: 0.38 (⚠️ High)
-# 
-# Result: RED triage (correctly flagged despite moderate confidence)
+# Confidence: 0.75 (looks like Medium Priority)
+# MI: 0.12 (⚠️ High uncertainty)
+#
+# Result: HIGH PRIORITY triage (correctly flagged despite moderate confidence)
 ```
 
 ### Clinical Impact
-- **Before:** All predictions treated equally
+- **Before Implementation:** Binary triage (Non-urgent/Urgent) lacked granularity
+- **After Implementation:** 3-tier system provides nuanced risk stratification
+- **Outcome:** 
+  - Low Priority cases safely receive home care guidance
+  - Medium Priority cases get timely nurse review (within 24 hours)
+  - High Priority cases receive prompt physician attention
 - **After:** Risk-stratified workflow optimizes clinician time
 - **Outcome:** High-risk cases get attention, low-risk cases processed quickly
 

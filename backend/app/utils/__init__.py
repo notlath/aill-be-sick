@@ -154,34 +154,68 @@ def _build_cdss_payload(
 ) -> dict:
     """Construct a structured CDSS payload to accompany narrative output.
 
-    Triage determination is based purely on ML model confidence and uncertainty
-    thresholds from config. No keyword-based escalation is performed, as CDSS
-    should not autonomously label symptoms as emergent without clinician review.
+    Triage determination uses a 3-tier risk stratification system based on
+    ML model confidence and uncertainty thresholds from config. Thresholds are
+    thesis-backed: ECE calibration (0.084), sensitivity analysis, ROC/PR optimization.
+    
+    3-Tier System:
+    - LOW PRIORITY (Green): Confidence >= 90% AND uncertainty <= 3% → Automated diagnosis
+    - MEDIUM PRIORITY (Yellow): Confidence 70-90% OR uncertainty 3-8% → Nurse review
+    - HIGH PRIORITY (Red): Confidence < 70% OR uncertainty > 8% → Physician review
+    
+    No keyword-based escalation is performed, as CDSS should not autonomously label
+    symptoms as emergent without clinician review.
     """
-    # Triage determination based on model confidence/uncertainty only
+    # 3-Tier triage determination based on confidence and uncertainty
     if (
         confidence >= config.TRIAGE_HIGH_CONFIDENCE
         and uncertainty <= config.TRIAGE_LOW_UNCERTAINTY
     ):
-        triage_level = "Non-urgent"
+        # LOW PRIORITY (Green): High confidence, low uncertainty
+        triage_level = "Low Priority"
         triage_reasons = [
-            f"High model confidence (>= {config.TRIAGE_HIGH_CONFIDENCE})",
-            f"Low uncertainty (<= {config.TRIAGE_LOW_UNCERTAINTY})",
+            f"High model confidence (≥ {config.TRIAGE_HIGH_CONFIDENCE:.0%})",
+            f"Low uncertainty (≤ {config.TRIAGE_LOW_UNCERTAINTY:.0%})",
+            "Safe for automated diagnosis without human review",
         ]
-        care_setting = "Home care or routine clinic"
+        care_setting = "Home care or routine clinic visit"
         actions = [
-            "Home care guidance and monitoring",
-            "Consider routine clinic follow-up if symptoms persist or worsen",
+            "Home care guidance and symptom monitoring",
+            "Schedule routine clinic follow-up if symptoms persist or worsen",
+            "Return immediately if warning signs develop",
+        ]
+    elif (
+        confidence >= config.TRIAGE_MEDIUM_CONFIDENCE_MIN
+        and uncertainty <= config.TRIAGE_MEDIUM_UNCERTAINTY_MAX
+    ):
+        # MEDIUM PRIORITY (Yellow): Moderate confidence or uncertainty
+        triage_level = "Medium Priority"
+        triage_reasons = [
+            f"Moderate model confidence ({config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%}–{config.TRIAGE_HIGH_CONFIDENCE:.0%})",
+            f"Moderate uncertainty level ({config.TRIAGE_LOW_UNCERTAINTY:.0%}–{config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
+            "Requires clinical validation for safety",
+        ]
+        care_setting = "Clinic visit within 24 hours"
+        actions = [
+            "Consult a healthcare professional within 24 hours",
+            "Nurse assessment recommended for initial evaluation",
+            "Provide additional history, vitals, and physical exam",
+            "Monitor for symptom progression or warning signs",
         ]
     else:
-        triage_level = "Urgent"
+        # HIGH PRIORITY (Red): Low confidence or high uncertainty
+        triage_level = "High Priority"
         triage_reasons = [
-            "Model requires clinician review due to confidence/uncertainty"
+            f"Low model confidence (< {config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%})" if confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN else f"High uncertainty (> {config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
+            "Model prediction requires expert clinical review",
+            "Additional diagnostic workup recommended",
         ]
-        care_setting = "Clinic visit"
+        care_setting = "Prompt physician evaluation required"
         actions = [
-            "Consult a healthcare professional",
-            "Provide additional history, vitals, and exam if available",
+            "Consult a healthcare professional promptly",
+            "Physician evaluation required for clinical decision-making",
+            "Consider additional diagnostic tests (labs, imaging) as clinically indicated",
+            "Provide comprehensive history, vitals, and physical examination",
         ]
 
     # Differential list from top_diseases (already sorted in caller)

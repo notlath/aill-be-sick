@@ -1,4 +1,5 @@
 import hashlib
+import os
 import torch
 import torch.nn.functional as F
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -89,9 +90,13 @@ class MCDClassifierWithSHAP:
     ):
         self.n_iterations = n_iterations
         self.inference_dropout_rate = inference_dropout_rate
-        self.device = (
-            device if device else ("cuda" if torch.cuda.is_available() else "cpu")
-        )
+        # Allow forcing CPU mode via environment variable (useful for low-VRAM GPUs)
+        force_cpu = os.getenv("ML_FORCE_CPU", "false").lower() in ("1", "true", "yes")
+        if force_cpu:
+            self.device = "cpu"
+            print("[ML] Forcing CPU mode via ML_FORCE_CPU environment variable")
+        else:
+            self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
 
         model_kwargs = {}
         tokenizer_kwargs = {}
@@ -113,13 +118,6 @@ class MCDClassifierWithSHAP:
         # self.model will point to a NEW quantized object, while this stays as the original fp32 model.
         self.explanation_model = self.model
 
-        # Apply dynamic quantization to Linear layers for faster CPU inference and reduced memory usage
-        if str(self.device).startswith("cpu"):
-            # quantize_dynamic creates a new model instance
-            self.model = torch.quantization.quantize_dynamic(
-                self.model, {torch.nn.Linear}, dtype=torch.qint8
-            )
-
         # CRITICAL FIX: Replace standard Dropout with ThreadSafeDropout
         # This allows per-request dropout control without global .train() state
         # Apply to BOTH models (inference and explanation)
@@ -128,13 +126,42 @@ class MCDClassifierWithSHAP:
         if self.explanation_model is not self.model:
             self._replace_dropout_layers(self.explanation_model)
 
-        # Move models to device and strict eval mode
-        self.model.to(self.device)
-        self.model.eval()
+        # Move models to device with graceful fallback to CPU on CUDA OOM
+        try:
+            self.model.to(self.device)
+            self.model.eval()
+            # Explanation model also needs to be on device and in eval mode
+            self.explanation_model.to(self.device)
+            self.explanation_model.eval()
+        except RuntimeError as e:
+            if "CUDA" in str(e) and ("out of memory" in str(e).lower() or "OOM" in str(e).upper()):
+                print(f"[WARNING] CUDA OOM detected: {e}. Falling back to CPU...")
+                self.device = "cpu"
+                # Re-load model in CPU mode for quantization
+                self.model = AutoModelForSequenceClassification.from_pretrained(
+                    model_path, **model_kwargs
+                )
+                self.model.config.id2label = CORRECT_ID2LABEL
+                self.model.config.label2id = {v: k for k, v in CORRECT_ID2LABEL.items()}
+                self.explanation_model = self.model
+                self._replace_dropout_layers(self.model)
+                self.model.to(self.device)
+                self.model.eval()
+                self.explanation_model.to(self.device)
+                self.explanation_model.eval()
+                print(f"[INFO] Model loaded on CPU with int8 quantization for faster inference")
+            else:
+                raise
 
-        # Explanation model also needs to be on device and in eval mode
-        self.explanation_model.to(self.device)
-        self.explanation_model.eval()
+        # Apply dynamic quantization to Linear layers for faster CPU inference and reduced memory usage
+        # (Already on CPU after fallback, so quantization applies automatically)
+        if str(self.device).startswith("cpu"):
+            # quantize_dynamic creates a new model instance
+            self.model = torch.quantization.quantize_dynamic(
+                self.model, {torch.nn.Linear}, dtype=torch.qint8
+            )
+            # Re-apply dropout layers after quantization
+            self._replace_dropout_layers(self.model)
 
     def _replace_dropout_layers(self, model):
         """
@@ -158,14 +185,20 @@ class MCDClassifierWithSHAP:
         return seed % (2**63 - 1)
 
     def predict_with_uncertainty(self, text):
-        inputs = self.tokenizer(
-            text,
-            return_tensors="pt",
-            truncation=True,
-            padding=True,
-        ).to(self.device)
-        inputs["input_ids"] = inputs["input_ids"].to(torch.long)
-        inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
+        # Ensure inputs are on the correct device (CPU/GPU)
+        try:
+            inputs = self.tokenizer(
+                text,
+                return_tensors="pt",
+                truncation=True,
+                padding=True,
+            ).to(self.device)
+            inputs["input_ids"] = inputs["input_ids"].to(torch.long)
+            inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
+        except RuntimeError as e:
+            if "CUDA" in str(e):
+                print(f"[ERROR] CUDA error during input preparation: {e}. Ensure ML_FORCE_CPU=true for low-VRAM systems.")
+                raise
 
         deterministic_seed = None
         rng = None
@@ -205,6 +238,14 @@ class MCDClassifierWithSHAP:
 
                 # all_predictions shape is already [n_iterations, n_classes], no stack needed
 
+        except RuntimeError as e:
+            # Catch CUDA errors during inference and provide helpful error message
+            if "CUDA" in str(e) or "device-side assert" in str(e):
+                error_msg = str(e)
+                print(f"[ERROR] CUDA error during inference: {error_msg}")
+                print("[ERROR] This indicates a GPU memory or compatibility issue.")
+                print("[ERROR] Set ML_FORCE_CPU=true in your environment to use CPU-only mode.")
+            raise
         finally:
             # RESET context to prevent leakage to other threads/requests
             mcd_enabled_ctx.reset(token_enabled)

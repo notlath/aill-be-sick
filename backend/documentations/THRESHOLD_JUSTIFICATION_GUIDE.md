@@ -28,17 +28,19 @@
 
 ## 1. Risk Stratification Thresholds (Multi-Metric Uncertainty Framework)
 
-### The Three-Tier System
+### The Three-Tier System (Implemented March 2026)
 
-| Risk Level | Confidence | Mutual Information | Ensemble Disagreement | Clinical Action |
-|------------|------------|-------------------|----------------------|-----------------|
-| **Automated Diagnosis** | ≥ 90% | < 0.03 | < 0.10 | No human review needed |
-| **Nurse Review** | 70-90% | 0.03-0.08 | 0.10-0.25 | Secondary review |
-| **Physician Review** | < 70% | > 0.08 | > 0.25 | Expert review required |
+| Risk Level | Triage Name | Confidence | Mutual Information | Ensemble Disagreement | Clinical Action |
+|------------|-------------|------------|-------------------|----------------------|-----------------|
+| **Low Priority** | Green | ≥ 90% | < 0.03 | < 0.10 | Automated diagnosis, home care |
+| **Medium Priority** | Yellow | 70-90% | 0.03-0.08 | 0.10-0.25 | Nurse review within 24 hours |
+| **High Priority** | Red | < 70% | > 0.08 | > 0.25 | Physician evaluation required |
+
+**Note:** The production system uses a simplified 2-metric approach (confidence + mutual information) for triage determination. The full multi-metric framework (including ensemble disagreement) is available for future enhancement.
 
 ### Methodological Basis
 
-#### 1.1 Confidence Threshold of 90% for Automated Diagnosis
+#### 1.1 Confidence Threshold of 90% for Low Priority (Automated Diagnosis)
 
 **Why 90%?**
 
@@ -46,6 +48,7 @@
 - This means predicted confidence closely aligns with empirical accuracy
 - A "90% confidence" score reliably translates to approximately 90% actual accuracy
 - This makes it statistically safe for automated processing without human intervention
+- **Clinical Impact:** Patients with Low Priority triage can safely receive home care guidance
 
 **Supporting Evidence:**
 ```
@@ -61,7 +64,7 @@ Overall Model Performance:
 
 ---
 
-#### 1.2 Confidence Threshold of 70% for Physician Review
+#### 1.2 Confidence Threshold of 70% for High Priority (Physician Review)
 
 **Why 70%?**
 
@@ -70,6 +73,7 @@ Overall Model Performance:
   - **Incorrect predictions** had an average uncertainty of **0.054**
 - The study concluded that predictions with confidence **below 70%** and uncertainty **above 5% (0.05)** are **highly likely to be incorrect**
 - This distinct drop in confidence for erroneous outputs justifies routing any prediction with <70% confidence directly to a physician
+- **Clinical Impact:** Patients with High Priority triage receive prompt physician evaluation recommendations
 
 **Supporting Evidence from Sensitivity Analysis:**
 
@@ -84,13 +88,14 @@ Overall Model Performance:
 
 ---
 
-#### 1.3 Mutual Information Threshold of 0.05 (5%)
+#### 1.3 Mutual Information Threshold of 0.05 (5%) for Medium/High Priority Boundary
 
 **Why 0.05?**
 
 - Derived from **ROC analysis** and **Precision-Recall curve optimization** to find the optimal threshold separating correct from incorrect predictions
 - The **Uncertainty Separation Analysis** showed that MI effectively discriminates between correct and incorrect predictions with **AUC > 0.7**
 - Complies with **Philippine FDA requirement** for uncertainty flagging in medical AI systems
+- **Clinical Impact:** Patients with moderate uncertainty (3-8%) receive Medium Priority triage (nurse review), while high uncertainty (>8%) triggers High Priority (physician review)
 
 **Optimization Method:**
 ```python

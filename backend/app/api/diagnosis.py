@@ -1236,6 +1236,9 @@ def explain_diagnosis():
             return jsonify({"error": "Symptoms cannot be empty"}), 400
 
         mean_probs = data.get("mean_probs", None)
+        with open("explain_debug.log", "a") as f:
+            f.write(f"Received symptoms: {text}\n")
+            f.write(f"Received mean_probs: {repr(mean_probs)}\n")
         if mean_probs is None:
             return jsonify({"error": "mean_probs is required"}), 400
 
