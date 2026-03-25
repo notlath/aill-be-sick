@@ -172,6 +172,7 @@ const ChatWindow = ({
     cdss?: any;
     model_used?: string;
     mean_probs?: any[];
+    is_valid?: boolean;
   } | null>(null);
   const [isFinalDiagnosis, setIsFinalDiagnosis] = useState<boolean>(false);
 
@@ -198,6 +199,7 @@ const ChatWindow = ({
               cdss,
               model_used,
               mean_probs,
+              is_valid,
             } = diagnosis;
             setCurrentDiagnosis({
               disease,
@@ -207,6 +209,7 @@ const ChatWindow = ({
               cdss,
               model_used,
               mean_probs,
+              is_valid,
             });
             lastDiagnosisRef.current = {
               ...(lastDiagnosisRef.current || {}),
@@ -474,6 +477,7 @@ const ChatWindow = ({
             cdss,
             model_used,
             mean_probs,
+            is_valid,
             session_id: newSessionId,
           } = data.diagnosis as any;
 
@@ -490,6 +494,7 @@ const ChatWindow = ({
             cdss,
             model_used,
             mean_probs,
+            is_valid,
           });
           lastDiagnosisRef.current = {
             ...data.diagnosis,
