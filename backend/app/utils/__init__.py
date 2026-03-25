@@ -151,21 +151,29 @@ def _build_cdss_payload(
     uncertainty: float,
     top_diseases: list,
     model_used: str,
+    is_valid: bool = True,
 ) -> dict:
     """Construct a structured CDSS payload to accompany narrative output.
 
     Triage determination uses a 3-tier risk stratification system based on
     ML model confidence and uncertainty thresholds from config. Thresholds are
     thesis-backed: ECE calibration (0.084), sensitivity analysis, ROC/PR optimization.
-    
+
     3-Tier System:
     - LOW PRIORITY (Green): Confidence >= 90% AND uncertainty <= 3% → Automated diagnosis
     - MEDIUM PRIORITY (Yellow): Confidence 70-90% OR uncertainty 3-8% → Nurse review
     - HIGH PRIORITY (Red): Confidence < 70% OR uncertainty > 8% → Physician review
-    
+
+    When is_valid=False (unable to diagnose), the triage level is still computed
+    to provide appropriate care guidance, but reasons are modified to reflect
+    diagnostic uncertainty rather than a confirmed condition.
+
     No keyword-based escalation is performed, as CDSS should not autonomously label
     symptoms as emergent without clinician review.
     """
+    # Track if this is an uncertain/unable-to-diagnose case
+    is_uncertain = not is_valid or confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN
+    
     # 3-Tier triage determination based on confidence and uncertainty
     if (
         confidence >= config.TRIAGE_HIGH_CONFIDENCE
@@ -205,11 +213,23 @@ def _build_cdss_payload(
     else:
         # HIGH PRIORITY (Red): Low confidence or high uncertainty
         triage_level = "High Priority"
-        triage_reasons = [
-            f"Low model confidence (< {config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%})" if confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN else f"High uncertainty (> {config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
-            "Model prediction requires expert clinical review",
-            "Additional diagnostic workup recommended",
-        ]
+        
+        # Modify reasons based on whether we could make a diagnosis
+        if is_uncertain:
+            # Unable to diagnose case - emphasize need for human evaluation
+            triage_reasons = [
+                "Unable to reach confident diagnosis from symptoms provided",
+                "Clinical evaluation needed for proper assessment",
+                "Additional diagnostic workup may be required",
+            ]
+        else:
+            # Diagnosed but high uncertainty - emphasize review of findings
+            triage_reasons = [
+                f"Low model confidence (< {config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%})" if confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN else f"High uncertainty (> {config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
+                "Model prediction requires expert clinical review",
+                "Additional diagnostic workup recommended",
+            ]
+        
         care_setting = "Prompt physician evaluation required"
         actions = [
             "Consult a healthcare professional promptly",

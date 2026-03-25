@@ -219,10 +219,11 @@ const ChatWindow = ({
             };
           }
 
+          // Handle cases where symptoms don't match or diagnosis is out of scope
+          // These are hard failures - no CDSS should be shown
           if (
             reason === "SYMPTOMS_NOT_MATCHING" ||
-            reason === "OUT_OF_SCOPE" ||
-            diagnosis?.is_valid === false
+            reason === "OUT_OF_SCOPE"
           ) {
             setIsFinalDiagnosis(false);
             const outOfScopeMessage = getOutOfScopeMessage({
@@ -240,6 +241,36 @@ const ChatWindow = ({
             return;
           }
 
+          // Handle low confidence / unable to diagnose cases
+          // Still show CDSS with triage guidance, but mark as informational
+          if (diagnosis?.is_valid === false) {
+            setIsFinalDiagnosis(true);
+            const { disease, confidence, uncertainty, model_used } = diagnosis;
+            
+            // Use the message from backend (already formatted for uncertain cases)
+            const summary = diagnosis.message ||
+              "Based on the information provided, we could not identify a specific condition with enough certainty. Please consult a healthcare provider for a proper evaluation.";
+            
+            createMessageExecute({
+              chatId,
+              content: summary,
+              type: "INFO",
+              role: "AI",
+              tempDiagnosis: {
+                confidence,
+                uncertainty,
+                modelUsed: mapModelUsed(model_used),
+                disease: mapDisease(disease),
+                symptoms: getCurrentSymptoms(),
+                cdss: diagnosis?.cdss ?? undefined,
+                is_valid: false,
+              },
+            });
+            setCurrentQuestion(null);
+            return;
+          }
+
+          // Standard final diagnosis flow (is_valid === true)
           if (should_stop && !question) {
             setIsFinalDiagnosis(true);
             if (diagnosis && !finalDiagnosisCreatedRef.current) {
@@ -870,10 +901,11 @@ const ChatWindow = ({
               currentDiagnosis?.cdss &&
               (
                 <div className="mt-2 w-full">
-                  <CDSSSummary 
-                    cdss={currentDiagnosis.cdss} 
+                  <CDSSSummary
+                    cdss={currentDiagnosis.cdss}
                     confidence={currentDiagnosis.confidence ?? undefined}
                     uncertainty={currentDiagnosis.uncertainty ?? undefined}
+                    isValid={currentDiagnosis.is_valid}
                   />
                 </div>
               )}

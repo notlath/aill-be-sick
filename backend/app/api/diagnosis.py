@@ -97,6 +97,7 @@ def _stop_response(
                 uncertainty,
                 top_diseases,
                 model_used,
+                is_valid=is_valid,
             ),
         },
     }

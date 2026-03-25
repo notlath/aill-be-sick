@@ -46,6 +46,8 @@ type CDSSSummaryProps = {
   generatedAt?: string | Date;
   confidence?: number;
   uncertainty?: number;
+  /** Indicates if a confident diagnosis was reached (false = unable to diagnose) */
+  isValid?: boolean;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -144,6 +146,7 @@ const CDSSSummary = ({
   generatedAt,
   confidence,
   uncertainty,
+  isValid,
 }: CDSSSummaryProps) => {
   if (!cdss) return null;
 
@@ -154,7 +157,10 @@ const CDSSSummary = ({
   const hasAnyCodes = cdss.differential?.some((d) => d.code) ?? false;
   const triage = cdss.triage ? getTriageLevel(cdss.triage.level) : null;
 
+  // Determine if this is an uncertain/unable-to-diagnose case
+  const isUnableToDiagnose = isValid === false;
   const isUncertain =
+    isUnableToDiagnose ||
     (typeof confidence === "number" && confidence < 0.95) ||
     (typeof uncertainty === "number" && uncertainty > 0.05);
 
@@ -195,8 +201,24 @@ const CDSSSummary = ({
 
         <div className="px-6 py-5 space-y-6">
 
-          {/* ── Uncertainty Warning ──────────────────────────────── */}
-          {isUncertain && (
+          {/* ── Unable to Diagnose Warning ───────────────────────── */}
+          {isUnableToDiagnose && (
+            <div className="flex gap-3 rounded-xl bg-error/10 border border-error/20 px-4 py-3">
+              <Info className="w-4 h-4 text-error flex-shrink-0 mt-0.5" strokeWidth={2.5} />
+              <div>
+                <p className="cdss-heading text-sm font-700 text-error leading-snug" style={{ fontWeight: 700 }}>
+                  Unable to reach confident diagnosis
+                </p>
+                <p className="text-xs text-error mt-0.5 leading-relaxed">
+                  The AI could not identify a specific condition with enough certainty. 
+                  The triage guidance below reflects the need for clinical evaluation due to this uncertainty.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Low Confidence Warning (diagnosed but uncertain) ─── */}
+          {!isUnableToDiagnose && isUncertain && (
             <div className="flex gap-3 rounded-xl bg-warning/10 border border-warning/20 px-4 py-3">
               <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" strokeWidth={2.5} />
               <div>
