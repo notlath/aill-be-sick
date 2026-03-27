@@ -32,6 +32,8 @@ flowchart TD
     AuthCallback --> Root
     AuthCallback --> AuthCodeError["/auth/auth-code-error"]
 
+    Login --> NeedAccount["/need-account"]
+    NeedAccount --> Login
     Login --> ClinLogin
     Login --> AdminLogin["/admin-login"]
     Login --> Privacy["/privacy"]

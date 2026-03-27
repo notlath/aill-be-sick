@@ -72,7 +72,10 @@ flowchart TD
     Z --> W
 
     %% PATIENT NEW PATH
-    B -->|Patient new| X1[Show: Patient accounts are created by clinicians only]
-    X1 --> X2[Prompt patient to contact clinician]
-    X2 --> W
+    B -->|Patient new| X1[Click Need an account on login page]
+    X1 --> X2[Navigate to /need-account page]
+    X2 --> X3[Show: Visit Bagong Silangan Barangay Health Center]
+    X3 --> X4[Show: System currently serves Bagong Silangan only]
+    X4 --> X5[Link back to login]
+    X5 --> W
 ```

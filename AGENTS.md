@@ -6,6 +6,35 @@ This file is the single source of truth for AI-assisted development on this proj
 
 ---
 
+## ⚠️ MANDATORY PRE-COMPLETION CHECKLIST
+
+**BEFORE calling `attempt_completion`, you MUST verify ALL items below. Failure to complete this checklist means the task is NOT done.**
+
+### Documentation Sync (CRITICAL)
+
+- [ ] **If you created/modified/deleted ANY App Router page** → Update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md`
+- [ ] **If you changed navigation links, redirects, or guards** → Update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md`
+- [ ] **If you modified auth flows or role access** → Update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` AND `docs/ACCOUNT_CREATION_FLOWCHART.md`
+- [ ] **If you changed account creation/login flows** → Update `docs/ACCOUNT_CREATION_FLOWCHART.md`
+
+### Code Quality
+
+- [ ] `npx tsc --noEmit` passes in `frontend/` (TypeScript check)
+- [ ] Relevant `pytest` tests pass in `backend/tests/`
+- [ ] No hardcoded threshold literals in Flask endpoints (use `config.py`)
+- [ ] Frontend mutations follow schema + server-action pattern
+- [ ] `revalidatePath`/`revalidateTag` applied after mutations
+
+### User-Facing Content
+
+- [ ] Medical text is plain-language, calm, and non-absolute
+- [ ] UI changes are mobile-usable at small breakpoints
+- [ ] No contradictory style guidance introduced
+
+**These checks are NOT optional. Complete them before every task completion.**
+
+---
+
 ## Project Overview
 
 AI'll Be Sick is a full-stack disease detection application. Users submit symptoms and receive AI-powered disease predictions. The system supports both English and Tagalog, serves patient and clinician roles, and includes epidemiological surveillance features.
