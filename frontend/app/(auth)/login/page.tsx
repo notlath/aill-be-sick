@@ -109,13 +109,6 @@ const HomePage = () => {
 
   const isExecuting = isLoggingIn || isSigningUp;
 
-  // Switch between login and signup modes
-  const toggleMode = () => {
-    toast.info(
-      "Patient accounts are created by clinicians only. Please contact your clinician for access.",
-    );
-  };
-
   return (
     <main className="flex bg-base-200 min-h-screen">
       {/* Left Column - Auth Form */}
@@ -192,14 +185,12 @@ const HomePage = () => {
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={toggleMode}
-                  disabled={isExecuting}
+                <Link
+                  href="/need-account"
                   className="btn btn-outline border-border w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium bg-base-100 text-base-content"
                 >
                   Need an account?
-                </button>
+                </Link>
               </div>
 
               <div className="relative my-4">
@@ -391,14 +382,12 @@ const HomePage = () => {
                   )}
                 </button>
 
-                <button
-                  type="button"
-                  onClick={toggleMode}
-                  disabled={isExecuting}
+                <Link
+                  href="/login"
                   className="btn btn-outline border-border w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium bg-base-100 text-base-content"
                 >
                   Back to Sign In
-                </button>
+                </Link>
               </div>
             </form>
           )}
