@@ -142,8 +142,6 @@ export function AnomalyTimelineChart({
 
   return (
     <Card className="relative overflow-hidden border">
-      <div className="absolute inset-0 bg-base-100 opacity-90" />
-
       <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
         <p className="font-semibold text-base">
           {disease === "all" ? "All Diseases" : disease} — Anomalies Over Time
@@ -183,27 +181,27 @@ export function AnomalyTimelineChart({
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="hsl(var(--heroui-default-200))"
+                stroke="var(--color-base-300)"
                 vertical={false}
               />
               <XAxis
                 dataKey="label"
-                tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+                tick={{ fontSize: 11, fill: "var(--color-base-content)" }}
                 tickLine={false}
-                axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+                axisLine={{ stroke: "var(--color-base-300)" }}
               />
               <YAxis
                 allowDecimals={false}
-                tick={{ fontSize: 11, fill: "hsl(var(--heroui-foreground))" }}
+                tick={{ fontSize: 11, fill: "var(--color-base-content)" }}
                 tickLine={false}
-                axisLine={{ stroke: "hsl(var(--heroui-default-200))" }}
+                axisLine={{ stroke: "var(--color-base-300)" }}
               />
               <Tooltip
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
                   const bucket = payload[0].payload as TimeBucket;
                   return (
-                    <div className="bg-white border border-base-300 rounded shadow-sm px-3 py-2 text-xs">
+                    <div className="bg-base-100 border border-base-300 rounded shadow-sm px-3 py-2 text-xs text-base-content">
                       <p className="font-semibold mb-1">
                         {granularity === "week"
                           ? `${bucket.periodStart} – ${bucket.periodEnd}`

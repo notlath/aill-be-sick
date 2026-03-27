@@ -78,7 +78,7 @@ const TabsList = React.forwardRef<
     <div
       ref={listRef}
       className={cn(
-        "relative inline-flex items-center justify-start sm:justify-center rounded-[14px] bg-base-200/50 p-1.5 text-muted backdrop-blur-sm border border-base-300/50 max-w-full overflow-x-auto no-scrollbar",
+        "relative inline-flex items-center justify-start sm:justify-center border border-border rounded-[14px] bg-base-200 p-1.5 text-muted backdrop-blur-sm border border-base-300/50 max-w-full overflow-x-auto no-scrollbar",
         className
       )}
       {...props}
@@ -86,7 +86,7 @@ const TabsList = React.forwardRef<
       {/* Sliding highlight indicator */}
       <div
         className={cn(
-          "absolute bg-base-100 shadow-sm rounded-[10px] pointer-events-none",
+          "absolute bg-base-100 shadow-sm rounded-[10px] border border-border pointer-events-none",
           ready
             ? "transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
             : "transition-none"

@@ -27,7 +27,6 @@ type CDSSPayload = {
     level: string;
     reasons?: string[];
   };
-  red_flags?: string[];
   recommendation?: {
     care_setting?: string;
     actions?: string[];
@@ -47,6 +46,8 @@ type CDSSSummaryProps = {
   generatedAt?: string | Date;
   confidence?: number;
   uncertainty?: number;
+  /** Indicates if a confident diagnosis was reached (false = unable to diagnose) */
+  isValid?: boolean;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -56,9 +57,11 @@ const fmtPct = (p?: number) =>
 
 const getTriageLevel = (level: string) => {
   switch (level.toUpperCase()) {
+    case "HIGH PRIORITY":
+    case "HIGH":
+    case "RED":
     case "EMERGENT":
     case "URGENT":
-    case "HIGH":
       return {
         badgeClass: "badge-error",
         accentColor: "var(--color-error)",
@@ -68,8 +71,10 @@ const getTriageLevel = (level: string) => {
         barColor: "var(--color-error)",
         label: level,
       };
-    case "MODERATE":
+    case "MEDIUM PRIORITY":
     case "MEDIUM":
+    case "YELLOW":
+    case "MODERATE":
       return {
         badgeClass: "badge-warning",
         accentColor: "var(--color-warning)",
@@ -79,15 +84,17 @@ const getTriageLevel = (level: string) => {
         barColor: "var(--color-warning)",
         label: level,
       };
+    case "LOW PRIORITY":
     case "LOW":
+    case "GREEN":
     case "NON-URGENT":
       return {
-        badgeClass: "badge-info",
-        accentColor: "var(--color-info)",
-        bgColor: "bg-info/10",
-        borderColor: "border-info/20",
-        textColor: "text-info",
-        barColor: "var(--color-info)",
+        badgeClass: "badge-success",
+        accentColor: "var(--color-success)",
+        bgColor: "bg-success/10",
+        borderColor: "border-success/20",
+        textColor: "text-success",
+        barColor: "var(--color-success)",
         label: level,
       };
     default:
@@ -105,18 +112,24 @@ const getTriageLevel = (level: string) => {
 
 const getTriageDescription = (level: string): string => {
   switch (level.toUpperCase()) {
+    case "HIGH PRIORITY":
+    case "HIGH":
+    case "RED":
     case "EMERGENT":
     case "URGENT":
-    case "HIGH":
-      return "Seek medical attention immediately.";
-    case "MODERATE":
+      return "Seek medical attention promptly. Physician evaluation recommended.";
+    case "MEDIUM PRIORITY":
     case "MEDIUM":
-      return "Please consult a healthcare provider soon.";
+    case "YELLOW":
+    case "MODERATE":
+      return "Please consult a healthcare professional within 24 hours for clinical assessment.";
+    case "LOW PRIORITY":
     case "LOW":
+    case "GREEN":
     case "NON-URGENT":
-      return "You can manage this at home or schedule a routine visit if symptoms persist.";
+      return "Safe for home care and monitoring. Schedule routine follow-up if symptoms persist.";
     default:
-      return "Please consult a healthcare provider.";
+      return "Please consult a healthcare provider for clinical evaluation.";
   }
 };
 
@@ -133,6 +146,7 @@ const CDSSSummary = ({
   generatedAt,
   confidence,
   uncertainty,
+  isValid,
 }: CDSSSummaryProps) => {
   if (!cdss) return null;
 
@@ -143,7 +157,10 @@ const CDSSSummary = ({
   const hasAnyCodes = cdss.differential?.some((d) => d.code) ?? false;
   const triage = cdss.triage ? getTriageLevel(cdss.triage.level) : null;
 
+  // Determine if this is an uncertain/unable-to-diagnose case
+  const isUnableToDiagnose = isValid === false;
   const isUncertain =
+    isUnableToDiagnose ||
     (typeof confidence === "number" && confidence < 0.95) ||
     (typeof uncertainty === "number" && uncertainty > 0.05);
 
@@ -184,8 +201,24 @@ const CDSSSummary = ({
 
         <div className="px-6 py-5 space-y-6">
 
-          {/* ── Uncertainty Warning ──────────────────────────────── */}
-          {isUncertain && (
+          {/* ── Unable to Diagnose Warning ───────────────────────── */}
+          {isUnableToDiagnose && (
+            <div className="flex gap-3 rounded-xl bg-error/10 border border-error/20 px-4 py-3">
+              <Info className="w-4 h-4 text-error flex-shrink-0 mt-0.5" strokeWidth={2.5} />
+              <div>
+                <p className="cdss-heading text-sm font-700 text-error leading-snug" style={{ fontWeight: 700 }}>
+                  Unable to reach confident diagnosis
+                </p>
+                <p className="text-xs text-error mt-0.5 leading-relaxed">
+                  The AI could not identify a specific condition with enough certainty. 
+                  The triage guidance below reflects the need for clinical evaluation due to this uncertainty.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Low Confidence Warning (diagnosed but uncertain) ─── */}
+          {!isUnableToDiagnose && isUncertain && (
             <div className="flex gap-3 rounded-xl bg-warning/10 border border-warning/20 px-4 py-3">
               <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" strokeWidth={2.5} />
               <div>
@@ -228,31 +261,6 @@ const CDSSSummary = ({
                     </ul>
                   )}
                 </div>
-              </div>
-            </section>
-          )}
-
-          {/* ── Red Flags ────────────────────────────────────────── */}
-          {cdss.red_flags && cdss.red_flags.length > 0 && (
-            <section role="alert" aria-live="assertive">
-              <SectionLabel
-                icon={<AlertTriangle className="w-3.5 h-3.5 text-error" strokeWidth={2.5} />}
-                label="Warning signs detected"
-                labelClassName="text-error"
-              />
-              <p className="text-xs text-base-content/60 mt-1 mb-2.5">
-                Based on your reported symptoms, we noted the following:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {cdss.red_flags.map((rf, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-error/10 border border-error/20 text-error text-xs font-semibold"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-error flex-shrink-0" />
-                    {rf}
-                  </span>
-                ))}
               </div>
             </section>
           )}

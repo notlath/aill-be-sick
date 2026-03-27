@@ -127,7 +127,7 @@ export function AlertCard({
 
   return (
     <Card 
-      className={`group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-md border-l-4 ${config.borderLeft} bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800`}
+      className={`group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-md border-l-4 ${config.borderLeft} border-border`}
       onClick={() => onViewDetails(alert)}
     >
       <CardContent className="p-0 flex flex-col sm:flex-row h-full">
@@ -151,7 +151,7 @@ export function AlertCard({
               )}
             </div>
             
-            <div className="flex items-center text-xs font-medium text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+            <div className="flex items-center text-xs font-medium text-base-content/60 whitespace-nowrap">
               <Clock className="w-3.5 h-3.5 mr-1.5" />
               {timeAgo}
             </div>
@@ -159,17 +159,17 @@ export function AlertCard({
 
           {/* Message Content */}
           <div className="pr-4">
-            <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 leading-snug line-clamp-2">
+            <h3 className="text-base sm:text-lg font-semibold text-base-content leading-snug line-clamp-2">
               {alert.message}
             </h3>
           </div>
 
           {/* Metadata Row */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-base-content/70">
             {(alert.metadata as any)?.disease && (
               <div className="flex items-center gap-1.5">
-                <Stethoscope className="w-4 h-4 text-zinc-400" />
-                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                <Stethoscope className="w-4 h-4 text-base-content/50" />
+                <span className="font-medium text-base-content/80">
                   {(alert.metadata as any).disease}
                 </span>
               </div>
@@ -177,7 +177,7 @@ export function AlertCard({
             
             {((alert.metadata as any)?.district || (alert.metadata as any)?.barangay) && (
               <div className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4 text-zinc-400" />
+                <MapPin className="w-4 h-4 text-base-content/50" />
                 <span className="font-medium">
                   {[(alert.metadata as any).district, (alert.metadata as any).barangay]
                     .filter(Boolean)
@@ -189,7 +189,7 @@ export function AlertCard({
         </div>
 
         {/* Actions Sidebar (Desktop) / Bottom bar (Mobile) */}
-        <div className="flex sm:flex-col justify-end sm:justify-center items-stretch gap-2 p-4 sm:p-5 bg-zinc-50 dark:bg-zinc-800/50 sm:border-l border-t sm:border-t-0 border-zinc-200 dark:border-zinc-800 sm:w-48 shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div className="flex sm:flex-col justify-end sm:justify-center items-stretch gap-2 p-4 sm:p-5 bg-base-200 sm:border-l border-t sm:border-t-0 border-base-300 sm:w-48 shrink-0" onClick={(e) => e.stopPropagation()}>
           {isPending && (
             <>
               <button
@@ -197,8 +197,8 @@ export function AlertCard({
                 disabled={isAcknowledging || isDismissing}
                 className={`w-full py-2 px-3 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center
                   ${isAcknowledging 
-                    ? "bg-zinc-200 text-zinc-500 cursor-not-allowed dark:bg-zinc-800" 
-                    : `bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${config.text} hover:border-current`}`}
+                    ? "bg-base-200 text-base-content/50 cursor-not-allowed" 
+                    : `bg-base-100 border border-base-300 hover:bg-base-200 ${config.text} hover:border-current`}`}
               >
                 {isAcknowledging ? (
                   <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
@@ -208,7 +208,7 @@ export function AlertCard({
               <button
                 onClick={handleDismiss}
                 disabled={isAcknowledging || isDismissing}
-                className="w-full py-2 px-3 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center disabled:opacity-50"
+                className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-transparent border border-border text-base-content hover:bg-base-300 hover:border-base-content/50 transition-colors flex items-center justify-center disabled:opacity-50"
               >
                 {isDismissing ? (
                   <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
@@ -221,16 +221,15 @@ export function AlertCard({
             (alert.type === "OUTBREAK" && (alert.metadata as any)?.district)) && (
             <button
               onClick={handleViewOnMap}
-              className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center group-button"
+              className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-transparent border border-border text-base-content hover:bg-base-300 hover:border-base-content/50 transition-colors flex items-center justify-center group-button"
             >
-              <MapPin className="w-4 h-4 mr-2 opacity-70" /> 
-              Map View
+              View Map
             </button>
           )}
 
           <button
             onClick={() => onViewDetails(alert)}
-            className="w-full py-2 px-3 rounded-lg text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-center"
+            className="w-full py-2 px-3 rounded-lg text-sm font-medium bg-transparent border border-border text-base-content hover:bg-base-300 hover:border-base-content/50 transition-colors flex items-center justify-center"
           >
             Details
             <ChevronRight className="w-4 h-4 ml-1 opacity-50" />

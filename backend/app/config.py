@@ -108,10 +108,23 @@ MODE_RULE_OUT_SECOND_MIN = float(os.getenv("MODE_RULE_OUT_SECOND_MIN", "0.20"))
 # Novelty penalty: soft-penalize questions similar to already-asked ones
 NOVELTY_PENALTY_WEIGHT = float(os.getenv("NOVELTY_PENALTY_WEIGHT", "0.12"))
 
-# --- Triage Thresholds ---
-# Determine triage level based on confidence and uncertainty
+# --- Triage Thresholds (3-Tier System) ---
+# Thesis-backed thresholds for clinical risk stratification
+# Based on: ECE calibration (0.084), sensitivity analysis, ROC/PR optimization
+
+# HIGH PRIORITY (Green/Low Priority): Automated diagnosis
+# Requires: High confidence AND low uncertainty
 TRIAGE_HIGH_CONFIDENCE = float(os.getenv("TRIAGE_HIGH_CONFIDENCE", "0.90"))
 TRIAGE_LOW_UNCERTAINTY = float(os.getenv("TRIAGE_LOW_UNCERTAINTY", "0.03"))
+
+# MEDIUM PRIORITY (Yellow/Moderate Priority): Nurse review required
+# Confidence between 70-90% OR moderate uncertainty (0.03-0.08)
+TRIAGE_MEDIUM_CONFIDENCE_MIN = float(os.getenv("TRIAGE_MEDIUM_CONFIDENCE_MIN", "0.70"))
+TRIAGE_MEDIUM_UNCERTAINTY_MAX = float(os.getenv("TRIAGE_MEDIUM_UNCERTAINTY_MAX", "0.08"))
+
+# LOW PRIORITY (Red/High Priority): Physician review required
+# Confidence below 70% OR high uncertainty (>0.08)
+# Note: TRIAGE_MEDIUM_CONFIDENCE_MIN serves as the threshold
 
 # --- Medical Keywords for Semantic Filtering ---
 # Basic health-related terms used to validate that input is medical in nature

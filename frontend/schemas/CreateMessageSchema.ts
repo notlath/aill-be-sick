@@ -31,6 +31,7 @@ export const CreateMessageSchema = z.object({
       ]),
       symptoms: z.string(),
       cdss: z.any().optional(),
+      is_valid: z.boolean().optional(),
     })
     .optional(),
 });

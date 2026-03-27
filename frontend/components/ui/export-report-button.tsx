@@ -71,7 +71,7 @@ export function ExportReportButton({
       <button
         onClick={() => setIsModalOpen(true)}
         disabled={disabled || data.length === 0}
-        className="btn btn-outline border-border gap-2 h-10"
+        className="btn border-border gap-2 h-10"
         type="button"
       >
         <FileDown className="h-4 w-4" />

@@ -10,7 +10,6 @@ __all__ = [
     "clean_token",
     "aggregate_subword_attributions",
     "_has_medical_keywords",
-    "_detect_red_flags",
     "_build_cdss_payload",
     "detect_language_heuristic",
 ]
@@ -145,72 +144,6 @@ def _has_medical_keywords(text: str, lang: str = "en") -> bool:
     return has_en_keyword or has_tl_keyword
 
 
-def _detect_red_flags(text: str) -> list:
-    """Very simple keyword-based red flag detection (EN/TL).
-    This complements ML with rule-based triage cues.
-    """
-    t = (text or "").lower()
-    red_flags = []
-
-    # Respiratory difficulty
-    if any(
-        k in t
-        for k in [
-            "difficulty breathing",
-            "shortness of breath",
-            "can't breathe",
-            "cannot breathe",
-            "hirap sa paghinga",
-            "hirap huminga",
-            "kulang sa hangin",
-            "singal",
-        ]
-    ):
-        red_flags.append("Respiratory difficulty")
-
-    # Chest pain
-    if any(
-        k in t
-        for k in [
-            "chest pain",
-            "pananakit ng dibdib",
-            "sakit sa dibdib",
-            "chest tightness",
-        ]
-    ):
-        red_flags.append("Chest pain")
-
-    # Bleeding
-    if any(
-        k in t
-        for k in [
-            "bleeding",
-            "mucosal bleed",
-            "pagdurugo",
-            "dumudugo",
-            "nosebleed",
-            "nose bleed",
-        ]
-    ):
-        red_flags.append("Active bleeding")
-
-    # Severe abdominal pain or persistent vomiting (dengue warning sign proxy)
-    if any(
-        k in t
-        for k in [
-            "severe abdominal pain",
-            "matinding pananakit ng tiyan",
-            "persistent vomiting",
-            "tuloy-tuloy na pagsusuka",
-            "vomiting for",
-            "walang tigil na pagsusuka",
-        ]
-    ):
-        red_flags.append("Severe abdominal pain or persistent vomiting")
-
-    return red_flags
-
-
 def _build_cdss_payload(
     symptoms: str,
     disease: str,
@@ -218,44 +151,92 @@ def _build_cdss_payload(
     uncertainty: float,
     top_diseases: list,
     model_used: str,
+    is_valid: bool = True,
 ) -> dict:
-    """Construct a structured CDSS payload to accompany narrative output."""
-    red_flags = _detect_red_flags(symptoms)
+    """Construct a structured CDSS payload to accompany narrative output.
 
-    # Triage determination
-    if red_flags:
-        triage_level = "Emergent"
-        triage_reasons = ["One or more red flags present"] + red_flags
-        care_setting = "Emergency Room"
+    Triage determination uses a 3-tier risk stratification system based on
+    ML model confidence and uncertainty thresholds from config. Thresholds are
+    thesis-backed: ECE calibration (0.084), sensitivity analysis, ROC/PR optimization.
+
+    3-Tier System:
+    - LOW PRIORITY (Green): Confidence >= 90% AND uncertainty <= 3% → Automated diagnosis
+    - MEDIUM PRIORITY (Yellow): Confidence 70-90% OR uncertainty 3-8% → Nurse review
+    - HIGH PRIORITY (Red): Confidence < 70% OR uncertainty > 8% → Physician review
+
+    When is_valid=False (unable to diagnose), the triage level is still computed
+    to provide appropriate care guidance, but reasons are modified to reflect
+    diagnostic uncertainty rather than a confirmed condition.
+
+    No keyword-based escalation is performed, as CDSS should not autonomously label
+    symptoms as emergent without clinician review.
+    """
+    # Track if this is an uncertain/unable-to-diagnose case
+    is_uncertain = not is_valid or confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN
+    
+    # 3-Tier triage determination based on confidence and uncertainty
+    if (
+        confidence >= config.TRIAGE_HIGH_CONFIDENCE
+        and uncertainty <= config.TRIAGE_LOW_UNCERTAINTY
+    ):
+        # LOW PRIORITY (Green): High confidence, low uncertainty
+        triage_level = "Low Priority"
+        triage_reasons = [
+            f"High model confidence (≥ {config.TRIAGE_HIGH_CONFIDENCE:.0%})",
+            f"Low uncertainty (≤ {config.TRIAGE_LOW_UNCERTAINTY:.0%})",
+            "Safe for automated diagnosis without human review",
+        ]
+        care_setting = "Home care or routine clinic visit"
         actions = [
-            "Seek emergency evaluation immediately",
-            "Avoid delays; consider calling local emergency number",
+            "Home care guidance and symptom monitoring",
+            "Schedule routine clinic follow-up if symptoms persist or worsen",
+            "Return immediately if warning signs develop",
+        ]
+    elif (
+        confidence >= config.TRIAGE_MEDIUM_CONFIDENCE_MIN
+        and uncertainty <= config.TRIAGE_MEDIUM_UNCERTAINTY_MAX
+    ):
+        # MEDIUM PRIORITY (Yellow): Moderate confidence or uncertainty
+        triage_level = "Medium Priority"
+        triage_reasons = [
+            f"Moderate model confidence ({config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%}–{config.TRIAGE_HIGH_CONFIDENCE:.0%})",
+            f"Moderate uncertainty level ({config.TRIAGE_LOW_UNCERTAINTY:.0%}–{config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
+            "Requires clinical validation for safety",
+        ]
+        care_setting = "Clinic visit within 24 hours"
+        actions = [
+            "Consult a healthcare professional within 24 hours",
+            "Nurse assessment recommended for initial evaluation",
+            "Provide additional history, vitals, and physical exam",
+            "Monitor for symptom progression or warning signs",
         ]
     else:
-        if (
-            confidence >= config.TRIAGE_HIGH_CONFIDENCE
-            and uncertainty <= config.TRIAGE_LOW_UNCERTAINTY
-        ):
-            triage_level = "Non-urgent"
+        # HIGH PRIORITY (Red): Low confidence or high uncertainty
+        triage_level = "High Priority"
+        
+        # Modify reasons based on whether we could make a diagnosis
+        if is_uncertain:
+            # Unable to diagnose case - emphasize need for human evaluation
             triage_reasons = [
-                f"High model confidence (≥ {config.TRIAGE_HIGH_CONFIDENCE})",
-                f"Low uncertainty (≤ {config.TRIAGE_LOW_UNCERTAINTY})",
-            ]
-            care_setting = "Home care or routine clinic"
-            actions = [
-                "Home care guidance and monitoring",
-                "Consider routine clinic follow-up if symptoms persist or worsen",
+                "Unable to reach confident diagnosis from symptoms provided",
+                "Clinical evaluation needed for proper assessment",
+                "Additional diagnostic workup may be required",
             ]
         else:
-            triage_level = "Urgent"
+            # Diagnosed but high uncertainty - emphasize review of findings
             triage_reasons = [
-                "Model requires clinician review due to confidence/uncertainty"
+                f"Low model confidence (< {config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%})" if confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN else f"High uncertainty (> {config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
+                "Model prediction requires expert clinical review",
+                "Additional diagnostic workup recommended",
             ]
-            care_setting = "Clinic visit"
-            actions = [
-                "Consult a healthcare professional",
-                "Provide additional history, vitals, and exam if available",
-            ]
+        
+        care_setting = "Prompt physician evaluation required"
+        actions = [
+            "Consult a healthcare professional promptly",
+            "Physician evaluation required for clinical decision-making",
+            "Consider additional diagnostic tests (labs, imaging) as clinically indicated",
+            "Provide comprehensive history, vitals, and physical examination",
+        ]
 
     # Differential list from top_diseases (already sorted in caller)
     differential = [
@@ -360,7 +341,6 @@ def _build_cdss_payload(
             "level": triage_level,
             "reasons": triage_reasons,
         },
-        "red_flags": red_flags,
         "recommendation": {
             "care_setting": care_setting,
             "actions": actions,

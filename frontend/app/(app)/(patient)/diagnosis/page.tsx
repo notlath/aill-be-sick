@@ -137,7 +137,7 @@ const PatientHomePage = () => {
         {/* Input Form */}
         <div className="w-full max-w-2xl animate-slide-up" style={{ animationDelay: "100ms" }}>
           <form onSubmit={form.handleSubmit(handleTextSubmit)} className="w-full">
-            <div className="card bg-base-100 shadow-lg border border-base-300/50 overflow-hidden">
+            <div className="card bg-base-100 shadow-lg border border-border overflow-hidden">
               <div className="card-body p-0">
                 <div className="flex items-center gap-2 px-3 py-3 sm:px-4 sm:py-4">
                   {/* Checklist button */}
