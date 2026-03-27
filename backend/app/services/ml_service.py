@@ -2,7 +2,7 @@ import hashlib
 import os
 import torch
 import torch.nn.functional as F
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, PreTrainedTokenizerFast
 from scipy.stats import entropy
 import numpy as np
 import gc
@@ -107,7 +107,7 @@ class MCDClassifierWithSHAP:
         self.model = AutoModelForSequenceClassification.from_pretrained(
             model_path, **model_kwargs
         )
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path, **tokenizer_kwargs)
+        self.tokenizer = PreTrainedTokenizerFast.from_pretrained(model_path, **tokenizer_kwargs)
 
         # OVERRIDE: Enforce the canonical ground-truth mapping and ignore the broken HF configs
         self.model.config.id2label = CORRECT_ID2LABEL
