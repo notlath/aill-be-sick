@@ -89,8 +89,8 @@ export const runDiagnosis = actionClient
         skip_followup || (confidence >= 0.9 && uncertainty <= 0.03);
 
       const transformedModelUsed = model_used
-        .toUpperCase()
-        .replace(/\s+/g, "_");
+        ? model_used.toUpperCase().replace(/\s+/g, "_")
+        : undefined;
 
       // Only create diagnosis message if confident AND not skipping
       if (isConfident && !skipMessage) {

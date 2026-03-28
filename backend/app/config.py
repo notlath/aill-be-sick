@@ -472,7 +472,152 @@ MEDICAL_KEYWORDS_TL = {
     "walang gana",
 }
 
-# --- Neuro-Symbolic Verification: Clinical Concept Ontology ---
+# =============================================================================
+# THREE-TIER CONCEPT CLASSIFICATION SYSTEM
+# =============================================================================
+#
+# This system classifies user symptom terms into three tiers:
+#
+# TIER 1 (IN_SCOPE_SYMPTOMS): Core symptoms of the 6 in-scope diseases
+#        (Dengue, Diarrhea, Influenza, Measles, Pneumonia, Typhoid).
+#        These NEVER trigger referral or verification failure.
+#
+# TIER 2 (CLINICAL_CONCEPTS + HIGH_VALUE_CONCEPTS): Distinctive symptoms that
+#        may indicate out-of-scope diseases mimicking in-scope ones.
+#        These require verification against disease ontology.
+#
+# TIER 3 (UNRELATED_CATEGORY_CONCEPTS): Symptoms from completely different
+#        medical categories (STI, cardio, neuro, etc.) that require
+#        immediate referral to appropriate specialist.
+#
+# Processing order: Check Tier 1 first (pass-through), then Tier 3 (immediate
+# referral), then Tier 2 (verification against predicted disease).
+# =============================================================================
+
+# --- TIER 1: In-Scope Disease Symptoms ---
+# Symptoms that belong to the 6 in-scope diseases. These should NEVER trigger
+# referral or verification failure, as they are expected symptoms for conditions
+# the system is trained to diagnose.
+#
+# Diseases covered: Dengue, Diarrhea, Influenza, Measles, Pneumonia, Typhoid
+# Format: { "raw_term": "CONCEPT_ID" }
+IN_SCOPE_SYMPTOMS = {
+    # --- SX_HIGH_FEVER: High-grade fever (common to most in-scope diseases) ---
+    "fever": "SX_HIGH_FEVER",
+    "high fever": "SX_HIGH_FEVER",
+    "mataas na lagnat": "SX_HIGH_FEVER",
+    "lagnat": "SX_HIGH_FEVER",
+    "nilalagnat": "SX_HIGH_FEVER",
+    "may lagnat": "SX_HIGH_FEVER",
+    # --- SX_MYALGIA: Muscle pain (Dengue, Influenza, Typhoid) ---
+    "muscle pain": "SX_MYALGIA",
+    "body aches": "SX_MYALGIA",
+    "pananakit ng kalamnan": "SX_MYALGIA",
+    "masakit ang kalamnan": "SX_MYALGIA",
+    "pananakit ng katawan": "SX_MYALGIA",
+    "masakit ang buong katawan": "SX_MYALGIA",
+    # --- SX_ARTHRALGIA: Acute joint pain with fever (Dengue, Influenza) ---
+    # Note: Chronic joint pain without fever goes to Tier 3 (musculoskeletal)
+    "joint pain": "SX_ARTHRALGIA",
+    "pananakit ng kasukasuan": "SX_ARTHRALGIA",
+    "masakit ang kasukasuan": "SX_ARTHRALGIA",
+    "masakit ang mga joints": "SX_ARTHRALGIA",
+    # --- SX_HEADACHE: Headache (common to most in-scope diseases) ---
+    "headache": "SX_HEADACHE",
+    "sakit ng ulo": "SX_HEADACHE",
+    "sumasakit ang ulo": "SX_HEADACHE",
+    "masakit ang ulo": "SX_HEADACHE",
+    "pananakit ng ulo": "SX_HEADACHE",
+    # --- SX_NAUSEA_VOMITING: Nausea/vomiting (Dengue, Diarrhea, Typhoid) ---
+    "nausea": "SX_NAUSEA_VOMITING",
+    "vomiting": "SX_NAUSEA_VOMITING",
+    "nauseous": "SX_NAUSEA_VOMITING",
+    "nasusuka": "SX_NAUSEA_VOMITING",
+    "pagsusuka": "SX_NAUSEA_VOMITING",
+    "nagsusuka": "SX_NAUSEA_VOMITING",
+    "sinusuka": "SX_NAUSEA_VOMITING",
+    "naduduwal": "SX_NAUSEA_VOMITING",
+    # --- SX_FATIGUE: Fatigue/tiredness (common to most in-scope diseases) ---
+    "fatigue": "SX_FATIGUE",
+    "tired": "SX_FATIGUE",
+    "exhausted": "SX_FATIGUE",
+    "pagod": "SX_FATIGUE",
+    "nanghihina": "SX_FATIGUE",
+    "napapagod": "SX_FATIGUE",
+    "walang lakas": "SX_FATIGUE",
+    "feeling weak": "SX_FATIGUE",
+    # --- SX_CHILLS: Chills (Dengue, Influenza, Pneumonia, Typhoid) ---
+    "chills": "SX_CHILLS",
+    "panginginig": "SX_CHILLS",
+    "giniginaw": "SX_CHILLS",
+    "nanginginig": "SX_CHILLS",
+    "ginaw": "SX_CHILLS",
+    # --- SX_SHORTNESS_OF_BREATH: Dyspnea (Pneumonia) ---
+    "shortness of breath": "SX_SHORTNESS_OF_BREATH",
+    "difficulty breathing": "SX_SHORTNESS_OF_BREATH",
+    "hard to breathe": "SX_SHORTNESS_OF_BREATH",
+    "hirap huminga": "SX_SHORTNESS_OF_BREATH",
+    "nahihirapan huminga": "SX_SHORTNESS_OF_BREATH",
+    "kapos sa hininga": "SX_SHORTNESS_OF_BREATH",
+    # --- SX_COUGH: Cough (Influenza, Measles, Pneumonia) ---
+    "cough": "SX_COUGH",
+    "coughing": "SX_COUGH",
+    "ubo": "SX_COUGH",
+    "inuubo": "SX_COUGH",
+    "umuubo": "SX_COUGH",
+    # --- SX_RUNNY_NOSE: Runny nose/coryza (Influenza, Measles) ---
+    "runny nose": "SX_RUNNY_NOSE",
+    "sipon": "SX_RUNNY_NOSE",
+    "sinisipon": "SX_RUNNY_NOSE",
+    "may sipon": "SX_RUNNY_NOSE",
+    "barado ang ilong": "SX_RUNNY_NOSE",
+    # --- SX_SORE_THROAT: Sore throat (Influenza) ---
+    "sore throat": "SX_SORE_THROAT",
+    "throat pain": "SX_SORE_THROAT",
+    "masakit ang lalamunan": "SX_SORE_THROAT",
+    "sakit ng lalamunan": "SX_SORE_THROAT",
+    "makati ang lalamunan": "SX_SORE_THROAT",
+    # --- SX_LOSS_OF_APPETITE: Anorexia (Dengue, Diarrhea, Typhoid) ---
+    "no appetite": "SX_LOSS_OF_APPETITE",
+    "loss of appetite": "SX_LOSS_OF_APPETITE",
+    "not hungry": "SX_LOSS_OF_APPETITE",
+    "walang gana": "SX_LOSS_OF_APPETITE",
+    "walang gana kumain": "SX_LOSS_OF_APPETITE",
+    "ayaw kumain": "SX_LOSS_OF_APPETITE",
+    "nawalan ng gana": "SX_LOSS_OF_APPETITE",
+    # --- SX_ABDOMINAL_PAIN: Abdominal pain (Diarrhea, Typhoid) ---
+    "stomach pain": "SX_ABDOMINAL_PAIN",
+    "abdominal pain": "SX_ABDOMINAL_PAIN",
+    "belly pain": "SX_ABDOMINAL_PAIN",
+    "sakit ng tiyan": "SX_ABDOMINAL_PAIN",
+    "sumasakit ang tiyan": "SX_ABDOMINAL_PAIN",
+    "masakit ang tiyan": "SX_ABDOMINAL_PAIN",
+    "pananakit ng tiyan": "SX_ABDOMINAL_PAIN",
+    # --- SX_DIARRHEA: Loose/watery stools (Diarrhea) ---
+    "diarrhea": "SX_DIARRHEA",
+    "loose stools": "SX_DIARRHEA",
+    "watery stool": "SX_DIARRHEA",
+    "pagtatae": "SX_DIARRHEA",
+    "nagtatae": "SX_DIARRHEA",
+    "lbm": "SX_DIARRHEA",
+    "loose bowel": "SX_DIARRHEA",
+    # --- SX_RASH: Acute rash with fever (Dengue, Measles) ---
+    # Note: Chronic rash without fever goes to Tier 3 (dermatological)
+    "rash": "SX_RASH",
+    "skin rash": "SX_RASH",
+    "pantal": "SX_RASH",
+    "may pantal": "SX_RASH",
+    "pamumula ng balat": "SX_RASH",
+    # --- SX_WEAKNESS: General weakness (common to most in-scope diseases) ---
+    "weakness": "SX_WEAKNESS",
+    "weak": "SX_WEAKNESS",
+    "mahina": "SX_WEAKNESS",
+    "nanghihina": "SX_WEAKNESS",
+    "panghihina": "SX_WEAKNESS",
+    "walang lakas": "SX_WEAKNESS",
+}
+
+# --- TIER 2: Neuro-Symbolic Verification Clinical Concept Ontology ---
 # Maps raw terms (EN/TL) to standardized clinical concepts.
 # Used by VerificationLayer to detect symptoms/risk factors outside the 6 in-scope diseases.
 # Format: { "raw_term": "CONCEPT_ID" }
@@ -880,8 +1025,18 @@ CLINICAL_CONCEPTS = {
     "masakit ang kasukasuan kasama ng pantal": "SX_ADULT_ARTHRALGIA",
 }
 
+# --- TIER 2: High-Value Concepts for Verification ---
 # Concepts that MUST be explained by the predicted disease ontology.
 # If these are found in input but NOT in the disease profile, flag OUT_OF_SCOPE.
+#
+# NOTE: Removed concepts that overlap with in-scope disease symptoms:
+# - SX_MILD_FEVER (Diarrhea has mild fever)
+# - SX_SUDDEN_ONSET (Influenza has sudden onset)
+# - SX_DRY_COUGH (Influenza, Measles have dry cough)
+# - SX_BLOODY_STOOL (Diarrhea can have blood)
+# - SX_PROLONGED_FEVER (Typhoid has prolonged fever)
+# - SX_PLEURITIC_CHEST_PAIN (Pneumonia has chest pain)
+# - SX_SEVERE_DEHYDRATION (Diarrhea has dehydration)
 HIGH_VALUE_CONCEPTS = {
     "RISK_FLOOD_EXPOSURE",
     "RISK_RODENT_EXPOSURE",
@@ -910,7 +1065,7 @@ HIGH_VALUE_CONCEPTS = {
     "SX_RASPBERRY_STOOL",
     "SX_STRAWBERRY_TONGUE",
     "SX_PEELING_SKIN",
-    "SX_PROLONGED_FEVER",
+    # REMOVED: SX_PROLONGED_FEVER (Typhoid has prolonged fever)
     "SX_POST_AURICULAR_LYMPHADENOPATHY",
     "SX_HEMOPTYSIS",
     "SX_NIGHT_SWEATS",
@@ -928,7 +1083,7 @@ HIGH_VALUE_CONCEPTS = {
     "SX_MELENA",
     "SX_ALTERED_MENTAL_STATUS",
     "SX_RICE_WATER_STOOL",
-    "SX_SEVERE_DEHYDRATION",
+    # REMOVED: SX_SEVERE_DEHYDRATION (Diarrhea has dehydration)
     "SX_STEPLADDER_FEVER",
     "SX_RIGORS_AND_DIAPHORESIS",
     "SX_CALF_MYALGIA",
@@ -936,17 +1091,17 @@ HIGH_VALUE_CONCEPTS = {
     "SX_KOPLIK_SPOTS",
     "SX_MACULOPAPULAR_RASH",
     "SX_RUSTY_SPUTUM",
-    "SX_PLEURITIC_CHEST_PAIN",
+    # REMOVED: SX_PLEURITIC_CHEST_PAIN (Pneumonia has chest pain)
     "SX_CHEST_INDRAWING",
     # Specific Synthetic NotebookLM Concepts
     "SX_ACUTE_DIARRHEA_HIGH_FREQUENCY",
     "SX_WATERY_STOOL",
-    "SX_BLOODY_STOOL",
+    # REMOVED: SX_BLOODY_STOOL (Diarrhea can have blood)
     "SX_MUCOID_STOOL",
     "SX_FEVER_AND_CHILLS",
     "SX_SEVERE_MYALGIA",
     "SX_SEVERE_FATIGUE",
-    "SX_DRY_COUGH",
+    # REMOVED: SX_DRY_COUGH (Influenza, Measles have dry cough)
     "SX_SORE_THROAT_AND_CORYZA",
     "SX_PRODUCTIVE_COUGH_GREEN_SPUTUM",
     "SX_DYSPNEA_ON_EXERTION",
@@ -960,7 +1115,7 @@ HIGH_VALUE_CONCEPTS = {
     "SX_CYCLICAL_FEVER",
     "RISK_MALARIA_ENDEMIC_TRAVEL",
     # Zika
-    "SX_MILD_FEVER",
+    # REMOVED: SX_MILD_FEVER (Diarrhea has mild fever)
     "SX_PROMINENT_CONJUNCTIVITIS",
     # COVID-19
     "SX_SILENT_HYPOXIA",
@@ -1024,13 +1179,404 @@ HIGH_VALUE_CONCEPTS = {
     "RISK_WINTER_SEASON",
     # Norovirus
     "RISK_OUTBREAK_SETTING",
-    "SX_SUDDEN_ONSET",
+    # REMOVED: SX_SUDDEN_ONSET (Influenza has sudden onset)
     "SX_PROMINENT_VOMITING",
     # IBD
     "SX_CHRONIC_RELAPSING_DIARRHEA",
     "SX_EXTRAINTESTINAL_MANIFESTATIONS",
     # Rubella
     "SX_ADULT_ARTHRALGIA",
+}
+
+# =============================================================================
+# TIER 3: Unrelated Category Concepts
+# =============================================================================
+#
+# Symptoms that indicate completely different medical categories requiring
+# immediate referral. These are NOT within the infectious disease diagnostic
+# scope of this system. Uses SPECIFIC variants to avoid false positives
+# (e.g., "crushing chest pain radiating to arm" instead of general "chest pain").
+#
+# When any Tier 3 concept is detected, the system should:
+# 1. NOT attempt ML diagnosis
+# 2. Provide appropriate referral message
+# 3. Direct user to seek appropriate medical care
+#
+# Categories:
+# - STI_GENITOURINARY: Sexually transmitted infections, urinary/genital issues
+# - CARDIOVASCULAR: Heart and vascular emergencies
+# - NEUROLOGICAL: Brain, nerve, and spinal cord issues
+# - ENDOCRINE: Hormonal and metabolic disorders
+# - MUSCULOSKELETAL: Non-infectious bone/joint/muscle issues
+# - MENTAL_HEALTH: Psychiatric conditions
+# - DERMATOLOGICAL: Non-infectious chronic skin conditions
+# =============================================================================
+
+UNRELATED_CATEGORY_CONCEPTS = {
+    # --- STI/GENITOURINARY CATEGORY ---
+    # Genital discharge (SX_GENITAL_DISCHARGE)
+    "genital discharge": "SX_GENITAL_DISCHARGE",
+    "vaginal discharge": "SX_GENITAL_DISCHARGE",
+    "penile discharge": "SX_GENITAL_DISCHARGE",
+    "discharge from penis": "SX_GENITAL_DISCHARGE",
+    "discharge from vagina": "SX_GENITAL_DISCHARGE",
+    "may lumalabas sa ari": "SX_GENITAL_DISCHARGE",
+    "may labas sa ari": "SX_GENITAL_DISCHARGE",
+    "may discharge sa ari": "SX_GENITAL_DISCHARGE",
+    "mabahong discharge sa ari": "SX_GENITAL_DISCHARGE",
+    "discharge sa ari": "SX_GENITAL_DISCHARGE",
+    "yellowish discharge": "SX_GENITAL_DISCHARGE",
+    # Dysuria / burning urination (SX_DYSURIA)
+    "burning urination": "SX_DYSURIA",
+    "painful urination": "SX_DYSURIA",
+    "burns when i pee": "SX_DYSURIA",
+    "hurts to urinate": "SX_DYSURIA",
+    "mahapdi umihi": "SX_DYSURIA",
+    "masakit umihi": "SX_DYSURIA",
+    "sumasakit pag umihi": "SX_DYSURIA",
+    "mahapdi ang pag-ihi": "SX_DYSURIA",
+    "mahapdi kapag umiihi": "SX_DYSURIA",
+    "burning sensation": "SX_DYSURIA",
+    # Genital ulcers/sores (SX_GENITAL_ULCER)
+    "genital ulcer": "SX_GENITAL_ULCER",
+    "genital sore": "SX_GENITAL_ULCER",
+    "sore on genitals": "SX_GENITAL_ULCER",
+    "ulcer on penis": "SX_GENITAL_ULCER",
+    "ulcer on vagina": "SX_GENITAL_ULCER",
+    "sugat sa ari": "SX_GENITAL_ULCER",
+    "singaw sa ari": "SX_GENITAL_ULCER",
+    "may sugat sa pribadong parte": "SX_GENITAL_ULCER",
+    # Pelvic pain (SX_PELVIC_PAIN)
+    "pelvic pain": "SX_PELVIC_PAIN",
+    "pain in pelvis": "SX_PELVIC_PAIN",
+    "lower abdominal pain with discharge": "SX_PELVIC_PAIN",
+    "sakit ng puson": "SX_PELVIC_PAIN",
+    "masakit ang puson": "SX_PELVIC_PAIN",
+    "pananakit ng puson": "SX_PELVIC_PAIN",
+    # --- CARDIOVASCULAR CATEGORY ---
+    # Crushing/radiating chest pain (SX_CARDIAC_CHEST_PAIN)
+    # NOTE: Using specific descriptors to avoid false positives with pneumonia
+    "crushing chest pain": "SX_CARDIAC_CHEST_PAIN",
+    "chest pain radiating to arm": "SX_CARDIAC_CHEST_PAIN",
+    "chest pain radiating to jaw": "SX_CARDIAC_CHEST_PAIN",
+    "pressure in chest": "SX_CARDIAC_CHEST_PAIN",
+    "elephant sitting on chest": "SX_CARDIAC_CHEST_PAIN",
+    "tightness in chest radiating": "SX_CARDIAC_CHEST_PAIN",
+    "parang may nakadagan sa dibdib": "SX_CARDIAC_CHEST_PAIN",
+    "parang nababanat ang dibdib": "SX_CARDIAC_CHEST_PAIN",
+    "sakit ng dibdib hanggang braso": "SX_CARDIAC_CHEST_PAIN",
+    "sakit ng dibdib hanggang panga": "SX_CARDIAC_CHEST_PAIN",
+    # Peripheral edema (SX_PERIPHERAL_EDEMA)
+    "swollen ankles": "SX_PERIPHERAL_EDEMA",
+    "swollen feet": "SX_PERIPHERAL_EDEMA",
+    "leg swelling both sides": "SX_PERIPHERAL_EDEMA",
+    "pitting edema": "SX_PERIPHERAL_EDEMA",
+    "namamagang paa": "SX_PERIPHERAL_EDEMA",
+    "namamaga ang mga paa": "SX_PERIPHERAL_EDEMA",
+    "namamagang bukong-bukong": "SX_PERIPHERAL_EDEMA",
+    # Palpitations with syncope (SX_PALPITATIONS_SYNCOPE)
+    "palpitations then fainted": "SX_PALPITATIONS_SYNCOPE",
+    "heart racing and passed out": "SX_PALPITATIONS_SYNCOPE",
+    "irregular heartbeat with dizziness": "SX_PALPITATIONS_SYNCOPE",
+    "mabilis ang tibok tapos nahilo": "SX_PALPITATIONS_SYNCOPE",
+    "kumakabog tapos hinimatay": "SX_PALPITATIONS_SYNCOPE",
+    "hindi regular ang tibok ng puso": "SX_PALPITATIONS_SYNCOPE",
+    # --- NEUROLOGICAL CATEGORY ---
+    # Focal weakness (SX_FOCAL_WEAKNESS)
+    "weakness on one side": "SX_FOCAL_WEAKNESS",
+    "one arm weak": "SX_FOCAL_WEAKNESS",
+    "one leg weak": "SX_FOCAL_WEAKNESS",
+    "half body weak": "SX_FOCAL_WEAKNESS",
+    "face drooping": "SX_FOCAL_WEAKNESS",
+    "mahina ang isang bahagi ng katawan": "SX_FOCAL_WEAKNESS",
+    "mahina ang isang braso": "SX_FOCAL_WEAKNESS",
+    "mahina ang isang binti": "SX_FOCAL_WEAKNESS",
+    "nakaluhod ang mukha": "SX_FOCAL_WEAKNESS",
+    "bagsak ang isang pisngi": "SX_FOCAL_WEAKNESS",
+    # Seizure (SX_SEIZURE)
+    "seizure": "SX_SEIZURE",
+    "convulsion": "SX_SEIZURE",
+    "had a fit": "SX_SEIZURE",
+    "shaking uncontrollably": "SX_SEIZURE",
+    "kombulsyon": "SX_SEIZURE",
+    "nagkokombulsyon": "SX_SEIZURE",
+    "pangingisay": "SX_SEIZURE",
+    "nangingisay": "SX_SEIZURE",
+    "atake": "SX_SEIZURE",
+    # Thunderclap headache (SX_THUNDERCLAP_HEADACHE)
+    "worst headache of my life": "SX_THUNDERCLAP_HEADACHE",
+    "sudden severe headache": "SX_THUNDERCLAP_HEADACHE",
+    "thunderclap headache": "SX_THUNDERCLAP_HEADACHE",
+    "headache came suddenly and severe": "SX_THUNDERCLAP_HEADACHE",
+    "biglaang matinding sakit ng ulo": "SX_THUNDERCLAP_HEADACHE",
+    "parang sumabog ang ulo ko": "SX_THUNDERCLAP_HEADACHE",
+    "pinakamatinding sakit ng ulo": "SX_THUNDERCLAP_HEADACHE",
+    # Slurred speech (SX_SLURRED_SPEECH)
+    "slurred speech": "SX_SLURRED_SPEECH",
+    "speech is slurred": "SX_SLURRED_SPEECH",
+    "talking funny": "SX_SLURRED_SPEECH",
+    "words not coming out right": "SX_SLURRED_SPEECH",
+    "pautal-utal": "SX_SLURRED_SPEECH",
+    "hindi malinaw magsalita": "SX_SLURRED_SPEECH",
+    "parang lasing magsalita": "SX_SLURRED_SPEECH",
+    "nabubulunan sa salita": "SX_SLURRED_SPEECH",
+    # --- ENDOCRINE CATEGORY ---
+    # Diabetes triad: polyuria + polydipsia + polyphagia (SX_DIABETES_TRIAD)
+    "always thirsty always peeing always hungry": "SX_DIABETES_TRIAD",
+    "thirsty hungry urinating a lot": "SX_DIABETES_TRIAD",
+    "the 3 Ps": "SX_DIABETES_TRIAD",
+    "laging nauuhaw laging kumakain laging umiihi": "SX_DIABETES_TRIAD",
+    "sobrang uhaw sobrang gutom madalas umihi": "SX_DIABETES_TRIAD",
+    "parang walang tigil uminom kain at ihi": "SX_DIABETES_TRIAD",
+    # Goiter (SX_GOITER)
+    "neck swelling thyroid": "SX_GOITER",
+    "goiter": "SX_GOITER",
+    "swelling in front of neck": "SX_GOITER",
+    "enlarged thyroid": "SX_GOITER",
+    "bosyo": "SX_GOITER",
+    "bukol sa leeg": "SX_GOITER",
+    "namamagang leeg sa harap": "SX_GOITER",
+    "lumaki ang thyroid": "SX_GOITER",
+    # --- MUSCULOSKELETAL (NON-INFECTIOUS) CATEGORY ---
+    # Chronic arthritis without fever (SX_CHRONIC_ARTHRITIS)
+    "joint pain for months": "SX_CHRONIC_ARTHRITIS",
+    "arthritis no fever": "SX_CHRONIC_ARTHRITIS",
+    "chronic joint pain": "SX_CHRONIC_ARTHRITIS",
+    "rheumatoid arthritis": "SX_CHRONIC_ARTHRITIS",
+    "osteoarthritis": "SX_CHRONIC_ARTHRITIS",
+    "rayuma": "SX_CHRONIC_ARTHRITIS",
+    "matagal nang masakit ang kasukasuan": "SX_CHRONIC_ARTHRITIS",
+    "pananakit ng kasukasuan na matagal na": "SX_CHRONIC_ARTHRITIS",
+    "arthritis pero walang lagnat": "SX_CHRONIC_ARTHRITIS",
+    # Trauma (SX_TRAUMA)
+    "fell and hurt": "SX_TRAUMA",
+    "accident injury": "SX_TRAUMA",
+    "hit by": "SX_TRAUMA",
+    "fracture": "SX_TRAUMA",
+    "broken bone": "SX_TRAUMA",
+    "nahulog": "SX_TRAUMA",
+    "nabangga": "SX_TRAUMA",
+    "naaksidente": "SX_TRAUMA",
+    "bali ang buto": "SX_TRAUMA",
+    "napilay": "SX_TRAUMA",
+    # Gout (SX_GOUT)
+    "gout": "SX_GOUT",
+    "gout attack": "SX_GOUT",
+    "uric acid high": "SX_GOUT",
+    "big toe pain severe": "SX_GOUT",
+    "tuhod sumasakit pag kumain ng karne": "SX_GOUT",
+    "sakit ng daliri sa paa": "SX_GOUT",
+    "mataas ang uric acid": "SX_GOUT",
+    "rayuma sa paa": "SX_GOUT",
+    # --- MENTAL HEALTH CATEGORY ---
+    # Depression (SX_DEPRESSION)
+    "feeling depressed": "SX_DEPRESSION",
+    "depression": "SX_DEPRESSION",
+    "feeling hopeless": "SX_DEPRESSION",
+    "no interest in anything": "SX_DEPRESSION",
+    "sad all the time": "SX_DEPRESSION",
+    "malungkot": "SX_DEPRESSION",
+    "depressed": "SX_DEPRESSION",
+    "walang gana sa lahat": "SX_DEPRESSION",
+    "parang walang saysay ang lahat": "SX_DEPRESSION",
+    "laging nalulungkot": "SX_DEPRESSION",
+    # Anxiety (SX_ANXIETY)
+    "anxiety": "SX_ANXIETY",
+    "anxiety attacks": "SX_ANXIETY",
+    "panic attack": "SX_ANXIETY",
+    "constant worry": "SX_ANXIETY",
+    "can't stop worrying": "SX_ANXIETY",
+    "kinakabahan": "SX_ANXIETY",
+    "laging nag-aalala": "SX_ANXIETY",
+    "panic": "SX_ANXIETY",
+    "anxiety attack": "SX_ANXIETY",
+    "di mapakali": "SX_ANXIETY",
+    # Suicidal ideation (SX_SUICIDAL_IDEATION)
+    "want to kill myself": "SX_SUICIDAL_IDEATION",
+    "suicidal": "SX_SUICIDAL_IDEATION",
+    "thinking of ending my life": "SX_SUICIDAL_IDEATION",
+    "don't want to live": "SX_SUICIDAL_IDEATION",
+    "want to die": "SX_SUICIDAL_IDEATION",
+    "gusto ko nang mamatay": "SX_SUICIDAL_IDEATION",
+    "ayaw ko na": "SX_SUICIDAL_IDEATION",
+    "tapusin ko na": "SX_SUICIDAL_IDEATION",
+    "gusto ko nang wakasan": "SX_SUICIDAL_IDEATION",
+    "pagod na ako sa buhay": "SX_SUICIDAL_IDEATION",
+    # --- DERMATOLOGICAL (NON-INFECTIOUS) CATEGORY ---
+    # Psoriasis (SX_PSORIASIS)
+    "psoriasis": "SX_PSORIASIS",
+    "scaly patches": "SX_PSORIASIS",
+    "silvery scales on skin": "SX_PSORIASIS",
+    "thick scaly skin": "SX_PSORIASIS",
+    "kaliskis ang balat": "SX_PSORIASIS",
+    "makapal na kaliskis sa balat": "SX_PSORIASIS",
+    "parang pilak na kaliskis": "SX_PSORIASIS",
+    # Chronic eczema (SX_CHRONIC_ECZEMA)
+    "eczema": "SX_CHRONIC_ECZEMA",
+    "chronic eczema": "SX_CHRONIC_ECZEMA",
+    "atopic dermatitis": "SX_CHRONIC_ECZEMA",
+    "itchy dry skin for years": "SX_CHRONIC_ECZEMA",
+    "eksema": "SX_CHRONIC_ECZEMA",
+    "makati at tuyong balat matagal na": "SX_CHRONIC_ECZEMA",
+    "makating balat na hindi nawawala": "SX_CHRONIC_ECZEMA",
+    # Vitiligo (SX_VITILIGO)
+    "vitiligo": "SX_VITILIGO",
+    "white patches on skin": "SX_VITILIGO",
+    "loss of skin color": "SX_VITILIGO",
+    "depigmentation": "SX_VITILIGO",
+    "buni": "SX_VITILIGO",
+    "puting pantal sa balat": "SX_VITILIGO",
+    "nawalan ng kulay ang balat": "SX_VITILIGO",
+}
+
+# --- TIER 3: Category Groupings ---
+# Groups Tier 3 concepts by medical category for routing referral messages.
+# Used to determine which specialist/department to refer to.
+TIER3_CATEGORIES = {
+    "STI_GENITOURINARY": {
+        "SX_GENITAL_DISCHARGE",
+        "SX_DYSURIA",
+        "SX_GENITAL_ULCER",
+        "SX_PELVIC_PAIN",
+    },
+    "CARDIOVASCULAR": {
+        "SX_CARDIAC_CHEST_PAIN",
+        "SX_PERIPHERAL_EDEMA",
+        "SX_PALPITATIONS_SYNCOPE",
+    },
+    "NEUROLOGICAL": {
+        "SX_FOCAL_WEAKNESS",
+        "SX_SEIZURE",
+        "SX_THUNDERCLAP_HEADACHE",
+        "SX_SLURRED_SPEECH",
+    },
+    "ENDOCRINE": {
+        "SX_DIABETES_TRIAD",
+        "SX_GOITER",
+    },
+    "MUSCULOSKELETAL": {
+        "SX_CHRONIC_ARTHRITIS",
+        "SX_TRAUMA",
+        "SX_GOUT",
+    },
+    "MENTAL_HEALTH": {
+        "SX_DEPRESSION",
+        "SX_ANXIETY",
+        "SX_SUICIDAL_IDEATION",
+    },
+    "DERMATOLOGICAL": {
+        "SX_PSORIASIS",
+        "SX_CHRONIC_ECZEMA",
+        "SX_VITILIGO",
+    },
+}
+
+# Reverse lookup: concept -> category
+TIER3_CONCEPT_TO_CATEGORY = {}
+for category, concepts in TIER3_CATEGORIES.items():
+    for concept in concepts:
+        TIER3_CONCEPT_TO_CATEGORY[concept] = category
+
+# --- TIER 3: Bilingual Referral Messages ---
+# Referral messages for each Tier 3 category in English and Tagalog.
+# These messages provide appropriate guidance when a user's symptoms indicate
+# a condition outside the system's diagnostic scope.
+TIER3_REFERRAL_MESSAGES = {
+    "STI_GENITOURINARY": {
+        "en": (
+            "Your symptoms may suggest a genitourinary or sexually transmitted condition. "
+            "This is outside the scope of this diagnostic tool. Please consult a "
+            "healthcare provider, such as a doctor at a health center or hospital, "
+            "who can properly evaluate and treat these concerns. Your privacy will be respected."
+        ),
+        "tl": (
+            "Ang iyong mga sintomas ay maaaring may kaugnayan sa kondisyon ng sistema ng pag-ihi "
+            "o sakit na nakukuha sa pakikipagtalik. Ito ay lampas sa saklaw ng tool na ito. "
+            "Mangyaring kumonsulta sa isang healthcare provider, tulad ng doktor sa health center "
+            "o ospital, na makakapag-evaluate at makakapag-gamot nang tama. Iginagalang ang iyong privacy."
+        ),
+    },
+    "CARDIOVASCULAR": {
+        "en": (
+            "Your symptoms may indicate a heart or circulation problem that requires "
+            "immediate medical attention. Please seek emergency care or go to the nearest "
+            "hospital emergency room immediately. Do not delay, as early treatment is crucial "
+            "for heart-related conditions."
+        ),
+        "tl": (
+            "Ang iyong mga sintomas ay maaaring nagpapahiwatig ng problema sa puso o sirkulasyon "
+            "na nangangailangan ng agarang atensyong medikal. Mangyaring magpunta kaagad sa "
+            "emergency room ng pinakamalapit na ospital. Huwag mag-antala, dahil mahalaga ang "
+            "maagang paggamot para sa mga kondisyon ng puso."
+        ),
+    },
+    "NEUROLOGICAL": {
+        "en": (
+            "Your symptoms may suggest a serious neurological condition that requires "
+            "immediate medical evaluation. Please seek emergency care immediately. Symptoms "
+            "like sudden weakness, seizures, severe headache, or speech changes can indicate "
+            "conditions that need urgent treatment."
+        ),
+        "tl": (
+            "Ang iyong mga sintomas ay maaaring nagpapahiwatig ng seryosong kondisyon sa utak "
+            "o nerves na nangangailangan ng agarang pagsusuri. Magpunta kaagad sa emergency. "
+            "Ang mga sintomas tulad ng biglaang panghihina, kombulsyon, matinding sakit ng ulo, "
+            "o pagbabago sa pagsasalita ay maaaring nangangailangan ng agarang paggamot."
+        ),
+    },
+    "ENDOCRINE": {
+        "en": (
+            "Your symptoms may suggest a hormonal or metabolic condition, such as diabetes "
+            "or thyroid problems. Please consult a healthcare provider for proper evaluation "
+            "and testing. These conditions are manageable with proper medical care."
+        ),
+        "tl": (
+            "Ang iyong mga sintomas ay maaaring may kaugnayan sa kondisyon ng hormones o metabolism, "
+            "tulad ng diabetes o problema sa thyroid. Mangyaring kumonsulta sa healthcare provider "
+            "para sa tamang pagsusuri at mga test. Ang mga kondisyong ito ay napapangasiwaan "
+            "sa tulong ng tamang medikal na pangangalaga."
+        ),
+    },
+    "MUSCULOSKELETAL": {
+        "en": (
+            "Your symptoms suggest a bone, joint, or muscle condition that is not related "
+            "to infectious disease. Please consult with a healthcare provider who can evaluate "
+            "your condition. If due to injury or trauma, seek appropriate medical care based "
+            "on the severity."
+        ),
+        "tl": (
+            "Ang iyong mga sintomas ay nagpapahiwatig ng kondisyon sa buto, kasukasuan, o kalamnan "
+            "na hindi nauugnay sa nakakahawang sakit. Mangyaring kumonsulta sa healthcare provider "
+            "para suriin ang iyong kondisyon. Kung dahil sa injury o aksidente, humanap ng "
+            "naaangkop na medikal na pangangalaga batay sa kalubhaan."
+        ),
+    },
+    "MENTAL_HEALTH": {
+        "en": (
+            "Your symptoms may suggest a mental health concern. You are not alone, and help "
+            "is available. Please reach out to a mental health professional, counselor, or "
+            "call a crisis hotline. In the Philippines, you can contact the National Center "
+            "for Mental Health Crisis Hotline at 0917-899-8727 (USAP)."
+        ),
+        "tl": (
+            "Ang iyong mga sintomas ay maaaring may kaugnayan sa mental health. Hindi ka nag-iisa, "
+            "at may tulong na available. Mangyaring lumapit sa mental health professional, counselor, "
+            "o tumawag sa crisis hotline. Sa Pilipinas, maaari kang tumawag sa National Center "
+            "for Mental Health Crisis Hotline: 0917-899-8727 (USAP)."
+        ),
+    },
+    "DERMATOLOGICAL": {
+        "en": (
+            "Your symptoms suggest a chronic skin condition that is not related to acute "
+            "infectious disease. Please consult a dermatologist or healthcare provider who "
+            "can properly evaluate and treat chronic skin conditions."
+        ),
+        "tl": (
+            "Ang iyong mga sintomas ay nagpapahiwatig ng chronic na kondisyon sa balat na hindi "
+            "nauugnay sa acute na nakakahawang sakit. Mangyaring kumonsulta sa dermatologist "
+            "o healthcare provider na makakapag-evaluate at makakapag-gamot ng chronic skin conditions."
+        ),
+    },
 }
 
 # --- Fuzzy Matching Configuration ---
