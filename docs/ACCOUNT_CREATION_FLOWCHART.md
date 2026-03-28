@@ -226,14 +226,18 @@ flowchart TD
 **Steps**:
 
 1. Patient opens login page
-2. Patient enters credentials
+2. Patient enters credentials (email/password or Google sign-in)
 3. System validates credentials
-4. Upon successful validation, patient dashboard opens
+4. For Google sign-in: System verifies patient exists in database (pre-registered by clinician)
+5. If patient not found: Redirect to "Need an account" page
+6. Upon successful validation, patient dashboard opens
 
 **Key Points**:
 
 - Simple authentication flow
 - Direct access to patient dashboard
+- Google sign-in only available for pre-registered patients
+- Clinician-entered patient name is preserved (not overwritten by Google account name)
 
 ### Patient New Account Flow
 

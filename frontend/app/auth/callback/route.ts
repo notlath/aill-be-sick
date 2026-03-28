@@ -94,38 +94,43 @@ export async function GET(request: NextRequest) {
       if (user && user.id) {
         console.log("[OAuth Callback] User authenticated:", user.id);
 
+        // Check if user exists in database - only pre-registered patients can sign in
+        const existingUser = await prisma.user.findUnique({
+          where: { authId: user.id },
+        });
+
+        if (!existingUser) {
+          // User not pre-registered by clinician - block access
+          console.log(
+            "[OAuth Callback] User not found in database, redirecting to need-account",
+          );
+          return NextResponse.redirect(`${origin}/need-account`);
+        }
+
+        // User exists - update only email and avatar, preserve clinician-entered name
         const upsertData = {
           authId: user.id,
           email: user.email ?? undefined,
-          name:
-            user.user_metadata?.full_name ??
-            user.user_metadata?.name ??
-            undefined,
           avatar: user.user_metadata?.avatar_url ?? undefined,
         };
 
         try {
-          await prisma.user.upsert({
+          await prisma.user.update({
             where: { authId: user.id },
-            create: {
-              authId: upsertData.authId,
-              email: upsertData.email ?? "",
-              name: upsertData.name ?? null,
-              avatar: upsertData.avatar ?? null,
-            },
-            update: {
+            data: {
               ...(upsertData.email ? { email: upsertData.email } : {}),
-              ...(upsertData.name ? { name: upsertData.name } : {}),
+              ...(upsertData.avatar ? { avatar: upsertData.avatar } : {}),
+              // Do NOT update name - preserve clinician-entered name
             },
           });
 
-          console.log("[OAuth Callback] User upserted to database");
-          
+          console.log("[OAuth Callback] User updated in database");
+
           const { revalidateTag } = require("next/cache");
           revalidateTag(`user-${user.id}`);
         } catch (prismaError) {
           console.error(
-            "[OAuth Callback] Error upserting user with Prisma:",
+            "[OAuth Callback] Error updating user with Prisma:",
             prismaError,
           );
           // Don't block redirect - auth session is more important
