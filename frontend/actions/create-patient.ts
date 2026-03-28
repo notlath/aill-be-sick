@@ -5,7 +5,7 @@ import { CreatePatientSchema } from "@/schemas/CreatePatientSchema";
 import prisma from "@/prisma/prisma";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/utils/user";
-import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export const createPatient = actionClient
   .inputSchema(CreatePatientSchema)
@@ -22,11 +22,18 @@ export const createPatient = actionClient
       select: { role: true, approvalStatus: true },
     });
 
-    if (!currentUser || currentUser.role !== "CLINICIAN") {
+    // Define roles that can create patients (hierarchical: developer > admin > clinician > patient)
+    const allowedRoles = ["CLINICIAN", "ADMIN", "DEVELOPER"];
+
+    if (!currentUser || !allowedRoles.includes(currentUser.role)) {
       return { error: "Only clinicians can create patient accounts" };
     }
 
-    if (currentUser.approvalStatus !== "ACTIVE") {
+    // Only clinicians need ACTIVE approval status; ADMIN and DEVELOPER bypass this check
+    if (
+      currentUser.role === "CLINICIAN" &&
+      currentUser.approvalStatus !== "ACTIVE"
+    ) {
       return { error: "Your clinician account is not active" };
     }
 
@@ -67,27 +74,32 @@ export const createPatient = actionClient
       // Generate a temporary password
       const tempPassword = generateTempPassword();
 
-      // Create Supabase auth account
-      const supabase = await createClient();
-      const { error: signUpError, data } = await supabase.auth.signUp({
-        email,
-        password: tempPassword,
-        options: {
-          data: {
+      // Create Supabase auth account using admin client
+      // IMPORTANT: Use admin.createUser() instead of signUp() to prevent
+      // auto-signing in the new user and replacing the clinician's session
+      const supabaseAdmin = createAdminClient();
+      const { data: userData, error: createUserError } =
+        await supabaseAdmin.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          email_confirm: true, // Auto-confirm email since clinician verified the address
+          user_metadata: {
             name,
             role: "PATIENT",
           },
-        },
-      });
+        });
 
-      if (signUpError) {
-        console.error(`[createPatient] Supabase signup error:`, signUpError);
+      if (createUserError) {
+        console.error(
+          `[createPatient] Supabase createUser error:`,
+          createUserError,
+        );
         return {
-          error: `Failed to create auth account: ${signUpError.message}`,
+          error: `Failed to create auth account: ${createUserError.message}`,
         };
       }
 
-      if (!data.user) {
+      if (!userData?.user) {
         return { error: "Failed to create auth account" };
       }
 
@@ -100,7 +112,7 @@ export const createPatient = actionClient
         data: {
           email,
           name,
-          authId: data.user.id,
+          authId: userData.user.id,
           role: "PATIENT",
           approvalStatus: "ACTIVE",
           birthday: new Date(birthday),
