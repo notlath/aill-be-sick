@@ -4,7 +4,8 @@ import prisma from "@/prisma/prisma";
 import { createClient } from "@/utils/supabase/server";
 
 /**
- * OAuth callback route
+ * Auth callback route
+ * - Handles both OAuth callbacks and invite link callbacks
  * - Exchanges the provider code for a Supabase session (sets cookies)
  * - Fetches the authenticated Supabase user
  * - Upserts the user into the application database via Prisma (sync by authId)
@@ -14,6 +15,11 @@ import { createClient } from "@/utils/supabase/server";
  * the PKCE code_verifier cookie that Supabase sets during signInWithOAuth.
  * The cookies are automatically handled by Next.js and passed to the Supabase
  * server client via the createClient() function.
+ *
+ * For invite links (patient account creation):
+ * - Patient clicks invite link in email
+ * - Link redirects here with code and next=/patient/set-password
+ * - After session exchange, patient is redirected to set their password
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
@@ -92,17 +98,18 @@ export async function GET(request: NextRequest) {
       }
 
       if (user && user.id) {
-        console.log("[OAuth Callback] User authenticated:", user.id);
+        console.log("[Auth Callback] User authenticated:", user.id);
 
-        // Check if user exists in database - only pre-registered patients can sign in
+        // Check if user exists in database
         const existingUser = await prisma.user.findUnique({
           where: { authId: user.id },
         });
 
         if (!existingUser) {
           // User not pre-registered by clinician - block access
+          // This handles OAuth sign-ins (Google) for patients who haven't been registered
           console.log(
-            "[OAuth Callback] User not found in database, redirecting to need-account",
+            "[Auth Callback] User not found in database, redirecting to need-account",
           );
           return NextResponse.redirect(`${origin}/need-account`);
         }
@@ -124,13 +131,13 @@ export async function GET(request: NextRequest) {
             },
           });
 
-          console.log("[OAuth Callback] User updated in database");
+          console.log("[Auth Callback] User updated in database");
 
           const { revalidateTag } = require("next/cache");
           revalidateTag(`user-${user.id}`);
         } catch (prismaError) {
           console.error(
-            "[OAuth Callback] Error updating user with Prisma:",
+            "[Auth Callback] Error updating user with Prisma:",
             prismaError,
           );
           // Don't block redirect - auth session is more important
@@ -145,7 +152,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Redirect back to the app
-    console.log("[OAuth Callback] Redirecting to:", `${origin}${next}`);
+    console.log("[Auth Callback] Redirecting to:", `${origin}${next}`);
     const forwardedHost = request.headers.get("x-forwarded-host");
     const isLocalEnv = process.env.NODE_ENV === "development";
 
@@ -157,7 +164,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${origin}${next}`);
     }
   } catch (err) {
-    console.error("[OAuth Callback] Unexpected error in callback route:", err);
+    console.error("[Auth Callback] Unexpected error in callback route:", err);
     return NextResponse.redirect(
       `${origin}/auth/auth-code-error?error=internal`,
     );

@@ -70,12 +70,12 @@ export const createPatient = actionClient
         return { error: "A user with this email already exists" };
       }
 
-      // Generate a temporary password
-      const tempPassword = generateTempPassword();
-
       // Create Supabase auth account using admin client
-      // IMPORTANT: Use admin.createUser() instead of signUp() to prevent
-      // auto-signing in the new user and replacing the clinician's session
+      // IMPORTANT: Use admin.inviteUserByEmail() instead of createUser() to:
+      // 1. Send an invite email to the patient
+      // 2. Let the patient set their own password
+      // 3. Verify the patient's email address
+      // 4. Avoid temp password sharing complications
       const supabaseAdmin = createAdminClient();
 
       // Check if email already exists in Supabase Auth
@@ -105,24 +105,26 @@ export const createPatient = actionClient
         }
       }
 
-      const { data: userData, error: createUserError } =
-        await supabaseAdmin.auth.admin.createUser({
-          email,
-          password: tempPassword,
-          email_confirm: true, // Auto-confirm email since clinician verified the address
-          user_metadata: {
+      // Get the origin URL for the invite redirect
+      const origin =
+        process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+      const { data: userData, error: inviteError } =
+        await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+          redirectTo: `${origin}/auth/callback?next=/patient/set-password`,
+          data: {
             name,
             role: "PATIENT",
           },
         });
 
-      if (createUserError) {
+      if (inviteError) {
         console.error(
-          `[createPatient] Supabase createUser error:`,
-          createUserError,
+          `[createPatient] Supabase inviteUserByEmail error:`,
+          inviteError,
         );
         return {
-          error: `Failed to create auth account: ${createUserError.message}`,
+          error: `Failed to send invite email: ${inviteError.message}`,
         };
       }
 
@@ -163,8 +165,7 @@ export const createPatient = actionClient
           patientId: patient.id,
           email: patient.email,
           name: patient.name,
-          tempPassword,
-          message: `Patient account created successfully. Temporary password: ${tempPassword}`,
+          message: `Patient account created successfully. An invite email has been sent to ${email}. The patient must click the link in the email to set their password and access the system.`,
         },
       };
     } catch (error) {
@@ -172,12 +173,3 @@ export const createPatient = actionClient
       return { error: "Failed to create patient account. Please try again." };
     }
   });
-
-function generateTempPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let password = "";
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}

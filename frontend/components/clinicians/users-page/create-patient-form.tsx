@@ -60,7 +60,7 @@ export default function CreatePatientForm({
   const [createdPatient, setCreatedPatient] = useState<{
     name: string;
     email: string;
-    tempPassword: string;
+    message: string;
   } | null>(null);
 
   const [copied, setCopied] = useState(false);
@@ -78,7 +78,7 @@ export default function CreatePatientForm({
         setCreatedPatient({
           name: data.success.name || "",
           email: data.success.email,
-          tempPassword: data.success.tempPassword,
+          message: data.success.message,
         });
         toast.success("Patient account created successfully!");
         // Reset form
@@ -177,21 +177,12 @@ export default function CreatePatientForm({
     ],
   );
 
-  const handleCopyPassword = useCallback(() => {
-    if (createdPatient?.tempPassword) {
-      navigator.clipboard.writeText(createdPatient.tempPassword);
-      setCopied(true);
-      toast.success("Password copied to clipboard");
-      setTimeout(() => setCopied(false), 2000);
-    }
-  }, [createdPatient]);
-
   const handleCreateAnother = useCallback(() => {
     setCreatedPatient(null);
     onSuccess?.();
   }, [onSuccess]);
 
-  // Show success state with temp credentials
+  // Show success state with invite email sent
   if (createdPatient) {
     return (
       <div className="space-y-6">
@@ -204,7 +195,7 @@ export default function CreatePatientForm({
               Patient Account Created
             </h2>
             <p className="text-sm text-muted">
-              Share these temporary credentials with the patient
+              An invite email has been sent to the patient
             </p>
           </div>
         </div>
@@ -228,31 +219,19 @@ export default function CreatePatientForm({
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-base-content">
-              Temporary Password
+              Next Steps
             </label>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 bg-base-300 px-4 py-2 rounded-lg font-mono text-sm break-all">
-                {createdPatient.tempPassword}
-              </code>
-              <button
-                onClick={handleCopyPassword}
-                className="btn btn-ghost btn-sm"
-                title="Copy password"
-              >
-                {copied ? (
-                  <Check className="w-4 h-4 text-success" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </button>
-            </div>
+            <p className="text-base-content text-sm">
+              {createdPatient.message}
+            </p>
           </div>
         </div>
 
-        <div className="bg-warning/10 border border-warning/20 rounded-xl p-4">
-          <p className="text-sm text-warning-content">
-            <strong>Important:</strong> The patient must change their password
-            on first login. Please share these credentials securely.
+        <div className="bg-info/10 border border-info/20 rounded-xl p-4">
+          <p className="text-sm text-info">
+            <strong>What happens next:</strong> The patient will receive an
+            email with a link to set their password. Once they click the link
+            and set their password, they can log in to the system.
           </p>
         </div>
 

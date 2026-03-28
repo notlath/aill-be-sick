@@ -67,17 +67,17 @@ flowchart TD
     %% ========== PATIENT CREATION BY CLINICIAN ==========
     PatientDashboard --> ClickCreatePatient[Click Create Patient Account]
     ClickCreatePatient --> EnterPatientDetails[Enter Patient Details: Name, Contact, DOB]
-    EnterPatientDetails --> AutoGenCredentials[Auto-generate temp credentials for patient]
-    AutoGenCredentials --> PatientFormValid{Patient form valid?}
+    EnterPatientDetails --> PatientFormValid{Patient form valid?}
     PatientFormValid -->|No| ShowPatientFormErrors[Show errors and retry]
     ShowPatientFormErrors --> EnterPatientDetails
     PatientFormValid -->|Yes| CreatePatientAccount[Create Patient Auth + Patient Profile]
     CreatePatientAccount --> PatientCreationSuccess{Creation success?}
     PatientCreationSuccess -->|No| ShowCreationError[Show creation error]
     ShowCreationError --> EnterPatientDetails
-    PatientCreationSuccess -->|Yes| ShareCredentials[Share temp credentials with patient]
-    ShareCredentials --> PatientFirstLogin[Patient logs in and changes password on first login]
-    PatientFirstLogin --> PatientCreationEnd([End])
+    PatientCreationSuccess -->|Yes| SendInviteEmail[Send invite email to patient]
+    SendInviteEmail --> PatientClicksLink[Patient clicks invite link in email]
+    PatientClicksLink --> PatientSetsPassword[Patient sets their own password]
+    PatientSetsPassword --> PatientCreationEnd([End])
 
     %% ========== PATIENT EXISTING PATH ==========
     UserType -->|Patient existing| PatientLogin[Open Patient Login]
@@ -104,7 +104,7 @@ flowchart TD
 
     %% Apply styles to nodes
     class AdminPredefined,AdminLogin,AdminDashboard,ViewPending,AdminAction,ApproveClinician,RejectClinician,SendNotification,MorePending adminNode
-    class ClinicianSignUp,EnterDetails,CreateAuth,SendVerification,CreateProfile,ShowPendingMessage,ClinicianLogin,ClinicianStatus,ShowPendingApproval,PatientDashboard,ClickCreatePatient,EnterPatientDetails,AutoGenCredentials,CreatePatientAccount,ShareCredentials,PatientFirstLogin clinicianNode
+    class ClinicianSignUp,EnterDetails,CreateAuth,SendVerification,CreateProfile,ShowPendingMessage,ClinicianLogin,ClinicianStatus,ShowPendingApproval,PatientDashboard,ClickCreatePatient,EnterPatientDetails,CreatePatientAccount,SendInviteEmail,PatientClicksLink,PatientSetsPassword clinicianNode
     class PatientLogin,PatientDashboardView,ClickNeedAccount,NavigateNeedAccount,ShowVisitHealthCenter,ShowServiceArea,LinkBackLogin patientNode
     class AdminLoginError,ShowFormErrors,ShowSignupError,ClinicianLoginError,ShowPatientFormErrors,ShowCreationError,PatientLoginError errorNode
 ```
@@ -200,23 +200,27 @@ flowchart TD
 
 ### Patient Creation by Clinician Flow
 
-**Purpose**: Clinicians create patient accounts with temporary credentials.
+**Purpose**: Clinicians create patient accounts and send invite emails for patients to set their own passwords.
 
 **Steps**:
 
 1. Clinician clicks "Create Patient Account" from dashboard
 2. Clinician enters patient details (name, contact, date of birth)
-3. System auto-generates temporary credentials
-4. Form validation occurs
-5. Upon valid form submission, patient auth and profile are created
-6. Temporary credentials are shared with patient
-7. Patient logs in and changes password on first login
+3. Form validation occurs
+4. Upon valid form submission, patient auth and profile are created
+5. System sends invite email to patient's email address
+6. Patient clicks the invite link in the email
+7. Patient is redirected to set-password page
+8. Patient sets their own password
+9. Patient can now log in with their email and password
 
 **Key Points**:
 
 - Clinician-initiated patient creation
-- Temporary credentials ensure security
-- Password change required on first login
+- Real email verification (patient must receive and click the invite link)
+- No temporary credentials needed
+- Patient sets their own password from the start
+- More secure and user-friendly than temp password approach
 - Clear error handling for failed creations
 
 ### Patient Existing Account Flow
@@ -278,8 +282,8 @@ flowchart TD
 
 1. **Admin Predefined**: Admin accounts are created at system startup via environment variables or configuration, not through the UI
 2. **Email Verification**: Clinician email verification uses Supabase Auth's built-in verification flow
-3. **Temporary Credentials**: Patient temporary credentials are auto-generated and should be shared securely with the patient
-4. **First Login Password Change**: Patients must change their password on first login for security
+3. **Patient Invite Flow**: Patient accounts use Supabase's inviteUserByEmail() to send invite links. Patients click the link to set their own password, ensuring real email verification and eliminating temp password complications
+4. **Password Security**: Patients set their own password via the invite link, ensuring they always know their password and don't need to remember temporary credentials
 5. **Status Persistence**: Clinician status is stored in the database and checked at every login
 6. **Email Notifications**: Admin approval/rejection triggers email notifications to clinicians via Supabase
 7. **Service Area Limitation**: The system currently serves only Bagong Silangan Barangay Health Center
