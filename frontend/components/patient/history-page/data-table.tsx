@@ -177,7 +177,6 @@ export function DataTable<TData, TValue>({
             const diagnosis = original.diagnosis as string;
             const reliabilityLabel = original.reliabilityLabel as string | null;
             const reliabilityBadgeClass = original.reliabilityBadgeClass as string | null;
-            const modelUsed = original.modelUsed as string | null;
             const createdAt = original.createdAt as Date;
 
             return (
@@ -206,11 +205,6 @@ export function DataTable<TData, TValue>({
                     </p>
                   </div>
                   <div className="flex items-center flex-wrap gap-2">
-                    {modelUsed && (
-                      <span className="badge badge-sm badge-ghost shrink-0 w-fit">
-                        {modelUsed}
-                      </span>
-                    )}
                     {reliabilityLabel && reliabilityBadgeClass && (
                       <span className={`badge badge-sm shrink-0 w-fit ${reliabilityBadgeClass}`}>
                         {reliabilityLabel}
