@@ -3,8 +3,10 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAction } from "next-safe-action/hooks";
 import { ChevronDown, ChevronUp, Lightbulb, Sparkles, Info, AlertCircle } from "lucide-react";
+import { useTheme } from "next-themes";
 import { generateInsightsExplanation } from "@/actions/generate-insights-explanation";
 import { processTokensForDisplay, type TokenWithImportance } from "@/utils/shap-tokens";
+import { getImportanceStyle } from "@/utils/importance-color";
 
 type InsightsModalProps = {
   tokens?: string[];
@@ -13,27 +15,14 @@ type InsightsModalProps = {
   symptoms?: string;
 };
 
-/**
- * Returns a semantic color based on importance value (0-1 scale).
- * Uses a gradient from neutral to blue to highlight important words,
- * avoiding alarming red colors in a medical context.
- */
-function getImportanceColor(importance: number): string {
-  // Improved shading for both Light/Dark mode readability
-  // We use base-content for text to ensure high contrast against the semi-transparent info backgrounds
-  if (importance >= 0.8) return "bg-info/40 text-base-content font-bold border border-info/50";
-  if (importance >= 0.6) return "bg-info/25 text-base-content/90 font-medium border border-info/30";
-  if (importance >= 0.4) return "bg-info/10 text-base-content/80 border border-info/20";
-  if (importance >= 0.2) return "bg-base-300/70 text-base-content/70 border border-base-content/10";
-  return "bg-transparent text-base-content/50 border border-base-content/10";
-}
-
 const InsightsModal = ({
   tokens = [],
   importances = [],
   disease = "",
   symptoms = "",
 }: InsightsModalProps) => {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
   const [topWords, setTopWords] = useState<string[]>([]);
@@ -220,7 +209,8 @@ const InsightsModal = ({
                   processedTokens.map((t, i) => (
                     <span
                       key={`${t.token}-${i}`}
-                      className={`px-1.5 py-0.5 rounded text-sm font-medium transition-colors ${getImportanceColor(t.importance)}`}
+                      className="text-sm font-medium transition-colors rounded"
+                      style={getImportanceStyle(t.importance, isDark)}
                       title={`Importance: ${(t.importance * 100).toFixed(1)}%`}
                     >
                       {t.token}
@@ -238,11 +228,26 @@ const InsightsModal = ({
                 <div className="mt-4 pt-3 border-t border-base-300">
                   <p className="text-xs text-base-content/60 mb-2">Importance scale:</p>
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="px-2 py-0.5 rounded bg-transparent text-base-content/50 border border-base-content/10">Low</span>
+                    <span
+                      className="px-2 py-0.5 rounded border border-base-content/10"
+                      style={getImportanceStyle(0.1, isDark)}
+                    >
+                      Low
+                    </span>
                     <span className="text-base-content/40">&rarr;</span>
-                    <span className="px-2 py-0.5 rounded bg-base-300/70 text-base-content/70 border border-base-content/10">Medium</span>
+                    <span
+                      className="px-2 py-0.5 rounded border border-base-content/10"
+                      style={getImportanceStyle(0.5, isDark)}
+                    >
+                      Medium
+                    </span>
                     <span className="text-base-content/40">&rarr;</span>
-                    <span className="px-2 py-0.5 rounded bg-info/40 text-base-content font-bold border border-info/50">High</span>
+                    <span
+                      className="px-2 py-0.5 rounded font-bold border border-base-content/10"
+                      style={getImportanceStyle(0.9, isDark)}
+                    >
+                      High
+                    </span>
                   </div>
                 </div>
               )}

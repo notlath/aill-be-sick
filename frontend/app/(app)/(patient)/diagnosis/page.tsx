@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUp, ClipboardList, Sparkles, Info } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "nextjs-toploader/app";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import ChecklistModal from "@/components/patient/diagnosis-page/checklist-modal";
 import LegalFooter from "@/components/shared/legal-footer";
@@ -30,6 +30,14 @@ const PatientHomePage = () => {
   const hasSubmittedRef = useRef(false);
   const isMountedRef = useRef(true);
   const [isNavigating, setIsNavigating] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const adjustTextareaHeight = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+  }, []);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -53,6 +61,10 @@ const PatientHomePage = () => {
         form.setValue("symptoms", "");
         checklist.clear();
         setIsNavigating(true);
+        if (textareaRef.current) {
+          textareaRef.current.style.height = "auto";
+          textareaRef.current.style.height = "44px";
+        }
         router.push(`/diagnosis/${data.success.chatId}`);
       } else if (data?.error) {
         setIsNavigating(false);
@@ -77,6 +89,10 @@ const PatientHomePage = () => {
   const handleChecklistSubmit = (phrase: string) => {
     hasSubmittedRef.current = true;
     form.setValue("symptoms", phrase);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = "44px";
+    }
     execute({
       chatId: form.getValues("chatId"),
       symptoms: phrase,
@@ -154,13 +170,18 @@ const PatientHomePage = () => {
                   {/* Textarea */}
                   <div className="flex-1 min-w-0 flex items-center">
                     <textarea
-                      className="w-full px-4 py-2.5 sm:py-3 border-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none bg-base-200/50 rounded-xl resize-none overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] text-base text-base-content placeholder:text-base-content/40 transition-colors duration-200 focus:bg-base-200/80 h-11 sm:h-12"
+                      ref={textareaRef}
+                      className="w-full px-4 py-2.5 sm:py-3 border-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none bg-base-200/50 rounded-xl resize-none overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] text-base text-base-content placeholder:text-base-content/40 transition-colors duration-200 focus:bg-base-200/80 min-h-[44px] max-h-[200px]"
                       placeholder="I'm feeling..."
                       aria-label="Describe your symptoms"
                       autoComplete="off"
                       rows={1}
                       suppressHydrationWarning
                       disabled={isLoading}
+                      onChange={(e) => {
+                        form.setValue("symptoms", e.target.value);
+                        adjustTextareaHeight();
+                      }}
                       onKeyDown={(e) => {
                         if (
                           e.key === "Enter" &&
@@ -171,7 +192,6 @@ const PatientHomePage = () => {
                           void form.handleSubmit(handleTextSubmit)();
                         }
                       }}
-                      {...form.register("symptoms")}
                     />
                   </div>
 
