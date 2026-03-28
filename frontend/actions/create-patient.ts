@@ -77,6 +77,34 @@ export const createPatient = actionClient
       // IMPORTANT: Use admin.createUser() instead of signUp() to prevent
       // auto-signing in the new user and replacing the clinician's session
       const supabaseAdmin = createAdminClient();
+
+      // Check if email already exists in Supabase Auth
+      // This can happen if the user was deleted from Prisma but not from Supabase Auth
+      const { data: existingUsers } =
+        await supabaseAdmin.auth.admin.listUsers();
+      const existingSupabaseUser = existingUsers?.users?.find(
+        (u) => u.email === email,
+      );
+
+      if (existingSupabaseUser) {
+        console.log(
+          `[createPatient] Email ${email} already exists in Supabase Auth (ID: ${existingSupabaseUser.id}). Deleting existing user before creating new one.`,
+        );
+        // Delete the existing Supabase Auth user
+        const { error: deleteError } =
+          await supabaseAdmin.auth.admin.deleteUser(existingSupabaseUser.id);
+
+        if (deleteError) {
+          console.error(
+            `[createPatient] Failed to delete existing Supabase user:`,
+            deleteError,
+          );
+          return {
+            error: `Failed to clean up existing auth account: ${deleteError.message}`,
+          };
+        }
+      }
+
       const { data: userData, error: createUserError } =
         await supabaseAdmin.auth.admin.createUser({
           email,
