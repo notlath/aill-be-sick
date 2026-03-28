@@ -388,7 +388,7 @@ const ByAnomalyTab = () => {
       {/* Top Critical Cases Table below timeline */}
       <div className="mt-6">
         {loading ? (
-          <div className="animate-pulse bg-base-200 rounded-xl h-[400px]"></div>
+          <div className="skeleton h-[400px] w-full rounded-xl" />
         ) : (
           <TopCriticalAnomalies topAnomalies={topCriticalAnomalies} />
         )}

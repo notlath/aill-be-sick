@@ -1,11 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DiagnosisRow } from "./columns";
 import { getAnonymizedPatientId } from "@/utils/patient";
 import { getReliability } from "@/utils/reliability";
 import { DiagnosisOverrideModal } from "../diagnosis-override-modal";
 import { FileEdit, CheckCircle2 } from "lucide-react";
+import { useTheme } from "next-themes";
+import { processTokensForDisplay, type TokenWithImportance } from "@/utils/shap-tokens";
+import { getExplanationByDiagnosisId } from "@/utils/explanation";
+import { WordHeatmapToggle } from "@/components/shared/word-heatmap-toggle";
 
 interface ReportDetailModalProps {
   isOpen: boolean;
@@ -20,6 +24,10 @@ export function ReportDetailModal({
 }: ReportDetailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
+  const [explanation, setExplanation] = useState<{ tokens: string[]; importances: number[] } | null>(null);
+  const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -31,6 +39,24 @@ export function ReportDetailModal({
       if (dialog.open) dialog.close();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (report?.id) {
+      setIsLoadingExplanation(true);
+      getExplanationByDiagnosisId(report.id)
+        .then((result) => {
+          if (result.success) {
+            setExplanation(result.success);
+          }
+        })
+        .finally(() => setIsLoadingExplanation(false));
+    }
+  }, [report?.id]);
+
+  const processedTokens = useMemo<TokenWithImportance[]>(() => {
+    if (!explanation?.tokens || !explanation?.importances) return [];
+    return processTokensForDisplay(explanation.tokens, explanation.importances);
+  }, [explanation]);
 
   const handleContentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -112,7 +138,7 @@ export function ReportDetailModal({
             )}
 
             {/* Reliability badge — prominent at the top */}
-            <div className="bg-base-200/50 p-4 rounded-lg flex items-center justify-between">
+            <div className="bg-base-200 p-4 rounded-lg flex items-center justify-between">
               <div>
                 <p className="text-sm text-base-content/60 mb-1">AI Assessment Reliability</p>
                 <span className={`badge ${badgeClass} badge-md`}>{label}</span>
@@ -124,30 +150,37 @@ export function ReportDetailModal({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-base-200/50 p-4 rounded-lg">
+              <div className="bg-base-200 p-4 rounded-lg">
                 <p className="text-sm text-base-content/60 mb-1">
                   {hasOverride ? "AI Suggested Condition" : "Suggested Condition"}
                 </p>
                 <p className="font-medium">{report.disease}</p>
               </div>
-              <div className="bg-base-200/50 p-4 rounded-lg">
+              <div className="bg-base-200 p-4 rounded-lg">
                 <p className="text-sm text-base-content/60 mb-1">Patient ID</p>
                 <p className="font-mono text-sm">{getAnonymizedPatientId(report.userId)}</p>
               </div>
-              <div className="bg-base-200/50 p-4 rounded-lg">
+              <div className="bg-base-200 p-4 rounded-lg">
                 <p className="text-sm text-base-content/60 mb-1">Location</p>
                 <p className="font-medium">{location}</p>
               </div>
-              <div className="bg-base-200/50 p-4 rounded-lg">
+              <div className="bg-base-200 p-4 rounded-lg">
                 <p className="text-sm text-base-content/60 mb-1">Date Reported</p>
                 <p className="font-medium">{new Date(report.createdAt).toLocaleString()}</p>
               </div>
             </div>
 
-            <div className="bg-base-200/50 p-4 rounded-lg">
+            <div className="bg-base-200 p-4 rounded-lg">
               <p className="text-sm text-base-content/60 mb-2">Reported Symptoms</p>
               <p className="text-sm leading-relaxed">{report.symptoms}</p>
             </div>
+
+            {/* Word Heatmap Toggle */}
+            <WordHeatmapToggle
+              processedTokens={processedTokens}
+              isDark={isDark}
+              isLoading={isLoadingExplanation}
+            />
 
             {/* Clinical Override Button */}
             <div className="pt-2">
