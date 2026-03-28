@@ -81,7 +81,6 @@ async function UsersTable({
       currentUserRole={currentUserRole}
       additionalActions={
         <>
-          <UsersPageActions currentUserRole={currentUserRole} />
           <ExportReportButton
             key="export-report"
             data={exportData}

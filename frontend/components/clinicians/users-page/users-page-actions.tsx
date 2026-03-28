@@ -2,24 +2,32 @@
 
 import { useState } from "react";
 import { Mail } from "lucide-react";
-import { isAdminLike } from "@/utils/role-hierarchy";
+import { canCreatePatient } from "@/utils/role-hierarchy";
 import ResendInviteModal from "./resend-invite-modal";
 
 interface UsersPageActionsProps {
   currentUserRole: string;
+  userId?: string;
+  userEmail?: string;
 }
 
 export default function UsersPageActions({
   currentUserRole,
+  userId,
+  userEmail,
 }: UsersPageActionsProps) {
   const [isResendInviteModalOpen, setIsResendInviteModalOpen] = useState(false);
-  const canResendInvite = isAdminLike(currentUserRole);
+  const canResendInvite = canCreatePatient(currentUserRole);
+
+  const handleResendInvite = () => {
+    setIsResendInviteModalOpen(true);
+  };
 
   return (
     <>
-      {canResendInvite && (
+      {canResendInvite && userId && userEmail && (
         <button
-          onClick={() => setIsResendInviteModalOpen(true)}
+          onClick={handleResendInvite}
           className="btn btn-outline btn-sm gap-2"
           type="button"
         >
@@ -31,6 +39,8 @@ export default function UsersPageActions({
       <ResendInviteModal
         isOpen={isResendInviteModalOpen}
         onClose={() => setIsResendInviteModalOpen(false)}
+        userId={userId}
+        userEmail={userEmail}
       />
     </>
   );

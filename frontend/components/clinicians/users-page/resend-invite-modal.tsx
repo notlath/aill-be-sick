@@ -9,19 +9,26 @@ import { createClient } from "@supabase/supabase-js";
 interface ResendInviteModalProps {
   isOpen: boolean;
   onClose: () => void;
+  userId?: string;
+  userEmail?: string;
 }
 
 export default function ResendInviteModal({
   isOpen,
   onClose,
+  userId,
+  userEmail,
 }: ResendInviteModalProps) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(userEmail || "");
   const [isSending, setIsSending] = useState(false);
 
   const handleResendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email.trim()) {
+    // If we have a userId from the table, use that email instead of the input
+    const targetEmail = userId && userEmail ? userEmail : email;
+
+    if (!targetEmail?.trim()) {
       toast.error("Please enter an email address");
       return;
     }
@@ -47,7 +54,9 @@ export default function ResendInviteModal({
 
       // First, check if the user exists in Supabase Auth
       const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find((u) => u.email === email);
+      const existingUser = existingUsers?.users?.find(
+        (u) => u.email === targetEmail,
+      );
 
       if (!existingUser) {
         toast.error(
@@ -62,7 +71,7 @@ export default function ResendInviteModal({
         process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
       const { error: inviteError } =
-        await supabase.auth.admin.inviteUserByEmail(email, {
+        await supabase.auth.admin.inviteUserByEmail(targetEmail, {
           redirectTo: `${origin}/auth/callback?next=/patient/set-password`,
           data: {
             name: existingUser.user_metadata?.name || "",
@@ -77,8 +86,11 @@ export default function ResendInviteModal({
         return;
       }
 
-      toast.success(`Invite email sent to ${email}`);
-      setEmail("");
+      toast.success(`Invite email sent to ${targetEmail}`);
+      if (!userId) {
+        // Only clear the email if we're in standalone mode
+        setEmail("");
+      }
       onClose();
     } catch (err) {
       console.error("[Resend Invite] Unexpected error:", err);
