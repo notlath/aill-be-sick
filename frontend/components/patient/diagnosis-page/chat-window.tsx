@@ -62,6 +62,19 @@ const mapDisease = (
   }
 };
 
+/** Safely coerce a message field to a string.
+ * The backend may return `message` as a `{en, tl}` dict (UNRELATED_CATEGORY path).
+ */
+const resolveMessage = (msg: unknown): string | null => {
+  if (typeof msg === "string" && msg.trim().length > 0) return msg;
+  if (msg && typeof msg === "object") {
+    const obj = msg as Record<string, string>;
+    const str = obj["en"] ?? obj["tl"] ?? Object.values(obj)[0];
+    if (typeof str === "string" && str.trim().length > 0) return str;
+  }
+  return null;
+};
+
 const getOutOfScopeMessage = ({
   reason,
   diagnosis,
@@ -71,18 +84,10 @@ const getOutOfScopeMessage = ({
   diagnosis?: any;
   verificationFailure?: any;
 }) => {
-  const diagnosisMessage = diagnosis?.message;
-  if (typeof diagnosisMessage === "string" && diagnosisMessage.trim().length > 0) {
-    return diagnosisMessage;
-  }
-
-  const verificationMessage = verificationFailure?.message;
-  if (
-    typeof verificationMessage === "string" &&
-    verificationMessage.trim().length > 0
-  ) {
-    return verificationMessage;
-  }
+  const resolved =
+    resolveMessage(diagnosis?.message) ??
+    resolveMessage(verificationFailure?.message);
+  if (resolved) return resolved;
 
   const outOfScopeType = diagnosis?.out_of_scope_type;
 
@@ -507,7 +512,10 @@ const ChatWindow = ({
           if (shouldSkipFollowup) {
             const skipReason = (data.diagnosis as any)?.skip_reason;
 
-            if (skipReason === "OUT_OF_SCOPE") {
+            if (
+              skipReason === "OUT_OF_SCOPE" ||
+              skipReason === "UNRELATED_CATEGORY"
+            ) {
               setIsFinalDiagnosis(false);
               const verificationFailure = (data.diagnosis as any)
                 ?.verification_failure;
