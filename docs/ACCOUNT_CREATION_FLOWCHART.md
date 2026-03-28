@@ -223,6 +223,48 @@ flowchart TD
 - More secure and user-friendly than temp password approach
 - Clear error handling for failed creations
 
+### Patient Invite Resend Flow
+
+**Purpose**: Admins can resend invite emails to patients if the original invite expired or wasn't received.
+
+**Steps**:
+
+1. Admin navigates to Users page
+2. Admin clicks "Resend Invite" button
+3. Modal opens requesting patient's email address
+4. Admin enters patient's email and confirms
+5. System validates the patient exists in the system
+6. System sends a new invite email with a fresh 24-hour expiration
+7. Patient receives new invite link and can set their password
+
+**Key Points**:
+
+- Only admins can resend invites (role hierarchy: DEVELOPER > ADMIN > CLINICIAN > PATIENT)
+- Invite links expire after 24 hours (configurable in Supabase)
+- Each resend generates a new token with full 24-hour validity
+- If patient already set password, system returns error message
+
+### Expired Invite Handling
+
+**Purpose**: Gracefully handle cases where invite links have expired or are invalid.
+
+**Steps**:
+
+1. User clicks invite link
+2. System processes the invite token
+3. If token is expired, missing, or already used:
+   - User is redirected to /auth/expired-invite page
+   - Page explains the invite has expired
+   - Instructions provided to contact clinician for new invite
+4. Alternatively, user may be redirected to /auth/auth-code-error with `no_token` error
+
+**Key Points**:
+
+- Clear user messaging about what happened
+- Guidance on next steps (contact clinician)
+- Admins can resend invites from Users page
+- No security vulnerabilities in error handling
+
 ### Patient Existing Account Flow
 
 **Purpose**: Existing patients log in to access their dashboard.
@@ -290,3 +332,7 @@ flowchart TD
 8. **Form Validation**: All forms include client-side and server-side validation for data integrity
 9. **Error Recovery**: All error states include clear messaging and retry options
 10. **Security**: Temporary credentials and password changes ensure patient account security
+11. **Resend Invite Feature**: Admins can resend invite emails from the Users page. Each resend generates a new token with full 24-hour validity
+12. **Invite Expiration**: Invite tokens expire after 24 hours. Expired invites redirect users to /auth/expired-invite page with clear instructions
+13. **Role-Based Access**: Resend Invite is only available to ADMIN and DEVELOPER roles (via role hierarchy)
+14. **Client-Side Token Extraction**: Invite links contain tokens in URL hash fragments (#access_token=...). Client-side JavaScript extracts these tokens after server-side processing

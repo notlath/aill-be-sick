@@ -6,6 +6,7 @@ import { ExportReportButton } from "@/components/ui/export-report-button";
 import type { PdfColumn } from "@/utils/pdf-export";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
+import UsersPageActions from "@/components/clinicians/users-page/users-page-actions";
 
 function UsersTableSkeleton() {
   return (
@@ -79,15 +80,18 @@ async function UsersTable({
       data={users || []}
       currentUserRole={currentUserRole}
       additionalActions={
-        <ExportReportButton
-          key="export-report"
-          data={exportData}
-          columns={pdfColumns}
-          filenameSlug="users-report"
-          title="Users Report"
-          subtitle="All registered users"
-          generatedBy={generatedBy}
-        />
+        <>
+          <UsersPageActions currentUserRole={currentUserRole} />
+          <ExportReportButton
+            key="export-report"
+            data={exportData}
+            columns={pdfColumns}
+            filenameSlug="users-report"
+            title="Users Report"
+            subtitle="All registered users"
+            generatedBy={generatedBy}
+          />
+        </>
       }
     />
   );
