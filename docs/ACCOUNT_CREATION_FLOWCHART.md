@@ -1,81 +1,284 @@
 # Account Creation Flowchart
 
+This document maps the account creation and authentication flows for all user types in the AI'll Be Sick system, including admin, clinician, and patient pathways.
+
+## Overview
+
+The system supports three user types with distinct account creation flows:
+
+- **Admin**: Predefined at system startup, no self-signup available
+- **Clinician**: Self-registration with email verification and admin approval required
+- **Patient**: Created by clinicians or directed to health center for in-person registration
+
+All flows include validation, error handling, and appropriate status management to ensure data integrity and security.
+
+## Account Creation Flowchart
+
 ```mermaid
 flowchart TD
-    A[Start] --> B{User Type}
+    %% ========== ENTRY POINT ==========
+    Start([User accesses system]) --> UserType{User Type}
 
-    %% ADMIN PATH (System-created, no self-signup)
-    B -->|Admin| A1[Admin predefined at startup]
-    A1 --> A2[Open Admin Login]
-    A2 --> A3{Credentials valid?}
-    A3 -->|No| A4[Show login error]
-    A4 --> A2
-    A3 -->|Yes| A5[Open Admin Dashboard]
-    A5 --> A6[View Pending Clinician Approvals]
-    A6 --> A7{Select Action}
-    A7 -->|Approve| A8[Move clinician to ACTIVE status]
-    A7 -->|Reject| A9[Move clinician to REJECTED status]
-    A8 --> A10[Send email notification to clinician]
-    A9 --> A10
-    A10 --> A11{More pending?}
-    A11 -->|Yes| A6
-    A11 -->|No| A12[End]
+    %% ========== ADMIN PATH ==========
+    UserType -->|Admin| AdminPredefined[Admin predefined at startup]
+    AdminPredefined --> AdminLogin[Open Admin Login]
+    AdminLogin --> AdminCredsValid{Credentials valid?}
+    AdminCredsValid -->|No| AdminLoginError[Show login error]
+    AdminLoginError --> AdminLogin
+    AdminCredsValid -->|Yes| AdminDashboard[Open Admin Dashboard]
+    AdminDashboard --> ViewPending[View Pending Clinician Approvals]
+    ViewPending --> AdminAction{Select Action}
+    AdminAction -->|Approve| ApproveClinician[Move clinician to ACTIVE status]
+    AdminAction -->|Reject| RejectClinician[Move clinician to REJECTED status]
+    ApproveClinician --> SendNotification[Send email notification to clinician]
+    RejectClinician --> SendNotification
+    SendNotification --> MorePending{More pending?}
+    MorePending -->|Yes| ViewPending
+    MorePending -->|No| AdminEnd([End])
 
-    %% CLINICIAN NEW PATH
-    B -->|Clinician new| C[Open Clinician Sign Up]
-    C --> D[Enter Name, Email, Password, Facility]
-    D --> E{Form valid?}
-    E -->|No| E1[Show errors and retry]
-    E1 --> D
-    E -->|Yes| F[Create Clinician Auth Account]
-    F --> G{Signup success?}
-    G -->|No| G1[Show signup error]
-    G1 --> D
-    G -->|Yes| H[Send verification email]
-    H --> I{Email verified?}
-    I -->|No| I1[Wait or resend verification]
-    I1 --> I
-    I -->|Yes| J[Create Clinician Profile with PENDING_ADMIN_APPROVAL status]
-    J --> J1[Show message: Waiting for admin approval]
-    J1 --> J2[End]
+    %% ========== CLINICIAN NEW PATH ==========
+    UserType -->|Clinician new| ClinicianSignUp[Open Clinician Sign Up]
+    ClinicianSignUp --> EnterDetails[Enter Name, Email, Password, Facility]
+    EnterDetails --> FormValid{Form valid?}
+    FormValid -->|No| ShowFormErrors[Show errors and retry]
+    ShowFormErrors --> EnterDetails
+    FormValid -->|Yes| CreateAuth[Create Clinician Auth Account]
+    CreateAuth --> SignupSuccess{Signup success?}
+    SignupSuccess -->|No| ShowSignupError[Show signup error]
+    ShowSignupError --> EnterDetails
+    SignupSuccess -->|Yes| SendVerification[Send verification email]
+    SendVerification --> EmailVerified{Email verified?}
+    EmailVerified -->|No| WaitResend[Wait or resend verification]
+    WaitResend --> EmailVerified
+    EmailVerified -->|Yes| CreateProfile[Create Clinician Profile with PENDING_ADMIN_APPROVAL status]
+    CreateProfile --> ShowPendingMessage[Show message: Waiting for admin approval]
+    ShowPendingMessage --> ClinicianNewEnd([End])
 
-    %% CLINICIAN EXISTING PATH
-    B -->|Clinician existing| K[Open Clinician Login]
-    K --> L{Credentials valid?}
-    L -->|No| L1[Show login error]
-    L1 --> K
-    L -->|Yes| M{Clinician status?}
-    M -->|PENDING_ADMIN_APPROVAL| M1[Show: Account pending admin approval]
-    M1 --> M2[End]
-    M -->|ACTIVE| N[Open Patient Management Dashboard]
+    %% ========== CLINICIAN EXISTING PATH ==========
+    UserType -->|Clinician existing| ClinicianLogin[Open Clinician Login]
+    ClinicianLogin --> ClinicianCredsValid{Credentials valid?}
+    ClinicianCredsValid -->|No| ClinicianLoginError[Show login error]
+    ClinicianLoginError --> ClinicianLogin
+    ClinicianCredsValid -->|Yes| ClinicianStatus{Clinician status?}
+    ClinicianStatus -->|PENDING_ADMIN_APPROVAL| ShowPendingApproval[Show: Account pending admin approval]
+    ShowPendingApproval --> ClinicianExistingEnd([End])
+    ClinicianStatus -->|ACTIVE| PatientDashboard[Open Patient Management Dashboard]
 
-    N --> O[Click Create Patient Account]
-    O --> P[Enter Patient Details: Name, Contact, DOB]
-    P --> Q[Auto-generate temp credentials for patient]
-    Q --> R{Patient form valid?}
-    R -->|No| R1[Show errors and retry]
-    R1 --> P
-    R -->|Yes| S[Create Patient Auth + Patient Profile]
-    S --> T{Creation success?}
-    T -->|No| T1[Show creation error]
-    T1 --> P
-    T -->|Yes| U[Share temp credentials with patient]
-    U --> V[Patient logs in and changes password on first login]
-    V --> W[End]
+    %% ========== PATIENT CREATION BY CLINICIAN ==========
+    PatientDashboard --> ClickCreatePatient[Click Create Patient Account]
+    ClickCreatePatient --> EnterPatientDetails[Enter Patient Details: Name, Contact, DOB]
+    EnterPatientDetails --> AutoGenCredentials[Auto-generate temp credentials for patient]
+    AutoGenCredentials --> PatientFormValid{Patient form valid?}
+    PatientFormValid -->|No| ShowPatientFormErrors[Show errors and retry]
+    ShowPatientFormErrors --> EnterPatientDetails
+    PatientFormValid -->|Yes| CreatePatientAccount[Create Patient Auth + Patient Profile]
+    CreatePatientAccount --> PatientCreationSuccess{Creation success?}
+    PatientCreationSuccess -->|No| ShowCreationError[Show creation error]
+    ShowCreationError --> EnterPatientDetails
+    PatientCreationSuccess -->|Yes| ShareCredentials[Share temp credentials with patient]
+    ShareCredentials --> PatientFirstLogin[Patient logs in and changes password on first login]
+    PatientFirstLogin --> PatientCreationEnd([End])
 
-    %% PATIENT EXISTING PATH
-    B -->|Patient existing| X[Open Patient Login]
-    X --> Y{Credentials valid?}
-    Y -->|No| Y1[Show login error]
-    Y1 --> X
-    Y -->|Yes| Z[Open Patient Dashboard]
-    Z --> W
+    %% ========== PATIENT EXISTING PATH ==========
+    UserType -->|Patient existing| PatientLogin[Open Patient Login]
+    PatientLogin --> PatientCredsValid{Credentials valid?}
+    PatientCredsValid -->|No| PatientLoginError[Show login error]
+    PatientLoginError --> PatientLogin
+    PatientCredsValid -->|Yes| PatientDashboardView[Open Patient Dashboard]
+    PatientDashboardView --> PatientExistingEnd([End])
 
-    %% PATIENT NEW PATH
-    B -->|Patient new| X1[Click Need an account on login page]
-    X1 --> X2[Navigate to /need-account page]
-    X2 --> X3[Show: Visit Bagong Silangan Barangay Health Center]
-    X3 --> X4[Show: System currently serves Bagong Silangan only]
-    X4 --> X5[Link back to login]
-    X5 --> W
+    %% ========== PATIENT NEW PATH ==========
+    UserType -->|Patient new| ClickNeedAccount[Click Need an account on login page]
+    ClickNeedAccount --> NavigateNeedAccount[Navigate to /need-account page]
+    NavigateNeedAccount --> ShowVisitHealthCenter[Show: Visit Bagong Silangan Barangay Health Center]
+    ShowVisitHealthCenter --> ShowServiceArea[Show: System currently serves Bagong Silangan only]
+    ShowServiceArea --> LinkBackLogin[Link back to login]
+    LinkBackLogin --> PatientNewEnd([End])
+
+    %% ========== STYLES ==========
+    classDef adminNode fill:#fce4ec,stroke:#c2185b
+    classDef clinicianNode fill:#fff3e0,stroke:#f57c00
+    classDef patientNode fill:#e8f5e9,stroke:#388e3c
+    classDef errorNode fill:#ffebee,stroke:#d32f2f
+    classDef successNode fill:#e8f5e9,stroke:#388e3c
+
+    %% Apply styles to nodes
+    class AdminPredefined,AdminLogin,AdminDashboard,ViewPending,AdminAction,ApproveClinician,RejectClinician,SendNotification,MorePending adminNode
+    class ClinicianSignUp,EnterDetails,CreateAuth,SendVerification,CreateProfile,ShowPendingMessage,ClinicianLogin,ClinicianStatus,ShowPendingApproval,PatientDashboard,ClickCreatePatient,EnterPatientDetails,AutoGenCredentials,CreatePatientAccount,ShareCredentials,PatientFirstLogin clinicianNode
+    class PatientLogin,PatientDashboardView,ClickNeedAccount,NavigateNeedAccount,ShowVisitHealthCenter,ShowServiceArea,LinkBackLogin patientNode
+    class AdminLoginError,ShowFormErrors,ShowSignupError,ClinicianLoginError,ShowPatientFormErrors,ShowCreationError,PatientLoginError errorNode
 ```
+
+## Legend
+
+### Node Types
+
+| Shape   | Meaning         |
+| ------- | --------------- |
+| `([ ])` | Start/End point |
+| `[ ]`   | Process/Action  |
+| `{ }`   | Decision point  |
+
+### Line Types
+
+| Style          | Meaning                     |
+| -------------- | --------------------------- |
+| `-->`          | Normal flow                 |
+| `-->\|label\|` | Conditional flow with label |
+
+### Color Coding
+
+| Color  | User Type / Purpose         |
+| ------ | --------------------------- |
+| Pink   | Admin-related processes     |
+| Orange | Clinician-related processes |
+| Green  | Patient-related processes   |
+| Red    | Error states                |
+
+## Flow Descriptions
+
+### Admin Flow
+
+**Purpose**: Admin users are predefined at system startup and manage clinician approvals.
+
+**Steps**:
+
+1. Admin credentials are predefined in the system
+2. Admin logs in with credentials
+3. Upon successful login, admin accesses the dashboard
+4. Admin views pending clinician approval requests
+5. Admin can approve or reject each clinician
+6. Email notifications are sent to clinicians regardless of decision
+7. Process repeats until all pending approvals are handled
+
+**Key Points**:
+
+- No self-signup for admins
+- Admins have full control over clinician access
+- Email notifications keep clinicians informed of their status
+
+### Clinician New Account Flow
+
+**Purpose**: New clinicians self-register and await admin approval.
+
+**Steps**:
+
+1. Clinician opens the sign-up page
+2. Clinician enters required information (name, email, password, facility)
+3. Form validation occurs in real-time
+4. Upon valid form submission, auth account is created
+5. Verification email is sent to clinician
+6. Clinician must verify email address
+7. After verification, clinician profile is created with PENDING_ADMIN_APPROVAL status
+8. Clinician is informed they must wait for admin approval
+
+**Key Points**:
+
+- Email verification required before profile creation
+- Profile status starts as PENDING_ADMIN_APPROVAL
+- Clinician cannot access system until admin approves
+- Clear messaging keeps clinician informed of status
+
+### Clinician Existing Account Flow
+
+**Purpose**: Existing clinicians log in and access their dashboard based on approval status.
+
+**Steps**:
+
+1. Clinician opens login page
+2. Clinician enters credentials
+3. System validates credentials
+4. System checks clinician approval status
+5. If PENDING_ADMIN_APPROVAL: Show pending message
+6. If ACTIVE: Grant access to patient management dashboard
+
+**Key Points**:
+
+- Status check happens at every login
+- Pending clinicians see clear messaging about their status
+- Active clinicians can proceed to create patient accounts
+
+### Patient Creation by Clinician Flow
+
+**Purpose**: Clinicians create patient accounts with temporary credentials.
+
+**Steps**:
+
+1. Clinician clicks "Create Patient Account" from dashboard
+2. Clinician enters patient details (name, contact, date of birth)
+3. System auto-generates temporary credentials
+4. Form validation occurs
+5. Upon valid form submission, patient auth and profile are created
+6. Temporary credentials are shared with patient
+7. Patient logs in and changes password on first login
+
+**Key Points**:
+
+- Clinician-initiated patient creation
+- Temporary credentials ensure security
+- Password change required on first login
+- Clear error handling for failed creations
+
+### Patient Existing Account Flow
+
+**Purpose**: Existing patients log in to access their dashboard.
+
+**Steps**:
+
+1. Patient opens login page
+2. Patient enters credentials
+3. System validates credentials
+4. Upon successful validation, patient dashboard opens
+
+**Key Points**:
+
+- Simple authentication flow
+- Direct access to patient dashboard
+
+### Patient New Account Flow
+
+**Purpose**: New patients are directed to visit the health center for in-person registration.
+
+**Steps**:
+
+1. Patient clicks "Need an account" on login page
+2. Patient is navigated to /need-account page
+3. System displays message to visit Bagong Silangan Barangay Health Center
+4. System explains it currently serves Bagong Silangan only
+5. Patient is provided link back to login
+
+**Key Points**:
+
+- No online self-registration for patients
+- In-person registration required at health center
+- Clear messaging about service area limitations
+- Easy navigation back to login
+
+## Status Definitions
+
+### Clinician Statuses
+
+| Status                   | Description                                                          |
+| ------------------------ | -------------------------------------------------------------------- |
+| `PENDING_ADMIN_APPROVAL` | Clinician has registered and verified email, awaiting admin approval |
+| `ACTIVE`                 | Admin has approved clinician, full access granted                    |
+| `REJECTED`               | Admin has rejected clinician application                             |
+
+### Patient Statuses
+
+| Status   | Description                                         |
+| -------- | --------------------------------------------------- |
+| `ACTIVE` | Patient account created by clinician, ready for use |
+
+## Technical Notes
+
+1. **Admin Predefined**: Admin accounts are created at system startup via environment variables or configuration, not through the UI
+2. **Email Verification**: Clinician email verification uses Supabase Auth's built-in verification flow
+3. **Temporary Credentials**: Patient temporary credentials are auto-generated and should be shared securely with the patient
+4. **First Login Password Change**: Patients must change their password on first login for security
+5. **Status Persistence**: Clinician status is stored in the database and checked at every login
+6. **Email Notifications**: Admin approval/rejection triggers email notifications to clinicians via Supabase
+7. **Service Area Limitation**: The system currently serves only Bagong Silangan Barangay Health Center
+8. **Form Validation**: All forms include client-side and server-side validation for data integrity
+9. **Error Recovery**: All error states include clear messaging and retry options
+10. **Security**: Temporary credentials and password changes ensure patient account security
