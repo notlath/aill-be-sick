@@ -41,14 +41,15 @@ interface CreatePatientFormProps {
 export default function CreatePatientForm({
   onSuccess,
 }: CreatePatientFormProps) {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [middleName, setMiddleName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [suffix, setSuffix] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [birthday, setBirthday] = useState("");
   const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">("");
   const [address, setAddress] = useState("");
   const [district, setDistrict] = useState("");
-  const [medicalId, setMedicalId] = useState("");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
 
@@ -81,14 +82,15 @@ export default function CreatePatientForm({
         });
         toast.success("Patient account created successfully!");
         // Reset form
-        setName("");
+        setFirstName("");
+        setMiddleName("");
+        setLastName("");
+        setSuffix("");
         setEmail("");
-        setPhone("");
         setBirthday("");
         setGender("");
         setAddress("");
         setDistrict("");
-        setMedicalId("");
         setLatitude(null);
         setLongitude(null);
         setMinimapFeature(undefined);
@@ -142,9 +144,11 @@ export default function CreatePatientForm({
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       execute({
-        name,
+        firstName,
+        middleName: middleName || undefined,
+        lastName,
+        suffix: suffix || undefined,
         email,
-        phone: phone || undefined,
         birthday,
         gender: gender as "MALE" | "FEMALE" | "OTHER",
         address,
@@ -155,21 +159,21 @@ export default function CreatePatientForm({
         province: FIXED_PROVINCE,
         latitude: latitude ?? undefined,
         longitude: longitude ?? undefined,
-        medicalId: medicalId || undefined,
       });
     },
     [
       execute,
-      name,
+      firstName,
+      middleName,
+      lastName,
+      suffix,
       email,
-      phone,
       birthday,
       gender,
       address,
       district,
       latitude,
       longitude,
-      medicalId,
     ],
   );
 
@@ -282,18 +286,55 @@ export default function CreatePatientForm({
         </div>
       </div>
 
+      {/* Personal Information */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Personal Information */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-base-content">
-            Full Name *
+            First Name *
           </label>
           <Input
-            name="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Patient's full name"
+            name="firstName"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Juan"
             required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-base-content">
+            Middle Name
+          </label>
+          <Input
+            name="middleName"
+            value={middleName}
+            onChange={(e) => setMiddleName(e.target.value)}
+            placeholder="Santos"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-base-content">
+            Last Name *
+          </label>
+          <Input
+            name="lastName"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Dela Cruz"
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-base-content">
+            Suffix
+          </label>
+          <Input
+            name="suffix"
+            value={suffix}
+            onChange={(e) => setSuffix(e.target.value)}
+            placeholder="Jr., Sr., III"
           />
         </div>
 
@@ -308,19 +349,6 @@ export default function CreatePatientForm({
             onChange={(e) => setEmail(e.target.value)}
             placeholder="patient@example.com"
             required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-base-content">
-            Phone Number
-          </label>
-          <Input
-            type="tel"
-            name="phone"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+63 912 345 6789"
           />
         </div>
 
@@ -357,18 +385,6 @@ export default function CreatePatientForm({
             </SelectContent>
           </Select>
         </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-base-content">
-            Medical ID
-          </label>
-          <Input
-            name="medicalId"
-            value={medicalId}
-            onChange={(e) => setMedicalId(e.target.value)}
-            placeholder="Optional medical ID"
-          />
-        </div>
       </div>
 
       {/* Patient's Home Address */}
@@ -377,36 +393,12 @@ export default function CreatePatientForm({
           Patient's Home Address
         </h3>
         <p className="text-sm text-muted mb-4">
-          Enter the patient&apos;s residential address for accurate disease
-          tracking and outbreak detection. The address is geocoded to get
-          location coordinates.
+          Enter the patient's residential address for accurate disease tracking
+          and outbreak detection. The address is geocoded to get location
+          coordinates.
         </p>
 
         <div className="space-y-6">
-          {/* Fixed: Barangay & City */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-base-content block">
-                City / Municipality
-              </label>
-              <Input
-                value={FIXED_CITY}
-                disabled
-                className="bg-base-100 opacity-60 cursor-not-allowed"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-base-content block">
-                Barangay
-              </label>
-              <Input
-                value={FIXED_BARANGAY}
-                disabled
-                className="bg-base-100 opacity-60 cursor-not-allowed"
-              />
-            </div>
-          </div>
-
           {/* District / Zone */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-base-content block">

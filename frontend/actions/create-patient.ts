@@ -32,9 +32,11 @@ export const createPatient = actionClient
 
     try {
       const {
-        name,
+        firstName,
+        middleName,
+        lastName,
+        suffix,
         email,
-        phone,
         birthday,
         gender,
         address,
@@ -45,8 +47,13 @@ export const createPatient = actionClient
         province,
         latitude,
         longitude,
-        medicalId,
       } = parsedInput;
+
+      // Build full name from structured fields
+      const nameParts = [firstName, middleName, lastName, suffix].filter(
+        Boolean,
+      );
+      const name = nameParts.join(" ");
 
       // Check if email already exists
       const existingUser = await prisma.user.findUnique({
