@@ -9,38 +9,40 @@ datasource db {
 }
 
 model User {
-  id          Int         @id @default(autoincrement())
-  email       String      @unique
-  name        String?
-  authId      String?     @unique
-  avatar      String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @default(now()) @updatedAt
-  role        Role        @default(PATIENT)
-  city        String?
-  address     String?
-  latitude    Float?
-  longitude   Float?
-  region      String?
-  age         Int?
-  gender      Gender?
-  province    String?
-  barangay    String?
-  birthday    DateTime?
-  isOnboarded Boolean     @default(false)
-  district    String?
-
-  // Consent tracking
-  termsAcceptedAt    DateTime?
+  id                 Int                 @id @default(autoincrement())
+  email              String              @unique
+  name               String?
+  authId             String?             @unique
+  avatar             String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @default(now()) @updatedAt
+  role               Role                @default(PATIENT)
+  city               String?
+  latitude           Float?
+  longitude          Float?
+  region             String?
+  age                Int?
+  gender             Gender?
+  province           String?
+  barangay           String?
+  birthday           DateTime?
+  isOnboarded        Boolean             @default(false)
+  district           String?
+  address            String?
   privacyAcceptedAt  DateTime?
-  termsVersion       String?
   privacyVersion     String?
-
+  termsAcceptedAt    DateTime?
+  termsVersion       String?
+  approvalStatus     ApprovalStatus      @default(ACTIVE)
+  approvedAt         DateTime?
+  approvedBy         Int?
+  approvalNotes      String?
+  rejectedAt         DateTime?
+  acknowledgedAlerts Alert[]             @relation("AlertAcknowledger")
+  resolvedAlerts     Alert[]             @relation("AlertResolver")
+  alertNotes         AlertNote[]         @relation("AlertNoteAuthor")
   chats              Chat[]
   diagnoses          Diagnosis[]
-  acknowledgedAlerts Alert[]     @relation("AlertAcknowledger")
-  resolvedAlerts     Alert[]     @relation("AlertResolver")
-  alertNotes         AlertNote[] @relation("AlertNoteAuthor")
   diagnosisOverrides DiagnosisOverride[] @relation("OverrideClinicianRelation")
 
   @@index([latitude, longitude])
@@ -89,36 +91,33 @@ model TempDiagnosis {
 }
 
 model Diagnosis {
-  id          Int          @id @default(autoincrement())
-  confidence  Float
-  uncertainty Float
-  disease     Disease
-  createdAt   DateTime     @default(now())
-  chatId      String       @unique
-  userId      Int
-  modelUsed   Model
-  symptoms    String
-  cdss        Json?
-  city        String?
-  latitude    Float?
-  longitude   Float?
-  region      String?
-  province    String?
-  barangay    String?
-  district    String?
-  // Temperature data (optional - for future analytics)
-  temperature     Float?   // Normalized temperature in Celsius
-  temperatureUnit String?  // Original unit used: "celsius" or "fahrenheit"
-  
-  // BMI data
+  id              Int                @id @default(autoincrement())
+  confidence      Float
+  uncertainty     Float
+  disease         Disease
+  createdAt       DateTime           @default(now())
+  chatId          String             @unique
+  userId          Int
+  modelUsed       Model
+  symptoms        String
+  city            String?
+  latitude        Float?
+  longitude       Float?
+  region          String?
+  province        String?
+  barangay        String?
+  district        String?
+  cdss            Json?
+  bmiAdvice       String?
   heightCm        Float?
+  temperature     Float?
+  temperatureUnit String?
   weightKg        Float?
-  bmiAdvice       String?  // Store the Gemini response so it doesn't need to be fetched again
-  chat        Chat         @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  explanation Explanation?
-  alerts      Alert[]
-  override    DiagnosisOverride?
+  alerts          Alert[]
+  chat            Chat               @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  override        DiagnosisOverride?
+  explanation     Explanation?
 
   @@index([createdAt])
   @@index([disease])
@@ -137,27 +136,19 @@ model Explanation {
   message     Message?   @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
-// Clinician override of AI diagnosis with full audit logging
-// Tracks both the original AI suggestion and the clinician's final assessment
 model DiagnosisOverride {
-  id               Int      @id @default(autoincrement())
-  diagnosisId      Int      @unique
-  diagnosis        Diagnosis @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
-  
-  // Original AI assessment (preserved for audit)
+  id               Int       @id @default(autoincrement())
+  diagnosisId      Int       @unique
   aiDisease        Disease
   aiConfidence     Float
   aiUncertainty    Float
-  
-  // Clinician's override
   clinicianDisease Disease
-  clinicianNotes   String?  // Clinical reasoning for the override
-  
-  // Audit fields
+  clinicianNotes   String?
   clinicianId      Int
-  clinician        User     @relation("OverrideClinicianRelation", fields: [clinicianId], references: [id], onDelete: Cascade)
-  createdAt        DateTime @default(now())
-  
+  createdAt        DateTime  @default(now())
+  clinician        User      @relation("OverrideClinicianRelation", fields: [clinicianId], references: [id], onDelete: Cascade)
+  diagnosis        Diagnosis @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
+
   @@index([clinicianId])
   @@index([createdAt])
 }
@@ -168,29 +159,29 @@ model Alert {
   severity       AlertSeverity
   status         AlertStatus   @default(NEW)
   diagnosisId    Int?
-  diagnosis      Diagnosis?    @relation(fields: [diagnosisId], references: [id], onDelete: SetNull)
   reasonCodes    String[]
   message        String
   metadata       Json?
   createdAt      DateTime      @default(now())
   acknowledgedAt DateTime?
   acknowledgedBy Int?
-  acknowledger   User?         @relation("AlertAcknowledger", fields: [acknowledgedBy], references: [id], onDelete: SetNull)
   resolvedAt     DateTime?
   resolvedBy     Int?
-  resolver       User?         @relation("AlertResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+  acknowledger   User?         @relation("AlertAcknowledger", fields: [acknowledgedBy], references: [id])
+  diagnosis      Diagnosis?    @relation(fields: [diagnosisId], references: [id])
+  resolver       User?         @relation("AlertResolver", fields: [resolvedBy], references: [id])
   notes          AlertNote[]
 }
 
 model AlertNote {
   id        Int      @id @default(autoincrement())
   alertId   Int
-  alert     Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
   authorId  Int
-  author    User     @relation("AlertNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  alert     Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  author    User     @relation("AlertNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 }
 
 model AllowedClinicianEmail {
@@ -212,10 +203,10 @@ model diagnosis_sessions {
   model_used       String
   lang             String @default("en")
   asked_questions  String @default("[]")
-  question_answers String @default("{}")
   evidence_texts   String @default("[]")
   created_at       Float
   updated_at       Float
+  question_answers String @default("{}")
   initial_eig      Float?
 
   @@index([chat_id], map: "idx_diagnosis_sessions_chat_id")
@@ -225,8 +216,8 @@ model diagnosis_sessions {
 enum Role {
   PATIENT
   CLINICIAN
-  ADMIN
   DEVELOPER
+  ADMIN
 }
 
 enum Gender {
@@ -246,8 +237,8 @@ enum MessageType {
   QUESTION
   DIAGNOSIS
   URGENT_WARNING
-  INFO
   ERROR
+  INFO
 }
 
 enum Disease {
@@ -267,9 +258,9 @@ enum Model {
 
 enum AlertType {
   ANOMALY
-  OUTBREAK
   LOW_CONFIDENCE
   HIGH_UNCERTAINTY
+  OUTBREAK
 }
 
 enum AlertSeverity {
@@ -282,6 +273,12 @@ enum AlertSeverity {
 enum AlertStatus {
   NEW
   ACKNOWLEDGED
-  RESOLVED
   DISMISSED
+  RESOLVED
+}
+
+enum ApprovalStatus {
+  PENDING_ADMIN_APPROVAL
+  ACTIVE
+  REJECTED
 }
