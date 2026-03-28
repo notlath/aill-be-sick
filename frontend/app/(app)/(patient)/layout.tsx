@@ -1,10 +1,12 @@
 import Sidebar from "@/components/patient/layout/sidebar";
-import OnboardingModal from "@/components/patient/onboarding/onboarding-modal";
 import ConsentModal from "@/components/consent-modal";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import HelpModal from "@/components/patient/layout/help-modal";
 import { getCurrentDbUser } from "@/utils/user";
-import { needsTermsUpdate, getTermsUpdateInfo } from "@/utils/check-terms-version";
+import {
+  needsTermsUpdate,
+  getTermsUpdateInfo,
+} from "@/utils/check-terms-version";
 import { forbidden, redirect, unauthorized } from "next/navigation";
 import { ReactNode, Suspense } from "react";
 
@@ -32,10 +34,6 @@ const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
     forbidden();
   }
 
-  if (!dbUser.isOnboarded) {
-    return redirect("/onboarding");
-  }
-
   // Check if user needs to accept terms
   const requiresConsent = needsTermsUpdate(dbUser);
   const { reasons } = getTermsUpdateInfo(dbUser);
@@ -43,7 +41,6 @@ const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
   return (
     <LayoutWrapper>
       <Sidebar dbUser={dbUser} />
-      <OnboardingModal />
       <HelpModal />
       {/* Show consent modal if user hasn't accepted terms or needs to re-accept */}
       {requiresConsent && <ConsentModal reasons={reasons} />}

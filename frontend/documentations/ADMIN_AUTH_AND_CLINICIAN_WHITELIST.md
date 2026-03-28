@@ -33,13 +33,13 @@ graph TD
     B -->|Patient| C[Patient Login]
     B -->|Clinician| D[Clinician Login]
     B -->|Admin| E[Admin Login]
-    
+
     C --> F[Supabase Auth]
     D --> G{Email in Whitelist?}
     G -->|Yes| F
     G -->|No| H[Registration Blocked]
     E --> F
-    
+
     F --> I[Create/Update User in Prisma]
     I --> J{User Role}
     J -->|PATIENT| K[Redirect to Patient Dashboard]
@@ -53,6 +53,7 @@ graph TD
 #### New Models
 
 **AllowedClinicianEmail**
+
 ```prisma
 model AllowedClinicianEmail {
   id        Int      @id @default(autoincrement())
@@ -62,6 +63,7 @@ model AllowedClinicianEmail {
 ```
 
 **Role Enum (Extended)**
+
 ```prisma
 enum Role {
   PATIENT
@@ -72,6 +74,7 @@ enum Role {
 ```
 
 **User Model (Existing)**
+
 ```prisma
 model User {
   id           String   @id @default(cuid())
@@ -91,13 +94,15 @@ model User {
 ### 1. Admin Authentication (`/frontend/actions/admin-auth.ts`)
 
 #### Purpose
+
 Provides dedicated login and signup actions for admin users, bypassing the clinician email whitelist restriction.
 
 #### Implementation Details
 
 **`adminLogin` Action**
+
 - **Input**: `EmailAuthSchema` (email, password)
-- **Process**: 
+- **Process**:
   1. Authenticates with Supabase
   2. Validates credentials
   3. Revalidates layout cache
@@ -105,6 +110,7 @@ Provides dedicated login and signup actions for admin users, bypassing the clini
 - **Error Handling**: Returns structured error messages from Supabase
 
 **`adminSignup` Action**
+
 - **Input**: `EmailAuthSchema` (email, password)
 - **Process**:
   1. Constructs email redirect URL using environment variables
@@ -125,12 +131,12 @@ export const adminSignup = actionClient
       process.env.NEXT_PUBLIC_VERCEL_URL ??
       "http://localhost:3000";
 
-    const { error, data } = await supabase.auth.signUp({ 
-      email, 
+    const { error, data } = await supabase.auth.signUp({
+      email,
       password,
       options: {
         emailRedirectTo: `${appUrl}/auth/callback`,
-      }
+      },
     });
 
     if (data.user) {
@@ -155,14 +161,16 @@ export const adminSignup = actionClient
 ### 2. Email Whitelist Management (`/frontend/actions/manage-clinicians.ts`)
 
 #### Purpose
+
 Enables admins to control which email addresses can register as clinicians by managing a whitelist database table.
 
 #### Actions
 
 **`addAllowedClinicianEmail` Action**
+
 - **Input**: `ManageClinicianEmailSchema` (email)
 - **Authorization**: Requires ADMIN or DEVELOPER role
-- **Validation**: 
+- **Validation**:
   - Checks for duplicate emails
   - Validates email format via Zod schema
 - **Process**:
@@ -173,6 +181,7 @@ Enables admins to control which email addresses can register as clinicians by ma
   5. Returns success with created record
 
 **`removeAllowedClinicianEmail` Action**
+
 - **Input**: `ManageClinicianEmailSchema` (email)
 - **Authorization**: Requires ADMIN or DEVELOPER role
 - **Process**:
@@ -220,11 +229,13 @@ export const addAllowedClinicianEmail = actionClient
 ### 3. Enhanced Clinician Registration (`/frontend/actions/email-auth.ts`)
 
 #### Purpose
+
 Modifies existing clinician signup to enforce email whitelist validation before allowing registration.
 
 #### Changes
 
 **New Validation Logic**
+
 ```typescript
 const allowedEmail = await prisma.allowedClinicianEmail.findUnique({
   where: { email },
@@ -232,12 +243,14 @@ const allowedEmail = await prisma.allowedClinicianEmail.findUnique({
 
 if (!allowedEmail) {
   return {
-    error: "Your email is not authorized to register as a clinician. Please contact your administrator.",
+    error:
+      "Your email is not authorized to register as a clinician. Please contact your administrator.",
   };
 }
 ```
 
 **Post-Registration Cleanup**
+
 ```typescript
 await prisma.allowedClinicianEmail.delete({
   where: { email },
@@ -245,6 +258,7 @@ await prisma.allowedClinicianEmail.delete({
 ```
 
 **Behavior**:
+
 1. Checks if email exists in whitelist
 2. Blocks registration if not whitelisted
 3. After successful registration, removes email from whitelist (one-time use)
@@ -255,6 +269,7 @@ await prisma.allowedClinicianEmail.delete({
 ### 4. Admin Portal UI (`/frontend/app/(auth)/admin-login/page.tsx`)
 
 #### Purpose
+
 Provides a dedicated login interface for administrators with both sign-in and sign-up capabilities.
 
 #### Features
@@ -287,20 +302,24 @@ Provides a dedicated login interface for administrators with both sign-in and si
 ### 5. Users Management Page (`/frontend/app/(app)/(clinician)/users/page.tsx`)
 
 #### Purpose
+
 Centralized interface for viewing all users and managing clinician email whitelists (admin-only).
 
 #### Features
 
 **Role-Based Filtering**
+
 - **Admin View**: Can filter by ADMIN, CLINICIAN, PATIENT roles
 - **Clinician View**: Limited to PATIENT role filter only
 
 **Admin Actions**
+
 - Add clinician email to whitelist (modal interface)
 - View all users across roles
 - Monitor clinician patient counts
 
 **Data Table Integration**
+
 - Sorting by name, email, role, patient count
 - Search functionality
 - Pagination (10 users per page)
@@ -327,6 +346,7 @@ const UsersPage = async () => {
 ### 6. Add Clinician Email Modal (`/frontend/components/clinicians/users-page/add-clinician-email-modal.tsx`)
 
 #### Purpose
+
 Modal dialog for admins to add new email addresses to the clinician whitelist.
 
 #### Features
@@ -352,6 +372,7 @@ Modal dialog for admins to add new email addresses to the clinician whitelist.
 ### 7. Enhanced Navigation System (`/frontend/constants/nav-items.ts`, `/frontend/components/patient/layout/nav-links.tsx`)
 
 #### Purpose
+
 Dynamic navigation that adapts to user role, providing appropriate menu items for each portal type.
 
 #### Admin Navigation Items
@@ -407,15 +428,19 @@ const navItems = useMemo(() => {
 #### Clinician Layout (`/frontend/app/(app)/(clinician)/layout.tsx`)
 
 **Updated Role Validation**
+
 ```typescript
-if (dbUser.role !== "CLINICIAN" && 
-    dbUser.role !== ("DEVELOPER" as any) && 
-    dbUser.role !== "ADMIN") {
+if (
+  dbUser.role !== "CLINICIAN" &&
+  dbUser.role !== ("DEVELOPER" as any) &&
+  dbUser.role !== "ADMIN"
+) {
   redirect("/");
 }
 ```
 
 **Behavior**:
+
 - Allows CLINICIAN, DEVELOPER, and ADMIN roles
 - Redirects PATIENT users to home
 - Prevents unauthorized access to clinician features
@@ -423,15 +448,15 @@ if (dbUser.role !== "CLINICIAN" &&
 #### Home Page Redirects (`/frontend/app/page.tsx`)
 
 **Role-Based Routing**
+
 ```typescript
 if (dbUser.role === "ADMIN") {
   redirect("/dashboard");
 }
 
 if (dbUser.role === "PATIENT") {
-  if (!dbUser.isOnboarded) {
-    redirect("/onboarding");
-  }
+  // Note: Patient onboarding has been removed. Patient profile data is now
+  // collected during clinician-initiated patient creation via /create-patient
   redirect("/dashboard");
 }
 ```
@@ -441,16 +466,19 @@ if (dbUser.role === "PATIENT") {
 ### 9. Enhanced Data Table (`/frontend/components/clinicians/users-page/data-table.tsx`)
 
 #### Purpose
+
 Centralized table component for displaying users with role-based filtering and admin controls.
 
 #### New Features
 
 **Admin-Only Controls**
+
 - "Add Clinician Email" button (visible only to admins)
 - Expanded role filter options (ADMIN, CLINICIAN, PATIENT)
 - Non-admin users see only PATIENT filter
 
 **Conditional Rendering**
+
 ```typescript
 const roleFilterOptions = isAdmin
   ? [
@@ -466,11 +494,13 @@ const roleFilterOptions = isAdmin
 ### 10. Header Component Updates (`/frontend/components/patient/layout/header.tsx`)
 
 #### Purpose
+
 Adapts header display based on user role, hiding profile links for admin users.
 
 #### Changes
 
 **Conditional Profile Link**
+
 ```typescript
 {dbUser.role !== "ADMIN" && (
   <li>
@@ -482,6 +512,7 @@ Adapts header display based on user role, hiding profile links for admin users.
 ```
 
 **Dynamic Profile Resolution**
+
 ```typescript
 const resolvedProfileLink = useMemo(() => {
   switch (dbUser.role) {
@@ -494,9 +525,14 @@ const resolvedProfileLink = useMemo(() => {
 ```
 
 **Null-Safe Name Display**
+
 ```typescript
-{dbUser.name || "Clinician"}
-{dbUser.name ? dbUser.name.charAt(0) : "C"}
+{
+  dbUser.name || "Clinician";
+}
+{
+  dbUser.name ? dbUser.name.charAt(0) : "C";
+}
 ```
 
 ---
@@ -504,14 +540,15 @@ const resolvedProfileLink = useMemo(() => {
 ### 11. Authentication Middleware (`/frontend/utils/supabase/proxy.ts`)
 
 #### Purpose
+
 Protects authentication routes from session update conflicts.
 
 #### Updated Route Exclusions
 
 ```typescript
-!request.nextUrl.pathname.startsWith('/clinician-reset-password') &&
-!request.nextUrl.pathname.startsWith('/clinician-auth') &&
-!request.nextUrl.pathname.startsWith('/admin-login')
+!request.nextUrl.pathname.startsWith("/clinician-reset-password") &&
+  !request.nextUrl.pathname.startsWith("/clinician-auth") &&
+  !request.nextUrl.pathname.startsWith("/admin-login");
 ```
 
 **Behavior**: Prevents middleware from interfering with auth flow redirects.
@@ -521,6 +558,7 @@ Protects authentication routes from session update conflicts.
 ### 12. User Utility Enhancements (`/frontend/utils/user.ts`)
 
 #### Purpose
+
 Extends user query utilities to support role-based filtering.
 
 #### Updated `getAllUsers` Function
@@ -528,9 +566,8 @@ Extends user query utilities to support role-based filtering.
 ```typescript
 export const getAllUsers = async (currentUserRole?: string) => {
   try {
-    const whereClause = currentUserRole === "CLINICIAN" 
-      ? { role: "PATIENT" as const } 
-      : {};
+    const whereClause =
+      currentUserRole === "CLINICIAN" ? { role: "PATIENT" as const } : {};
 
     const users = await prisma.user.findMany({
       where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
@@ -550,6 +587,7 @@ export const getAllUsers = async (currentUserRole?: string) => {
 ```
 
 **Behavior**:
+
 - Clinicians see only PATIENT users
 - Admins/Developers see all users
 - Includes diagnosis count for each user
@@ -632,6 +670,7 @@ NEXT_PUBLIC_VERCEL_URL=your_vercel_url  # Optional, fallback for app URL
 **Required Steps**:
 
 1. **Update Prisma Schema** (already done in staged changes)
+
    ```prisma
    model AllowedClinicianEmail {
      id        Int      @id @default(autoincrement())
@@ -648,29 +687,32 @@ NEXT_PUBLIC_VERCEL_URL=your_vercel_url  # Optional, fallback for app URL
    ```
 
 2. **Generate Prisma Client**
+
    ```bash
    cd frontend
    npx prisma generate
    ```
 
 3. **Push Schema to Database**
+
    ```bash
    npx prisma db push
    ```
 
 4. **Seed Initial Admin User** (Optional)
+
    ```javascript
    // scripts/seed-admin.js
-   import prisma from '../prisma/prisma';
+   import prisma from "../prisma/prisma";
 
    async function seedAdmin() {
      await prisma.user.upsert({
-       where: { email: 'admin@organization.com' },
+       where: { email: "admin@organization.com" },
        create: {
-         email: 'admin@organization.com',
-         name: 'System Administrator',
-         authId: 'supabase-auth-id-from-manual-creation',
-         role: 'ADMIN',
+         email: "admin@organization.com",
+         name: "System Administrator",
+         authId: "supabase-auth-id-from-manual-creation",
+         role: "ADMIN",
        },
        update: {},
      });
@@ -684,9 +726,11 @@ NEXT_PUBLIC_VERCEL_URL=your_vercel_url  # Optional, fallback for app URL
 ### Server Actions
 
 #### `adminLogin`
+
 **Location**: `/frontend/actions/admin-auth.ts`
 
 **Input Schema**:
+
 ```typescript
 {
   email: string,    // Valid email format
@@ -695,15 +739,21 @@ NEXT_PUBLIC_VERCEL_URL=your_vercel_url  # Optional, fallback for app URL
 ```
 
 **Return Types**:
+
 ```typescript
 // Success
-{ success: true }
+{
+  success: true;
+}
 
 // Error
-{ error: string }
+{
+  error: string;
+}
 ```
 
 **Usage**:
+
 ```tsx
 const { execute } = useAction(adminLogin, {
   onSuccess: ({ data }) => {
@@ -715,56 +765,75 @@ const { execute } = useAction(adminLogin, {
 ---
 
 #### `adminSignup`
+
 **Location**: `/frontend/actions/admin-auth.ts`
 
 **Input Schema**: Same as `adminLogin`
 
 **Side Effects**:
+
 - Creates Supabase auth user
 - Creates/updates Prisma user with ADMIN role
 - Sends confirmation email
 
 **Return Types**:
+
 ```typescript
 // Success
-{ success: true }
+{
+  success: true;
+}
 
 // Error
-{ error: string }
+{
+  error: string;
+}
 ```
 
 ---
 
 #### `addAllowedClinicianEmail`
+
 **Location**: `/frontend/actions/manage-clinicians.ts`
 
 **Input Schema**:
+
 ```typescript
 {
-  email: string  // Valid email format
+  email: string; // Valid email format
 }
 ```
 
 **Authorization**: ADMIN or DEVELOPER role required
 
 **Return Types**:
+
 ```typescript
 // Success
-{ success: AllowedClinicianEmail }
+{
+  success: AllowedClinicianEmail;
+}
 
 // Error - Unauthorized
-{ error: "Unauthorized" }
+{
+  error: "Unauthorized";
+}
 
 // Error - Duplicate
-{ error: "This email is already on the whitelist." }
+{
+  error: "This email is already on the whitelist.";
+}
 
 // Error - Server Error
-{ error: "Failed to add email to whitelist." }
+{
+  error: "Failed to add email to whitelist.";
+}
 ```
 
 ---
 
 #### `removeAllowedClinicianEmail`
+
 **Location**: `/frontend/actions/manage-clinicians.ts`
 
 **Input Schema**: Same as `addAllowedClinicianEmail`
@@ -772,28 +841,37 @@ const { execute } = useAction(adminLogin, {
 **Authorization**: ADMIN or DEVELOPER role required
 
 **Return Types**:
+
 ```typescript
 // Success
-{ success: true }
+{
+  success: true;
+}
 
 // Error - Unauthorized
-{ error: "Unauthorized" }
+{
+  error: "Unauthorized";
+}
 
 // Error - Server Error
-{ error: "Failed to remove email from whitelist." }
+{
+  error: "Failed to remove email from whitelist.";
+}
 ```
 
 ---
 
 #### `emailSignup` (Modified)
+
 **Location**: `/frontend/actions/email-auth.ts`
 
 **Changes**: Now checks whitelist before allowing clinician registration
 
 **New Error Type**:
+
 ```typescript
 {
-  error: "Your email is not authorized to register as a clinician. Please contact your administrator."
+  error: "Your email is not authorized to register as a clinician. Please contact your administrator.";
 }
 ```
 
@@ -802,22 +880,26 @@ const { execute } = useAction(adminLogin, {
 ### Utility Functions
 
 #### `getAllUsers`
+
 **Location**: `/frontend/utils/user.ts`
 
 **Signature**:
+
 ```typescript
 export const getAllUsers = async (currentUserRole?: string) => {
   // Returns: Promise<{ success: User[] } | { error: string }>
-}
+};
 ```
 
 **Parameters**:
+
 - `currentUserRole` (optional): Filters results based on caller's role
   - `"CLINICIAN"`: Returns only PATIENT users
   - `"ADMIN"` | `"DEVELOPER"`: Returns all users
   - `undefined`: Returns all users
 
 **Return Structure**:
+
 ```typescript
 {
   success: [
@@ -828,10 +910,10 @@ export const getAllUsers = async (currentUserRole?: string) => {
       role: Role,
       isOnboarded: boolean,
       _count: {
-        diagnoses: number
-      }
-    }
-  ]
+        diagnoses: number,
+      },
+    },
+  ];
 }
 ```
 
@@ -846,6 +928,7 @@ export const getAllUsers = async (currentUserRole?: string) => {
 **Cause**: Clinician email not in whitelist
 
 **Solution**:
+
 1. Admin must add email via Users page
 2. Verify email spelling matches exactly
 3. Retry registration
@@ -857,6 +940,7 @@ export const getAllUsers = async (currentUserRole?: string) => {
 **Cause**: Duplicate email submission
 
 **Solution**:
+
 - Email already exists; no action needed
 - Clinician can proceed with registration
 - If registration failed, admin can remove and re-add
@@ -868,6 +952,7 @@ export const getAllUsers = async (currentUserRole?: string) => {
 **Cause**: Non-admin user attempting to manage whitelist
 
 **Solution**:
+
 - Ensure user has ADMIN or DEVELOPER role in database
 - Check `user.role` field in Prisma
 - Contact system administrator for role elevation
@@ -879,6 +964,7 @@ export const getAllUsers = async (currentUserRole?: string) => {
 **Cause**: Database connection error or constraint violation
 
 **Solution**:
+
 1. Check DATABASE_URL environment variable
 2. Verify database connectivity
 3. Check server logs for detailed error
@@ -889,11 +975,13 @@ export const getAllUsers = async (currentUserRole?: string) => {
 #### 5. Supabase Auth Errors
 
 **Common Messages**:
+
 - `"Invalid login credentials"`: Wrong email/password
 - `"User already registered"`: Email exists in Supabase
 - `"Email not confirmed"`: User hasn't clicked confirmation link
 
 **Solutions**:
+
 - Verify credentials
 - Use password reset flow
 - Resend confirmation email via Supabase dashboard
@@ -904,17 +992,17 @@ export const getAllUsers = async (currentUserRole?: string) => {
 
 ### Access Control Matrix
 
-| Action | Patient | Clinician | Admin | Developer |
-|--------|---------|-----------|-------|-----------|
-| View patient dashboard | ✓ | ✗ | ✗ | ✓ (toggle) |
-| View clinician dashboard | ✗ | ✓ | ✓ | ✓ (toggle) |
-| View admin dashboard | ✗ | ✗ | ✓ | ✗ |
-| Register as clinician | N/A | Whitelist required | ✗ | ✗ |
-| Register as admin | ✗ | ✗ | Open | ✗ |
-| Add clinician email | ✗ | ✗ | ✓ | ✓ |
-| Remove clinician email | ✗ | ✗ | ✓ | ✓ |
-| View all users | ✗ | Patients only | ✓ | ✓ |
-| Manage patients | ✗ | ✓ | ✓ | ✓ |
+| Action                   | Patient | Clinician          | Admin | Developer  |
+| ------------------------ | ------- | ------------------ | ----- | ---------- |
+| View patient dashboard   | ✓       | ✗                  | ✗     | ✓ (toggle) |
+| View clinician dashboard | ✗       | ✓                  | ✓     | ✓ (toggle) |
+| View admin dashboard     | ✗       | ✗                  | ✓     | ✗          |
+| Register as clinician    | N/A     | Whitelist required | ✗     | ✗          |
+| Register as admin        | ✗       | ✗                  | Open  | ✗          |
+| Add clinician email      | ✗       | ✗                  | ✓     | ✓          |
+| Remove clinician email   | ✗       | ✗                  | ✓     | ✓          |
+| View all users           | ✗       | Patients only      | ✓     | ✓          |
+| Manage patients          | ✗       | ✓                  | ✓     | ✓          |
 
 ---
 
@@ -946,6 +1034,7 @@ export const getAllUsers = async (currentUserRole?: string) => {
 ### Manual Testing Checklist
 
 #### Admin Authentication
+
 - [ ] Admin signup creates user with ADMIN role
 - [ ] Admin login redirects to dashboard
 - [ ] Confirmation email sent on signup
@@ -956,6 +1045,7 @@ export const getAllUsers = async (currentUserRole?: string) => {
 ---
 
 #### Clinician Whitelist
+
 - [ ] Non-whitelisted email blocked at registration
 - [ ] Whitelisted email allows registration
 - [ ] Email removed from whitelist after signup
@@ -966,6 +1056,7 @@ export const getAllUsers = async (currentUserRole?: string) => {
 ---
 
 #### Role-Based Access
+
 - [ ] Patient cannot access `/users` page
 - [ ] Clinician sees only patients in user list
 - [ ] Admin sees all users and role filters
@@ -976,6 +1067,7 @@ export const getAllUsers = async (currentUserRole?: string) => {
 ---
 
 #### UI/UX
+
 - [ ] Loading states display correctly
 - [ ] Toast notifications appear on actions
 - [ ] Modal opens/closes properly
@@ -991,31 +1083,31 @@ export const getAllUsers = async (currentUserRole?: string) => {
 
 ```typescript
 // __tests__/manage-clinicians.test.ts
-describe('addAllowedClinicianEmail', () => {
-  it('should add email to whitelist for admin user', async () => {
+describe("addAllowedClinicianEmail", () => {
+  it("should add email to whitelist for admin user", async () => {
     // Mock admin user
     mockGetCurrentDbUser.mockResolvedValue({
-      success: { role: 'ADMIN' },
+      success: { role: "ADMIN" },
     });
 
     const result = await addAllowedClinicianEmail({
-      email: 'doctor@hospital.com',
+      email: "doctor@hospital.com",
     });
 
     expect(result.success).toBeDefined();
-    expect(result.success?.email).toBe('doctor@hospital.com');
+    expect(result.success?.email).toBe("doctor@hospital.com");
   });
 
-  it('should reject non-admin users', async () => {
+  it("should reject non-admin users", async () => {
     mockGetCurrentDbUser.mockResolvedValue({
-      success: { role: 'PATIENT' },
+      success: { role: "PATIENT" },
     });
 
     const result = await addAllowedClinicianEmail({
-      email: 'doctor@hospital.com',
+      email: "doctor@hospital.com",
     });
 
-    expect(result.error).toBe('Unauthorized');
+    expect(result.error).toBe("Unauthorized");
   });
 });
 ```
@@ -1026,37 +1118,37 @@ describe('addAllowedClinicianEmail', () => {
 
 ```typescript
 // __tests__/clinician-registration.e2e.ts
-describe('Clinician Registration Flow', () => {
-  it('should block non-whitelisted email', async () => {
+describe("Clinician Registration Flow", () => {
+  it("should block non-whitelisted email", async () => {
     const page = await browser.newPage();
-    await page.goto('/clinician-login');
-    
-    await page.fill('[name="email"]', 'not-whitelisted@test.com');
-    await page.fill('[name="password"]', 'password123');
+    await page.goto("/clinician-login");
+
+    await page.fill('[name="email"]', "not-whitelisted@test.com");
+    await page.fill('[name="password"]', "password123");
     await page.click('button[type="submit"]');
-    
-    const errorMessage = await page.textContent('.toast-error');
-    expect(errorMessage).toContain('not authorized');
+
+    const errorMessage = await page.textContent(".toast-error");
+    expect(errorMessage).toContain("not authorized");
   });
 
-  it('should allow whitelisted email and remove from whitelist', async () => {
+  it("should allow whitelisted email and remove from whitelist", async () => {
     // Setup: Add email to whitelist
     await prisma.allowedClinicianEmail.create({
-      data: { email: 'whitelisted@test.com' },
+      data: { email: "whitelisted@test.com" },
     });
 
     const page = await browser.newPage();
-    await page.goto('/clinician-login');
-    
-    await page.fill('[name="email"]', 'whitelisted@test.com');
-    await page.fill('[name="password"]', 'password123');
+    await page.goto("/clinician-login");
+
+    await page.fill('[name="email"]', "whitelisted@test.com");
+    await page.fill('[name="password"]', "password123");
     await page.click('button[type="submit"]');
-    
+
     // Verify email removed from whitelist
     const whitelistEntry = await prisma.allowedClinicianEmail.findUnique({
-      where: { email: 'whitelisted@test.com' },
+      where: { email: "whitelisted@test.com" },
     });
-    
+
     expect(whitelistEntry).toBeNull();
   });
 });
@@ -1069,6 +1161,7 @@ describe('Clinician Registration Flow', () => {
 ### Database Query Optimization
 
 **Current Implementation**:
+
 ```typescript
 const users = await prisma.user.findMany({
   where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
@@ -1081,6 +1174,7 @@ const users = await prisma.user.findMany({
 ```
 
 **Optimization Opportunities**:
+
 1. **Indexing**: Add index on `User.role` and `User.email`
 2. **Pagination**: Implement cursor-based pagination for large datasets
 3. **Selective Includes**: Only include `_count` when needed
@@ -1093,7 +1187,7 @@ const users = await prisma.user.findMany({
 ```prisma
 model User {
   // ... fields
-  
+
   @@index([role])
   @@index([email])
   @@index([authId])
@@ -1101,7 +1195,7 @@ model User {
 
 model AllowedClinicianEmail {
   // ... fields
-  
+
   @@index([email])
 }
 ```
@@ -1113,15 +1207,18 @@ model AllowedClinicianEmail {
 **Current**: Path revalidation on mutation
 
 **Enhanced**:
+
 ```typescript
-import { unstable_cache } from 'next/cache';
+import { unstable_cache } from "next/cache";
 
 export const getCachedUsers = unstable_cache(
   async (roleFilter?: string) => {
-    return await prisma.user.findMany({ /* ... */ });
+    return await prisma.user.findMany({
+      /* ... */
+    });
   },
-  ['users-list'],
-  { tags: ['users'], revalidate: 300 } // 5 minutes
+  ["users-list"],
+  { tags: ["users"], revalidate: 300 }, // 5 minutes
 );
 ```
 
@@ -1136,6 +1233,7 @@ export const getCachedUsers = unstable_cache(
 **Symptoms**: Admin login succeeds but redirects to wrong page
 
 **Diagnosis**:
+
 ```bash
 # Check user role in database
 npx prisma studio
@@ -1151,18 +1249,24 @@ npx prisma studio
 **Symptoms**: Registration succeeds but user can't log in
 
 **Diagnosis**:
+
 - Check Supabase auth user exists
 - Check Prisma user exists
 - Verify email confirmation status
 
 **Solution**:
+
 ```typescript
 // Manually sync Supabase auth with Prisma
 const supabaseUser = await supabase.auth.getUser();
 await prisma.user.upsert({
   where: { email: supabaseUser.email },
-  create: { /* ... */ },
-  update: { /* ... */ },
+  create: {
+    /* ... */
+  },
+  update: {
+    /* ... */
+  },
 });
 ```
 
@@ -1173,17 +1277,19 @@ await prisma.user.upsert({
 **Symptoms**: "Add Clinician Email" button missing
 
 **Diagnosis**:
+
 - Check user role in session
 - Verify `currentUserRole` prop passed to DataTable
 
 **Solution**:
+
 ```tsx
 // In users/page.tsx
 const { success: dbUser } = await getCurrentDbUser();
 const currentUserRole = dbUser?.role || "";
 
 // Ensure role is passed
-<UsersTable currentUserRole={currentUserRole} />
+<UsersTable currentUserRole={currentUserRole} />;
 ```
 
 ---
@@ -1193,6 +1299,7 @@ const currentUserRole = dbUser?.role || "";
 **Symptoms**: `prisma db push` fails
 
 **Diagnosis**:
+
 ```bash
 # Check migration status
 npx prisma migrate status
@@ -1202,6 +1309,7 @@ echo $DATABASE_URL
 ```
 
 **Solution**:
+
 ```bash
 # Reset database (development only)
 npx prisma migrate reset
@@ -1264,37 +1372,37 @@ npx prisma migrate dev --name add_admin_role
 
 ### File Manifest
 
-| File Path | Purpose |
-|-----------|---------|
-| `frontend/actions/admin-auth.ts` | Admin login/signup actions |
-| `frontend/actions/email-auth.ts` | Modified clinician registration |
-| `frontend/actions/manage-clinicians.ts` | Whitelist management actions |
-| `frontend/app/(auth)/admin-login/page.tsx` | Admin login UI |
-| `frontend/app/(auth)/clinician-login/page.tsx` | Updated clinician login UI |
-| `frontend/app/(auth)/login/page.tsx` | Updated patient login UI |
-| `frontend/app/(app)/(clinician)/layout.tsx` | Clinician layout protection |
-| `frontend/app/(app)/(clinician)/users/page.tsx` | Users management page |
-| `frontend/components/clinicians/users-page/add-clinician-email-modal.tsx` | Email whitelist modal |
-| `frontend/components/clinicians/users-page/data-table.tsx` | Enhanced data table |
-| `frontend/components/patient/layout/header.tsx` | Role-aware header |
-| `frontend/components/patient/layout/nav-links.tsx` | Dynamic navigation |
-| `frontend/constants/nav-items.ts` | Admin navigation items |
-| `frontend/prisma/schema.prisma` | Database schema updates |
-| `frontend/schemas/ManageClinicianEmailSchema.ts` | Email validation schema |
-| `frontend/utils/supabase/proxy.ts` | Auth middleware updates |
-| `frontend/utils/user.ts` | User query utilities |
+| File Path                                                                 | Purpose                         |
+| ------------------------------------------------------------------------- | ------------------------------- |
+| `frontend/actions/admin-auth.ts`                                          | Admin login/signup actions      |
+| `frontend/actions/email-auth.ts`                                          | Modified clinician registration |
+| `frontend/actions/manage-clinicians.ts`                                   | Whitelist management actions    |
+| `frontend/app/(auth)/admin-login/page.tsx`                                | Admin login UI                  |
+| `frontend/app/(auth)/clinician-login/page.tsx`                            | Updated clinician login UI      |
+| `frontend/app/(auth)/login/page.tsx`                                      | Updated patient login UI        |
+| `frontend/app/(app)/(clinician)/layout.tsx`                               | Clinician layout protection     |
+| `frontend/app/(app)/(clinician)/users/page.tsx`                           | Users management page           |
+| `frontend/components/clinicians/users-page/add-clinician-email-modal.tsx` | Email whitelist modal           |
+| `frontend/components/clinicians/users-page/data-table.tsx`                | Enhanced data table             |
+| `frontend/components/patient/layout/header.tsx`                           | Role-aware header               |
+| `frontend/components/patient/layout/nav-links.tsx`                        | Dynamic navigation              |
+| `frontend/constants/nav-items.ts`                                         | Admin navigation items          |
+| `frontend/prisma/schema.prisma`                                           | Database schema updates         |
+| `frontend/schemas/ManageClinicianEmailSchema.ts`                          | Email validation schema         |
+| `frontend/utils/supabase/proxy.ts`                                        | Auth middleware updates         |
+| `frontend/utils/user.ts`                                                  | User query utilities            |
 
 ---
 
 ### Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2026-03-13 | Initial implementation |
-| - | - | - Admin authentication system |
-| - | - | - Clinician email whitelist |
-| - | - | - Role-based navigation |
-| - | - | - Users management interface |
+| Version | Date       | Changes                       |
+| ------- | ---------- | ----------------------------- |
+| 1.0     | 2026-03-13 | Initial implementation        |
+| -       | -          | - Admin authentication system |
+| -       | -          | - Clinician email whitelist   |
+| -       | -          | - Role-based navigation       |
+| -       | -          | - Users management interface  |
 
 ---
 

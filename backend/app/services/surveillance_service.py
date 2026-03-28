@@ -43,11 +43,20 @@ def fetch_diagnosis_data(
     """
     engine = get_db_engine(db_url)
 
+    # NOTE: The latitude/longitude columns represent the PATIENT'S RESIDENTIAL LOCATION,
+    # not the healthcare facility where diagnosis occurred. This is critical for
+    # accurate disease surveillance, clustering analysis, and outbreak detection.
+    # Using healthcare facility coordinates would cause all patients to appear at the
+    # same location, breaking spatial analysis entirely.
+    #
+    # COALESCE(d.latitude, u.latitude) uses diagnosis-time coordinates if available,
+    # falling back to the patient's home location stored in the User record.
     query_str = """
         SELECT
             d.id,
             d.disease,
             d."createdAt",
+            -- Patient's residential coordinates (from diagnosis or User record)
             COALESCE(d.latitude,  u.latitude)  AS latitude,
             COALESCE(d.longitude, u.longitude) AS longitude,
             COALESCE(d.city,      u.city)      AS city,

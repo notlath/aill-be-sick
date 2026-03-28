@@ -63,13 +63,13 @@ This document provides a comprehensive guide to the authentication system in the
 
 ### Key Components
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| **Frontend Framework** | Next.js 14+ (App Router) | Server-side rendering, API routes, middleware |
-| **Authentication Provider** | Supabase Auth | OAuth 2.0, email/password, session management |
-| **ORM** | Prisma | Type-safe database access |
-| **Database** | PostgreSQL | User data, diagnoses, chat history |
-| **Backend API** | Flask (Python) | ML diagnosis, clustering, surveillance |
+| Component                   | Technology               | Purpose                                       |
+| --------------------------- | ------------------------ | --------------------------------------------- |
+| **Frontend Framework**      | Next.js 14+ (App Router) | Server-side rendering, API routes, middleware |
+| **Authentication Provider** | Supabase Auth            | OAuth 2.0, email/password, session management |
+| **ORM**                     | Prisma                   | Type-safe database access                     |
+| **Database**                | PostgreSQL               | User data, diagnoses, chat history            |
+| **Backend API**             | Flask (Python)           | ML diagnosis, clustering, surveillance        |
 
 ---
 
@@ -82,6 +82,7 @@ Patients authenticate exclusively through Google OAuth 2.0 with PKCE (Proof Key 
 **Configuration Location:** Supabase Dashboard → Authentication → Providers → Google
 
 **Required Google OAuth Scopes:**
+
 - `openid` - OpenID Connect basic profile
 - `profile` - User profile information
 - `email` - User email address
@@ -91,6 +92,7 @@ Patients authenticate exclusively through Google OAuth 2.0 with PKCE (Proof Key 
 Clinicians and Developers use traditional email/password authentication managed by Supabase Auth.
 
 **Password Requirements:**
+
 - Minimum 6 characters
 - Stored securely by Supabase (bcrypt hashing)
 
@@ -100,11 +102,11 @@ Clinicians and Developers use traditional email/password authentication managed 
 
 The application defines three distinct user roles stored in the `User` database table:
 
-| Role | Authentication Method | Landing Page | Access Level |
-|------|----------------------|--------------|--------------|
-| `PATIENT` | Google OAuth only | `/onboarding` (if new) then `/diagnosis` | Patient portal - symptom checker, diagnosis history, profile |
-| `CLINICIAN` | Email/Password | `/dashboard` | Clinician portal - patient analytics, reports, alerts, map view |
-| `DEVELOPER` | Email/Password | `/diagnosis` | Full access - patient view + developer tools |
+| Role        | Authentication Method | Landing Page | Access Level                                                    |
+| ----------- | --------------------- | ------------ | --------------------------------------------------------------- |
+| `PATIENT`   | Google OAuth only     | `/diagnosis` | Patient portal - symptom checker, diagnosis history, profile    |
+| `CLINICIAN` | Email/Password        | `/dashboard` | Clinician portal - patient analytics, reports, alerts, map view |
+| `DEVELOPER` | Email/Password        | `/diagnosis` | Full access - patient view + developer tools                    |
 
 **Database Schema (Prisma):**
 
@@ -165,46 +167,19 @@ model User {
      │                                         │    Prisma: user.upsert()
      │                                         │    - Match by authId
      │                                         │
-     │  9. Redirect to / (Root)                 │
-     │<────────────────────────────────────────┤
-     │                                         │
-     │  10. Root checks `isOnboarded` flag     │
-     │                                         │
-     │  11a. If FALSE, Redirect to /onboarding │
-     │<────────────────────────────────────────┤
-     │                                         │
-     │  11b. If TRUE, Redirect to /diagnosis   │
-     │<────────────────────────────────────────┤
-     │                                         │
-     ▼                                         ▼
-  Authenticated                              Session
-  in Patient                                 Cookies Set
-  Portal
+      │  9. Redirect to / (Root)                 │
+      │<────────────────────────────────────────┤
+      │                                         │
+      │  10. Root redirects to /diagnosis       │
+      │<────────────────────────────────────────┤
+      │                                         │
+      ▼                                         ▼
+   Authenticated                              Session
+   in Patient                                 Cookies Set
+   Portal
 
-### Onboarding Flow (Patient)
+### Email/Password Login Flow
 
-```
-┌──────────┐                              ┌──────────┐
-│  Patient │                              │  Next.js │
-└────┬─────┘                              └────┬─────┘
-     │                                         │
-     │  1. Fill out onboarding form            │
-     │     (Birthday, Gender, Location)        │
-     ├────────────────────────────────────────>│
-     │                                         │
-     │                                         │ 2. Call completeOnboarding action
-     │                                         │    (Server Action)
-     │                                         │
-     │                                         │ 3. Update user in database
-     │                                         │    Prisma: user.update({ isOnboarded: true })
-     │                                         │
-     │  4. Redirect to /diagnosis              │
-     │<────────────────────────────────────────┤
-     │                                         │
-     ▼                                         ▼
-  Onboarded                                  Profile
-  Patient                                    Completed
-```
 ```
 
 ### Email/Password Login Flow
@@ -430,7 +405,10 @@ export const getCurrentDbUser = async () => {
     return { success: dbUser };
   } catch (error) {
     console.error(`Error fetching user from database: ${error}`);
-    return { error: `Error fetching user from database: ${error}`, code: "DB_ERROR" };
+    return {
+      error: `Error fetching user from database: ${error}`,
+      code: "DB_ERROR",
+    };
   }
 };
 ```
@@ -548,7 +526,7 @@ model User {
   role      Role     @default(PATIENT)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
-  
+
   // Location data for epidemiological tracking
   city      String?
   latitude  Float?
@@ -556,12 +534,12 @@ model User {
   region    String?
   province  String?
   barangay  String?
-  
+
   // Demographics
   age       Int?
   gender    Gender?
   birthday  DateTime?
-  
+
   // Relations
   chats     Chat[]
   diagnoses Diagnosis[]
@@ -584,10 +562,10 @@ enum Role {
 
 Supabase SSR manages sessions through HTTP-only cookies:
 
-| Cookie Name | Purpose | HttpOnly | Secure |
-|-------------|---------|----------|--------|
-| `sb-<project_id>-auth-token` | Session token | Yes | Yes |
-| `sb-<project_id>-auth-token-refresh` | Refresh token | Yes | Yes |
+| Cookie Name                          | Purpose       | HttpOnly | Secure |
+| ------------------------------------ | ------------- | -------- | ------ |
+| `sb-<project_id>-auth-token`         | Session token | Yes      | Yes    |
+| `sb-<project_id>-auth-token-refresh` | Refresh token | Yes      | Yes    |
 
 #### Session Lifecycle
 
@@ -641,15 +619,15 @@ if (!user && !isAuthRoute) {
 
 #### Protected Routes
 
-| Route Pattern | Required Role | Protection Method |
-|---------------|---------------|-------------------|
-| `/diagnosis/*` | PATIENT, DEVELOPER | Layout component checks `getCurrentDbUser()` |
-| `/dashboard/*` | CLINICIAN, DEVELOPER | Layout component checks `getCurrentDbUser()` |
-| `/profile/*` | All authenticated | Layout component checks `getCurrentDbUser()` |
-| `/users/*` | CLINICIAN, DEVELOPER | Layout component checks `getCurrentDbUser()` |
+| Route Pattern           | Required Role        | Protection Method                            |
+| ----------------------- | -------------------- | -------------------------------------------- |
+| `/diagnosis/*`          | PATIENT, DEVELOPER   | Layout component checks `getCurrentDbUser()` |
+| `/dashboard/*`          | CLINICIAN, DEVELOPER | Layout component checks `getCurrentDbUser()` |
+| `/profile/*`            | All authenticated    | Layout component checks `getCurrentDbUser()` |
+| `/users/*`              | CLINICIAN, DEVELOPER | Layout component checks `getCurrentDbUser()` |
 | `/healthcare-reports/*` | CLINICIAN, DEVELOPER | Layout component checks `getCurrentDbUser()` |
-| `/map/*` | CLINICIAN, DEVELOPER | Layout component checks `getCurrentDbUser()` |
-| `/alerts/*` | CLINICIAN, DEVELOPER | Layout component checks `getCurrentDbUser()` |
+| `/map/*`                | CLINICIAN, DEVELOPER | Layout component checks `getCurrentDbUser()` |
+| `/alerts/*`             | CLINICIAN, DEVELOPER | Layout component checks `getCurrentDbUser()` |
 
 #### Root Route Handler (`/frontend/app/page.tsx`)
 
@@ -697,21 +675,25 @@ const HomeContent = async () => {
 #### Scenario: First-time patient user
 
 **Step 1: Landing on Login Page**
+
 - User navigates to `http://localhost:3000/login`
 - Sees "AI'll Be Sick" branding with "Sign in with Google" button
 - Option to switch to clinician login
 
 **Step 2: Initiating OAuth**
+
 - User clicks "Sign in with Google"
 - Frontend calls `supabase.auth.signInWithOAuth({ provider: "google", redirectTo: "/auth/callback" })`
 - Browser redirects to Google OAuth consent screen
 
 **Step 3: Google Authentication**
+
 - User selects Google account
 - Grants permissions (email, profile)
 - Google redirects back to `/auth/callback?code=AUTH_CODE`
 
 **Step 4: Callback Processing**
+
 - `/auth/callback` route receives authorization code
 - Calls `supabase.auth.exchangeCodeForSession(code)`
 - Supabase validates PKCE code verifier
@@ -719,6 +701,7 @@ const HomeContent = async () => {
 - Calls `supabase.auth.getUser()` to get user details
 
 **Step 5: Database Synchronization**
+
 - Prisma upserts user to `User` table:
   ```typescript
   await prisma.user.upsert({
@@ -727,7 +710,7 @@ const HomeContent = async () => {
       authId: user.id,
       email: user.email,
       name: user.user_metadata?.full_name,
-      role: "PATIENT",  // Default
+      role: "PATIENT", // Default
     },
     update: {
       email: user.email,
@@ -737,6 +720,7 @@ const HomeContent = async () => {
   ```
 
 **Step 6: Redirect to Patient Portal**
+
 - User redirected to root `/`
 - Root page checks role, redirects to `/diagnosis`
 - Patient can now use symptom checker
@@ -746,6 +730,7 @@ const HomeContent = async () => {
 **Steps 1-3:** Skipped (already has Google session)
 
 **Step 4: Session Validation**
+
 - Existing session cookies are valid
 - `supabase.auth.getUser()` returns user immediately
 - No OAuth flow needed
@@ -761,28 +746,33 @@ const HomeContent = async () => {
 #### Scenario: First-time clinician registration
 
 **Step 1: Navigate to Clinician Login**
+
 - User clicks "here" link on patient login page
 - Redirected to `/clinician-login`
 - Sees clinician-specific branding
 
 **Step 2: Registration Form**
+
 - Enters email (e.g., `doctor@hospital.com`)
 - Enters password (min 6 characters)
 - Clicks "Create clinician account"
 
 **Step 3: Account Creation**
+
 - Frontend calls `emailSignup` Server Action
 - Supabase creates user in Auth system
 - Prisma creates user in database with `role: "CLINICIAN"`
 - Success toast: "Check your email to confirm your account"
 
 **Step 4: Email Confirmation**
+
 - User receives confirmation email from Supabase
 - Clicks confirmation link
 - `/auth/confirm` route verifies OTP
 - Account is activated
 
 **Step 5: First Login**
+
 - Returns to `/clinician-login`
 - Enters credentials
 - Calls `emailLogin` Server Action
@@ -808,11 +798,11 @@ const HomeContent = async () => {
 
 ### Authentication Error Codes
 
-| Error Code | Description | User Action |
-|------------|-------------|-------------|
-| `NOT_AUTHENTICATED` | No valid Supabase session | Redirect to `/login` |
-| `USER_NOT_FOUND` | User in Supabase but not in database | Redirect to `/auth/sync-error` |
-| `DB_ERROR` | Database connection failure | Display error message |
+| Error Code          | Description                          | User Action                    |
+| ------------------- | ------------------------------------ | ------------------------------ |
+| `NOT_AUTHENTICATED` | No valid Supabase session            | Redirect to `/login`           |
+| `USER_NOT_FOUND`    | User in Supabase but not in database | Redirect to `/auth/sync-error` |
+| `DB_ERROR`          | Database connection failure          | Display error message          |
 
 ### OAuth Error Handling
 
@@ -820,12 +810,12 @@ const HomeContent = async () => {
 
 **Common OAuth Errors:**
 
-| Error | Cause | Resolution |
-|-------|-------|------------|
-| `no_code` | Google didn't return authorization code | Retry sign-in |
-| `exchange_failed` | PKCE code verifier mismatch | Clear cookies, retry |
-| `validation_failed` | Both auth code and code verifier empty | Clear browser storage |
-| `internal` | Server-side error | Contact support |
+| Error               | Cause                                   | Resolution            |
+| ------------------- | --------------------------------------- | --------------------- |
+| `no_code`           | Google didn't return authorization code | Retry sign-in         |
+| `exchange_failed`   | PKCE code verifier mismatch             | Clear cookies, retry  |
+| `validation_failed` | Both auth code and code verifier empty  | Clear browser storage |
+| `internal`          | Server-side error                       | Contact support       |
 
 **Error Page Component:**
 
@@ -834,7 +824,8 @@ const HomeContent = async () => {
 const errorMessages: Record<string, { title: string; description: string }> = {
   no_code: {
     title: "No Authorization Code",
-    description: "The OAuth provider did not return an authorization code. Please try signing in again.",
+    description:
+      "The OAuth provider did not return an authorization code. Please try signing in again.",
   },
   exchange_failed: {
     title: "Code Exchange Failed",
@@ -842,7 +833,8 @@ const errorMessages: Record<string, { title: string; description: string }> = {
   },
   validation_failed: {
     title: "Validation Failed",
-    description: "The OAuth flow validation failed. Try clearing your browser cookies.",
+    description:
+      "The OAuth flow validation failed. Try clearing your browser cookies.",
   },
   internal: {
     title: "Internal Server Error",
@@ -853,12 +845,12 @@ const errorMessages: Record<string, { title: string; description: string }> = {
 
 ### Email Authentication Errors
 
-| Error Scenario | Error Message | Handling |
-|----------------|---------------|----------|
-| Invalid credentials | "Invalid login credentials" | Display toast error |
-| Unconfirmed email | "Email not confirmed" | Prompt to check email |
-| Weak password | "Password should be at least 6 characters" | Form validation |
-| Email already registered | "User already registered" | Suggest login |
+| Error Scenario           | Error Message                              | Handling              |
+| ------------------------ | ------------------------------------------ | --------------------- |
+| Invalid credentials      | "Invalid login credentials"                | Display toast error   |
+| Unconfirmed email        | "Email not confirmed"                      | Prompt to check email |
+| Weak password            | "Password should be at least 6 characters" | Form validation       |
+| Email already registered | "User already registered"                  | Suggest login         |
 
 ---
 
@@ -871,6 +863,7 @@ All OAuth flows use PKCE (Proof Key for Code Exchange) to prevent authorization 
 ### 2. HTTP-Only Cookies
 
 Session tokens are stored in HTTP-only, Secure cookies:
+
 - Not accessible via JavaScript (XSS protection)
 - Only sent over HTTPS in production
 
@@ -954,6 +947,7 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 **Cause:** PKCE code verifier not found in cookies
 
 **Solutions:**
+
 - Verify redirect URL in Supabase matches exactly: `http://localhost:3000/auth/callback`
 - Clear browser cookies and cache
 - Restart development server
@@ -964,6 +958,7 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 **Cause:** User created in Supabase Auth but not synced to database
 
 **Solutions:**
+
 - Check `DATABASE_URL` is correct
 - Verify Prisma schema is migrated
 - Check `/auth/callback` route logs for Prisma errors
@@ -973,6 +968,7 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 **Cause:** Middleware/route protection misconfiguration
 
 **Solutions:**
+
 - Ensure `/login`, `/auth/*`, `/error` are excluded from protection
 - Check `getCurrentDbUser()` is not throwing unhandled errors
 
@@ -981,6 +977,7 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 **Cause:** Role-based routing
 
 **Solution:**
+
 - Clinicians are redirected to `/dashboard` by default
 - Developers can access both by switching view mode
 
@@ -989,6 +986,7 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 **Enable detailed OAuth logging:**
 
 Check server logs for:
+
 ```
 [OAuth Callback] Incoming cookies: [...]
 [OAuth Callback] Attempting to exchange code for session...
@@ -1038,19 +1036,19 @@ The AI'll Be Sick authentication system provides:
 
 **Key Files:**
 
-| File | Purpose |
-|------|---------|
-| `/frontend/app/(auth)/login/page.tsx` | Patient OAuth login |
-| `/frontend/app/(auth)/clinician-login/page.tsx` | Clinician email login |
-| `/frontend/app/auth/callback/route.ts` | OAuth callback handler |
-| `/frontend/app/auth/confirm/route.ts` | Email confirmation handler |
-| `/frontend/actions/email-auth.ts` | Email authentication actions |
-| `/frontend/utils/auth.ts` | Sign out utility |
-| `/frontend/utils/user.ts` | User retrieval utilities |
-| `/frontend/utils/supabase/server.ts` | Server-side Supabase client |
-| `/frontend/utils/supabase/client.ts` | Browser Supabase client |
-| `/frontend/prisma/schema.prisma` | Database schema |
+| File                                            | Purpose                      |
+| ----------------------------------------------- | ---------------------------- |
+| `/frontend/app/(auth)/login/page.tsx`           | Patient OAuth login          |
+| `/frontend/app/(auth)/clinician-login/page.tsx` | Clinician email login        |
+| `/frontend/app/auth/callback/route.ts`          | OAuth callback handler       |
+| `/frontend/app/auth/confirm/route.ts`           | Email confirmation handler   |
+| `/frontend/actions/email-auth.ts`               | Email authentication actions |
+| `/frontend/utils/auth.ts`                       | Sign out utility             |
+| `/frontend/utils/user.ts`                       | User retrieval utilities     |
+| `/frontend/utils/supabase/server.ts`            | Server-side Supabase client  |
+| `/frontend/utils/supabase/client.ts`            | Browser Supabase client      |
+| `/frontend/prisma/schema.prisma`                | Database schema              |
 
 ---
 
-*Last Updated: March 1, 2026*
+_Last Updated: March 1, 2026_

@@ -54,9 +54,7 @@ flowchart TD
     RootAuth -- Yes --> Role{Role}
 
     %% --- Patient Role ---
-    Role -- PATIENT --> PatientOnboard{Onboarded?}
-    PatientOnboard -- No --> Onboarding["/onboarding"]
-    PatientOnboard -- Yes --> Diagnosis["/diagnosis"]
+    Role -- PATIENT --> Diagnosis["/diagnosis"]
 
     %% --- Clinician Role ---
     Role -- CLINICIAN --> ClinStatus{Approval status}
@@ -135,7 +133,7 @@ flowchart TD
 
     %% Apply styles to nodes
     class Login,VerifyEmail,OAuthStart,AuthCallback,AuthCodeError,NeedAccount,ClinLogin,AdminLogin,ClinForgot,ClinReset,Privacy,Terms,AuthConfirm,SyncError authNode
-    class Diagnosis,History,Profile,ChatDetail,Onboarding patientNode
+    class Diagnosis,History,Profile,ChatDetail patientNode
     class Map,Dashboard,Alerts,Reports,Users,CreatePatient,ClinicianProfile,Waiting clinicianNode
     class PendingClinicians adminNode
     class Unauthorized,Forbidden,ErrorPage errorNode
@@ -190,7 +188,6 @@ flowchart TD
 
 ### Patient Routes (Authenticated + Patient Role)
 
-- `/onboarding` — Patient onboarding flow
 - `/diagnosis` — Main diagnosis interface
 - `/diagnosis/:chatId` — Individual chat/diagnosis detail
 - `/history` — Diagnosis history
@@ -228,12 +225,6 @@ flowchart TD
 - **Trigger**: User not authenticated
 - **Action**: Redirect to `/login`
 - **Applies to**: All protected routes
-
-### Patient Onboarding Guard
-
-- **Trigger**: Patient role but not onboarded
-- **Action**: Redirect to `/onboarding`
-- **Applies to**: All patient routes
 
 ### Clinician Approval Guard
 

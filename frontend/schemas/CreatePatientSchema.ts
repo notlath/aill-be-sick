@@ -14,6 +14,8 @@ export const CreatePatientSchema = z.object({
   barangay: z.string().min(1, "Barangay is required"),
   region: z.string().min(1, "Region is required"),
   province: z.string().min(1, "Province is required"),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
   medicalId: z.string().optional(),
 });
 

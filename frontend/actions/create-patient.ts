@@ -43,6 +43,8 @@ export const createPatient = actionClient
         barangay,
         region,
         province,
+        latitude,
+        longitude,
         medicalId,
       } = parsedInput;
 
@@ -83,6 +85,10 @@ export const createPatient = actionClient
       }
 
       // Create patient profile in database
+      // Note: latitude and longitude are geocoded from the patient's residential address
+      // entered by the clinician. These coordinates represent the patient's home location,
+      // NOT the healthcare facility where the clinician is located. This is critical for
+      // accurate disease surveillance, clustering analysis, and outbreak detection.
       const patient = await prisma.user.create({
         data: {
           email,
@@ -98,6 +104,8 @@ export const createPatient = actionClient
           barangay,
           region,
           province,
+          latitude: latitude ?? null,
+          longitude: longitude ?? null,
           isOnboarded: true,
         },
       });

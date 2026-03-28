@@ -25,6 +25,8 @@ model User {
   approvedBy  Int?
   city        String?
   address     String?
+  // Patient's residential coordinates (geocoded from home address)
+  // Used for disease surveillance, clustering analysis, and outbreak detection
   latitude    Float?
   longitude   Float?
   region      String?
@@ -106,6 +108,8 @@ model Diagnosis {
   symptoms    String
   cdss        Json?
   city        String?
+  // Coordinates where patient resides (copied from User at time of diagnosis)
+  // Represents patient's residential location for outbreak tracking
   latitude    Float?
   longitude   Float?
   region      String?

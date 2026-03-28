@@ -68,6 +68,9 @@ export const updateProfileLocation = actionClient
     }
 
     try {
+      // Note: latitude and longitude represent the patient's residential location,
+      // geocoded from their home address. This is used for disease surveillance
+      // and outbreak detection, NOT for tracking healthcare facility locations.
       const updatedUser = await prisma.user.update({
         where: { authId: authUser.id },
         data: {

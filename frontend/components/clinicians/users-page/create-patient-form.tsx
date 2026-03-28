@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { UserPlus, Loader2, CheckCircle, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { createPatient } from "@/actions/create-patient";
@@ -13,6 +13,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAction } from "next-safe-action/hooks";
+import dynamic from "next/dynamic";
+import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
+import { BAGONG_SILANGAN_DISTRICTS } from "@/constants/bagong-silangan-districts";
+
+const SearchBox = dynamic(
+  () => import("@mapbox/search-js-react").then((mod) => mod.SearchBox),
+  { ssr: false },
+);
+const AddressMinimap = dynamic(
+  () => import("@mapbox/search-js-react").then((mod) => mod.AddressMinimap),
+  { ssr: false },
+);
+
+// Fixed location constants for Bagong Silangan, Quezon City
+const FIXED_CITY = "Quezon City";
+const FIXED_BARANGAY = "Bagong Silangan";
+const FIXED_REGION = "National Capital Region (NCR)";
+const FIXED_PROVINCE = "NCR, Second District (Not a Province)";
+
+const ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
 interface CreatePatientFormProps {
   onSuccess?: () => void;
@@ -28,11 +48,13 @@ export default function CreatePatientForm({
   const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">("");
   const [address, setAddress] = useState("");
   const [district, setDistrict] = useState("");
-  const [city, setCity] = useState("");
-  const [barangay, setBarangay] = useState("");
-  const [region, setRegion] = useState("");
-  const [province, setProvince] = useState("");
   const [medicalId, setMedicalId] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+
+  const [minimapFeature, setMinimapFeature] = useState<
+    GeoJSON.Feature<GeoJSON.Point> | undefined
+  >(undefined);
 
   const [createdPatient, setCreatedPatient] = useState<{
     name: string;
@@ -41,6 +63,13 @@ export default function CreatePatientForm({
   } | null>(null);
 
   const [copied, setCopied] = useState(false);
+
+  // Configure Mapbox Search JS token once on mount
+  useEffect(() => {
+    import("@mapbox/search-js-react").then(({ config }) => {
+      config.accessToken = ACCESS_TOKEN;
+    });
+  }, []);
 
   const { execute, isExecuting } = useAction(createPatient, {
     onSuccess: ({ data }) => {
@@ -59,17 +88,55 @@ export default function CreatePatientForm({
         setGender("");
         setAddress("");
         setDistrict("");
-        setCity("");
-        setBarangay("");
-        setRegion("");
-        setProvince("");
         setMedicalId("");
+        setLatitude(null);
+        setLongitude(null);
+        setMinimapFeature(undefined);
       } else if (data?.error) {
         toast.error(data.error);
       }
     },
     onError: () => toast.error("Failed to create patient account"),
   });
+
+  // Handle Mapbox SearchBox selection — fires for any suggestion type (streets, addresses, POIs)
+  const handleAutofillRetrieve = useCallback(
+    (response: SearchBoxRetrieveResponse) => {
+      const feature = response?.features?.[0];
+      if (!feature) return;
+
+      const newAddress: string =
+        feature.properties.full_address ||
+        feature.properties.place_formatted ||
+        feature.properties.name ||
+        "";
+      const lng: number = feature.geometry.coordinates[0];
+      const lat: number = feature.geometry.coordinates[1];
+
+      console.log("[create-patient] Autofill address selected —", {
+        lat,
+        lng,
+        address: newAddress,
+      });
+
+      setAddress(newAddress);
+      setLatitude(lat);
+      setLongitude(lng);
+      setMinimapFeature(feature as GeoJSON.Feature<GeoJSON.Point>);
+    },
+    [],
+  );
+
+  // Handle minimap marker drag — update coordinates
+  const handleSaveMarkerLocation = useCallback(
+    (coordinate: [number, number]) => {
+      const [lng, lat] = coordinate;
+      console.log("[create-patient] Minimap marker moved —", { lat, lng });
+      setLatitude(lat);
+      setLongitude(lng);
+    },
+    [],
+  );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
@@ -82,10 +149,12 @@ export default function CreatePatientForm({
         gender: gender as "MALE" | "FEMALE" | "OTHER",
         address,
         district,
-        city,
-        barangay,
-        region,
-        province,
+        city: FIXED_CITY,
+        barangay: FIXED_BARANGAY,
+        region: FIXED_REGION,
+        province: FIXED_PROVINCE,
+        latitude: latitude ?? undefined,
+        longitude: longitude ?? undefined,
         medicalId: medicalId || undefined,
       });
     },
@@ -98,10 +167,8 @@ export default function CreatePatientForm({
       gender,
       address,
       district,
-      city,
-      barangay,
-      region,
-      province,
+      latitude,
+      longitude,
       medicalId,
     ],
   );
@@ -304,89 +371,113 @@ export default function CreatePatientForm({
         </div>
       </div>
 
-      {/* Address Information */}
+      {/* Patient's Home Address */}
       <div className="border-t border-base-300 pt-6 mt-6">
         <h3 className="text-lg font-semibold text-base-content mb-4">
-          Address Information
+          Patient's Home Address
         </h3>
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-2 md:col-span-2">
-            <label className="text-sm font-medium text-base-content">
-              Street Address *
-            </label>
-            <Input
-              name="address"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="Street address"
-              required
-            />
+        <p className="text-sm text-muted mb-4">
+          Enter the patient&apos;s residential address for accurate disease
+          tracking and outbreak detection. The address is geocoded to get
+          location coordinates.
+        </p>
+
+        <div className="space-y-6">
+          {/* Fixed: Barangay & City */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content block">
+                City / Municipality
+              </label>
+              <Input
+                value={FIXED_CITY}
+                disabled
+                className="bg-base-100 opacity-60 cursor-not-allowed"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content block">
+                Barangay
+              </label>
+              <Input
+                value={FIXED_BARANGAY}
+                disabled
+                className="bg-base-100 opacity-60 cursor-not-allowed"
+              />
+            </div>
           </div>
 
+          {/* District / Zone */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-base-content">
-              District/Zone *
+            <label className="text-sm font-medium text-base-content block">
+              District / Zone *
             </label>
-            <Input
-              name="district"
-              value={district}
-              onChange={(e) => setDistrict(e.target.value)}
-              placeholder="District or zone"
-              required
-            />
+            <Select value={district} onValueChange={setDistrict}>
+              <SelectTrigger className="w-full bg-base-100">
+                <SelectValue placeholder="Select district or zone" />
+              </SelectTrigger>
+              <SelectContent>
+                {BAGONG_SILANGAN_DISTRICTS.map((d) => (
+                  <SelectItem key={d.name} value={d.name}>
+                    {d.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* Residential Street Address with Mapbox SearchBox */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-base-content">
-              Barangay *
+            <label className="text-sm font-medium text-base-content block">
+              Residential Street Address *
             </label>
-            <Input
-              name="barangay"
-              value={barangay}
-              onChange={(e) => setBarangay(e.target.value)}
-              placeholder="Barangay"
-              required
-            />
+
+            <div className="space-y-1">
+              <SearchBox
+                accessToken={ACCESS_TOKEN}
+                onRetrieve={handleAutofillRetrieve}
+                onChange={(value) => setAddress(value)}
+                value={address}
+                options={{ language: "en", country: "PH" }}
+                placeholder="Start typing the patient's street address…"
+                theme={{
+                  variables: {
+                    fontFamily: "inherit",
+                    unit: "14px",
+                    padding: "0.5em",
+                    borderRadius: "0.5rem",
+                    colorBackground: "#ffffff",
+                    colorBackgroundHover: "#f5f5f7",
+                    colorText: "#1d1d1f",
+                    colorPrimary: "oklch(59% 0.145 163.225)",
+                    border: "1px solid #e8e8ed",
+                    boxShadow: "none",
+                  },
+                }}
+              />
+
+              {/* Minimap — shown after SearchBox suggestion is selected */}
+              {minimapFeature && (
+                <div className="rounded-xl overflow-hidden mt-4 h-48 w-full border border-base-300">
+                  <AddressMinimap
+                    accessToken={ACCESS_TOKEN}
+                    feature={minimapFeature}
+                    show={true}
+                    satelliteToggle
+                    canAdjustMarker
+                    footer
+                    onSaveMarkerLocation={handleSaveMarkerLocation}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-base-content">
-              City *
-            </label>
-            <Input
-              name="city"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="City"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-base-content">
-              Province *
-            </label>
-            <Input
-              name="province"
-              value={province}
-              onChange={(e) => setProvince(e.target.value)}
-              placeholder="Province"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-base-content">
-              Region *
-            </label>
-            <Input
-              name="region"
-              value={region}
-              onChange={(e) => setRegion(e.target.value)}
-              placeholder="Region"
-              required
-            />
-          </div>
+          {/* Hidden inputs for fixed values */}
+          <input type="hidden" name="city" value={FIXED_CITY} />
+          <input type="hidden" name="barangay" value={FIXED_BARANGAY} />
+          <input type="hidden" name="region" value={FIXED_REGION} />
+          <input type="hidden" name="province" value={FIXED_PROVINCE} />
         </div>
       </div>
 

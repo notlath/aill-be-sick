@@ -44,17 +44,11 @@ const HomeContent = async () => {
   }
 
   if (role === "PATIENT") {
-    if (!dbUser.isOnboarded) {
-      redirect("/onboarding");
-    }
     redirect(getDefaultLandingPath(role));
   }
 
   // For DEVELOPER role, use client-side redirect to check localStorage preference
   if (role === "DEVELOPER") {
-    if (!dbUser.isOnboarded) {
-      redirect("/onboarding");
-    }
     return <DeveloperRedirect />;
   }
 
