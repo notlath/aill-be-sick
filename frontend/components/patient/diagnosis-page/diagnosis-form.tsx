@@ -64,12 +64,12 @@ const DiagnosisForm = ({
           >
             <div className="space-y-2 w-full">
               <div
-                className={`flex items-center gap-3 px-4 py-3 border rounded-2xl w-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                className={`flex items-center gap-3 px-4 py-3 border border-border rounded-2xl w-full transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                   disabled || isPending
-                    ? "bg-base-200/60 border-base-300/40 opacity-70"
+                    ? "bg-base-200/60 opacity-70"
                     : isBelowMin
                       ? "bg-base-100 border-warning/60 shadow-sm focus-within:shadow-md focus-within:border-warning"
-                      : "bg-base-100 border-base-300/40 shadow-sm focus-within:shadow-md focus-within:border-primary/50"
+                      : "bg-base-100 shadow-sm focus-within:shadow-md focus-within:border-primary/50"
                 }`}
               >
                 {/* Checklist button */}
@@ -78,7 +78,7 @@ const DiagnosisForm = ({
                   onClick={() => setIsChecklistOpen(true)}
                   disabled={!isInteractive}
                   aria-label="Open symptom checklist"
-                  className="shrink-0 w-9 h-9 rounded-lg bg-base-200/80 text-base-content/60 flex items-center justify-center hover:bg-base-300 hover:text-base-content active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-base-200/80 disabled:active:scale-100"
+                  className="shrink-0 w-9 h-9 rounded-lg bg-base-200/80 border border-border text-base-content/60 flex items-center justify-center hover:bg-base-300 hover:text-base-content active:scale-95 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-base-200/80 disabled:active:scale-100"
                 >
                   <ClipboardList className="size-4" strokeWidth={2} />
                 </button>

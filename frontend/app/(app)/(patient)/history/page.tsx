@@ -43,7 +43,6 @@ async function ChatHistoryList() {
     let reliabilityLabel: string | null = null;
     let reliabilityBadgeClass: string | null = null;
     let reliabilityRank: number | null = null;
-    let modelUsed: string | null = null;
 
     if (chat.hasDiagnosis && chat.diagnosis) {
       diagnosis = chat.diagnosis.disease
@@ -53,7 +52,6 @@ async function ChatHistoryList() {
         .join(" ");
       uncertainty = chat.diagnosis.uncertainty;
       confidence = chat.diagnosis.confidence;
-      modelUsed = chat.diagnosis.modelUsed;
     } else if (chat.tempDiagnoses && chat.tempDiagnoses.length > 0) {
       const latestTemp = [...chat.tempDiagnoses].sort(
         (a, b) =>
@@ -66,7 +64,6 @@ async function ChatHistoryList() {
         .join(" ");
       uncertainty = latestTemp.uncertainty;
       confidence = latestTemp.confidence;
-      modelUsed = latestTemp.modelUsed;
     } else {
       // Only the latest message is fetched (take: 1, orderBy desc) — no sort needed
       const latestMessageContentRaw = chat.messages?.[0]?.content ?? "";
@@ -90,21 +87,18 @@ async function ChatHistoryList() {
       reliabilityLabel,
       reliabilityBadgeClass,
       reliabilityRank,
-      modelUsed,
       createdAt: chat.createdAt,
     };
   });
 
   const pdfColumns: PdfColumn[] = [
     { header: "Suggested Condition", dataKey: "diagnosis" },
-    { header: "Model", dataKey: "modelUsed" },
     { header: "Reliability", dataKey: "reliability" },
     { header: "Date", dataKey: "createdAt" },
   ];
 
   const exportData = rows.map((row) => ({
     diagnosis: row.diagnosis,
-    modelUsed: row.modelUsed || "-",
     reliability: row.reliabilityLabel || "-",
     createdAt: new Date(row.createdAt),
   }));

@@ -44,7 +44,6 @@ const TimelineSkeleton = () => {
 const AnomalySummarySkeleton = () => {
   return (
     <Card className="relative overflow-hidden border">
-      <div className="absolute inset-0 bg-base-100 opacity-90" />
       <CardHeader className="relative pb-4 flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="flex-1">
           <div className="skeleton h-6 w-40 mb-2" />

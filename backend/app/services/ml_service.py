@@ -96,7 +96,9 @@ class MCDClassifierWithSHAP:
             self.device = "cpu"
             print("[ML] Forcing CPU mode via ML_FORCE_CPU environment variable")
         else:
-            self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
+            self.device = (
+                device if device else ("cuda" if torch.cuda.is_available() else "cpu")
+            )
 
         model_kwargs = {}
         tokenizer_kwargs = {}
@@ -134,7 +136,9 @@ class MCDClassifierWithSHAP:
             self.explanation_model.to(self.device)
             self.explanation_model.eval()
         except RuntimeError as e:
-            if "CUDA" in str(e) and ("out of memory" in str(e).lower() or "OOM" in str(e).upper()):
+            if "CUDA" in str(e) and (
+                "out of memory" in str(e).lower() or "OOM" in str(e).upper()
+            ):
                 print(f"[WARNING] CUDA OOM detected: {e}. Falling back to CPU...")
                 self.device = "cpu"
                 # Re-load model in CPU mode for quantization
@@ -149,7 +153,9 @@ class MCDClassifierWithSHAP:
                 self.model.eval()
                 self.explanation_model.to(self.device)
                 self.explanation_model.eval()
-                print(f"[INFO] Model loaded on CPU with int8 quantization for faster inference")
+                print(
+                    f"[INFO] Model loaded on CPU with int8 quantization for faster inference"
+                )
             else:
                 raise
 
@@ -197,7 +203,9 @@ class MCDClassifierWithSHAP:
             inputs["attention_mask"] = inputs["attention_mask"].to(torch.long)
         except RuntimeError as e:
             if "CUDA" in str(e):
-                print(f"[ERROR] CUDA error during input preparation: {e}. Ensure ML_FORCE_CPU=true for low-VRAM systems.")
+                print(
+                    f"[ERROR] CUDA error during input preparation: {e}. Ensure ML_FORCE_CPU=true for low-VRAM systems."
+                )
                 raise
 
         deterministic_seed = None
@@ -244,7 +252,9 @@ class MCDClassifierWithSHAP:
                 error_msg = str(e)
                 print(f"[ERROR] CUDA error during inference: {error_msg}")
                 print("[ERROR] This indicates a GPU memory or compatibility issue.")
-                print("[ERROR] Set ML_FORCE_CPU=true in your environment to use CPU-only mode.")
+                print(
+                    "[ERROR] Set ML_FORCE_CPU=true in your environment to use CPU-only mode."
+                )
             raise
         finally:
             # RESET context to prevent leakage to other threads/requests
@@ -357,7 +367,12 @@ class MCDClassifierWithSHAP:
         )
 
         # 6️⃣ Aggregate across embedding dimensions (token-level importance)
-        token_attributions = attributions.sum(dim=-1).squeeze().detach().cpu()
+        # Use squeeze(0) to only remove batch dim, preserving sequence dimension
+        token_attributions = attributions.sum(dim=-1).squeeze(0).detach().cpu()
+
+        # Handle edge case: if token_attributions is 0-D (single token), unsqueeze to 1-D
+        if token_attributions.dim() == 0:
+            token_attributions = token_attributions.unsqueeze(0)
 
         # 7️⃣ Decode tokens
         tokens = self.tokenizer.convert_ids_to_tokens(
@@ -365,9 +380,13 @@ class MCDClassifierWithSHAP:
         )
 
         # 8️⃣ Normalize to [0, 1]
-        token_attributions = (token_attributions - token_attributions.min()) / (
-            token_attributions.max() - token_attributions.min() + 1e-8
-        )
+        attr_min = token_attributions.min()
+        attr_max = token_attributions.max()
+        # Avoid division by zero when all attributions are the same
+        if attr_max - attr_min > 1e-8:
+            token_attributions = (token_attributions - attr_min) / (attr_max - attr_min)
+        else:
+            token_attributions = torch.zeros_like(token_attributions)
 
         explanation = list(zip(tokens, token_attributions.numpy().tolist()))
 

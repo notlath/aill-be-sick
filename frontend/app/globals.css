@@ -37,6 +37,42 @@
   --noise: 0;
 }
 
+@plugin "daisyui/theme" {
+  name: "dark";
+  prefersdark: true;
+  color-scheme: dark;
+  --color-base-100: #0B1326;
+  --color-base-200: #1E293B;
+  --color-base-300: #334155;
+  --color-base-content: #ffffff;
+  --color-muted: #94A3B8;
+  --color-border: #2d394d;
+  --color-primary: #22C55E;
+  --color-primary-content: #0B1326;
+  --color-secondary: #4BE277;
+  --color-secondary-content: #0B1326;
+  --color-accent: #22C55E;
+  --color-accent-content: #0B1326;
+  --color-neutral: #1E293B;
+  --color-neutral-content: #ffffff;
+  --color-info: oklch(70% 0.165 254.624);
+  --color-info-content: #ffffff;
+  --color-success: #22C55E;
+  --color-success-content: #0B1326;
+  --color-warning: oklch(82% 0.189 84.429);
+  --color-warning-content: #0B1326;
+  --color-error: #EF4444;
+  --color-error-content: #ffffff;
+  --radius-selector: 0.25rem;
+  --radius-field: 10px;
+  --radius-box: 1.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
 @theme inline {
   --breakpoint-xs: 360px;
   --breakpoint-sidebar: 1180px;
@@ -185,46 +221,6 @@ h4,
 h5,
 h6 {
   @apply tracking-[-0.02em];
-}
-
-@plugin "daisyui/theme" {
-  name: "dark";
-  prefersdark: true;
-  color-scheme: dark;
-  --color-base-100: #0B1326;
-  --color-base-200: #1E293B;
-  --color-base-300: #334155;
-  --color-base-content: #ffffff;
-  --color-muted: #94A3B8;
-  --color-border: #2d394d !important;
-  --color-primary: #22C55E;
-  --color-primary-content: #0B1326;
-  --color-secondary: #4BE277;
-  --color-secondary-content: #0B1326;
-  --color-accent: #22C55E;
-  --color-accent-content: #0B1326;
-  --color-neutral: #1E293B;
-  --color-neutral-content: #ffffff;
-  --color-info: oklch(70% 0.165 254.624);
-  --color-info-content: #ffffff;
-  --color-success: #22C55E;
-  --color-success-content: #0B1326;
-  --color-warning: oklch(82% 0.189 84.429);
-  --color-warning-content: #0B1326;
-  --color-error: #EF4444;
-  --color-error-content: #ffffff;
-  --radius-selector: 0.25rem;
-  --radius-field: 10px;
-  --radius-box: 1.25rem;
-  --size-selector: 0.25rem;
-  --size-field: 0.25rem;
-  --border: 1px;
-  --depth: 0;
-  --noise: 0;
-}
-
-.btn {
-  /* @apply bg-base-200/50 hover:bg-base-200 hover:border-base-300; */
 }
 
 /* Leaflet map dark mode styles */

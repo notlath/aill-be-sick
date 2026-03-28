@@ -11,7 +11,6 @@ export type HistoryRow = {
   reliabilityLabel: string | null;
   reliabilityBadgeClass: string | null;
   reliabilityRank: number | null;
-  modelUsed: string | null;
   createdAt: Date;
 };
 
@@ -35,19 +34,6 @@ export const columns: ColumnDef<HistoryRow>[] = [
     },
     // filterFn is customized for both global search and exact select matching if needed
     // or we can stick to includesString and it will work with Selects if we use exact values
-  },
-  {
-    accessorKey: "modelUsed",
-    header: "Model",
-    cell: ({ row }) => {
-      const model = row.getValue("modelUsed") as string | null;
-      if (!model) return <span className="text-muted">—</span>;
-      return (
-        <span className="badge badge-sm badge-ghost">
-          {model}
-        </span>
-      );
-    },
   },
   {
     accessorKey: "reliabilityRank",

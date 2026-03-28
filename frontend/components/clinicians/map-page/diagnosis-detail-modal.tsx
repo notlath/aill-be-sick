@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { IllnessRecord } from "@/types";
 import { getReliability } from "@/utils/reliability";
 import { getAnonymizedPatientId } from "@/utils/patient";
+import { useTheme } from "next-themes";
+import { processTokensForDisplay, type TokenWithImportance } from "@/utils/shap-tokens";
+import { getExplanationByDiagnosisId } from "@/utils/explanation";
+import { WordHeatmapToggle } from "@/components/shared/word-heatmap-toggle";
 
 interface DiagnosisDetailModalProps {
   isOpen: boolean;
@@ -17,6 +21,10 @@ export function DiagnosisDetailModal({
   diagnosis,
 }: DiagnosisDetailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const [explanation, setExplanation] = useState<{ tokens: string[]; importances: number[] } | null>(null);
+  const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -28,6 +36,24 @@ export function DiagnosisDetailModal({
       if (dialog.open) dialog.close();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (diagnosis?.id) {
+      setIsLoadingExplanation(true);
+      getExplanationByDiagnosisId(diagnosis.id)
+        .then((result) => {
+          if (result.success) {
+            setExplanation(result.success);
+          }
+        })
+        .finally(() => setIsLoadingExplanation(false));
+    }
+  }, [diagnosis?.id]);
+
+  const processedTokens = useMemo<TokenWithImportance[]>(() => {
+    if (!explanation?.tokens || !explanation?.importances) return [];
+    return processTokensForDisplay(explanation.tokens, explanation.importances);
+  }, [explanation]);
 
   const handleContentClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -115,6 +141,13 @@ export function DiagnosisDetailModal({
               <p className="text-sm leading-relaxed">{diagnosis.symptoms}</p>
             </div>
           )}
+
+          {/* Word Heatmap Toggle */}
+          <WordHeatmapToggle
+            processedTokens={processedTokens}
+            isDark={isDark}
+            isLoading={isLoadingExplanation}
+          />
         </div>
       </div>
       <form method="dialog" className="modal-backdrop">
