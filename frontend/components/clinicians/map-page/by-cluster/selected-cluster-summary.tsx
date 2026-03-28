@@ -139,9 +139,6 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
 
   return (
     <Card className={`relative overflow-hidden border `}>
-      {/* Subtle background color based on theme */}
-      <div className={`absolute inset-0 bg-base-100 opacity-90`} />
-
       <CardHeader className="relative pb-4">
         <div className="flex-1">
           <div className="font-semibold text-lg mb-2 flex items-center gap-2">

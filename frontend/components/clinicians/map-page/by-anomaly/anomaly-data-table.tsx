@@ -427,7 +427,7 @@ export const AnomalyDataTable = ({
         </Select>
       </div>
 
-      <div className="bg-base-100 border border-border rounded-xl mx-auto overflow-hidden">
+      <div className="border border-border rounded-xl mx-auto overflow-hidden">
         <div className="overflow-x-auto w-full">
           <table className="table w-full">
             <thead>

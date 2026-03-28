@@ -53,7 +53,6 @@ const SelectedClusterDetails = ({
       />
       {loading ? (
         <Card className="relative overflow-hidden border">
-          <div className="absolute inset-0 bg-base-100 opacity-90" />
           <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
             <div className="skeleton h-6 w-48" />
             <div className="skeleton h-8 w-28" />
@@ -71,7 +70,6 @@ const SelectedClusterDetails = ({
         />
       )}
       <Card className="relative overflow-hidden border">
-        <div className="absolute inset-0 bg-base-100 opacity-90" />
         <CardHeader className="relative pb-4">
           <div className="font-semibold text-lg">
             All Patients in Group {clusterIndex + 1}
