@@ -58,6 +58,67 @@ AI'll Be Sick is a full-stack disease detection application. Users submit sympto
 
 ---
 
+## Role Hierarchy
+
+The application enforces a strict role hierarchy where higher roles inherit permissions of lower roles:
+
+### Hierarchy (Highest to Lowest)
+
+| Level | Role      | Description                                     |
+| ----- | --------- | ----------------------------------------------- |
+| 3     | DEVELOPER | Full system access, all admin capabilities      |
+| 2     | ADMIN     | Clinician management, approval workflows        |
+| 1     | CLINICIAN | Patient management, diagnosis override          |
+| 0     | PATIENT   | Self-service symptom checker, diagnosis history |
+
+### Permission Inheritance Rules
+
+- **DEVELOPER**: Can perform ALL actions (ADMIN + CLINICIAN + PATIENT permissions)
+- **ADMIN**: Can perform ADMIN + CLINICIAN + PATIENT actions
+- **CLINICIAN**: Can perform CLINICIAN + PATIENT actions
+- **PATIENT**: Can only perform PATIENT actions
+
+### Permission Mapping by Action
+
+| Action                     | PATIENT | CLINICIAN | ADMIN | DEVELOPER |
+| -------------------------- | ------- | --------- | ----- | --------- |
+| Submit symptoms            | ✅      | ✅        | ✅    | ✅        |
+| View own diagnosis history | ✅      | ✅        | ✅    | ✅        |
+| Create patient accounts    | ❌      | ✅        | ✅    | ✅        |
+| Override diagnoses         | ❌      | ✅        | ✅    | ✅        |
+| Approve clinicians         | ❌      | ❌        | ✅    | ✅        |
+| Manage clinicians          | ❌      | ❌        | ✅    | ✅        |
+| System administration      | ❌      | ❌        | ❌    | ✅        |
+
+### Implementation Reference
+
+When implementing permission checks in server actions:
+
+```typescript
+// ✅ CORRECT: Hierarchical role check
+const allowedRoles = ["CLINICIAN", "ADMIN", "DEVELOPER"];
+if (!allowedRoles.includes(currentUser.role)) {
+  return { error: "Permission denied" };
+}
+
+// ✅ CORRECT: Conditional approval check (only CLINICIAN needs ACTIVE status)
+if (
+  currentUser.role === "CLINICIAN" &&
+  currentUser.approvalStatus !== "ACTIVE"
+) {
+  return { error: "Your clinician account is not active" };
+}
+
+// ❌ WRONG: Strict equality (excludes ADMIN and DEVELOPER)
+if (currentUser.role !== "CLINICIAN") {
+  return { error: "Only clinicians can create patient accounts" };
+}
+```
+
+**Use the shared utility**: `frontend/utils/role-hierarchy.ts` for consistent permission checks.
+
+---
+
 ## Commands
 
 ### Backend (Flask)

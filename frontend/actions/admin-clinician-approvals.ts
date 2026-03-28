@@ -8,16 +8,14 @@ import {
   RejectClinicianSchema,
 } from "@/schemas/ClinicianApprovalSchema";
 import { getCurrentDbUser } from "@/utils/user";
-
-const isAdminLike = (role: string) =>
-  role === "ADMIN" || role === ("DEVELOPER" as any);
+import { canApproveClinicians } from "@/utils/role-hierarchy";
 
 export const approveClinician = actionClient
   .inputSchema(ApproveClinicianSchema)
   .action(async ({ parsedInput }) => {
     const { success: dbUser, error } = await getCurrentDbUser();
 
-    if (error || !dbUser || !isAdminLike(dbUser.role)) {
+    if (error || !dbUser || !canApproveClinicians(dbUser.role)) {
       return { error: "Unauthorized. Admin access required." };
     }
 
@@ -54,7 +52,7 @@ export const rejectClinician = actionClient
   .action(async ({ parsedInput }) => {
     const { success: dbUser, error } = await getCurrentDbUser();
 
-    if (error || !dbUser || !isAdminLike(dbUser.role)) {
+    if (error || !dbUser || !canApproveClinicians(dbUser.role)) {
       return { error: "Unauthorized. Admin access required." };
     }
 

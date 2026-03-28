@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 import { actionClient } from "./client";
 import { EmailAuthSchema } from "@/schemas/EmailAuthSchema";
 import { getCurrentDbUser } from "@/utils/user";
+import { canManageClinicians } from "@/utils/role-hierarchy";
 
 export const adminLogin = actionClient
   .inputSchema(EmailAuthSchema)
@@ -37,7 +38,7 @@ export const adminSignup = actionClient
       return { error: "Unauthorized" };
     }
 
-    if (dbUser.role !== "ADMIN" && dbUser.role !== ("DEVELOPER" as any)) {
+    if (!canManageClinicians(dbUser.role)) {
       return { error: "Unauthorized. Admin access required." };
     }
 
@@ -49,12 +50,12 @@ export const adminSignup = actionClient
       process.env.NEXT_PUBLIC_VERCEL_URL ??
       "http://localhost:3000";
 
-    const { error, data } = await supabase.auth.signUp({ 
-      email, 
+    const { error, data } = await supabase.auth.signUp({
+      email,
       password,
       options: {
         emailRedirectTo: `${appUrl}/auth/callback`,
-      }
+      },
     });
 
     if (error) {

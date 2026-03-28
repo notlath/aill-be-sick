@@ -5,6 +5,7 @@ import { OverrideDiagnosisSchema } from "@/schemas/OverrideDiagnosisSchema";
 import { getCurrentDbUser } from "@/utils/user";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
+import { canOverrideDiagnosis } from "@/utils/role-hierarchy";
 
 export const overrideDiagnosis = actionClient
   .inputSchema(OverrideDiagnosisSchema)
@@ -20,10 +21,9 @@ export const overrideDiagnosis = actionClient
     }
 
     // Only CLINICIAN, ADMIN, or DEVELOPER roles can override diagnoses
-    const allowedRoles = ["CLINICIAN", "ADMIN", "DEVELOPER"];
-    if (!allowedRoles.includes(dbUser.role)) {
+    if (!canOverrideDiagnosis(dbUser.role)) {
       console.error(
-        `Unauthorized override attempt by user ${dbUser.id} with role ${dbUser.role}`
+        `Unauthorized override attempt by user ${dbUser.id} with role ${dbUser.role}`,
       );
       return {
         error:
@@ -56,7 +56,7 @@ export const overrideDiagnosis = actionClient
         });
 
         console.log(
-          `Updated override for diagnosis ${diagnosisId} by clinician ${dbUser.id}`
+          `Updated override for diagnosis ${diagnosisId} by clinician ${dbUser.id}`,
         );
       } else {
         // Create a new override, preserving the original AI assessment
@@ -75,7 +75,7 @@ export const overrideDiagnosis = actionClient
         });
 
         console.log(
-          `Created override for diagnosis ${diagnosisId} by clinician ${dbUser.id}: AI suggested ${diagnosis.disease}, clinician overrode to ${clinicianDisease}`
+          `Created override for diagnosis ${diagnosisId} by clinician ${dbUser.id}: AI suggested ${diagnosis.disease}, clinician overrode to ${clinicianDisease}`,
         );
       }
 

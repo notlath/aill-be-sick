@@ -6,6 +6,7 @@ import prisma from "@/prisma/prisma";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/utils/user";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { canCreatePatient } from "@/utils/role-hierarchy";
 
 export const createPatient = actionClient
   .inputSchema(CreatePatientSchema)
@@ -16,16 +17,14 @@ export const createPatient = actionClient
       return { error: "Not authenticated" };
     }
 
-    // Verify the current user is a clinician
+    // Verify the current user has permission to create patients
     const currentUser = await prisma.user.findUnique({
       where: { authId: authUser.id },
       select: { role: true, approvalStatus: true },
     });
 
-    // Define roles that can create patients (hierarchical: developer > admin > clinician > patient)
-    const allowedRoles = ["CLINICIAN", "ADMIN", "DEVELOPER"];
-
-    if (!currentUser || !allowedRoles.includes(currentUser.role)) {
+    // Check role hierarchy - CLINICIAN, ADMIN, and DEVELOPER can create patients
+    if (!currentUser || !canCreatePatient(currentUser.role)) {
       return { error: "Only clinicians can create patient accounts" };
     }
 
