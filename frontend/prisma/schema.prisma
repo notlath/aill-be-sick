@@ -4,45 +4,41 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL")
 }
 
 model User {
-  id          Int         @id @default(autoincrement())
-  email       String      @unique
-  name        String?
-  authId      String?     @unique
-  avatar      String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @default(now()) @updatedAt
-  role        Role        @default(PATIENT)
-  approvalStatus ApprovalStatus @default(ACTIVE)
-  approvedAt  DateTime?
-  rejectedAt  DateTime?
-  approvalNotes String?
-  approvedBy  Int?
-  city        String?
-  address     String?
-  // Patient's residential coordinates (geocoded from home address)
-  // Used for disease surveillance, clustering analysis, and outbreak detection
-  latitude    Float?
-  longitude   Float?
-  region      String?
-  age         Int?
-  gender      Gender?
-  province    String?
-  barangay    String?
-  birthday    DateTime?
-  isOnboarded Boolean     @default(false)
-  district    String?
-
-  // Consent tracking
+  id                 Int                 @id @default(autoincrement())
+  email              String              @unique
+  name               String?
+  authId             String?             @unique
+  avatar             String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @default(now()) @updatedAt
+  role               Role                @default(PATIENT)
+  city               String?
+  latitude           Float?
+  longitude          Float?
+  region             String?
+  age                Int?
+  gender             Gender?
+  province           String?
+  barangay           String?
+  birthday           DateTime?
+  isOnboarded        Boolean             @default(false)
+  district           String?
+  address            String?
   privacyAcceptedAt  DateTime?
   privacyVersion     String?
   termsAcceptedAt    DateTime?
   termsVersion       String?
+  approvalStatus     ApprovalStatus      @default(ACTIVE)
+  approvedAt         DateTime?
+  approvedBy         Int?
+  approvalNotes      String?
+  rejectedAt         DateTime?
   acknowledgedAlerts Alert[]             @relation("AlertAcknowledger")
   resolvedAlerts     Alert[]             @relation("AlertResolver")
   alertNotes         AlertNote[]         @relation("AlertNoteAuthor")
@@ -96,31 +92,27 @@ model TempDiagnosis {
 }
 
 model Diagnosis {
-  id          Int          @id @default(autoincrement())
-  confidence  Float
-  uncertainty Float
-  disease     Disease
-  createdAt   DateTime     @default(now())
-  chatId      String       @unique
-  userId      Int
-  modelUsed   Model
-  symptoms    String
-  cdss        Json?
-  city        String?
-  // Coordinates where patient resides (copied from User at time of diagnosis)
-  // Represents patient's residential location for outbreak tracking
-  latitude    Float?
-  longitude   Float?
-  region      String?
-  province    String?
-  barangay    String?
-  district    String?
-  // Temperature data (optional - for future analytics)
-  temperature     Float?   // Normalized temperature in Celsius
-  temperatureUnit String?  // Original unit used: "celsius" or "fahrenheit"
-  
-  // BMI data
+  id              Int                @id @default(autoincrement())
+  confidence      Float
+  uncertainty     Float
+  disease         Disease
+  createdAt       DateTime           @default(now())
+  chatId          String             @unique
+  userId          Int
+  modelUsed       Model
+  symptoms        String
+  city            String?
+  latitude        Float?
+  longitude       Float?
+  region          String?
+  province        String?
+  barangay        String?
+  district        String?
+  cdss            Json?
+  bmiAdvice       String?
   heightCm        Float?
+  temperature     Float?
+  temperatureUnit String?
   weightKg        Float?
   alerts          Alert[]
   chat            Chat               @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
