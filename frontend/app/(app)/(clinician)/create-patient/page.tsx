@@ -44,7 +44,7 @@ export default function CreatePatientPage() {
       <div className="px-8 pb-16 md:px-16 lg:px-24">
         <div className="mx-auto max-w-[1600px]">
           <div
-            className="animate-slide-up bg-white/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm p-8"
+            className="animate-slide-up bg-base-100 backdrop-blur-sm rounded-2xl border border-border shadow-sm p-8"
             style={{ animationDelay: "200ms" }}
           >
             <Suspense fallback={<CreatePatientSkeleton />}>

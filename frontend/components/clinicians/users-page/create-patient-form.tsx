@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAction } from "next-safe-action/hooks";
+import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
 import { BAGONG_SILANGAN_DISTRICTS } from "@/constants/bagong-silangan-districts";
@@ -41,6 +42,9 @@ interface CreatePatientFormProps {
 export default function CreatePatientForm({
   onSuccess,
 }: CreatePatientFormProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   const [firstName, setFirstName] = useState("");
   const [middleName, setMiddleName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -355,7 +359,7 @@ export default function CreatePatientForm({
             }
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select gender" />
+              <SelectValue placeholder="Select gender" className="text-muted" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="MALE">Male</SelectItem>
@@ -385,7 +389,7 @@ export default function CreatePatientForm({
             </label>
             <Select value={district} onValueChange={setDistrict}>
               <SelectTrigger className="w-full bg-base-100">
-                <SelectValue placeholder="Select district or zone" />
+                <SelectValue placeholder="Select district or zone" className="text-muted" />
               </SelectTrigger>
               <SelectContent>
                 {BAGONG_SILANGAN_DISTRICTS.map((d) => (
@@ -414,16 +418,26 @@ export default function CreatePatientForm({
                 theme={{
                   variables: {
                     fontFamily: "inherit",
-                    unit: "14px",
                     padding: "0.5em",
                     borderRadius: "0.5rem",
-                    colorBackground: "#ffffff",
-                    colorBackgroundHover: "#f5f5f7",
-                    colorText: "#1d1d1f",
+                    colorBackground: isDark ? "#1e293b" : "#ffffff",
+                    colorBackgroundHover: isDark ? "#334155" : "#f5f5f7",
+                    colorText: isDark ? "#f8fafc" : "#1d1d1f",
+                    colorSecondary: isDark ? "#94A3B8" : "#738080",
                     colorPrimary: "oklch(59% 0.145 163.225)",
-                    border: "1px solid #e8e8ed",
+                    border: isDark ? "1px solid #475569" : "1px solid #e8e8ed",
                     boxShadow: "none",
                   },
+                  cssText: `
+                    .Input {
+                      font-size: var(--text-sm, 0.9375rem);
+                    }
+                    .Input::placeholder {
+                      color: ${isDark ? "#94A3B8" : "#738080"};
+                      opacity: 1;
+                      font-size: var(--text-sm, 0.9375rem);
+                    }
+                  `,
                 }}
               />
 
