@@ -30,7 +30,7 @@ const AlertsPage = async () => {
                 dbUser
                   ? {
                       name: dbUser.name ?? "Unknown",
-                      email: dbUser.email,
+                      email: dbUser.email ?? undefined,
                     }
                   : undefined
               }

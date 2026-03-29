@@ -41,7 +41,7 @@ async function UsersTable({
   generatedBy,
 }: {
   currentUserRole: string;
-  generatedBy?: { name: string; email?: string };
+  generatedBy?: { name: string; email?: string | null };
 }) {
   const { success: users, error } = await getAllUsers(currentUserRole);
 
@@ -119,7 +119,7 @@ const UsersPage = async () => {
               <UsersTable
                 currentUserRole={currentUserRole}
                 generatedBy={
-                  dbUser
+                      dbUser
                     ? {
                         name: dbUser.name ?? "Unknown",
                         email: dbUser.email,

@@ -22,7 +22,7 @@ import { ExportReportButton } from "@/components/ui/export-report-button";
 
 interface AlertsListProps {
   currentUserId: number | null;
-  generatedBy?: { name: string; email?: string };
+  generatedBy?: { name: string; email?: string | null };
 }
 
 const TABS = [

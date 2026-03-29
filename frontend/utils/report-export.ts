@@ -15,7 +15,7 @@ export interface ReportExportOptions {
   filenameSlug: string;
   title: string;
   subtitle?: string;
-  generatedBy?: { name: string; email?: string };
+  generatedBy?: { name: string; email?: string | null };
 }
 
 export type ReportFormat = "pdf" | "csv" | "json" | "xlsx";
@@ -85,7 +85,7 @@ export function exportToCSV(
 export function exportToJSON(
   data: Record<string, unknown>[],
   filename: string,
-  metadata?: { generatedBy?: { name: string; email?: string }; generatedOn: string }
+  metadata?: { generatedBy?: { name: string; email?: string | null }; generatedOn: string }
 ): void {
   const payload = metadata
     ? { data, metadata }

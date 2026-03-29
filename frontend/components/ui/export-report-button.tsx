@@ -20,7 +20,7 @@ interface ExportReportButtonProps {
   filenameSlug: string;
   title: string;
   subtitle?: string;
-  generatedBy?: { name: string; email?: string };
+  generatedBy?: { name: string; email?: string | null };
   disabled?: boolean;
 }
 

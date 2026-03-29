@@ -17,7 +17,7 @@ export interface PdfExportOptions {
   columns: PdfColumn[];
   filename?: string;
   subtitle?: string;
-  generatedBy?: { name: string; email?: string };
+  generatedBy?: { name: string; email?: string | null };
 }
 
 // --color-primary: oklch(59% 0.145 163.225) from globals.css → teal/green, matches #009764 used in app

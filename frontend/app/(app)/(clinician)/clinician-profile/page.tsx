@@ -13,7 +13,7 @@ async function ProfileData() {
     <ProfileForm
       user={{
         name: dbUser.name || "",
-        email: dbUser.email,
+        email: dbUser.email ?? "",
         avatar: dbUser.avatar || null,
         gender: dbUser.gender as "MALE" | "FEMALE" | "OTHER" | null,
         birthday: dbUser.birthday ? dbUser.birthday.toISOString().split("T")[0] : null,

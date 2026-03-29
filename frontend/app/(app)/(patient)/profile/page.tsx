@@ -14,7 +14,7 @@ async function ProfileData() {
     <ProfileForm
       user={{
         name: dbUser.name || "",
-        email: dbUser.email,
+        email: dbUser.email || "",
         avatar: dbUser.avatar || null,
         region: dbUser.region || null,
         province: dbUser.province || null,
