@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Mail, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { createClient } from "@supabase/supabase-js";
+import { resendInvite } from "@/actions/resend-invite";
 
 interface ResendInviteModalProps {
   isOpen: boolean;
@@ -36,62 +36,24 @@ export default function ResendInviteModal({
     setIsSending(true);
 
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const result = await resendInvite({ email: targetEmail });
 
-      if (!supabaseUrl || !supabaseServiceRoleKey) {
-        toast.error("Configuration error. Please contact support.");
+      if (result?.data?.error) {
+        toast.error(result.data.error);
         setIsSending(false);
         return;
       }
 
-      const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      });
-
-      // First, check if the user exists in Supabase Auth
-      const { data: existingUsers } = await supabase.auth.admin.listUsers();
-      const existingUser = existingUsers?.users?.find(
-        (u) => u.email === targetEmail,
-      );
-
-      if (!existingUser) {
-        toast.error(
-          "No account found with this email. Please create a patient account first.",
+      if (result?.data?.success) {
+        toast.success(
+          result.data.message || `Invite email sent to ${targetEmail}`,
         );
-        setIsSending(false);
-        return;
+        if (!userId) {
+          // Only clear the email if we're in standalone mode
+          setEmail("");
+        }
+        onClose();
       }
-
-      // Resend the invite email
-      const origin =
-        process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-
-      const { error: inviteError } =
-        await supabase.auth.admin.inviteUserByEmail(targetEmail, {
-          redirectTo: `${origin}/auth/callback?next=/patient/set-password`,
-          data: {
-            name: existingUser.user_metadata?.name || "",
-            role: "PATIENT",
-          },
-        });
-
-      if (inviteError) {
-        console.error("[Resend Invite] Error:", inviteError);
-        toast.error(`Failed to resend invite: ${inviteError.message}`);
-        setIsSending(false);
-        return;
-      }
-
-      toast.success(`Invite email sent to ${targetEmail}`);
-      if (!userId) {
-        // Only clear the email if we're in standalone mode
-        setEmail("");
-      }
-      onClose();
     } catch (err) {
       console.error("[Resend Invite] Unexpected error:", err);
       toast.error("An unexpected error occurred. Please try again.");
