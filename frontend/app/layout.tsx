@@ -37,14 +37,14 @@ export default async function RootLayout({
       <head>
         {process.env.NODE_ENV === "development" && (
           <Script
-            src="//unpkg.com/react-grab/dist/index.global.js"
+            src="//unpkg.com/react-grab@0.1.24/dist/index.global.js"
             crossOrigin="anonymous"
-            strategy="beforeInteractive"
+            strategy="afterInteractive"
           />
         )}
         {process.env.NODE_ENV === "development" && (
           <Script
-            src="//unpkg.com/@react-grab/mcp/dist/client.global.js"
+            src="//unpkg.com/@react-grab/mcp@0.1.24/dist/client.global.js"
             strategy="lazyOnload"
           />
         )}

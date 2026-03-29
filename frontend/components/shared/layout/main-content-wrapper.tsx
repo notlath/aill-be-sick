@@ -2,7 +2,7 @@
 
 import { cn } from "@/utils/lib";
 import { usePathname } from "next/navigation";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useSidebar } from "./sidebar-provider";
 
 type MainContentWrapperProps = {
@@ -12,13 +12,18 @@ type MainContentWrapperProps = {
 const MainContentWrapper = ({ children }: MainContentWrapperProps) => {
   const { isOpen } = useSidebar();
   const pathname = usePathname();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   return (
     <div
       className={cn(
         "flex-1 p-3 sidebar:p-6 w-full max-w-[100vw] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]",
         "[transition-property:padding-left,margin-left]",
-        !isOpen && "sidebar:pl-20"
+        isMounted && !isOpen && "sidebar:pl-20"
       )}
     >
       <div
