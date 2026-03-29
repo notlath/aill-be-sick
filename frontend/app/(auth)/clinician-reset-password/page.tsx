@@ -12,6 +12,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { toast } from "sonner";
 
 const ClinicianResetPasswordPage = () => {
@@ -59,7 +60,9 @@ const ClinicianResetPasswordPage = () => {
                 <CheckCircle2 className="h-6 w-6 text-success" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-base-content">Password Updated</h3>
+                <h3 className="text-xl font-semibold text-base-content">
+                  Password Updated
+                </h3>
                 <p className="text-muted text-sm">{successMessage}</p>
               </div>
               <Link
@@ -72,12 +75,14 @@ const ClinicianResetPasswordPage = () => {
           ) : (
             <form onSubmit={handleUpdate} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="password">
+                <label
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  htmlFor="password"
+                >
                   New Password
                 </label>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   className="h-12"
                   placeholder="••••••••"
                   {...form.register("password")}
@@ -90,12 +95,14 @@ const ClinicianResetPasswordPage = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="confirmPassword">
+                <label
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  htmlFor="confirmPassword"
+                >
                   Confirm Password
                 </label>
-                <Input
+                <PasswordInput
                   id="confirmPassword"
-                  type="password"
                   className="h-12"
                   placeholder="••••••••"
                   {...form.register("confirmPassword")}

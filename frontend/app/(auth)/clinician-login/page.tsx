@@ -14,6 +14,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const ClinicianLoginPage = () => {
   const router = useRouter();
@@ -114,11 +115,10 @@ const ClinicianLoginPage = () => {
                   Forgot Password?
                 </Link>
               </div>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
-                className="h-12"
                 placeholder="••••••••"
+                className="h-12"
                 {...form.register("password")}
               />
               {form.formState.errors.password && (

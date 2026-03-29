@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { ArrowRight, Loader2, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useState } from "react";
 
 const HomePage = () => {
@@ -156,11 +157,10 @@ const HomePage = () => {
                 >
                   Password
                 </label>
-                <Input
+                <PasswordInput
                   id="login-password"
-                  type="password"
-                  className="h-12"
                   placeholder="••••••••"
+                  className="h-12"
                   {...loginForm.register("password")}
                 />
                 {loginForm.formState.errors.password && (
@@ -264,11 +264,10 @@ const HomePage = () => {
                 >
                   Password
                 </label>
-                <Input
+                <PasswordInput
                   id="signup-password"
-                  type="password"
-                  className="h-12"
                   placeholder="••••••••"
+                  className="h-12"
                   {...signupForm.register("password")}
                 />
                 {signupForm.formState.errors.password && (

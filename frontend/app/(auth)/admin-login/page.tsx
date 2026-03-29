@@ -14,6 +14,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const AdminLoginPage = () => {
   const router = useRouter();
@@ -35,7 +36,7 @@ const AdminLoginPage = () => {
       onError: ({ error }) => {
         toast.error("An unexpected error occurred during login.");
       },
-    }
+    },
   );
   const { execute: execSignup, isExecuting: isSigningUp } = useAction(
     adminSignup,
@@ -51,7 +52,7 @@ const AdminLoginPage = () => {
       onError: ({ error }) => {
         toast.error("An unexpected error occurred during signup.");
       },
-    }
+    },
   );
 
   const handleLogin = form.handleSubmit((formData) => {
@@ -69,14 +70,15 @@ const AdminLoginPage = () => {
         <div className="w-full max-w-md mx-auto space-y-8">
           <div className="space-y-3 text-center lg:text-left">
             <h1 className="text-6xl font-bold tracking-tight">AI'll Be Sick</h1>
-            <p className="text-muted text-lg">
-              Admin Portal Access
-            </p>
+            <p className="text-muted text-lg">Admin Portal Access</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="email">
+              <label
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                htmlFor="email"
+              >
                 Email address
               </label>
               <Input
@@ -95,7 +97,10 @@ const AdminLoginPage = () => {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70" htmlFor="password">
+                <label
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  htmlFor="password"
+                >
                   Password
                 </label>
               </div>
@@ -131,14 +136,20 @@ const AdminLoginPage = () => {
 
             <p className="text-center text-sm text-muted pt-4">
               Not an admin? Click{" "}
-              <Link href="/login" className="text-primary font-medium hover:underline transition-all cursor-pointer">
+              <Link
+                href="/login"
+                className="text-primary font-medium hover:underline transition-all cursor-pointer"
+              >
                 here
               </Link>{" "}
               to log in as a patient
             </p>
             <p className="text-center text-sm text-muted mt-2">
               Clinician? Click{" "}
-              <Link href="/clinician-login" className="text-primary font-medium hover:underline transition-all cursor-pointer">
+              <Link
+                href="/clinician-login"
+                className="text-primary font-medium hover:underline transition-all cursor-pointer"
+              >
                 here
               </Link>{" "}
               to log in
