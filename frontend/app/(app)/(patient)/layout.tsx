@@ -32,9 +32,17 @@ const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
     forbidden();
   }
 
-  // Force password change takes precedence over onboarding
+  // Force password change takes precedence over everything
   if (dbUser.mustChangePassword) {
     return redirect("/change-password");
+  }
+
+  // Email verification check (only for patients with real emails)
+  // Patients with access codes use placeholder emails (@internal.ailbesick.local)
+  // and have emailVerified=true from creation
+  const hasRealEmail = dbUser.email && !dbUser.email.endsWith("@internal.ailbesick.local");
+  if (hasRealEmail && dbUser.emailVerified === false) {
+    return redirect("/verify-email-pending");
   }
 
   if (!dbUser.isOnboarded) {

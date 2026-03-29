@@ -11,7 +11,7 @@ datasource db {
 
 model User {
   id                 Int                 @id @default(autoincrement())
-  email              String              @unique
+  email              String?             @unique
   name               String?
   authId             String?             @unique
   avatar             String?
@@ -40,6 +40,11 @@ model User {
   approvedBy         Int?
   approvalNotes      String?
   rejectedAt         DateTime?
+
+  // Email verification and access code fields for patient authentication
+  emailVerified      Boolean             @default(false)
+  patientAccessCode  String?             @unique // Format: PAT-XXXXXX for patients without email
+
   acknowledgedAlerts Alert[]             @relation("AlertAcknowledger")
   resolvedAlerts     Alert[]             @relation("AlertResolver")
   alertNotes         AlertNote[]         @relation("AlertNoteAuthor")
@@ -50,6 +55,7 @@ model User {
   @@index([latitude, longitude])
   @@index([region])
   @@index([province])
+  @@index([patientAccessCode])
 }
 
 model Chat {

@@ -3,19 +3,25 @@
 import Link from "next/link";
 import { useAction } from "next-safe-action/hooks";
 import { patientLogin } from "@/actions/patient-auth";
+import { accessCodeLogin } from "@/actions/access-code-auth";
 import {
   EmailAuthSchema,
   EmailAuthSchemaType,
 } from "@/schemas/EmailAuthSchema";
+import {
+  AccessCodeAuthSchema,
+  AccessCodeAuthSchemaType,
+} from "@/schemas/AccessCodeAuthSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { ArrowRight, Loader2, Info } from "lucide-react";
+import { ArrowRight, Loader2, Info, Mail, KeyRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const HomePage = () => {
-  // Login form
-  const loginForm = useForm<EmailAuthSchemaType>({
+  // Email login form
+  const emailForm = useForm<EmailAuthSchemaType>({
     defaultValues: {
       email: "",
       password: "",
@@ -23,7 +29,16 @@ const HomePage = () => {
     resolver: zodResolver(EmailAuthSchema),
   });
 
-  const { execute: execLogin, isExecuting: isLoggingIn } = useAction(
+  // Access code login form
+  const accessCodeForm = useForm<AccessCodeAuthSchemaType>({
+    defaultValues: {
+      accessCode: "",
+      password: "",
+    },
+    resolver: zodResolver(AccessCodeAuthSchema),
+  });
+
+  const { execute: execEmailLogin, isExecuting: isEmailLoggingIn } = useAction(
     patientLogin,
     {
       onSuccess: ({ data }) => {
@@ -37,8 +52,24 @@ const HomePage = () => {
     }
   );
 
-  const handleLogin = loginForm.handleSubmit((formData) => {
-    execLogin(formData);
+  const { execute: execAccessCodeLogin, isExecuting: isAccessCodeLoggingIn } =
+    useAction(accessCodeLogin, {
+      onSuccess: ({ data }) => {
+        if (data?.error) {
+          toast.error(data.error);
+        }
+      },
+      onError: () => {
+        toast.error("An unexpected error occurred during login.");
+      },
+    });
+
+  const handleEmailLogin = emailForm.handleSubmit((formData) => {
+    execEmailLogin(formData);
+  });
+
+  const handleAccessCodeLogin = accessCodeForm.handleSubmit((formData) => {
+    execAccessCodeLogin(formData);
   });
 
   return (
@@ -55,66 +86,152 @@ const HomePage = () => {
             </p>
           </div>
 
-          {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <label
-                className="text-sm font-medium leading-none"
-                htmlFor="login-email"
+          {/* Login Method Tabs */}
+          <Tabs defaultValue="email" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email
+              </TabsTrigger>
+              <TabsTrigger
+                value="access-code"
+                className="flex items-center gap-2"
               >
-                Email address
-              </label>
-              <Input
-                id="login-email"
-                type="email"
-                className="h-12"
-                placeholder="name@example.com"
-                {...loginForm.register("email")}
-              />
-              {loginForm.formState.errors.email && (
-                <span className="text-error text-xs font-medium">
-                  {loginForm.formState.errors.email.message}
-                </span>
-              )}
-            </div>
+                <KeyRound className="h-4 w-4" />
+                Access Code
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-2">
-              <label
-                className="text-sm font-medium leading-none"
-                htmlFor="login-password"
-              >
-                Password
-              </label>
-              <Input
-                id="login-password"
-                type="password"
-                className="h-12"
-                placeholder="Enter your password"
-                {...loginForm.register("password")}
-              />
-              {loginForm.formState.errors.password && (
-                <span className="text-error text-xs font-medium">
-                  {loginForm.formState.errors.password.message}
-                </span>
-              )}
-            </div>
+            {/* Email Login Form */}
+            <TabsContent value="email">
+              <form onSubmit={handleEmailLogin} className="space-y-5">
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium leading-none"
+                    htmlFor="login-email"
+                  >
+                    Email address
+                  </label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    className="h-12"
+                    placeholder="name@example.com"
+                    {...emailForm.register("email")}
+                  />
+                  {emailForm.formState.errors.email && (
+                    <span className="text-error text-xs font-medium">
+                      {emailForm.formState.errors.email.message}
+                    </span>
+                  )}
+                </div>
 
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium"
-              >
-                {isLoggingIn ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    Sign In <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium leading-none"
+                    htmlFor="email-password"
+                  >
+                    Password
+                  </label>
+                  <Input
+                    id="email-password"
+                    type="password"
+                    className="h-12"
+                    placeholder="Enter your password"
+                    {...emailForm.register("password")}
+                  />
+                  {emailForm.formState.errors.password && (
+                    <span className="text-error text-xs font-medium">
+                      {emailForm.formState.errors.password.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isEmailLoggingIn}
+                    className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium"
+                  >
+                    {isEmailLoggingIn ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <>
+                        Sign In <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </TabsContent>
+
+            {/* Access Code Login Form */}
+            <TabsContent value="access-code">
+              <form onSubmit={handleAccessCodeLogin} className="space-y-5">
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium leading-none"
+                    htmlFor="access-code"
+                  >
+                    Access Code
+                  </label>
+                  <Input
+                    id="access-code"
+                    type="text"
+                    className="h-12 font-mono uppercase tracking-wider"
+                    placeholder="PAT-XXXXXX"
+                    {...accessCodeForm.register("accessCode")}
+                  />
+                  {accessCodeForm.formState.errors.accessCode && (
+                    <span className="text-error text-xs font-medium">
+                      {accessCodeForm.formState.errors.accessCode.message}
+                    </span>
+                  )}
+                  <p className="text-xs text-muted">
+                    Your clinician provided this code when creating your
+                    account.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    className="text-sm font-medium leading-none"
+                    htmlFor="access-code-password"
+                  >
+                    Password
+                  </label>
+                  <Input
+                    id="access-code-password"
+                    type="password"
+                    className="h-12"
+                    placeholder="Enter your password"
+                    {...accessCodeForm.register("password")}
+                  />
+                  {accessCodeForm.formState.errors.password && (
+                    <span className="text-error text-xs font-medium">
+                      {accessCodeForm.formState.errors.password.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isAccessCodeLoggingIn}
+                    className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium"
+                  >
+                    {isAccessCodeLoggingIn ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <>
+                        Sign In <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </TabsContent>
+          </Tabs>
 
           {/* Info alert for account creation */}
           <div className="alert bg-base-100 border border-border">

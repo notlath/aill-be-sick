@@ -76,6 +76,8 @@ export const getAllUsers = async (currentUserRole?: string) => {
         region: true,
         role: true,
         createdAt: true,
+        patientAccessCode: true,
+        emailVerified: true,
         diagnoses: {
           select: { createdAt: true },
           orderBy: { createdAt: "desc" },

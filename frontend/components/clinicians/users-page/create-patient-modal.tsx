@@ -7,10 +7,19 @@ import {
   CreatePatientAccountSchemaType,
 } from "@/schemas/CreatePatientAccountSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
-import { Loader2, UserPlus, X, Copy, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  UserPlus,
+  X,
+  Copy,
+  CheckCircle2,
+  Mail,
+  Key,
+  AlertCircle,
+} from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 
@@ -19,10 +28,21 @@ interface CreatePatientModalProps {
   onClose: () => void;
 }
 
-interface CreatedAccount {
+type CreatedAccountEmail = {
+  type: "email";
   email: string;
   temporaryPassword: string;
-}
+  message: string;
+};
+
+type CreatedAccountAccessCode = {
+  type: "accessCode";
+  accessCode: string;
+  temporaryPassword: string;
+  message: string;
+};
+
+type CreatedAccount = CreatedAccountEmail | CreatedAccountAccessCode;
 
 export default function CreatePatientModal({
   isOpen,
@@ -39,9 +59,13 @@ export default function CreatePatientModal({
       name: "",
       email: "",
       birthday: "",
+      hasEmail: true,
     },
     resolver: zodResolver(CreatePatientAccountSchema),
   });
+
+  // Watch the hasEmail field to conditionally show/hide email input
+  const hasEmail = useWatch({ control: form.control, name: "hasEmail" });
 
   const { execute: createAccount, isExecuting: isCreating } = useAction(
     createPatientAccount,
@@ -50,10 +74,7 @@ export default function CreatePatientModal({
         if (data?.error) {
           toast.error(data.error);
         } else if (data?.success) {
-          setCreatedAccount({
-            email: data.success.email,
-            temporaryPassword: data.success.temporaryPassword,
-          });
+          setCreatedAccount(data.success as CreatedAccount);
           toast.success("Patient account created successfully");
           form.reset();
         }
@@ -83,6 +104,14 @@ export default function CreatePatientModal({
     }
   }, [isOpen, form]);
 
+  // Clear email field when switching to no-email mode
+  useEffect(() => {
+    if (!hasEmail) {
+      form.setValue("email", "");
+      form.clearErrors("email");
+    }
+  }, [hasEmail, form]);
+
   const handleSubmit = form.handleSubmit((formData) => {
     createAccount(formData);
   });
@@ -98,7 +127,12 @@ export default function CreatePatientModal({
   const handleCopyCredentials = async () => {
     if (!createdAccount) return;
 
-    const credentials = `Email: ${createdAccount.email}\nTemporary Password: ${createdAccount.temporaryPassword}`;
+    let credentials: string;
+    if (createdAccount.type === "email") {
+      credentials = `Email: ${createdAccount.email}\nTemporary Password: ${createdAccount.temporaryPassword}`;
+    } else {
+      credentials = `Access Code: ${createdAccount.accessCode}\nTemporary Password: ${createdAccount.temporaryPassword}`;
+    }
 
     try {
       await navigator.clipboard.writeText(credentials);
@@ -136,7 +170,7 @@ export default function CreatePatientModal({
         </div>
 
         {createdAccount ? (
-          // Success state - show credentials
+          // Success state - show credentials based on account type
           <div className="space-y-6">
             <div className="flex justify-center">
               <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center">
@@ -145,32 +179,77 @@ export default function CreatePatientModal({
             </div>
 
             <div className="text-center space-y-2">
-              <p className="text-sm text-muted">
-                The patient account has been created. Share these credentials
-                with the patient so they can log in.
+              <p className="text-sm text-base-content/70">
+                {createdAccount.message}
               </p>
             </div>
 
             <div className="bg-base-200 rounded-xl p-4 space-y-3">
-              <div>
-                <label className="text-xs font-medium text-muted uppercase tracking-wide">
-                  Email
-                </label>
-                <p className="font-mono text-sm mt-1 break-all">
-                  {createdAccount.email}
-                </p>
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted uppercase tracking-wide">
-                  Temporary Password
-                </label>
-                <p className="font-mono text-sm mt-1 break-all select-all">
-                  {createdAccount.temporaryPassword}
-                </p>
-              </div>
+              {createdAccount.type === "email" ? (
+                <>
+                  <div>
+                    <label className="text-xs font-medium text-base-content/60 uppercase tracking-wide flex items-center gap-1.5">
+                      <Mail className="h-3 w-3" />
+                      Email
+                    </label>
+                    <p className="font-mono text-sm mt-1 break-all">
+                      {createdAccount.email}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-base-content/60 uppercase tracking-wide flex items-center gap-1.5">
+                      <Key className="h-3 w-3" />
+                      Temporary Password
+                    </label>
+                    <p className="font-mono text-sm mt-1 break-all select-all">
+                      {createdAccount.temporaryPassword}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-xs font-medium text-base-content/60 uppercase tracking-wide flex items-center gap-1.5">
+                      <Key className="h-3 w-3" />
+                      Access Code
+                    </label>
+                    <p className="font-mono text-lg mt-1 break-all select-all font-semibold tracking-wider">
+                      {createdAccount.accessCode}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-base-content/60 uppercase tracking-wide">
+                      Temporary Password
+                    </label>
+                    <p className="font-mono text-sm mt-1 break-all select-all">
+                      {createdAccount.temporaryPassword}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className="alert alert-info py-3">
+            {createdAccount.type === "email" ? (
+              <div className="alert alert-info py-3">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <span className="text-xs">
+                  A verification email has been sent to the patient. They must
+                  click the link in the email before they can access their
+                  diagnoses.
+                </span>
+              </div>
+            ) : (
+              <div className="alert alert-warning py-3">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <span className="text-xs">
+                  Write down the access code and password for the patient. The
+                  patient will use the access code instead of an email address
+                  to log in.
+                </span>
+              </div>
+            )}
+
+            <div className="alert py-3">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -234,19 +313,48 @@ export default function CreatePatientModal({
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email Address</label>
-              <Input
-                type="email"
-                placeholder="patient@email.com"
-                {...form.register("email")}
-              />
-              {form.formState.errors.email && (
-                <span className="text-error text-xs">
-                  {form.formState.errors.email.message}
-                </span>
-              )}
+            {/* Email toggle */}
+            <div className="form-control">
+              <label className="label cursor-pointer justify-start gap-3">
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary toggle-sm"
+                  checked={hasEmail}
+                  onChange={(e) => form.setValue("hasEmail", e.target.checked)}
+                />
+                <span className="label-text">Patient has an email address</span>
+              </label>
             </div>
+
+            {hasEmail ? (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email Address</label>
+                <Input
+                  type="email"
+                  placeholder="patient@email.com"
+                  {...form.register("email")}
+                />
+                {form.formState.errors.email && (
+                  <span className="text-error text-xs">
+                    {form.formState.errors.email.message}
+                  </span>
+                )}
+                <p className="text-xs text-base-content/60">
+                  A verification email will be sent to this address.
+                </p>
+              </div>
+            ) : (
+              <div className="alert alert-info py-3">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <div className="text-xs">
+                  <p className="font-medium">No email? No problem.</p>
+                  <p>
+                    An access code will be generated for this patient. Share the
+                    code with them so they can log in.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Date of Birth</label>
@@ -258,9 +366,10 @@ export default function CreatePatientModal({
               )}
             </div>
 
-            <p className="text-sm text-muted">
-              A temporary password will be generated automatically. You can
-              share it with the patient after the account is created.
+            <p className="text-sm text-base-content/60">
+              {hasEmail
+                ? "A temporary password will be generated. Share it with the patient along with instructions to verify their email."
+                : "An access code and temporary password will be generated. Share both with the patient."}
             </p>
 
             <div className="flex justify-end gap-2 pt-4">
