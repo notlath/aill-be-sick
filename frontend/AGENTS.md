@@ -34,6 +34,78 @@ For AI-assisted frontend work, use:
 - **Icons**: Lucide React
 - **Forms**: React Hook Form with Zod validation
 
+### UI Components
+
+The project uses reusable UI components from `@/components/ui`:
+
+- **Input** - Basic text input field
+- **PasswordInput** - Secure password input with show/hide toggle (see below)
+- **Card** - Container with consistent styling and structure
+- **Tabs** - Tabbed navigation interface
+- **Badge** - Status indicators and labels
+- **DatePicker** - Date selection interface
+- **Select** - Dropdown selection
+- **Table** - Data table with sorting and filtering
+- **Toaster** - Notification system
+
+#### PasswordInput Component
+
+**Purpose**: Secure password input field with built-in show/hide functionality for enhanced user experience.
+
+**Usage**:
+
+```tsx
+import { PasswordInput } from "@/components/ui/password-input";
+
+// Basic usage
+<PasswordInput
+  id="password"
+  name="password"
+  placeholder="Enter your password"
+  onChange={(e) => setPassword(e.target.value)}
+/>
+
+// With additional props
+<PasswordInput
+  id="confirm-password"
+  name="confirmPassword"
+  placeholder="Confirm password"
+  disabled={isSubmitting}
+  className="w-full"
+  value={confirmPassword}
+  onChange={(e) => setConfirmPassword(e.target.value)}
+/>
+```
+
+**Features**:
+
+- Toggle button to show/hide password
+- Accessible labels and ARIA attributes
+- Consistent styling with project design system
+- Mobile-responsive design
+- Error state handling through standard input props
+
+**When to Use**:
+
+- Login forms
+- Registration forms
+- Password reset flows
+- Profile settings (password changes)
+- Any form requiring secure password input
+
+**When Not to Use**:
+
+- Non-password text inputs (use Input instead)
+- Password confirmation fields (use PasswordInput with appropriate validation)
+- Multi-line text areas
+
+**AI Integration**:
+
+- AI should recognize password field contexts (name="password", type="password")
+- AI should suggest PasswordInput for any password-related input
+- AI should scan @/components/ui directory for available components
+- Skill files should include PasswordInput in recommended components list
+
 ### Making a Pull Request
 
 ALWAYS follow this template for creating a pull request.
