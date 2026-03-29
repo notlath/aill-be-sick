@@ -104,9 +104,8 @@ const AdminLoginPage = () => {
                   Password
                 </label>
               </div>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 className="h-12"
                 placeholder="••••••••"
                 {...form.register("password")}
