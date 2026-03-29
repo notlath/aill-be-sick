@@ -109,7 +109,23 @@ class MCDClassifierWithSHAP:
         self.model = AutoModelForSequenceClassification.from_pretrained(
             model_path, **model_kwargs
         )
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path, **tokenizer_kwargs)
+
+        try:
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path, **tokenizer_kwargs
+            )
+        except ValueError as e:
+            if "TokenizersBackend" in str(e):
+                from transformers import PreTrainedTokenizerFast
+
+                print(
+                    f"[ML] Falling back to PreTrainedTokenizerFast for {model_path} due to TokenizersBackend error."
+                )
+                self.tokenizer = PreTrainedTokenizerFast.from_pretrained(
+                    model_path, **tokenizer_kwargs
+                )
+            else:
+                raise
 
         # OVERRIDE: Enforce the canonical ground-truth mapping and ignore the broken HF configs
         self.model.config.id2label = CORRECT_ID2LABEL

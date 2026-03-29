@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Search, X, Plus } from "lucide-react";
+import { Search, X, Plus, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import AddClinicianEmailModal from "./add-clinician-email-modal";
+import CreatePatientModal from "./create-patient-modal";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -67,8 +68,10 @@ export function DataTable<TData, TValue>({
     pageSize: 10,
   });
   const [isAddEmailModalOpen, setIsAddEmailModalOpen] = useState(false);
+  const [isCreatePatientModalOpen, setIsCreatePatientModalOpen] = useState(false);
 
   const isAdmin = currentUserRole === "ADMIN";
+  const canCreatePatients = currentUserRole === "CLINICIAN" || currentUserRole === "DEVELOPER" || isAdmin;
 
   const hasRoleColumn = useMemo(
     () =>
@@ -132,6 +135,10 @@ export function DataTable<TData, TValue>({
         isOpen={isAddEmailModalOpen}
         onClose={() => setIsAddEmailModalOpen(false)}
       />
+      <CreatePatientModal
+        isOpen={isCreatePatientModalOpen}
+        onClose={() => setIsCreatePatientModalOpen(false)}
+      />
 
       {/* Search and Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -162,10 +169,20 @@ export function DataTable<TData, TValue>({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {canCreatePatients && (
+            <button
+              onClick={() => setIsCreatePatientModalOpen(true)}
+              className="btn btn-primary gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              Create Patient Account
+            </button>
+          )}
+
           {isAdmin && (
             <button
               onClick={() => setIsAddEmailModalOpen(true)}
-              className="btn btn-primary gap-2"
+              className="btn btn-outline gap-2"
             >
               <Plus className="h-4 w-4" />
               Add Clinician Email

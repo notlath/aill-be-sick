@@ -32,6 +32,11 @@ const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
     forbidden();
   }
 
+  // Force password change takes precedence over onboarding
+  if (dbUser.mustChangePassword) {
+    return redirect("/change-password");
+  }
+
   if (!dbUser.isOnboarded) {
     return redirect("/onboarding");
   }

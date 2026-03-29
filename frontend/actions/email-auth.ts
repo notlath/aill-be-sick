@@ -36,6 +36,12 @@ export const emailSignup = actionClient
     const { email, password } = parsedInput;
     const supabase = await createClient();
 
+    const appUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ??
+      process.env.NEXT_PUBLIC_APP_URL ??
+      process.env.NEXT_PUBLIC_VERCEL_URL ??
+      "http://localhost:3000";
+
     const allowedEmail = await prisma.allowedClinicianEmail.findUnique({
       where: { email },
     });
@@ -47,7 +53,13 @@ export const emailSignup = actionClient
       };
     }
 
-    const { error, data } = await supabase.auth.signUp({ email, password });
+    const { error, data } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${appUrl}/auth/callback`,
+      },
+    });
 
     if (error) {
       console.error(`Error signing up with email: ${error.message}`);
