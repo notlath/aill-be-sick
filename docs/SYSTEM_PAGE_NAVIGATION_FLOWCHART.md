@@ -63,7 +63,7 @@ flowchart TD
     ClinStatus -- Approved --> Map["/map"]
 
     %% --- Admin Role ---
-    Role -- ADMIN --> PendingClinicians["/pending-clinicians"]
+    Role -- ADMIN/DEVELOPER --> PendingClinicians["/pending-clinicians"]
 
     %% --- Developer Role ---
     Role -- DEVELOPER --> DevView{Saved developer view}

@@ -1,6 +1,7 @@
 import PendingClinicianActions from "@/components/clinicians/users-page/pending-clinician-actions";
 import prisma from "@/prisma/prisma";
 import { getCurrentDbUser } from "@/utils/user";
+import { canApproveClinicians } from "@/utils/role-hierarchy";
 import { redirect } from "next/navigation";
 
 const PendingCliniciansPage = async () => {
@@ -18,7 +19,7 @@ const PendingCliniciansPage = async () => {
     redirect("/admin-login");
   }
 
-  if (dbUser.role !== "ADMIN" && dbUser.role !== ("DEVELOPER" as any)) {
+  if (!canApproveClinicians(dbUser.role)) {
     redirect("/");
   }
 
