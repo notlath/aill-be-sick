@@ -56,11 +56,10 @@ A comprehensive checklist to verify that a branch is ready for merging into the 
 
 ## Changelog Creation
 
-- [ ] If branch contains major changes, create a detailed changelog
+- [ ] If branch contains major changes, create a detailed changelog following the [Changelog Standards](AGENTS.md#changelog-standards) in AGENTS.md
 - [ ] Changelog should be very detailed and catered to AI agents and developers
 - [ ] Include technical details, API changes, architectural changes, and breaking changes
-- [ ] Follow conventional commit format for entries
-- [ ] Ensure changelog is placed in appropriate documentation directory
+- [ ] Ensure changelog is placed in appropriate documentation directory (`docs/CHANGELOG-<branch-name>.md`)
 
 ## Miscellaneous Checks
 
