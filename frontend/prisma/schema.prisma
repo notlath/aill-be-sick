@@ -39,16 +39,21 @@ model User {
   approvedBy         Int?
   approvalNotes      String?
   rejectedAt         DateTime?
+  mustChangePassword Boolean             @default(false)
+  emailVerified      Boolean             @default(false)
+  patientAccessCode  String?             @unique
   acknowledgedAlerts Alert[]             @relation("AlertAcknowledger")
   resolvedAlerts     Alert[]             @relation("AlertResolver")
   alertNotes         AlertNote[]         @relation("AlertNoteAuthor")
   chats              Chat[]
   diagnoses          Diagnosis[]
   diagnosisOverrides DiagnosisOverride[] @relation("OverrideClinicianRelation")
+  diagnosisNotes     DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
 
   @@index([latitude, longitude])
   @@index([region])
   @@index([province])
+  @@index([patientAccessCode])
 }
 
 model Chat {
@@ -119,6 +124,7 @@ model Diagnosis {
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   override        DiagnosisOverride?
   explanation     Explanation?
+  notes           DiagnosisNote[]
 
   @@index([createdAt])
   @@index([disease])
@@ -189,6 +195,20 @@ model AllowedClinicianEmail {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+model DiagnosisNote {
+  id          Int       @id @default(autoincrement())
+  diagnosisId Int
+  clinicianId Int
+  content     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
+  clinician   User      @relation("DiagnosisNoteAuthor", fields: [clinicianId], references: [id], onDelete: Cascade)
+
+  @@index([diagnosisId])
+  @@index([clinicianId])
 }
 
 model diagnosis_sessions {

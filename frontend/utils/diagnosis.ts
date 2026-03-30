@@ -91,6 +91,19 @@ export const getAllDiagnoses = async ({
           createdAt: true,
         },
       },
+      notes: {
+        include: {
+          clinician: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc" as const,
+        },
+      },
     };
 
     if (skip || take) {

@@ -10,6 +10,7 @@ import { useTheme } from "next-themes";
 import { processTokensForDisplay, type TokenWithImportance } from "@/utils/shap-tokens";
 import { getExplanationByDiagnosisId } from "@/utils/explanation";
 import { WordHeatmapToggle } from "@/components/shared/word-heatmap-toggle";
+import { DiagnosisNotesSection } from "../diagnosis-notes-section";
 
 interface ReportDetailModalProps {
   isOpen: boolean;
@@ -180,6 +181,12 @@ export function ReportDetailModal({
               processedTokens={processedTokens}
               isDark={isDark}
               isLoading={isLoadingExplanation}
+            />
+
+            {/* Notes Section */}
+            <DiagnosisNotesSection
+              diagnosisId={report.id}
+              notes={report.notes || []}
             />
 
             {/* Clinical Override Button */}
