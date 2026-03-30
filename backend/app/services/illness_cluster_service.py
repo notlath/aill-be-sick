@@ -97,6 +97,8 @@ def fetch_diagnosis_data(
                 "Invalid end_date format. Expected YYYY-MM-DD."
             ) from exc
 
+    # NOTE: The latitude/longitude columns represent the PATIENT'S RESIDENTIAL LOCATION,
+    # not the healthcare facility. This ensures accurate spatial clustering analysis.
     query_str = """
         SELECT
             d.id,
@@ -108,6 +110,7 @@ def fetch_diagnosis_data(
             d.barangay,
             d.region,
             d.district,
+            -- Patient's residential coordinates (for clustering analysis)
             d.latitude,
             d.longitude,
             d."createdAt" AS diagnosed_at,

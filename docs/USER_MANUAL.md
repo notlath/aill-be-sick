@@ -8,9 +8,10 @@ A quick guide to using AI'll Be Sick, your AI-powered symptom checker.
 
 ## Getting Started
 
-When you first log in, you'll need to accept the terms and complete a short onboarding guide. This only happens once.
+When you first log in, you may need to accept the terms and consent. Complete profile information is provided by the clinician during registration.
 
 **Sidebar Navigation:**
+
 - **New Chat** - Start a symptom check
 - **History** - View past diagnoses
 - **Help** - Reopen the app guide
@@ -44,6 +45,7 @@ After analysis, you'll see a diagnosis card with a suggested condition.
 | **Weak match** (<70%) | Weak overlap, other conditions possible |
 
 **Actions:**
+
 - **View Insights** - See which symptoms influenced the result
 - **Record Diagnosis** - Save to your history
 - **Discard Diagnosis** - Remove without saving
@@ -55,6 +57,7 @@ After analysis, you'll see a diagnosis card with a suggested condition.
 Click **History** to view all your past diagnoses.
 
 **Features:**
+
 - **Search** - Find specific diagnoses by keyword
 - **Sort** - By date, diagnosis name, confidence, or uncertainty
 - **Filter** - Show only specific conditions
@@ -82,4 +85,4 @@ Access your profile through the sidebar to manage your information.
 
 ---
 
-*Remember: Always consult a healthcare professional for medical advice.*
+_Remember: Always consult a healthcare professional for medical advice._

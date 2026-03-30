@@ -6,6 +6,35 @@ This file is the single source of truth for AI-assisted development on this proj
 
 ---
 
+## ⚠️ MANDATORY PRE-COMPLETION CHECKLIST
+
+**BEFORE calling `attempt_completion`, you MUST verify ALL items below. Failure to complete this checklist means the task is NOT done.**
+
+### Documentation Sync (CRITICAL)
+
+- [ ] **If you created/modified/deleted ANY App Router page** → Update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md`
+- [ ] **If you changed navigation links, redirects, or guards** → Update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md`
+- [ ] **If you modified auth flows or role access** → Update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` AND `docs/ACCOUNT_CREATION_FLOWCHART.md`
+- [ ] **If you changed account creation/login flows** → Update `docs/ACCOUNT_CREATION_FLOWCHART.md`
+
+### Code Quality
+
+- [ ] `npx tsc --noEmit` passes in `frontend/` (TypeScript check)
+- [ ] Relevant `pytest` tests pass in `tests/backend/tests/`
+- [ ] No hardcoded threshold literals in Flask endpoints (use `config.py`)
+- [ ] Frontend mutations follow schema + server-action pattern
+- [ ] `revalidatePath`/`revalidateTag` applied after mutations
+
+### User-Facing Content
+
+- [ ] Medical text is plain-language, calm, and non-absolute
+- [ ] UI changes are mobile-usable at small breakpoints
+- [ ] No contradictory style guidance introduced
+
+**These checks are NOT optional. Complete them before every task completion.**
+
+---
+
 ## Project Overview
 
 AI'll Be Sick is a full-stack disease detection application. Users submit symptoms and receive AI-powered disease predictions. The system supports both English and Tagalog, serves patient and clinician roles, and includes epidemiological surveillance features.
@@ -17,15 +46,76 @@ AI'll Be Sick is a full-stack disease detection application. Users submit sympto
 
 ### Architecture
 
-| Layer | Technology |
-|-------|-----------|
-| Backend API | Python, Flask (port `10000`) |
-| ML Models | BioClinical-ModernBERT (EN), RoBERTa-Tagalog (FIL) |
-| Frontend | TypeScript, Next.js 15 App Router |
-| Database | PostgreSQL + Prisma ORM |
-| Auth | Supabase Auth |
-| Styling | Tailwind CSS + DaisyUI |
-| Icons | Lucide React |
+| Layer       | Technology                                         |
+| ----------- | -------------------------------------------------- |
+| Backend API | Python, Flask (port `10000`)                       |
+| ML Models   | BioClinical-ModernBERT (EN), RoBERTa-Tagalog (FIL) |
+| Frontend    | TypeScript, Next.js 15 App Router                  |
+| Database    | PostgreSQL + Prisma ORM                            |
+| Auth        | Supabase Auth                                      |
+| Styling     | Tailwind CSS + DaisyUI                             |
+| Icons       | Lucide React                                       |
+
+---
+
+## Role Hierarchy
+
+The application enforces a strict role hierarchy where higher roles inherit permissions of lower roles:
+
+### Hierarchy (Highest to Lowest)
+
+| Level | Role      | Description                                     |
+| ----- | --------- | ----------------------------------------------- |
+| 3     | DEVELOPER | Full system access, all admin capabilities      |
+| 2     | ADMIN     | Clinician management, approval workflows        |
+| 1     | CLINICIAN | Patient management, diagnosis override          |
+| 0     | PATIENT   | Self-service symptom checker, diagnosis history |
+
+### Permission Inheritance Rules
+
+- **DEVELOPER**: Can perform ALL actions (ADMIN + CLINICIAN + PATIENT permissions)
+- **ADMIN**: Can perform ADMIN + CLINICIAN + PATIENT actions
+- **CLINICIAN**: Can perform CLINICIAN + PATIENT actions
+- **PATIENT**: Can only perform PATIENT actions
+
+### Permission Mapping by Action
+
+| Action                     | PATIENT | CLINICIAN | ADMIN | DEVELOPER |
+| -------------------------- | ------- | --------- | ----- | --------- |
+| Submit symptoms            | ✅      | ✅        | ✅    | ✅        |
+| View own diagnosis history | ✅      | ✅        | ✅    | ✅        |
+| Create patient accounts    | ❌      | ✅        | ✅    | ✅        |
+| Override diagnoses         | ❌      | ✅        | ✅    | ✅        |
+| Approve clinicians         | ❌      | ❌        | ✅    | ✅        |
+| Manage clinicians          | ❌      | ❌        | ✅    | ✅        |
+| System administration      | ❌      | ❌        | ❌    | ✅        |
+
+### Implementation Reference
+
+When implementing permission checks in server actions:
+
+```typescript
+// ✅ CORRECT: Hierarchical role check
+const allowedRoles = ["CLINICIAN", "ADMIN", "DEVELOPER"];
+if (!allowedRoles.includes(currentUser.role)) {
+  return { error: "Permission denied" };
+}
+
+// ✅ CORRECT: Conditional approval check (only CLINICIAN needs ACTIVE status)
+if (
+  currentUser.role === "CLINICIAN" &&
+  currentUser.approvalStatus !== "ACTIVE"
+) {
+  return { error: "Your clinician account is not active" };
+}
+
+// ❌ WRONG: Strict equality (excludes ADMIN and DEVELOPER)
+if (currentUser.role !== "CLINICIAN") {
+  return { error: "Only clinicians can create patient accounts" };
+}
+```
+
+**Use the shared utility**: `frontend/utils/role-hierarchy.ts` for consistent permission checks.
 
 ---
 
@@ -43,9 +133,10 @@ python run.py                                        # Runs on http://localhost:
 ```
 
 **Testing:**
+
 ```bash
 # Run targeted test files relevant to your change
-pytest backend/tests/<test_file>.py
+pytest tests/backend/tests/<test_file>.py
 python test_flask.py   # Integration smoke test (requires server running)
 ```
 
@@ -66,6 +157,7 @@ bun dev                                              # Runs on http://localhost:
 ```
 
 **Available scripts:**
+
 ```bash
 bun run build          # Production build
 bun run start          # Production server
@@ -82,7 +174,7 @@ node scripts/seed-diagnoses.js   # Seed diagnosis data
 
 - TypeScript for all frontend code.
 - Follow conventional commit format: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`.
-- Write tests for new backend features in `backend/tests/`.
+- Write tests for new backend features in `tests/backend/tests/`.
 
 ### Frontend: Data Fetching
 
@@ -119,7 +211,7 @@ export const CreatePatientSchema = z.object({
 });
 
 // actions/create-patient.ts
-"use server";
+("use server");
 import { actionClient } from "./client";
 import { CreatePatientSchema } from "@/schemas/CreatePatientSchema";
 import prisma from "@/prisma/prisma";
@@ -160,18 +252,19 @@ export const createPatient = actionClient
 
 **Common classes:**
 
-| Type | Classes |
-|------|---------|
+| Type    | Classes                                                                       |
+| ------- | ----------------------------------------------------------------------------- |
 | Buttons | `btn btn-primary`, `btn-secondary`, `btn-success`, `btn-ghost`, `btn-outline` |
-| Cards | `card card-body card-title card-actions` |
-| Modals | `modal modal-box modal-backdrop modal-open` |
-| Alerts | `alert alert-info alert-success alert-warning alert-error` |
-| Badges | `badge badge-primary badge-secondary badge-outline` |
-| Layout | `bg-base-100 bg-base-200 bg-base-300 text-base-content` |
+| Cards   | `card card-body card-title card-actions`                                      |
+| Modals  | `modal modal-box modal-backdrop modal-open`                                   |
+| Alerts  | `alert alert-info alert-success alert-warning alert-error`                    |
+| Badges  | `badge badge-primary badge-secondary badge-outline`                           |
+| Layout  | `bg-base-100 bg-base-200 bg-base-300 text-base-content`                       |
 
 ### Navigation Links
 
 When creating new sidebar navigation items, copy from `nav-link.tsx`:
+
 - Icon size: `size-4.5` with `strokeWidth={2.5}`
 - Animation curve: `ease-[cubic-bezier(0.32,0.72,0,1)]`
 - Always include: hover gradient overlay, active state, consistent spacing
@@ -220,15 +313,15 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 Use the appropriate skill file for AI-assisted work:
 
-| Task type | Skill file |
-|-----------|------------|
-| Diagnosis server actions, Zod schemas, diagnosis flow | `frontend/.github/skills/medical-diagnosis-actions/SKILL.md` |
-| Patient/clinician-facing copy | `frontend/.github/skills/clinical-copywriting/SKILL.md` |
-| Flask endpoints, services, config-driven API changes | `backend/.github/skills/flask-diagnostic-api/SKILL.md` |
-| D3 charts, map visualizations | `frontend/.github/skills/d3-viz/SKILL.md` (canonical) |
-| Discovering or installing new skills | `find-skills` |
-| Frontend UI (polished visual design) | `frontend-design` skill (when available locally) |
-| Frontend UI/UX (mobile-first) | `accessibility-compliance` → `vercel-react-best-practices` → `vercel-composition-patterns` |
+| Task type                                             | Skill file                                                                                 |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Diagnosis server actions, Zod schemas, diagnosis flow | `frontend/.github/skills/medical-diagnosis-actions/SKILL.md`                               |
+| Patient/clinician-facing copy                         | `frontend/.github/skills/clinical-copywriting/SKILL.md`                                    |
+| Flask endpoints, services, config-driven API changes  | `backend/.github/skills/flask-diagnostic-api/SKILL.md`                                     |
+| D3 charts, map visualizations                         | `frontend/.github/skills/d3-viz/SKILL.md` (canonical)                                      |
+| Discovering or installing new skills                  | `find-skills`                                                                              |
+| Frontend UI (polished visual design)                  | `frontend-design` skill (when available locally)                                           |
+| Frontend UI/UX (mobile-first)                         | `accessibility-compliance` → `vercel-react-best-practices` → `vercel-composition-patterns` |
 
 ### Duplicate Skill Policy
 
@@ -245,9 +338,12 @@ Before committing AI-generated changes, verify:
 - [ ] `revalidatePath` / `revalidateTag` is applied after mutations where needed
 - [ ] User-facing medical text is plain-language, calm, and non-absolute
 - [ ] Frontend UI changes are mobile-usable at small breakpoints
+- [ ] If frontend routes, role guards, or navigation UI changed, `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` is updated in the same PR
 - [ ] No contradictory style guidance introduced in docs
 - [ ] `npx tsc --noEmit` passes in `frontend/`
-- [ ] Relevant `pytest` tests pass in `backend/tests/`
+- [ ] Relevant `pytest` tests pass in `tests/backend/tests/`
+
+> For a comprehensive branch review checklist covering CI/CD, build processes, and additional quality checks, refer to [`docs/BRANCH_REVIEW_CHECKLIST.md`](docs/BRANCH_REVIEW_CHECKLIST.md).
 
 ### Change Sync Checklist
 
@@ -256,6 +352,7 @@ When AI guidance files are updated:
 1. If architecture/runtime facts change (ports, backend type, entrypoints) — update `AGENTS.md`, `frontend/AGENTS.md`, `backend/AGENTS.md`, `README.md`, `frontend/README.md`, `backend/README.md`
 2. If a skill path changes — update the Skill Routing table above
 3. If the duplicate-skill policy applies — canonical change + mirrored copies in same PR
+4. If App Router pages, redirects/guards, role access, or nav links change — update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` in the same PR so docs stay in sync with UX behavior
 
 ---
 
@@ -274,10 +371,10 @@ The agent should **never**:
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|---------|
-| Database connection error | Check `DATABASE_URL` in `.env.local` |
-| Supabase auth failure | Check `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
-| Backend not responding | Ensure Flask is running on `http://localhost:10000`; check `NEXT_PUBLIC_BACKEND_URL` |
-| Prisma client errors | Run `npx prisma generate` |
+| Problem                   | Solution                                                                                  |
+| ------------------------- | ----------------------------------------------------------------------------------------- |
+| Database connection error | Check `DATABASE_URL` in `.env.local`                                                      |
+| Supabase auth failure     | Check `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`                      |
+| Backend not responding    | Ensure Flask is running on `http://localhost:10000`; check `NEXT_PUBLIC_BACKEND_URL`      |
+| Prisma client errors      | Run `npx prisma generate`                                                                 |
 | Model confidence warnings | System uses different UI paths based on confidence/uncertainty combos — expected behavior |

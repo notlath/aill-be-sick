@@ -5,6 +5,7 @@ import { ManageClinicianEmailSchema } from "@/schemas/ManageClinicianEmailSchema
 import { revalidatePath } from "next/cache";
 import { getCurrentDbUser } from "@/utils/user";
 import prisma from "@/prisma/prisma";
+import { canManageClinicians } from "@/utils/role-hierarchy";
 
 export const addAllowedClinicianEmail = actionClient
   .inputSchema(ManageClinicianEmailSchema)
@@ -17,12 +18,11 @@ export const addAllowedClinicianEmail = actionClient
       return { error: "Unauthorized" };
     }
 
-    if (dbUser.role !== "ADMIN" && dbUser.role !== ("DEVELOPER" as any)) {
+    if (!canManageClinicians(dbUser.role)) {
       return { error: "Unauthorized. Admin access required." };
     }
 
     try {
-      
       const existingEmail = await prisma.allowedClinicianEmail.findUnique({
         where: { email },
       });
@@ -57,7 +57,7 @@ export const removeAllowedClinicianEmail = actionClient
       return { error: "Unauthorized" };
     }
 
-    if (dbUser.role !== "ADMIN" && dbUser.role !== ("DEVELOPER" as any)) {
+    if (!canManageClinicians(dbUser.role)) {
       return { error: "Unauthorized. Admin access required." };
     }
 

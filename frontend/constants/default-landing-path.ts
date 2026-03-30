@@ -1,6 +1,6 @@
 export type AppRole = "PATIENT" | "CLINICIAN" | "ADMIN" | "DEVELOPER";
 
-export type DeveloperView = "PATIENT" | "CLINICIAN";
+export type DeveloperView = "PATIENT" | "CLINICIAN" | "ADMIN";
 
 // Shared source of truth for role landing routes.
 // Keep primary nav links in nav-items.ts aligned with this map.
@@ -10,15 +10,19 @@ export const DEFAULT_LANDING_PATH_BY_ROLE: Record<
 > = {
   PATIENT: "/diagnosis",
   CLINICIAN: "/map",
-  ADMIN: "/map",
+  ADMIN: "/pending-clinicians",
 };
 
 export const getDefaultLandingPathForDeveloperView = (
   view?: DeveloperView | null,
 ) => {
-  return view === "CLINICIAN"
-    ? DEFAULT_LANDING_PATH_BY_ROLE.CLINICIAN
-    : DEFAULT_LANDING_PATH_BY_ROLE.PATIENT;
+  if (view === "ADMIN") {
+    return DEFAULT_LANDING_PATH_BY_ROLE.ADMIN;
+  }
+  if (view === "CLINICIAN") {
+    return DEFAULT_LANDING_PATH_BY_ROLE.CLINICIAN;
+  }
+  return DEFAULT_LANDING_PATH_BY_ROLE.PATIENT;
 };
 
 export const getDefaultLandingPath = (

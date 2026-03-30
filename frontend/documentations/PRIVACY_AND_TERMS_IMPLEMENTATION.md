@@ -289,18 +289,7 @@ await prisma.user.create({
 - Medical disclaimer alert shown in signup mode
 - Links to Privacy Policy and Terms of Service
 
-### 3. Onboarding Modal
-
-**File:** `components/patient/onboarding/onboarding-modal.tsx`
-
-**Changes:**
-
-- Added consent section with three checkboxes
-- Medical disclaimer alert at top
-- Consent required before completing onboarding
-- Records consent when onboarding completes
-
-### 4. Patient Layout
+### 3. Patient Layout
 
 **File:** `app/(app)/(patient)/layout.tsx`
 
@@ -395,17 +384,15 @@ if ("success" in user) {
 7. User's termsVersion updated to "1.1"
 ```
 
-### Flow 5: Patient Onboarding
+### Flow 5: Patient Creation (Clinician-Initiated)
 
 ```
-1. New patient completes signup
-2. Patient navigates to diagnosis page
-3. Onboarding modal appears (if not completed)
-4. Onboarding includes:
-   - Welcome message
-   - Location setup
-   - Consent section (if not already given)
-5. Patient must check consent boxes to complete onboarding
+1. Clinician navigates to /create-patient
+2. Clinician fills in patient details including location via Mapbox
+3. Patient account created with complete profile data
+4. Patient receives temporary credentials
+5. Patient logs in and goes directly to diagnosis page
+6. Patient may be prompted for consent if not already given
 ```
 
 ---
@@ -419,8 +406,7 @@ The system compares stored versions against current versions:
 ```typescript
 // In utils/check-terms-version.ts
 const termsOutdated =
-  !user.termsVersion ||
-  user.termsVersion !== LEGAL_CONSTANTS.TERMS_VERSION;
+  !user.termsVersion || user.termsVersion !== LEGAL_CONSTANTS.TERMS_VERSION;
 
 const privacyOutdated =
   !user.privacyVersion ||
@@ -442,9 +428,9 @@ To release updated terms:
 
 ### Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | March 18, 2026 | Initial release |
+| Version | Date           | Changes         |
+| ------- | -------------- | --------------- |
+| 1.0     | March 18, 2026 | Initial release |
 
 ---
 
@@ -506,15 +492,15 @@ To release updated terms:
 
 All placeholders are marked with `// TODO:` comments in `constants/legal.ts`:
 
-| Item | Current Value | Location |
-|------|---------------|----------|
-| Institution Name | `[Institution Name]` | `LEGAL_CONSTANTS.INSTITUTION_NAME` |
-| Contact Email | `[contact-email@example.com]` | `LEGAL_CONSTANTS.CONTACT_EMAIL` |
-| Contact Phone | `[+63 XXX XXX XXXX]` | `LEGAL_CONSTANTS.CONTACT_PHONE` |
-| Contact Address | `[Full Address]` | `LEGAL_CONSTANTS.CONTACT_ADDRESS` |
-| Research Lead | `[Research Lead Name]` | `LEGAL_CONSTANTS.RESEARCH_LEAD` |
-| Faculty Advisor | `[Faculty Advisor Name]` | `LEGAL_CONSTANTS.FACULTY_ADVISOR` |
-| Ethics Status | `Pending institutional review` | `LEGAL_CONSTANTS.ETHICS_STATUS` |
+| Item             | Current Value                  | Location                           |
+| ---------------- | ------------------------------ | ---------------------------------- |
+| Institution Name | `[Institution Name]`           | `LEGAL_CONSTANTS.INSTITUTION_NAME` |
+| Contact Email    | `[contact-email@example.com]`  | `LEGAL_CONSTANTS.CONTACT_EMAIL`    |
+| Contact Phone    | `[+63 XXX XXX XXXX]`           | `LEGAL_CONSTANTS.CONTACT_PHONE`    |
+| Contact Address  | `[Full Address]`               | `LEGAL_CONSTANTS.CONTACT_ADDRESS`  |
+| Research Lead    | `[Research Lead Name]`         | `LEGAL_CONSTANTS.RESEARCH_LEAD`    |
+| Faculty Advisor  | `[Faculty Advisor Name]`       | `LEGAL_CONSTANTS.FACULTY_ADVISOR`  |
+| Ethics Status    | `Pending institutional review` | `LEGAL_CONSTANTS.ETHICS_STATUS`    |
 
 ### Updating Placeholders
 
@@ -529,27 +515,26 @@ All placeholders are marked with `// TODO:` comments in `constants/legal.ts`:
 
 ### New Files (8)
 
-| File | Purpose |
-|------|---------|
-| `constants/legal.ts` | Legal constants and placeholders |
-| `utils/check-terms-version.ts` | Version checking utilities |
-| `app/(auth)/privacy/page.tsx` | Privacy Policy page |
-| `app/(auth)/terms/page.tsx` | Terms of Service page |
-| `schemas/SignupWithConsentSchema.ts` | Zod schemas for consent validation |
-| `actions/accept-terms.ts` | Server action for recording consent |
-| `components/consent-modal.tsx` | Non-dismissible consent modal |
-| `components/shared/legal-footer.tsx` | Footer with legal links |
+| File                                 | Purpose                             |
+| ------------------------------------ | ----------------------------------- |
+| `constants/legal.ts`                 | Legal constants and placeholders    |
+| `utils/check-terms-version.ts`       | Version checking utilities          |
+| `app/(auth)/privacy/page.tsx`        | Privacy Policy page                 |
+| `app/(auth)/terms/page.tsx`          | Terms of Service page               |
+| `schemas/SignupWithConsentSchema.ts` | Zod schemas for consent validation  |
+| `actions/accept-terms.ts`            | Server action for recording consent |
+| `components/consent-modal.tsx`       | Non-dismissible consent modal       |
+| `components/shared/legal-footer.tsx` | Footer with legal links             |
 
-### Modified Files (6)
+### Modified Files (5)
 
-| File | Changes |
-|------|---------|
-| `prisma/schema.prisma` | Added 4 consent fields to User model |
-| `actions/patient-auth.ts` | Updated signup to record consent |
-| `app/(auth)/login/page.tsx` | Added signup mode with consent checkboxes |
-| `components/patient/onboarding/onboarding-modal.tsx` | Added consent section |
-| `app/(app)/(patient)/layout.tsx` | Added consent check and footer |
-| `app/(app)/(clinician)/layout.tsx` | Added consent check and footer |
+| File                               | Changes                                   |
+| ---------------------------------- | ----------------------------------------- |
+| `prisma/schema.prisma`             | Added 4 consent fields to User model      |
+| `actions/patient-auth.ts`          | Updated signup to record consent          |
+| `app/(auth)/login/page.tsx`        | Added signup mode with consent checkboxes |
+| `app/(app)/(patient)/layout.tsx`   | Added consent check and footer            |
+| `app/(app)/(clinician)/layout.tsx` | Added consent check and footer            |
 
 ---
 

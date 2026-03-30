@@ -14,7 +14,9 @@ type NavLinksProps = {
 
 const NavLinks = ({ dbUser }: NavLinksProps) => {
   const pathname = usePathname();
-  const [currentView, setCurrentView] = useState<"PATIENT" | "CLINICIAN">(
+  const [currentView, setCurrentView] = useState<
+    "PATIENT" | "CLINICIAN" | "ADMIN"
+  >(
     "PATIENT",
   );
 
@@ -24,6 +26,7 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
       const savedView = localStorage.getItem("developerView") as
         | "PATIENT"
         | "CLINICIAN"
+        | "ADMIN"
         | null;
       if (savedView) {
         setCurrentView(savedView);
@@ -34,9 +37,14 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
           pathname.startsWith("/healthcare-reports") ||
           pathname.startsWith("/users") ||
           pathname.startsWith("/alerts") ||
-          pathname.startsWith("/map")
+          pathname.startsWith("/map") ||
+          pathname.startsWith("/pending-clinicians")
         ) {
-          setCurrentView("CLINICIAN");
+          if (pathname.startsWith("/pending-clinicians")) {
+            setCurrentView("ADMIN");
+          } else {
+            setCurrentView("CLINICIAN");
+          }
         } else {
           setCurrentView("PATIENT");
         }
@@ -51,7 +59,13 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
     }
     // For developers, use the current view to determine nav items
     if (dbUser.role === ("DEVELOPER" as any)) {
-      return currentView === "PATIENT" ? patientNavItems : clinicianNavItems;
+      if (currentView === "PATIENT") {
+        return patientNavItems;
+      }
+      if (currentView === "ADMIN") {
+        return adminNavItems;
+      }
+      return clinicianNavItems;
     }
     // For regular users, use their actual role
     return dbUser.role === "PATIENT" ? patientNavItems : clinicianNavItems;

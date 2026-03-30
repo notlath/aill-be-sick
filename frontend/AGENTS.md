@@ -154,9 +154,70 @@ frontend/
 The application uses PostgreSQL with Prisma ORM and has the following key models:
 
 - **User**: Manages user accounts with email, name, role, and location data
-  - Roles: PATIENT, CLINICIAN, DEVELOPER
+  - Roles: PATIENT, CLINICIAN, ADMIN, DEVELOPER (hierarchical)
   - Includes location fields (city, region, coordinates) and demographic data
   - Related to chats and diagnoses
+
+## Role Hierarchy
+
+The application enforces a strict role hierarchy where higher roles inherit permissions of lower roles:
+
+### Hierarchy (Highest to Lowest)
+
+| Level | Role      | Description                                     |
+| ----- | --------- | ----------------------------------------------- |
+| 3     | DEVELOPER | Full system access, all admin capabilities      |
+| 2     | ADMIN     | Clinician management, approval workflows        |
+| 1     | CLINICIAN | Patient management, diagnosis override          |
+| 0     | PATIENT   | Self-service symptom checker, diagnosis history |
+
+### Permission Inheritance Rules
+
+- **DEVELOPER**: Can perform ALL actions (ADMIN + CLINICIAN + PATIENT permissions)
+- **ADMIN**: Can perform ADMIN + CLINICIAN + PATIENT actions
+- **CLINICIAN**: Can perform CLINICIAN + PATIENT actions
+- **PATIENT**: Can only perform PATIENT actions
+
+### Permission Mapping by Action
+
+| Action                     | PATIENT | CLINICIAN | ADMIN | DEVELOPER |
+| -------------------------- | ------- | --------- | ----- | --------- |
+| Submit symptoms            | ✅      | ✅        | ✅    | ✅        |
+| View own diagnosis history | ✅      | ✅        | ✅    | ✅        |
+| Create patient accounts    | ❌      | ✅        | ✅    | ✅        |
+| Override diagnoses         | ❌      | ✅        | ✅    | ✅        |
+| Approve clinicians         | ❌      | ❌        | ✅    | ✅        |
+| Manage clinicians          | ❌      | ❌        | ✅    | ✅        |
+| System administration      | ❌      | ❌        | ❌    | ✅        |
+
+### Implementation Reference
+
+When implementing permission checks in server actions, use the shared utility from `frontend/utils/role-hierarchy.ts`:
+
+```typescript
+import {
+  canCreatePatient,
+  canOverrideDiagnosis,
+  canManageClinicians,
+} from "@/utils/role-hierarchy";
+
+// For clinician-level actions (patient creation, diagnosis override)
+if (!canCreatePatient(user.role)) {
+  return { error: "Permission denied" };
+}
+
+// For admin-only actions (clinician management)
+if (!canManageClinicians(user.role)) {
+  return { error: "Admin access required" };
+}
+```
+
+**Key patterns to follow:**
+
+1. **Hierarchical role check**: Use `allowedRoles = ["CLINICIAN", "ADMIN", "DEVELOPER"]` for clinician-level permissions
+2. **Conditional approval status**: Only check `approvalStatus === "ACTIVE"` for CLINICIAN role, not ADMIN/DEVELOPER
+3. **Avoid strict equality**: Never use `role !== "CLINICIAN"` — it excludes ADMIN and DEVELOPER
+4. **Use shared utilities**: Import from `@/utils/role-hierarchy.ts` for consistent permission checks
 
 - **Chat**: Conversational sessions between users and AI
   - Contains messages and optional diagnosis links
@@ -188,6 +249,12 @@ Models support multiple diseases (DENGUE, PNEUMONIA, TYPHOID, IMPETIGO) and AI m
 - `/dashboard` - Clinician dashboard (for CLINICIAN role)
 - `/diagnosis` - Patient diagnosis interface (for PATIENT role)
 - `/comparison` - Comparison views
+
+### Navigation Documentation Sync (Required)
+
+- If any frontend change affects App Router paths, redirects, role-based guards, or visible navigation links/actions, update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` in the same PR.
+- Treat the flowchart doc as a required sync artifact for route/navigation behavior changes, not optional documentation.
+- Validate Mermaid syntax after updates to avoid broken diagrams.
 
 ## API Integration
 

@@ -16,6 +16,7 @@ from flask import Blueprint, request, jsonify, session, current_app
 
 import app.config as config
 from app.services.ml_service import classifier, explainer, CORRECT_ID2LABEL
+from app.services.verification import pre_screen_unrelated
 from app.utils import _count_words, _build_cdss_payload, detect_language_heuristic
 from app.utils.scoring import bayesian_evidence_update, lookup_question_metadata
 from app.evidence_keywords import EVIDENCE_KEYWORDS
@@ -44,13 +45,19 @@ def _format_condition_name(condition):
     return str(condition).strip().lower()
 
 
-def _build_conflicting_match_message(predicted_disease):
+def _build_conflicting_match_message(predicted_disease, lang="en"):
     """Message for partial match with verification conflict."""
     condition = _format_condition_name(predicted_disease)
+    if lang == "tl":
+        return (
+            f"Kahit may ilang sintomas ka na kapareho ng {condition}, may nabanggit kang ibang palatandaan "
+            "na posibleng ibang kondisyon. Para sa iyong kaligtasan at upang makasiguro, mangyaring kumonsulta "
+            "sa isang doktor para masuri ang mga sintomas na ito nang maayos."
+        )
     return (
-        f"Your symptoms partially match {condition}, but some of what you described does not fully fit this condition. "
-        "Because of this mismatch, this result is not reliable enough to confirm. "
-        "Please consult a healthcare professional for a proper evaluation."
+        f"While some of your symptoms share similarities with {condition}, you mentioned other specific signs "
+        "that point to something else. For your safety and to get an accurate assessment, please consult a "
+        "healthcare professional. They can properly evaluate these unique symptoms."
     )
 
 
@@ -231,6 +238,34 @@ def new_case():
                 422,
             )
 
+        # ── TIER 3 PRE-SCREENING: Check for unrelated medical categories ──
+        # Must occur BEFORE ML classification to avoid wasting inference on
+        # symptoms outside our infectious disease scope.
+        lang_for_prescreening = detect_language_heuristic(symptoms)
+        unrelated_result = pre_screen_unrelated(symptoms, lang=lang_for_prescreening)
+
+        if unrelated_result["is_unrelated"]:
+            print(
+                f"[NEW CASE] TIER 3 REFERRAL: Category={unrelated_result['category']}, "
+                f"Concepts={unrelated_result['detected_concepts']}"
+            )
+            return (
+                jsonify(
+                    {
+                        "data": {
+                            "skip_followup": True,
+                            "skip_reason": "UNRELATED_CATEGORY",
+                            "out_of_scope_type": "UNRELATED_MEDICAL_CATEGORY",
+                            "category": unrelated_result["category"],
+                            "message": unrelated_result["referral_message"],
+                            "detected_concepts": unrelated_result["detected_concepts"],
+                            "is_valid": False,
+                        }
+                    }
+                ),
+                200,
+            )
+
         pred, confidence, uncertainty, probs, model_used, top_diseases, mean_probs = (
             classifier(symptoms)
         )
@@ -240,7 +275,9 @@ def new_case():
         verification_result = verification_layer.verify(symptoms, pred)
         if not verification_result["is_valid"]:
             unexplained = verification_result["unexplained_concepts"]
-            conflicting_match_message = _build_conflicting_match_message(pred)
+            conflicting_match_message = _build_conflicting_match_message(
+                pred, lang=lang_for_prescreening
+            )
             print(
                 f"[VERIFICATION] FAIL: Unexplained concepts {unexplained} for predicted disease {pred}"
             )
@@ -812,7 +849,9 @@ def follow_up_question():
         v_result = verification_layer.verify(unified_text, pred)
         if not v_result["is_valid"]:
             unexplained = v_result["unexplained_concepts"]
-            conflicting_match_message = _build_conflicting_match_message(pred)
+            conflicting_match_message = _build_conflicting_match_message(
+                pred, lang=sess.get("lang", "en")
+            )
             print(f"[VERIFICATION-FOLLOWUP] FAIL: {unexplained} for {pred}")
             probs_formatted = [
                 f"{d['disease']}: {(d['probability'] * 100):.2f}%" for d in top_diseases

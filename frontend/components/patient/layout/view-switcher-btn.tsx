@@ -8,15 +8,11 @@ import {
   type DeveloperView,
 } from "@/constants/default-landing-path";
 
-type ViewSwitcherBtnProps = {
-  isDeveloper: boolean;
-};
-
-const ViewSwitcherBtn = ({ isDeveloper }: ViewSwitcherBtnProps) => {
+const ViewSwitcherBtn = () => {
   const router = useRouter();
-  const [currentView, setCurrentView] = useState<"PATIENT" | "CLINICIAN">(
-    "PATIENT",
-  );
+  const [currentView, setCurrentView] = useState<
+    "PATIENT" | "CLINICIAN" | "ADMIN"
+  >("PATIENT");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -29,9 +25,31 @@ const ViewSwitcherBtn = ({ isDeveloper }: ViewSwitcherBtnProps) => {
     }
   }, []);
 
+  const getNextView = (): "PATIENT" | "CLINICIAN" | "ADMIN" => {
+    switch (currentView) {
+      case "PATIENT":
+        return "CLINICIAN";
+      case "CLINICIAN":
+        return "ADMIN";
+      case "ADMIN":
+        return "PATIENT";
+    }
+  };
+
+  const getViewLabel = (view: "PATIENT" | "CLINICIAN" | "ADMIN"): string => {
+    switch (view) {
+      case "PATIENT":
+        return "Patient";
+      case "CLINICIAN":
+        return "Clinician";
+      case "ADMIN":
+        return "Admin";
+    }
+  };
+
   const handleToggleView = () => {
     setIsLoading(true);
-    const newView = currentView === "PATIENT" ? "CLINICIAN" : "PATIENT";
+    const newView = getNextView();
     setCurrentView(newView);
     localStorage.setItem("developerView", newView);
 
@@ -52,9 +70,7 @@ const ViewSwitcherBtn = ({ isDeveloper }: ViewSwitcherBtnProps) => {
       <span>
         {isLoading
           ? "Switching..."
-          : `Switch to ${
-              currentView === "PATIENT" ? "Clinician" : "Patient"
-            } View`}
+          : `Switch to ${getViewLabel(getNextView())} View`}
       </span>
     </button>
   );

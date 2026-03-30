@@ -1,7 +1,8 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Info } from "lucide-react";
+import { ArrowUpDown, Info, Mail } from "lucide-react";
+import UsersPageActions from "./users-page-actions";
 
 export type UserRow = {
   id: number;
@@ -98,7 +99,10 @@ export const columns: ColumnDef<UserRow>[] = [
           Symptom Checks
           <ArrowUpDown className="w-4 h-4" />
         </button>
-        <div className="tooltip tooltip-bottom z-50" data-tip="Number of times this person used the symptom checker">
+        <div
+          className="tooltip tooltip-bottom z-50"
+          data-tip="Number of times this person used the symptom checker"
+        >
           <Info className="w-3.5 h-3.5 text-muted cursor-default" />
         </div>
       </div>
@@ -139,6 +143,22 @@ export const columns: ColumnDef<UserRow>[] = [
     cell: ({ row }) => {
       const date = new Date(row.getValue("createdAt"));
       return <span>{date.toLocaleDateString()}</span>;
+    },
+  },
+  {
+    id: "actions",
+    header: () => "Actions",
+    cell: ({ row }) => {
+      const user = row.original;
+      return (
+        <div className="flex items-center gap-2">
+          <UsersPageActions
+            currentUserRole="CLINICIAN"
+            userId={user.id.toString()}
+            userEmail={user.email}
+          />
+        </div>
+      );
     },
   },
 ];
