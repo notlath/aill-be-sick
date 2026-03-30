@@ -1,33 +1,33 @@
 import Link from "next/link";
-import { ArrowLeft, MapPin, Info } from "lucide-react";
+import { ArrowLeft, Mail, AlertCircle } from "lucide-react";
 
-export default function NeedAccountPage() {
+export default function SupportPage() {
   return (
     <main className="flex bg-base-200 min-h-screen">
       <section className="flex-1 flex flex-col justify-center px-8 sm:px-16 md:px-24 lg:px-32 py-8">
         <div className="w-full max-w-lg mx-auto space-y-6">
           <div className="space-y-3">
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-              Need an Account?
+              Need Help?
             </h1>
             <p className="text-muted text-lg">
-              We're here to help you get started.
+              We&apos;re here to assist you.
             </p>
           </div>
 
           <div className="card bg-base-100 shadow-sm">
             <div className="card-body space-y-4">
               <div className="flex items-start gap-3">
-                <MapPin className="w-6 h-6 text-primary shrink-0 mt-0.5" />
+                <Mail className="w-6 h-6 text-primary shrink-0 mt-0.5" />
                 <div className="space-y-2">
                   <h2 className="text-lg font-semibold">
-                    Visit Bagong Silangan Barangay Health Center
+                    Contact Us
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    To create an account, please visit the{" "}
-                    <strong>Bagong Silangan Barangay Health Center</strong>. Our
-                    health staff will assist you in setting up your account and
-                    getting started with the system.
+                    If you&apos;re having trouble logging into your account, please
+                    visit the <strong>Bagong Silangan Barangay Health Center</strong>{" "}
+                    where your account was created. Our staff will help you
+                    resolve any login issues.
                   </p>
                 </div>
               </div>
@@ -35,31 +35,19 @@ export default function NeedAccountPage() {
               <div className="divider my-2"></div>
 
               <div className="flex items-start gap-3">
-                <Info className="w-6 h-6 text-secondary shrink-0 mt-0.5" />
+                <AlertCircle className="w-6 h-6 text-secondary shrink-0 mt-0.5" />
                 <div className="space-y-2">
                   <h2 className="text-lg font-semibold">
-                    Not from Bagong Silangan?
+                    Common Issues
                   </h2>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    We appreciate your interest in AI'll Be Sick! Currently,
-                    this system only serves residents of{" "}
-                    <strong>Barangay Bagong Silangan</strong>. Stay tuned — we
-                    may expand to more areas in the future.
-                  </p>
+                  <ul className="text-sm text-muted-foreground leading-relaxed list-disc pl-4 space-y-1">
+                    <li>Forgot your password — visit the health center to reset</li>
+                    <li>Account not working — verify your account was created</li>
+                    <li>Google sign-in not working — ensure you have an existing account</li>
+                  </ul>
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="alert alert-info">
-            <Info className="w-5 h-5 shrink-0" />
-            <p className="text-sm">
-              If you already have an account, you can{" "}
-              <Link href="/login" className="link link-primary font-medium">
-                sign in here
-              </Link>
-              .
-            </p>
           </div>
 
           <Link
@@ -69,16 +57,6 @@ export default function NeedAccountPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to Sign In
           </Link>
-
-          <p className="text-center text-sm text-muted">
-            I already have an account but can&apos;t log in —{" "}
-            <Link
-              href="/support"
-              className="text-primary font-medium hover:underline transition-all cursor-pointer"
-            >
-              get help
-            </Link>
-          </p>
         </div>
       </section>
 
