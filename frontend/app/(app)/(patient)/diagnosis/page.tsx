@@ -41,9 +41,14 @@ const PatientHomePage = () => {
 
   useEffect(() => {
     isMountedRef.current = true;
-    // If this page is restored from router cache, clear stale loading UI.
+    // If this page is restored from router cache, clear stale loading UI and form state.
     setIsNavigating(false);
     hasSubmittedRef.current = false;
+    form.reset({ symptoms: "", chatId: crypto.randomUUID() });
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = "44px";
+    }
 
     return () => {
       isMountedRef.current = false;

@@ -135,7 +135,7 @@ export default function ClinicianProfileForm({ user: initialUser }: ProfileFormP
   return (
     <div className="space-y-10">
       {/* Profile Info Section */}
-      <section className="bg-white/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden">
+      <section className="bg-base-100/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden">
         <div className="relative h-32 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20">
           <div className="absolute inset-0 opacity-40" style={GRADIENT_STYLE} />
         </div>
@@ -144,7 +144,7 @@ export default function ClinicianProfileForm({ user: initialUser }: ProfileFormP
           {/* Avatar Component */}
           <div className="relative -mt-16 mb-6">
             <div className="relative inline-block">
-              <div className="w-32 h-32 relative rounded-full bg-white shadow-lg border-4 border-white overflow-hidden flex items-center justify-center">
+              <div className="w-32 h-32 relative rounded-full bg-base-100 shadow-lg border-4 border-base-100 overflow-hidden flex items-center justify-center">
                 {avatar ? (
                   <Image src={avatar} fill alt={name || "Profile"} className="object-cover" />
                 ) : (
@@ -226,7 +226,7 @@ export default function ClinicianProfileForm({ user: initialUser }: ProfileFormP
       </section>
 
       {/* Account Settings Section */}
-      <section className="bg-white/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm p-8">
+      <section className="bg-base-100/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm p-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
             <Lock className="w-5 h-5 text-primary" />
