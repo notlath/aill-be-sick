@@ -1,53 +1,29 @@
-## Summary
+## Description
 
-- What changed
-- Why this change was needed
+Provide a clear and concise summary of what this PR accomplishes. Include:
 
-## User Impact
+- What changed and why this change was needed
+- User impact: What users/clinicians/admins will notice or any behavior changes they should expect
 
-- What users/clinicians/admins will notice
-- Any behavior changes they should expect
+## Changes Made
 
-## Scope
+Detail the modifications, including:
 
-- In scope:
-- Out of scope:
+- Files changed (e.g., Frontend, Backend, Database/Prisma, Docs)
+- Scope: What is in scope and out of scope for this PR
+- Any linked work: Closes/Fixes issues or related PRs
 
-## Linked Work
+## Testing
 
-- Closes/Fixes:
-- Related:
+Describe the testing performed to validate the changes:
 
-## Files Changed
+- Commands run (e.g., `npx tsc --noEmit`, `pytest backend/tests/`)
+- Scenarios validated (e.g., user flows, edge cases)
+- Results: What was observed, any issues found and resolved
 
-- Frontend:
-- Backend:
-- Database/Prisma:
-- Docs:
+## Breaking Changes
 
-## Testing Done
+List any breaking changes (if none, state "None"):
 
-- Commands run:
-- Scenarios validated:
-- Result:
-
-## Risks & Rollback
-
-- Risks:
-- Rollback plan:
-
-## Screenshots (if UI changes)
-
-- Before:
-- After:
-
-## AI Checklist
-
-- [ ] Architecture references are accurate (Flask backend on port 10000)
-- [ ] Frontend mutation changes use Zod schema + `next-safe-action`
-- [ ] Cache revalidation added where mutation behavior affects UI state
-- [ ] Backend/Frontend contracts are unchanged or documented
-- [ ] Migration or seed steps are documented if schema/data shape changed
-- [ ] No secrets or sensitive data were introduced
-- [ ] User-facing medical copy avoids absolute diagnosis claims
-- [ ] User-facing text avoids the word "cluster" and uses "group" where applicable
+- API changes, database migrations, or behavioral shifts that may affect other systems or users
+- Migration steps or rollback plans if applicable
