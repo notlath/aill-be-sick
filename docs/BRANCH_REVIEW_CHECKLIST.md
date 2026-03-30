@@ -8,7 +8,7 @@ A comprehensive checklist to verify that a branch is ready for merging into the 
 - [ ] Run `npx prisma generate` successfully – regenerates Prisma client for any schema changes
 - [ ] Run `npm run lint` – no linting errors or warnings
 - [ ] Run `npx tsc --noEmit` – TypeScript type checking passes with no errors
-- [ ] Run relevant backend tests (`pytest backend/tests/...`) – all tests pass
+- [ ] Run relevant backend tests (`pytest tests/backend/tests/...`) – all tests pass
 - [ ] Run `npm audit` – no high‑severity security vulnerabilities introduced
 
 ## Code Quality and Safety

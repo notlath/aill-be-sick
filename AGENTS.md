@@ -20,7 +20,7 @@ This file is the single source of truth for AI-assisted development on this proj
 ### Code Quality
 
 - [ ] `npx tsc --noEmit` passes in `frontend/` (TypeScript check)
-- [ ] Relevant `pytest` tests pass in `backend/tests/`
+- [ ] Relevant `pytest` tests pass in `tests/backend/tests/`
 - [ ] No hardcoded threshold literals in Flask endpoints (use `config.py`)
 - [ ] Frontend mutations follow schema + server-action pattern
 - [ ] `revalidatePath`/`revalidateTag` applied after mutations
@@ -136,7 +136,7 @@ python run.py                                        # Runs on http://localhost:
 
 ```bash
 # Run targeted test files relevant to your change
-pytest backend/tests/<test_file>.py
+pytest tests/backend/tests/<test_file>.py
 python test_flask.py   # Integration smoke test (requires server running)
 ```
 
@@ -174,7 +174,7 @@ node scripts/seed-diagnoses.js   # Seed diagnosis data
 
 - TypeScript for all frontend code.
 - Follow conventional commit format: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`.
-- Write tests for new backend features in `backend/tests/`.
+- Write tests for new backend features in `tests/backend/tests/`.
 
 ### Frontend: Data Fetching
 
@@ -341,7 +341,7 @@ Before committing AI-generated changes, verify:
 - [ ] If frontend routes, role guards, or navigation UI changed, `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` is updated in the same PR
 - [ ] No contradictory style guidance introduced in docs
 - [ ] `npx tsc --noEmit` passes in `frontend/`
-- [ ] Relevant `pytest` tests pass in `backend/tests/`
+- [ ] Relevant `pytest` tests pass in `tests/backend/tests/`
 
 > For a comprehensive branch review checklist covering CI/CD, build processes, and additional quality checks, refer to [`docs/BRANCH_REVIEW_CHECKLIST.md`](docs/BRANCH_REVIEW_CHECKLIST.md).
 
