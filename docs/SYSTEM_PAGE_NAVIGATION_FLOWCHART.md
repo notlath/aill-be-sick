@@ -63,7 +63,7 @@ flowchart TD
     ClinStatus -- Approved --> Map["/map"]
 
     %% --- Admin Role ---
-    Role -- ADMIN --> PendingClinicians["/pending-clinicians"]
+    Role -- ADMIN/DEVELOPER --> PendingClinicians["/pending-clinicians"]
 
     %% --- Developer Role ---
     Role -- DEVELOPER --> DevView{Saved developer view}
@@ -185,6 +185,9 @@ flowchart TD
 - `/auth/auth-code-error` — OAuth error page
 - `/auth/confirm` — Auth confirmation handler
 - `/auth/sync-error` — Auth sync error page
+- `/auth/expired-invite` — Expired invite error page
+- `/auth/support` — Support page
+- `/auth/onboarding` — Onboarding page
 
 ### Patient Routes (Authenticated + Patient Role)
 

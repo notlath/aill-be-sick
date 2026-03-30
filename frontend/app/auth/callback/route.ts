@@ -109,9 +109,11 @@ export async function GET(request: NextRequest) {
 
         if (!existingUser) {
           console.log(
-            "[Auth Callback] User not found in database, redirecting to need-account",
+            "[Auth Callback] User not found in database, redirecting to login with error",
           );
-          return NextResponse.redirect(`${origin}/need-account`);
+          return NextResponse.redirect(
+            `${origin}/login?oauth_error=not_found`,
+          );
         }
 
         // Update user data

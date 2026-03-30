@@ -24,7 +24,10 @@ export const createPatient = actionClient
     });
 
     // Check role hierarchy - CLINICIAN, ADMIN, and DEVELOPER can create patients
-    if (!currentUser || !canCreatePatient(currentUser.role)) {
+    if (!currentUser) {
+      return { error: "User not found" };
+    }
+    if (!canCreatePatient(currentUser.role)) {
       return { error: "Only clinicians can create patient accounts" };
     }
 

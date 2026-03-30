@@ -139,15 +139,15 @@ flowchart TD
 
 ### Admin Flow
 
-**Purpose**: Admin users are predefined at system startup and manage clinician approvals.
+**Purpose**: Admin and Developer users manage clinician approvals.
 
 **Steps**:
 
-1. Admin credentials are predefined in the system
-2. Admin logs in with credentials
-3. Upon successful login, admin accesses the dashboard
-4. Admin views pending clinician approval requests
-5. Admin can approve or reject each clinician
+1. Admin/Developer credentials are predefined in the system
+2. Admin/Developer logs in with credentials
+3. Upon successful login, admin/developer accesses the dashboard
+4. Admin/Developer views pending clinician approval requests
+5. Admin/Developer can approve or reject each clinician
 6. Email notifications are sent to clinicians regardless of decision
 7. Process repeats until all pending approvals are handled
 

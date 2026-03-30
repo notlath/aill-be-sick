@@ -35,11 +35,11 @@ function ProfileSkeleton() {
   return (
     <div className="space-y-10">
       {/* Profile Card Skeleton */}
-      <section className="bg-white/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden pb-8">
+      <section className="bg-base-100/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden pb-8">
         <div className="h-32 skeleton rounded-none" />
         <div className="px-8 flex flex-col">
           <div className="-mt-16 mb-6">
-            <div className="w-32 h-32 rounded-full skeleton border-4 border-white" />
+            <div className="w-32 h-32 rounded-full skeleton border-4 border-base-100" />
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             {[1, 2, 3, 4].map((i) => (
@@ -57,7 +57,7 @@ function ProfileSkeleton() {
       </section>
 
       {/* Location Section Skeleton */}
-      <section className="bg-white/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm p-8 flex flex-col">
+      <section className="bg-base-100/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm p-8 flex flex-col">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl skeleton" />
           <div className="space-y-2 flex flex-col">

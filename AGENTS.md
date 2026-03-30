@@ -20,7 +20,7 @@ This file is the single source of truth for AI-assisted development on this proj
 ### Code Quality
 
 - [ ] `npx tsc --noEmit` passes in `frontend/` (TypeScript check)
-- [ ] Relevant `pytest` tests pass in `backend/tests/`
+- [ ] Relevant `pytest` tests pass in `tests/backend/tests/`
 - [ ] No hardcoded threshold literals in Flask endpoints (use `config.py`)
 - [ ] Frontend mutations follow schema + server-action pattern
 - [ ] `revalidatePath`/`revalidateTag` applied after mutations
@@ -136,7 +136,7 @@ python run.py                                        # Runs on http://localhost:
 
 ```bash
 # Run targeted test files relevant to your change
-pytest backend/tests/<test_file>.py
+pytest tests/backend/tests/<test_file>.py
 python test_flask.py   # Integration smoke test (requires server running)
 ```
 
@@ -174,7 +174,7 @@ node scripts/seed-diagnoses.js   # Seed diagnosis data
 
 - TypeScript for all frontend code.
 - Follow conventional commit format: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`.
-- Write tests for new backend features in `backend/tests/`.
+- Write tests for new backend features in `tests/backend/tests/`.
 
 ### Frontend: Data Fetching
 
@@ -341,7 +341,9 @@ Before committing AI-generated changes, verify:
 - [ ] If frontend routes, role guards, or navigation UI changed, `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` is updated in the same PR
 - [ ] No contradictory style guidance introduced in docs
 - [ ] `npx tsc --noEmit` passes in `frontend/`
-- [ ] Relevant `pytest` tests pass in `backend/tests/`
+- [ ] Relevant `pytest` tests pass in `tests/backend/tests/`
+
+> For a comprehensive branch review checklist covering CI/CD, build processes, and additional quality checks, refer to [`docs/BRANCH_REVIEW_CHECKLIST.md`](docs/BRANCH_REVIEW_CHECKLIST.md).
 
 ### Change Sync Checklist
 
@@ -351,74 +353,6 @@ When AI guidance files are updated:
 2. If a skill path changes — update the Skill Routing table above
 3. If the duplicate-skill policy applies — canonical change + mirrored copies in same PR
 4. If App Router pages, redirects/guards, role access, or nav links change — update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` in the same PR so docs stay in sync with UX behavior
-
----
-
-## Fool-Proof + Clinical Rigor Framework
-
-This framework ensures that **anyone can use the system without frustration** while maintaining **strict clinical safety standards**.
-
-### Core Principle: Dual-Layer Design
-
-- **Layer 1 (UX):** Assume users have zero health literacy, limited tech comfort, and high cognitive load. Make everything obvious.
-- **Layer 2 (Medical Content):** Never compromise on clinical accuracy, uncertainty quantification, and safety red-flags. Always show confidence scores and when to seek care.
-
-### Readability Standards by Audience
-
-| Audience               | Reading Level              | Examples                                                 | Tools                                                     |
-| ---------------------- | -------------------------- | -------------------------------------------------------- | --------------------------------------------------------- |
-| **Patients (general)** | Grade 6–8 (Flesch 60–70)   | Symptom explanations, results interpretation, next steps | Plain language, <18 word sentences, explain jargon inline |
-| **Urgent warnings**    | Grade ≤6 (Flesch 75+)      | Seek immediate care, pregnant warning, severe chest pain | One directive per message, no conditions or nested logic  |
-| **Clinicians**         | Grade 10–12 (Flesch 30–50) | Dashboard explanations, case notes, advanced settings    | Include jargon with help tooltips or glossary links       |
-
-**Validation Tool:** Use a Flesch reading EasyRead validator or ask "Can a 6th grader read this aloud and tell me what to do?" before shipping.
-
-### Error Recovery Patterns (REQUIRED)
-
-Every patient-facing feature must implement all of these:
-
-| Pattern                        | Why                                         | Implementation                                                              |
-| ------------------------------ | ------------------------------------------- | --------------------------------------------------------------------------- |
-| **Input Preservation**         | Users lose trust if answers vanish on error | Never clear form/chat on error; show error banner above input               |
-| **Plain Error + Action**       | Raw errors terrify non-technical users      | "We had trouble connecting. Try again?" (not "HTTP 504")                    |
-| **Duplicate Submission Guard** | Prevents accidental duplicate diagnoses     | Disable button while pending; server-side idempotency keys                  |
-| **Transient Retry**            | Network hiccups shouldn't derail diagnosis  | Auto-retry up to 3x for timeouts; show countdown                            |
-| **Fallback State**             | App shouldn't go blank if backend is slow   | "Saving locally... will sync when ready" + let user continue                |
-| **Risky Action Confirm**       | Prevent "oops I deleted my results"         | Modal: "Delete all answers? Can't undo." + `Cancel` / `Yes, delete` buttons |
-| **Field Errors Inline**        | Users don't scroll to find what's wrong     | Error message next to field, not in separate summary box                    |
-
-### Novice Usability Validation Gate (Before Patient-Facing Merge)
-
-**Scope:** Diagnosis flows, result messaging, follow-up questions, urgent warnings, any new UI patients interact with.
-
-**Process:**
-
-1. **Define 3–5 critical tasks** (e.g., "Start assessment," "Add symptoms," "Understand results," "Know next step," "Find care instructions")
-2. **Recruit 5–8 non-technical testers** (no coaching; age 18–70 mix; first-time users)
-3. **Measure:**
-   - ✅ Task completion rate (Target: ≥90%)
-   - ✅ Zero safety misunderstandings (e.g., "I'm definitely sick" when result said "may indicate")
-   - ✅ All users correctly answer "What should you do next?" (Target: ≥90%)
-   - ✅ Time to complete (Baseline for future improvements; target: <2 min per task)
-
-**Gate Decision:**
-
-- ✅ **PASS:** ≥90% task completion, 0 safety errors, 90% correct next-step comprehension → merge
-- ❌ **BLOCK:** <90% completion, any safety misunderstandings, users can't find next step → fix and retest
-- 📝 **Document:** Link test notes/video (anonymized) in PR comment
-
-**Exceptions:** Internal tools, clinician-only features, backend-only changes, minor text tweaks (<10 words, no logic change).
-
-### Clinical Rigor Standards
-
-Alongside fool-proof UX, **never** weaken medical safety:
-
-- **Show confidence & uncertainty:** Always display model confidence score and what confidence <X% means.
-- **Probabilistic language only:** Use "may," "suggests," "consider," never "you have" or "confirmed."
-- **Red-flag symptoms gate:** Urgent symptoms (severe chest pain, difficulty breathing) trigger immediate "Seek emergency care" before any diagnosis.
-- **Limitation transparency:** Explain what the model cannot do: "This is not a diagnosis. See a doctor to confirm."
-- **Multi-lingual parity:** English and Tagalog must have identical clinical safety standards and disclaimers.
-- **Follow-up tracking:** Recommend when/how to follow up (e.g., "If symptoms persist >3 days, see a doctor").
 
 ---
 

@@ -39,8 +39,8 @@ Use this skill for backend changes in:
 
 Run targeted tests for changed behavior, for example:
 
-- `python -m pytest backend/tests/test_flask.py -v`
-- `python -m pytest backend/tests/test_follow_up_questions_all_diseases.py -v`
+- `python -m pytest tests/backend/tests/test_flask.py -v`
+- `python -m pytest tests/backend/tests/test_follow_up_questions_all_diseases.py -v`
 - plus nearest tests for touched service logic
 
 ## Output expectations

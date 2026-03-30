@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useAction } from "next-safe-action/hooks";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2, Stethoscope, ShieldCheck } from "lucide-react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -65,23 +65,45 @@ const ClinicianLoginPage = () => {
     execSignup(formData);
   });
 
+  const isExecuting = isLoggingIn || isSigningUp;
+
   return (
-    <main className="flex min-h-screen bg-base-200">
+    <main className="flex bg-base-100 min-h-screen">
       {/* Left Column - Auth Form */}
-      <section className="flex-1 flex flex-col justify-center px-8 sm:px-16 md:px-24 lg:px-32">
-        <div className="w-full max-w-md mx-auto space-y-8">
-          <div className="space-y-3 text-center lg:text-left">
-            <h1 className="text-6xl font-bold tracking-tight">AI'll Be Sick</h1>
-            <p className="text-muted text-lg">Clinician Portal Access</p>
-            <p className="text-sm text-muted">
+      <section className="flex-1 flex flex-col justify-center px-6 sm:px-12 md:px-20 lg:px-28 py-8">
+        <div className="w-full max-w-md mx-auto">
+          {/* Brand Header */}
+          <div className="animate-fade-in mb-10">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Stethoscope className="w-5 h-5 text-primary" strokeWidth={2} />
+              </div>
+              <span className="text-sm font-semibold tracking-wide text-primary uppercase">
+                Clinician Portal
+              </span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-3">
+              Welcome to
+              <br />
+              <span className="text-primary">AI&apos;ll Be Sick</span>
+            </h1>
+            <p className="text-muted text-base">
+              Clinician Portal Access
+            </p>
+            <p className="text-sm text-muted mt-1">
               New clinician accounts require admin approval before access.
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
+          {/* Login Form */}
+          <form
+            onSubmit={handleLogin}
+            className="animate-slide-up space-y-5"
+            style={{ animationDelay: "0.1s" }}
+          >
+            <div className="space-y-1.5">
               <label
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                className="text-sm font-medium leading-none"
                 htmlFor="email"
               >
                 Email address
@@ -100,10 +122,10 @@ const ClinicianLoginPage = () => {
               )}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm font-medium leading-none"
                   htmlFor="password"
                 >
                   Password
@@ -128,76 +150,114 @@ const ClinicianLoginPage = () => {
               )}
             </div>
 
-            <div className="flex flex-col gap-3 pt-2">
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium"
-              >
-                {isLoggingIn ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    Sign In <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
+            <button
+              type="submit"
+              disabled={isExecuting}
+              className="btn btn-primary w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium mt-2"
+            >
+              {isLoggingIn ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  Sign In <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
 
-              <div className="relative my-2">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-base-200/50 px-2 text-muted-foreground bg-base-100">
-                    Or
-                  </span>
-                </div>
+            {/* Divider */}
+            <div
+              className="animate-slide-up relative my-6"
+              style={{ animationDelay: "0.15s" }}
+            >
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border" />
               </div>
-
-              <button
-                type="button"
-                onClick={handleSignup}
-                disabled={isSigningUp}
-                className="btn btn-outline border-border w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium bg-base-100 text-base-content"
-              >
-                {isSigningUp ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  "Create clinician account"
-                )}
-              </button>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-base-100 px-3 text-muted">Or</span>
+              </div>
             </div>
 
-            <p className="text-center text-sm text-muted pt-4">
-              Not a clinician? Click{" "}
+            {/* Create Clinician Account */}
+            <button
+              type="button"
+              onClick={handleSignup}
+              disabled={isExecuting}
+              className="animate-slide-up btn btn-outline border-border w-full rounded-xl flex items-center justify-center gap-2 h-12 font-medium bg-base-100 text-base-content"
+              style={{ animationDelay: "0.2s" }}
+            >
+              {isSigningUp ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                "Create clinician account"
+              )}
+            </button>
+          </form>
+
+          {/* Footer Links */}
+          <div
+            className="animate-slide-up border-t border-border mt-8 pt-6 space-y-2"
+            style={{ animationDelay: "0.25s" }}
+          >
+            <p className="text-center text-sm text-muted">
+              Not a clinician?{" "}
               <Link
                 href="/login"
                 className="text-primary font-medium hover:underline transition-all cursor-pointer"
               >
-                here
-              </Link>{" "}
-              to log in as a patient
+                Patient sign in
+              </Link>
             </p>
-            <p className="text-center text-sm text-muted mt-2">
-              Admin? Click{" "}
+            <p className="text-center text-sm text-muted">
+              Admin?{" "}
               <Link
                 href="/admin-login"
                 className="text-primary font-medium hover:underline transition-all cursor-pointer"
               >
-                here
+                Admin sign in
               </Link>
             </p>
-          </form>
+          </div>
         </div>
       </section>
 
-      {/* Right Column - Image */}
-      <section className="hidden lg:block lg:flex-1 relative p-2">
-        <img
-          src="https://images.unsplash.com/photo-1584982751601-97dcc096659c?q=80&w=3272&auto=format&fit=crop"
-          alt="Modern clinic interior"
-          className="w-full h-full object-cover rounded-3xl"
-        />
+      {/* Right Column - Hero Panel */}
+      <section className="hidden lg:flex lg:flex-1 relative p-2">
+        <div className="relative w-full h-full rounded-3xl overflow-hidden">
+          <img
+            src="https://images.unsplash.com/photo-1584982751601-97dcc096659c?q=80&w=3272&auto=format&fit=crop"
+            alt="Modern clinic interior"
+            className="w-full h-full object-cover"
+          />
+          {/* Overlay content on the image */}
+          <div className="absolute inset-0 bg-neutral/50" />
+          <div className="absolute bottom-0 left-0 right-0 p-10">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-primary" strokeWidth={2.5} />
+                <span
+                  className="text-sm font-semibold text-neutral-content uppercase tracking-wide"
+                  style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
+                >
+                  Clinician Dashboard
+                </span>
+              </div>
+              <h2
+                className="text-3xl font-bold text-neutral-content leading-snug"
+                style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
+              >
+                Manage patients and support{" "}
+                <span className="text-primary">better health outcomes</span>
+              </h2>
+              <p
+                className="text-neutral-content/80 text-sm leading-relaxed max-w-md"
+                style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}
+              >
+                Create patient accounts, review AI-assisted diagnoses, and
+                monitor community health trends.
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   );
