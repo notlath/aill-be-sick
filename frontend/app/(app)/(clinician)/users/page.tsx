@@ -1,12 +1,11 @@
 import { Suspense } from "react";
-import { columns, UserRow } from "@/components/clinicians/users-page/columns";
+import { columns } from "@/components/clinicians/users-page/columns";
 import { DataTable } from "@/components/clinicians/users-page/data-table";
 import { getAllUsers, getCurrentDbUser } from "@/utils/user";
 import { ExportReportButton } from "@/components/ui/export-report-button";
 import type { PdfColumn } from "@/utils/pdf-export";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
-import UsersPageActions from "@/components/clinicians/users-page/users-page-actions";
 
 function UsersTableSkeleton() {
   return (
@@ -77,7 +76,7 @@ async function UsersTable({
   return (
     <DataTable
       columns={columns}
-      data={users || []}
+      data={(users || [])}
       currentUserRole={currentUserRole}
       additionalActions={
         <>

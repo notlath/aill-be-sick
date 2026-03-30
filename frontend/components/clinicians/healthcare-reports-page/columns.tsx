@@ -12,6 +12,16 @@ export type DiagnosisOverrideRow = {
   createdAt: Date;
 };
 
+export type DiagnosisNoteRow = {
+  id: number;
+  content: string;
+  createdAt: Date;
+  clinician: {
+    id: number;
+    name: string | null;
+  };
+};
+
 export type DiagnosisRow = {
   id: number;
   disease: string;
@@ -24,6 +34,7 @@ export type DiagnosisRow = {
   createdAt: Date;
   user?: User;
   override?: DiagnosisOverrideRow | null;
+  notes?: DiagnosisNoteRow[];
 };
 
 export const columns: ColumnDef<DiagnosisRow>[] = [

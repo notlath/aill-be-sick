@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Info, Mail } from "lucide-react";
+import { ArrowUpDown, Info } from "lucide-react";
 import UsersPageActions from "./users-page-actions";
 
 export type UserRow = {
