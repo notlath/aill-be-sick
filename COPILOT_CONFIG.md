@@ -55,15 +55,6 @@ Do not change compatibility copy wording independently.
 - Frontend UI changes preserve mobile usability at small breakpoints.
 - No contradictory style guidance introduced in docs.
 
-**NEW — Fool-Proof + Clinical Rigor Framework:**
-
-- Patient-facing copy targets Grade 6–8 reading level (Grade ≤6 for urgent warnings).
-- All patient-facing forms implement error recovery: input preservation, plain-language errors, retry logic.
-- Diagnosis/warning flows include confirmation modals for risky actions (delete, clear).
-- Diagnosis flows scheduled for or completed novice usability testing (5–8 non-tech users, ≥90% task completion).
-- All result messaging includes confidence/uncertainty and next-action guidance.
-- No absolute diagnosis claims; use probabilistic language only.
-
 ## Change sync checklist
 
 Use this checklist whenever AI guidance files are updated:
@@ -71,20 +62,16 @@ Use this checklist whenever AI guidance files are updated:
 1. If `.instructions.md` changes, confirm scoped overlays (`frontend/.instructions.md`, `backend/.instructions.md`) still align.
 2. If a skill in `.github/skills/` changes, confirm task routing in this file still points to the right skill.
 3. If architecture/runtime facts change (ports, backend type, entrypoints), update:
-   - `.instructions.md`
-   - `AGENTS.md`, `frontend/AGENTS.md`, `backend/AGENTS.md`
-   - onboarding notes in `README.md`, `frontend/README.md`, and `backend/README.md`
-4. If validation defaults change (TypeScript check, pytest commands, linting tools):
-   - Update `.instructions.md` "Validation defaults" section
-   - Update corresponding CI/CD workflows:
-     - `.github/workflows/frontend-checks.yml` (for frontend validation)
-     - `.github/workflows/backend-checks.yml` (for backend validation)
-5. If prompt templates change, verify `.prompt.md` examples still match current code patterns.
-6. Keep the duplicate-skill policy enforced: canonical skill change + mirrored compatibility copies in same PR.
-7. Include the AI checklist section in PR descriptions for guidance-only changes.
+
+- `.instructions.md`
+- `AGENTS.md`, `frontend/AGENTS.md`, `backend/AGENTS.md`
+- onboarding notes in `README.md`, `frontend/README.md`, and `backend/README.md`
+
+4. If prompt templates change, verify `.prompt.md` examples still match current code patterns.
+5. Keep the duplicate-skill policy enforced: canonical skill change + mirrored compatibility copies in same PR.
+6. Include the AI checklist section in PR descriptions for guidance-only changes.
 
 ## Lightweight change log
 
 - 2026-03-23: Added hybrid Copilot operating model, prompt library, and domain skill routing.
 - 2026-03-23: Added skill discovery routing (`find-skills`) and mobile-first UI/UX default routing notes.
-- 2026-03-24: Added comprehensive Fool-Proof + Clinical Rigor framework with readability targets (Grade 6–8 for patients), error recovery safeguards, and novice usability validation gate before merge.
