@@ -29,6 +29,24 @@ A comprehensive checklist to verify that a branch is ready for merging into the 
 - [ ] `revalidatePath` or `revalidateTag` are called after successful mutations
 - [ ] No App Router page changes without corresponding updates to the navigation flowchart
 
+## Clinician Approval Workflow
+
+- [ ] Frontend: `admin-clinician-approvals.ts` implemented with proper role validation
+- [ ] Backend: Approval status fields added to User model (approvalStatus, approvedBy, approvedAt, rejectedAt, approvalNotes)
+- [ ] Database: Prisma schema updated with ApprovalStatus enum and approval fields
+- [ ] Role hierarchy: `canApproveClinicians()` function correctly restricts to ADMIN/DEVELOPER
+- [ ] Email workflow: Patient creation sends proper invite emails
+- [ ] UI components: Pending clinicians page and approval actions implemented
+- [ ] Error handling: Proper validation and error messages for approval/rejection
+
+## Patient Creation Workflow
+
+- [ ] Role validation: Only CLINICIAN/ADMIN/DEVELOPER can create patients
+- [ ] Approval status: Clinicians require ACTIVE approval status to create patients
+- [ ] Email verification: Supabase invite flow properly implemented with retry logic
+- [ ] Data validation: Proper geocoding and structured name building
+- [ ] Cache invalidation: Both `/users` and `/pending-clinicians` paths revalidated
+
 ## Documentation and Copywriting
 
 - [ ] All changes to backend configuration or thresholds are documented in `config.py`
