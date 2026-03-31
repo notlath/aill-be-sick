@@ -148,6 +148,14 @@ const PatientSetPasswordPage = () => {
         setPatientName(user.user_metadata?.name || null);
 
         console.log("[Set Password] Token validated successfully");
+        console.log("[Set Password] User details:", {
+          id: user.id,
+          email: user.email,
+          emailConfirmedAt: user.email_confirmed_at,
+          createdAt: user.created_at,
+          lastSignInAt: user.last_sign_in_at,
+          userMetadata: user.user_metadata,
+        });
         setIsValidatingToken(false);
       } catch (err) {
         console.error("[Set Password] Unexpected error:", err);

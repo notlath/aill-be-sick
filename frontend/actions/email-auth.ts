@@ -144,10 +144,23 @@ export const updatePassword = actionClient
     const { password } = parsedInput;
     const supabase = await createClient();
 
+    // Get current user to debug the session state
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    console.log("[updatePassword] Current user:", {
+      userId: userData?.user?.id,
+      email: userData?.user?.email,
+      emailConfirmedAt: userData?.user?.email_confirmed_at,
+      userError: userError?.message,
+    });
+
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      console.error(`Error updating password: ${error.message}`);
+      console.error("[updatePassword] Error updating password:", {
+        code: error.code,
+        message: error.message,
+        status: error.status,
+      });
       return { error: `Error updating password: ${error.message}` };
     }
 
