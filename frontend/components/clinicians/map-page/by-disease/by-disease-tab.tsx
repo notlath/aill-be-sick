@@ -265,7 +265,7 @@ const ByDiseaseTab = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col items-stretch justify-between lg:flex-row gap-4">
+      <div className="flex flex-col items-start justify-between lg:flex-row gap-4">
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
           <DiseaseSelect
             value={selectedDisease}

@@ -24,7 +24,7 @@ export const patientLogin = actionClient
     }
 
     revalidatePath("/", "layout");
-    redirect("/");
+    redirect("/diagnosis");
   });
 
 export const patientSignup = actionClient

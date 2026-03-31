@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { DatePicker } from "@/components/ui/date-picker";
+import { cn } from "@/utils/lib";
 import {
   Select,
   SelectContent,
@@ -155,51 +156,49 @@ export function DateRangeFilter({
   };
 
   return (
-    <div className={className}>
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-nowrap items-center gap-2">
-          <span className="text-xs whitespace-nowrap">Date range:</span>
-          <Select
-            value={activePreset}
-            onValueChange={(value) => handlePresetChange(value as PresetType)}
-          >
-            <SelectTrigger className="w-52">
-              <SelectValue placeholder="Select date range" />
-            </SelectTrigger>
-            <SelectContent>
-              {PRESETS.map((preset) => (
-                <SelectItem key={preset.id} value={preset.id}>
-                  {preset.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {activePreset === "custom" ? (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <div className="flex-1 min-w-0">
-              <DatePicker
-                value={startDate}
-                onChange={handleStartDateChange}
-                className="w-full"
-                placeholder="Start date"
-              />
-            </div>
-            <span className="text-base-content/60 text-sm hidden sm:inline shrink-0">
-              →
-            </span>
-            <div className="flex-1 min-w-0">
-              <DatePicker
-                value={endDate}
-                onChange={handleEndDateChange}
-                className="w-full"
-                placeholder="End date"
-              />
-            </div>
-          </div>
-        ) : null}
+    <div className={cn("flex flex-col items-stretch lg:items-end gap-2", className)}>
+      <div className="flex flex-nowrap items-center gap-2">
+        <span className="text-xs whitespace-nowrap">Date range:</span>
+        <Select
+          value={activePreset}
+          onValueChange={(value) => handlePresetChange(value as PresetType)}
+        >
+          <SelectTrigger className="w-52">
+            <SelectValue placeholder="Select date range" />
+          </SelectTrigger>
+          <SelectContent>
+            {PRESETS.map((preset) => (
+              <SelectItem key={preset.id} value={preset.id}>
+                {preset.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      {activePreset === "custom" ? (
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="flex-1 sm:flex-none min-w-0">
+            <DatePicker
+              value={startDate}
+              onChange={handleStartDateChange}
+              className="w-full"
+              placeholder="Start date"
+            />
+          </div>
+          <span className="text-base-content/60 text-sm hidden sm:inline shrink-0">
+            →
+          </span>
+          <div className="flex-1 sm:flex-none min-w-0">
+            <DatePicker
+              value={endDate}
+              onChange={handleEndDateChange}
+              className="w-full"
+              placeholder="End date"
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
