@@ -345,6 +345,18 @@ Before committing AI-generated changes, verify:
 
 > For a comprehensive branch review checklist covering CI/CD, build processes, and additional quality checks, refer to [`docs/BRANCH_REVIEW_CHECKLIST.md`](docs/BRANCH_REVIEW_CHECKLIST.md).
 
+## Changelog Standards
+
+When creating a changelog for a branch, follow these standards:
+
+- **Keep a Changelog** format — organize entries into categories: Added, Changed, Deprecated, Removed, Fixed, Security. Entries are listed newest-first with release dates.
+- **Semantic Versioning** — use `MAJOR.MINOR.PATCH` format:
+  - `MAJOR` (e.g., 2.x.x) = incompatible API changes
+  - `MINOR` (e.g., x.2.x) = new backwards-compatible features
+  - `PATCH` (e.g., x.x.3) = backwards-compatible bug fixes
+
+Place changelogs in `docs/CHANGELOG-<branch-name>.md` and reference them in the main `docs/CHANGELOG.md` upon merge.
+
 ### Change Sync Checklist
 
 When AI guidance files are updated:

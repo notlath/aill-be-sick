@@ -19,6 +19,7 @@ import {
   User,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { toast } from "sonner";
 import { createClient } from "@supabase/supabase-js";
 
@@ -359,9 +360,8 @@ const PatientSetPasswordPage = () => {
                 >
                   Password
                 </label>
-                <Input
+                <PasswordInput
                   id="password"
-                  type="password"
                   className="h-12"
                   placeholder="••••••••"
                   {...form.register("password")}
@@ -380,9 +380,8 @@ const PatientSetPasswordPage = () => {
                 >
                   Confirm Password
                 </label>
-                <Input
+                <PasswordInput
                   id="confirmPassword"
-                  type="password"
                   className="h-12"
                   placeholder="••••••••"
                   {...form.register("confirmPassword")}

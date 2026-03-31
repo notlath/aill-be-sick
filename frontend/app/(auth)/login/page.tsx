@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { useState, useEffect } from "react";
 
 const LoginContent = () => {
@@ -38,7 +39,7 @@ const LoginContent = () => {
     const error = searchParams.get("oauth_error");
     if (error) {
       setOauthError(
-        "No account found for this Google address. Please visit Bagong Silangan Barangay Health Center to register."
+        "No account found for this Google address. Please visit Bagong Silangan Barangay Health Center to register.",
       );
     }
   }, [searchParams]);
@@ -133,9 +134,7 @@ const LoginContent = () => {
       <section className="flex-1 flex flex-col justify-center px-6 sm:px-12 md:px-20 lg:px-28 py-8">
         <div className="w-full max-w-md mx-auto">
           {/* Brand Header */}
-          <div
-            className="animate-fade-in mb-10"
-          >
+          <div className="animate-fade-in mb-10">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Stethoscope className="w-5 h-5 text-primary" strokeWidth={2} />
@@ -145,15 +144,15 @@ const LoginContent = () => {
               </span>
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.1] mb-3">
-              {isSignupMode
-                ? "Create your account"
-                : (
-                  <>
-                    Welcome to
-                    <br />
-                    <span className="text-primary">AI&apos;ll Be Sick</span>
-                  </>
-                )}
+              {isSignupMode ? (
+                "Create your account"
+              ) : (
+                <>
+                  Welcome to
+                  <br />
+                  <span className="text-primary">AI&apos;ll Be Sick</span>
+                </>
+              )}
             </h1>
             <p className="text-muted text-base">
               {isSignupMode
@@ -198,11 +197,10 @@ const LoginContent = () => {
                   >
                     Password
                   </label>
-                  <Input
+                  <PasswordInput
                     id="login-password"
-                    type="password"
-                    className="h-12"
                     placeholder="••••••••"
+                    className="h-12"
                     {...loginForm.register("password")}
                   />
                   {loginForm.formState.errors.password && (
@@ -318,11 +316,10 @@ const LoginContent = () => {
                 >
                   Password
                 </label>
-                <Input
+                <PasswordInput
                   id="signup-password"
-                  type="password"
-                  className="h-12"
                   placeholder="••••••••"
+                  className="h-12"
                   {...signupForm.register("password")}
                 />
                 {signupForm.formState.errors.password && (
@@ -486,7 +483,10 @@ const LoginContent = () => {
           <div className="absolute bottom-0 left-0 right-0 p-10">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary" strokeWidth={2.5} />
+                <ShieldCheck
+                  className="w-5 h-5 text-primary"
+                  strokeWidth={2.5}
+                />
                 <span
                   className="text-sm font-semibold text-neutral-content uppercase tracking-wide"
                   style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
