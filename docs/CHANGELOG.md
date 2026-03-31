@@ -5,10 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 2026-03-30
+## [Unreleased] — 2026-03-31
 
 ### Fixed
 
+- **Frontend**: Fixed clinician redirect issue when using patient login page.
+  - Updated `patientLogin` action to use role-based redirects instead of hardcoded `/diagnosis` redirect.
+  - Clinicians logging in via patient portal now correctly redirect to `/map` instead of `/diagnosis`.
+  - Added role validation and approval status checks for clinicians.
+  - Updated `adminLogin` action to use centralized role-based landing page configuration.
+  - Integrated with `getDefaultLandingPath` utility for consistent routing across all auth actions.
+  - Maintains performance benefits of direct redirects while fixing cross-portal login UX.
 - **Frontend**: Fixed dark mode styling inconsistencies in the profile pages.
   - Replaced hardcoded `bg-white/80` and `bg-white` with DaisyUI semantic token `bg-base-100` in profile forms.
   - Replaced `border-white` with `border-base-100` on avatar rings and skeleton loaders.
