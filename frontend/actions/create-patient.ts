@@ -6,6 +6,7 @@ import prisma from "@/prisma/prisma";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/utils/user";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient } from "@/utils/supabase/server";
 import { canCreatePatient } from "@/utils/role-hierarchy";
 
 export const createPatient = actionClient
@@ -73,16 +74,9 @@ export const createPatient = actionClient
         return { error: "A user with this email already exists" };
       }
 
-      // Create Supabase auth account using admin client
-      // IMPORTANT: Use admin.inviteUserByEmail() instead of createUser() to:
-      // 1. Send an invite email to the patient
-      // 2. Let the patient set their own password
-      // 3. Verify the patient's email address
-      // 4. Avoid temp password sharing complications
       const supabaseAdmin = createAdminClient();
 
       // Check if email already exists in Supabase Auth
-      // This can happen if the user was deleted from Prisma but not from Supabase Auth
       const { data: existingUsers } =
         await supabaseAdmin.auth.admin.listUsers();
       const existingSupabaseUser = existingUsers?.users?.find(
@@ -108,17 +102,17 @@ export const createPatient = actionClient
         }
       }
 
-      // Get the origin URL for the invite redirect
+      // Send automated invite email using inviteUserByEmail
       const origin =
         process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-      const { data: userData, error: inviteError } =
+      const { data: inviteData, error: inviteError } =
         await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-          redirectTo: `${origin}/auth/callback?next=/patient/set-password`,
           data: {
             name,
             role: "PATIENT",
           },
+          redirectTo: `${origin}/auth/callback?next=/patient/set-password`,
         });
 
       if (inviteError) {
@@ -131,9 +125,13 @@ export const createPatient = actionClient
         };
       }
 
-      if (!userData?.user) {
-        return { error: "Failed to create auth account" };
+      if (!inviteData?.user) {
+        return { error: "Failed to create invite" };
       }
+
+      console.log(`[createPatient] Invite sent successfully to ${email}`);
+
+      const userId = inviteData.user.id;
 
       // Register patient profile in database
       // Note: latitude and longitude are geocoded from the patient's residential address
@@ -144,7 +142,7 @@ export const createPatient = actionClient
         data: {
           email,
           name,
-          authId: userData.user.id,
+          authId: userId,
           role: "PATIENT",
           approvalStatus: "ACTIVE",
           birthday: new Date(birthday),
@@ -168,7 +166,7 @@ export const createPatient = actionClient
           patientId: patient.id,
           email: patient.email,
           name: patient.name,
-          message: `Patient account registered successfully. An invite email has been sent to ${email}. The patient must click the link in the email to set their password and access the system.`,
+          message: `Patient account created successfully. An invite email has been sent to ${email}.`,
         },
       };
     } catch (error) {

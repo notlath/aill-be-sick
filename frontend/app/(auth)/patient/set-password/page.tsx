@@ -42,8 +42,10 @@ const PatientSetPasswordPage = () => {
 
   // Validate token and get patient info on mount
   useEffect(() => {
+    console.log("[Set Password] useEffect triggered - starting validation");
     const validateToken = async () => {
       try {
+        console.log("[Set Password] Starting token validation");
         // Get Supabase client
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -59,6 +61,12 @@ const PatientSetPasswordPage = () => {
         // Get current session
         const { data: sessionData, error: sessionError } =
           await supabase.auth.getSession();
+
+        console.log("[Set Password] Session check result:", {
+          hasSession: !!sessionData?.session,
+          sessionError: sessionError?.message,
+          sessionUserId: sessionData?.session?.user?.id,
+        });
 
         if (sessionError) {
           console.error("[Set Password] Session error:", sessionError);
@@ -84,53 +92,20 @@ const PatientSetPasswordPage = () => {
         }
 
         if (!sessionData.session) {
-          // No session - check if this is an already-used token
-          // Supabase returns 401 for already-used tokens
-          const { data: userData, error: userError } =
-            await supabase.auth.getUser();
-
-          if (userError) {
-            if (
-              userError.message?.includes("already") ||
-              userError.message?.includes("used") ||
-              userError.status === 401
-            ) {
-              setTokenAlreadyUsed(true);
-              setTokenError(
-                "This invite link has already been used. Please log in or contact support if you need assistance.",
-              );
-            } else if (userError.message?.includes("expired")) {
-              setTokenExpired(true);
-              setTokenError(
-                "This invite link has expired. Please request a new invite from your health center.",
-              );
-            } else {
-              setTokenError(
-                "Invalid invite link. Please request a new invite from your health center.",
-              );
-            }
-            setIsValidatingToken(false);
-            return;
-          }
-
-          if (userData.user) {
-            // User exists but no session - token might be already used
-            setTokenAlreadyUsed(true);
-            setTokenError(
-              "This invite link has already been used. Please log in or contact support if you need assistance.",
-            );
-            setIsValidatingToken(false);
-            return;
-          }
-
-          setTokenError(
-            "Invalid invite link. Please request a new invite from your health center.",
+          // No session - could be invite token or already-used token
+          // For invite tokens, there might be no session initially, but we should allow password setting
+          // The updatePassword action will validate the token when actually setting the password
+          console.log(
+            "[Set Password] No session found - allowing invite flow to proceed",
           );
           setIsValidatingToken(false);
           return;
         }
 
         // Session exists - get user info
+        console.log(
+          "[Set Password] Session found - proceeding with user validation",
+        );
         const { data: userData, error: userError } =
           await supabase.auth.getUser();
 
@@ -148,14 +123,6 @@ const PatientSetPasswordPage = () => {
         setPatientName(user.user_metadata?.name || null);
 
         console.log("[Set Password] Token validated successfully");
-        console.log("[Set Password] User details:", {
-          id: user.id,
-          email: user.email,
-          emailConfirmedAt: user.email_confirmed_at,
-          createdAt: user.created_at,
-          lastSignInAt: user.last_sign_in_at,
-          userMetadata: user.user_metadata,
-        });
         setIsValidatingToken(false);
       } catch (err) {
         console.error("[Set Password] Unexpected error:", err);

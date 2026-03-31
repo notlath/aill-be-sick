@@ -144,7 +144,17 @@ export const updatePassword = actionClient
     const { password } = parsedInput;
     const supabase = await createClient();
 
-    // Get current user to debug the session state
+    // Get current session to debug the session state
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+    console.log("[updatePassword] Current session:", {
+      hasSession: !!sessionData?.session,
+      sessionUserId: sessionData?.session?.user?.id,
+      sessionEmail: sessionData?.session?.user?.email,
+      sessionError: sessionError?.message,
+    });
+
+    // Get current user to debug the user state
     const { data: userData, error: userError } = await supabase.auth.getUser();
     console.log("[updatePassword] Current user:", {
       userId: userData?.user?.id,
@@ -164,9 +174,13 @@ export const updatePassword = actionClient
       return { error: `Error updating password: ${error.message}` };
     }
 
+    console.log("[updatePassword] Password updated successfully");
+
     // Get the user's role to determine redirect
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (user) {
       const dbUser = await prisma.user.findUnique({
         where: { authId: user.id },
@@ -174,7 +188,7 @@ export const updatePassword = actionClient
       });
 
       revalidatePath("/", "layout");
-      
+
       // Redirect based on role
       if (dbUser?.role === "CLINICIAN" || dbUser?.role === "ADMIN") {
         redirect("/map");
