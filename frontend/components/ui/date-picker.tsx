@@ -103,15 +103,15 @@ export function DatePicker({
         tabIndex={disabled ? -1 : 0}
         onClick={() => !disabled && setIsOpen(!isOpen)}
         className={cn(
-          "flex items-center gap-2 w-full justify-start",
+          "flex items-center gap-2 justify-start",
           "px-4 py-2.5 rounded-[10px]",
-          "bg-base-200/50 backdrop-blur-sm",
+          "bg-base-200 backdrop-blur-sm",
           "border border-border",
           disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-base-200 hover:border-base-300/70 cursor-pointer",
           "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40",
           "transition-all duration-200",
           "text-sm text-base-content text-left font-normal",
-          "whitespace-nowrap shrink-0 min-w-[180px]",
+          "whitespace-nowrap shrink-0 w-[160px]",
           className,
         )}
       >
