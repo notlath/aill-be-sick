@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { CalendarDays } from "lucide-react";
+import { cn } from "@/utils/lib";
 import {
   Select,
   SelectContent,
@@ -15,6 +16,7 @@ interface DiagnosisDateFilterProps {
   loading?: boolean;
   currentStartDate?: Date | null;
   currentEndDate?: Date | null;
+  className?: string;
 }
 
 type PresetType = "all-time" | "last-7-days" | "last-3-months" | "year-to-date" | "custom";
@@ -247,6 +249,7 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
   loading,
   currentStartDate,
   currentEndDate,
+  className,
 }) => {
   const [activePreset, setActivePreset] = useState<PresetType>("all-time");
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -311,7 +314,7 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
   ];
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn("flex flex-col gap-2", className)}>
       {/* Compact preset selector to reduce button clutter. */}
       <div className="flex flex-nowrap items-center gap-2">
         <span className="text-xs  whitespace-nowrap">Date range:</span>

@@ -57,7 +57,7 @@ export const emailLogin = actionClient
     }
 
     revalidatePath("/", "layout");
-    redirect("/");
+    redirect("/map");
   });
 
 export const emailSignup = actionClient
@@ -162,6 +162,26 @@ export const updatePassword = actionClient
         status: error.status,
       });
       return { error: `Error updating password: ${error.message}` };
+    }
+
+    // Get the user's role to determine redirect
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      const dbUser = await prisma.user.findUnique({
+        where: { authId: user.id },
+        select: { role: true },
+      });
+
+      revalidatePath("/", "layout");
+      
+      // Redirect based on role
+      if (dbUser?.role === "CLINICIAN" || dbUser?.role === "ADMIN") {
+        redirect("/map");
+      } else if (dbUser?.role === "PATIENT") {
+        redirect("/diagnosis");
+      }
+      redirect("/");
     }
 
     revalidatePath("/", "layout");
