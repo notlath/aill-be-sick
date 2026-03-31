@@ -1,73 +1,96 @@
 # AI Branch Review Checklist
 
-A comprehensive checklist to verify that a branch is ready for merging into the `main` branch. This checklist covers code quality, CI/CD, architecture, documentation, and user-facing content requirements for the AI'll Be Sick project.
+> **Instructions for AI agents:** Before running checks, first determine which files were changed in this branch. Then select only the relevant tiers from this checklist. Do not run all items blindly — skip sections marked "context-dependent" if they don't apply to your changes.
 
-## CI/CD and Build Process
+A tiered checklist to verify that a branch is ready for merging into the `main` branch.
 
-- [ ] Run `npm run build` successfully – ensures the Next.js app compiles without errors
-- [ ] Run `npx prisma generate` successfully – regenerates Prisma client for any schema changes
-- [ ] Run `npm run lint` – no linting errors or warnings
-- [ ] Run `npx tsc --noEmit` – TypeScript type checking passes with no errors
-- [ ] Run relevant backend tests (`pytest tests/backend/tests/...`) – all tests pass
-- [ ] Run `npm audit` – no high‑severity security vulnerabilities introduced
+## How to Use
 
-## Code Quality and Safety
-
-- [ ] No hardcoded threshold literals in Flask endpoints – use `config.py` and environment variables
-- [ ] All user‑facing medical text follows plain‑language guidelines (calm, non‑absolute)
-- [ ] Forbidden words ("cluster") are not used in any user‑facing strings
-- [ ] No custom CSS gradients, shadows, or non‑DaisyUI styling added
-- [ ] Only DaisyUI components and Lucide React icons are used for decorative elements
-- [ ] No new custom Tailwind classes that bypass the design system
-- [ ] All new UI components are mobile‑friendly at small breakpoints
-
-## Architecture and Permissions
-
-- [ ] If navigation links, redirects, or guards were modified, update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md`
-- [ ] If account creation or login flows were changed, update `docs/ACCOUNT_CREATION_FLOWCHART.md`
-- [ ] Role‑hierarchy checks use `frontend/utils/role-hierarchy.ts` for consistency
-- [ ] `revalidatePath` or `revalidateTag` are called after successful mutations
-- [ ] No App Router page changes without corresponding updates to the navigation flowchart
-
-## Clinician Approval Workflow
-
-- [ ] Frontend: `admin-clinician-approvals.ts` implemented with proper role validation
-- [ ] Backend: Approval status fields added to User model (approvalStatus, approvedBy, approvedAt, rejectedAt, approvalNotes)
-- [ ] Database: Prisma schema updated with ApprovalStatus enum and approval fields
-- [ ] Role hierarchy: `canApproveClinicians()` function correctly restricts to ADMIN/DEVELOPER
-- [ ] Email workflow: Patient creation sends proper invite emails
-- [ ] UI components: Pending clinicians page and approval actions implemented
-- [ ] Error handling: Proper validation and error messages for approval/rejection
-
-## Patient Creation Workflow
-
-- [ ] Role validation: Only CLINICIAN/ADMIN/DEVELOPER can create patients
-- [ ] Approval status: Clinicians require ACTIVE approval status to create patients
-- [ ] Email verification: Supabase invite flow properly implemented with retry logic
-- [ ] Data validation: Proper geocoding and structured name building
-- [ ] Cache invalidation: Both `/users` and `/pending-clinicians` paths revalidated
-
-## Documentation and Copywriting
-
-- [ ] All changes to backend configuration or thresholds are documented in `config.py`
-- [ ] User manuals, research notes, and flowcharts are updated as needed
-- [ ] Copywriting follows project style: plain language, short sentences, actionable next steps
-- [ ] No contradictory style guidance introduced in documentation
-
-## Changelog Creation
-
-- [ ] If branch contains major changes, create a detailed changelog following the [Changelog Standards](AGENTS.md#changelog-standards) in AGENTS.md
-- [ ] Changelog should be very detailed and catered to AI agents and developers
-- [ ] Include technical details, API changes, architectural changes, and breaking changes
-- [ ] Ensure changelog is placed in appropriate documentation directory (`docs/CHANGELOG-<branch-name>.md`)
-
-## Miscellaneous Checks
-
-- [ ] No `.env` or other secret files are exposed in the repository
-- [ ] All new environment variables are documented in `.env.example` or equivalent
-- [ ] No restricted file patterns were modified (enforced by current mode restrictions)
-- [ ] All new files are placed in appropriate subdirectories (`frontend/`, `backend/`, `docs/`, etc.)
+1. **First**, run `git diff --name-only main` (or `git diff main --name-only`) to see which files changed
+2. **Then**, reference the "Quick Reference" table at the bottom to determine which tiers to run
+3. **Finally**, check off only the relevant items — don't blindly check everything
 
 ---
 
-**When all checklist items are satisfied, the branch is ready for merging to `main`.**
+## Tier 1: Always Required (Automated Commands)
+
+Run these commands for every PR — they are fast and catch critical issues.
+
+### CI/CD and Build Process
+
+- [ ] `npm run build` in `frontend/` — Next.js app compiles without errors
+- [ ] `npx prisma generate` — Prisma client regenerated (if schema changed)
+- [ ] `npm run lint` — No linting errors or warnings
+- [ ] `npx tsc --noEmit` — TypeScript type checking passes
+- [ ] Backend tests pass (`pytest tests/backend/tests/...` or `python test_flask.py` if smoke test available)
+
+### Code Quality (Automated Checks)
+
+- [ ] No hardcoded threshold literals in Flask endpoints (search `backend/app/api/` for numeric literals > 0.5 in conditionals)
+- [ ] No forbidden word "cluster" in user-facing strings (search `frontend/app/` for "cluster")
+- [ ] No custom CSS gradients or shadows added (check `frontend/app/globals.css` for non-DaisyUI classes)
+
+---
+
+## Tier 2: Context-Dependent (Only If Files Changed)
+
+Only complete these sections if you modified relevant files. Skip if not applicable.
+
+### If App Router pages, navigation, or auth flows changed
+
+- [ ] Update `docs/SYSTEM_PAGE_NAVIGATION_FLOWCHART.md` to reflect any route changes, guards, or redirects
+- [ ] Verify role-hierarchy checks use `frontend/utils/role-hierarchy.ts` consistently
+
+### If account creation or login flows changed
+
+- [ ] Update `docs/ACCOUNT_CREATION_FLOWCHART.md` to reflect changes
+
+### If backend configuration or thresholds changed
+
+- [ ] Document new thresholds in `backend/app/config.py` with clear comments
+- [ ] Update relevant changelog or documentation
+
+### If frontend mutations added
+
+- [ ] `revalidatePath` or `revalidateTag` called after successful mutations
+- [ ] Zod schema defined in `frontend/schemas/` for the action
+- [ ] Server action uses `actionClient` from `frontend/actions/client.ts`
+
+### If clinician approval or patient creation workflow changed
+
+- [ ] Backend: Approval status fields on User model (approvalStatus, approvedBy, approvedAt, rejectedAt, approvalNotes)
+- [ ] Database: Prisma schema updated with ApprovalStatus enum if needed
+- [ ] Role validation: Only CLINICIAN/ADMIN/DEVELOPER can create patients; clinicians require ACTIVE status
+
+---
+
+## Tier 3: Optional (For Major Changes Only)
+
+Only complete for significant features or breaking changes.
+
+### Changelog Creation
+
+- [ ] Create `docs/CHANGELOG-<branch-name>.md` following [Changelog Standards](AGENTS.md#changelog-standards)
+- [ ] Include: technical details, API changes, architectural changes, breaking changes
+- [ ] Reference in main `docs/CHANGELOG.md` upon merge
+
+### Security and Misc
+
+- [ ] No `.env` or secret files exposed in repository
+- [ ] New environment variables documented in `.env.example` or equivalent
+
+---
+
+## Quick Reference: Commands by File Type
+
+| If you changed...                            | Run these extra checks...               |
+| -------------------------------------------- | --------------------------------------- |
+| `frontend/app/` pages                        | Tier 1 + navigation flowchart update    |
+| `frontend/actions/`                          | Tier 1 + revalidation check             |
+| `backend/app/api/`                           | Tier 1 + config docs + backend tests    |
+| `frontend/prisma/schema.prisma`              | Tier 1 + prisma generate                |
+| Workflow files (approvals, patient creation) | Tier 2 clinician/patient workflow items |
+
+---
+
+**When Tier 1 passes and relevant Tier 2 items are satisfied, the branch is ready for merging to `main`.**
