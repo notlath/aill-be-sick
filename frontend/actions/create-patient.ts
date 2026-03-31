@@ -17,18 +17,18 @@ export const createPatient = actionClient
       return { error: "Not authenticated" };
     }
 
-    // Verify the current user has permission to create patients
+    // Verify the current user has permission to register patients
     const currentUser = await prisma.user.findUnique({
       where: { authId: authUser.id },
       select: { role: true, approvalStatus: true },
     });
 
-    // Check role hierarchy - CLINICIAN, ADMIN, and DEVELOPER can create patients
+    // Check role hierarchy - CLINICIAN, ADMIN, and DEVELOPER can register patients
     if (!currentUser) {
       return { error: "User not found" };
     }
     if (!canCreatePatient(currentUser.role)) {
-      return { error: "Only clinicians can create patient accounts" };
+      return { error: "Only clinicians can register patient accounts" };
     }
 
     // Only clinicians need ACTIVE approval status; ADMIN and DEVELOPER bypass this check
@@ -135,7 +135,7 @@ export const createPatient = actionClient
         return { error: "Failed to create auth account" };
       }
 
-      // Create patient profile in database
+      // Register patient profile in database
       // Note: latitude and longitude are geocoded from the patient's residential address
       // entered by the clinician. These coordinates represent the patient's home location,
       // NOT the healthcare facility where the clinician is located. This is critical for
@@ -168,11 +168,11 @@ export const createPatient = actionClient
           patientId: patient.id,
           email: patient.email,
           name: patient.name,
-          message: `Patient account created successfully. An invite email has been sent to ${email}. The patient must click the link in the email to set their password and access the system.`,
+          message: `Patient account registered successfully. An invite email has been sent to ${email}. The patient must click the link in the email to set their password and access the system.`,
         },
       };
     } catch (error) {
-      console.error("[createPatient] Error creating patient:", error);
-      return { error: "Failed to create patient account. Please try again." };
+      console.error("[createPatient] Error registering patient:", error);
+      return { error: "Failed to register patient account. Please try again." };
     }
   });

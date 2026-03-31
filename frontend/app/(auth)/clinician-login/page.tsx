@@ -87,9 +87,7 @@ const ClinicianLoginPage = () => {
               <br />
               <span className="text-primary">AI&apos;ll Be Sick</span>
             </h1>
-            <p className="text-muted text-base">
-              Clinician Portal Access
-            </p>
+            <p className="text-muted text-base">Clinician Portal Access</p>
             <p className="text-sm text-muted mt-1">
               New clinician accounts require admin approval before access.
             </p>
@@ -233,7 +231,10 @@ const ClinicianLoginPage = () => {
           <div className="absolute bottom-0 left-0 right-0 p-10">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-primary" strokeWidth={2.5} />
+                <ShieldCheck
+                  className="w-5 h-5 text-primary"
+                  strokeWidth={2.5}
+                />
                 <span
                   className="text-sm font-semibold text-neutral-content uppercase tracking-wide"
                   style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
@@ -252,7 +253,7 @@ const ClinicianLoginPage = () => {
                 className="text-neutral-content/80 text-sm leading-relaxed max-w-md"
                 style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}
               >
-                Create patient accounts, review AI-assisted diagnoses, and
+                Register patient accounts, review AI-assisted diagnoses, and
                 monitor community health trends.
               </p>
             </div>

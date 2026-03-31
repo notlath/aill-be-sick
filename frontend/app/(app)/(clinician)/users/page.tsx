@@ -76,7 +76,7 @@ async function UsersTable({
   return (
     <DataTable
       columns={columns}
-      data={(users || [])}
+      data={users || []}
       currentUserRole={currentUserRole}
       additionalActions={
         <>
@@ -119,7 +119,7 @@ const UsersPage = async () => {
                 className="btn btn-primary rounded-[10px]"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
-                Create Patient
+                Register Patient
               </Link>
             </div>
           </div>

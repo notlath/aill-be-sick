@@ -68,11 +68,11 @@ export function isAdminLike(role: string): boolean {
 }
 
 /**
- * Check if a role can create patient accounts.
- * CLINICIAN, ADMIN, and DEVELOPER can create patients.
+ * Check if a role can register patient accounts.
+ * CLINICIAN, ADMIN, and DEVELOPER can register patients.
  *
  * @param role - The role to check
- * @returns true if role can create patients
+ * @returns true if role can register patients
  */
 export function canCreatePatient(role: string): boolean {
   return hasRolePrivilege(role, "CLINICIAN");

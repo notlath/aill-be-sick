@@ -184,7 +184,7 @@ The application enforces a strict role hierarchy where higher roles inherit perm
 | -------------------------- | ------- | --------- | ----- | --------- |
 | Submit symptoms            | ✅      | ✅        | ✅    | ✅        |
 | View own diagnosis history | ✅      | ✅        | ✅    | ✅        |
-| Create patient accounts    | ❌      | ✅        | ✅    | ✅        |
+| Register patient accounts  | ❌      | ✅        | ✅    | ✅        |
 | Override diagnoses         | ❌      | ✅        | ✅    | ✅        |
 | Approve clinicians         | ❌      | ❌        | ✅    | ✅        |
 | Manage clinicians          | ❌      | ❌        | ✅    | ✅        |
@@ -408,7 +408,7 @@ The project uses `next-safe-action` to create type-safe server actions. This lib
          console.log("Patient created successfully:", data);
        },
        onError: (error) => {
-         console.error("Failed to create patient:", error);
+         console.error("Failed to register patient:", error);
        },
      });
 
@@ -429,7 +429,7 @@ The project uses `next-safe-action` to create type-safe server actions. This lib
        >
          {/* ... form fields for name and email ... */}
          <button type="submit" disabled={status === "executing"}>
-           {status === "executing" ? "Creating..." : "Create Patient"}
+           {status === "executing" ? "Registering..." : "Register Patient"}
          </button>
        </form>
      );
