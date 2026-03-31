@@ -188,6 +188,7 @@ flowchart TD
 - `/auth/expired-invite` — Expired invite error page
 - `/auth/support` — Support page
 - `/auth/onboarding` — Onboarding page
+- `/patient/set-password` — Patient password setting page (from invite link)
 
 ### Patient Routes (Authenticated + Patient Role)
 
