@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@/utils/supabase/client";
 import { getDefaultLandingPath } from "@/constants/default-landing-path";
 import {
   ArrowLeft,
@@ -15,18 +15,11 @@ import {
 import Link from "next/link";
 
 /**
- * Auth Callback Page
- *
- * This route only handles Supabase Email/OTP flows (email magic links, password resets, email verification).
- * Google Sign-In and other OAuth providers bypass this page entirely.
- *
- * Error handling uses query parameters for debugging:
- * - ?error=expired_link - Token has expired
- * - ?error=invalid_token - Token is invalid or malformed
- * - ?error=no_auth_params - Missing required authentication parameters
- * - ?error=session_expired - Session expired before verification completed
+ * Inner component that uses useSearchParams
+ * This must be wrapped in Suspense because useSearchParams is a dynamic
+ * feature that changes between requests
  */
-const AuthCallbackPage = () => {
+function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<
@@ -274,6 +267,23 @@ const AuthCallbackPage = () => {
       </section>
     </main>
   );
-};
+}
 
-export default AuthCallbackPage;
+export default function AuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen bg-base-200">
+          <section className="flex-1 flex flex-col justify-center items-center px-8">
+            <div className="text-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+              <h1 className="text-2xl font-semibold">Loading...</h1>
+            </div>
+          </section>
+        </main>
+      }
+    >
+      <AuthCallbackContent />
+    </Suspense>
+  );
+}
