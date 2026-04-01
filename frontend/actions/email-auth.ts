@@ -8,6 +8,7 @@ import { createClient } from "@/utils/supabase/server";
 import { actionClient } from "./client";
 import { EmailAuthSchema } from "@/schemas/EmailAuthSchema";
 import prisma from "@/prisma/prisma";
+import { getDefaultLandingPath } from "@/constants/default-landing-path";
 
 export const emailLogin = actionClient
   .inputSchema(EmailAuthSchema)
@@ -57,7 +58,7 @@ export const emailLogin = actionClient
     }
 
     revalidatePath("/", "layout");
-    redirect("/map");
+    redirect(getDefaultLandingPath("CLINICIAN"));
   });
 
 export const emailSignup = actionClient
