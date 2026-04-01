@@ -8,6 +8,7 @@ import { actionClient } from "./client";
 import { EmailAuthSchema } from "@/schemas/EmailAuthSchema";
 import { getCurrentDbUser } from "@/utils/user";
 import { canManageClinicians } from "@/utils/role-hierarchy";
+import { getDefaultLandingPath } from "@/constants/default-landing-path";
 
 export const adminLogin = actionClient
   .inputSchema(EmailAuthSchema)
@@ -25,8 +26,26 @@ export const adminLogin = actionClient
       return { error: `Error logging in: ${error.message}` };
     }
 
+    // Check user role and redirect accordingly
+    const user = await prisma.user.findUnique({
+      where: { authId: data.user.id },
+      select: { role: true },
+    });
+
+    if (!user) {
+      await supabase.auth.signOut();
+      return { error: "Account not found. Please contact your administrator." };
+    }
+
     revalidatePath("/", "layout");
-    redirect("/");
+
+    // Role-based redirect
+    if (user.role === "ADMIN" || user.role === "DEVELOPER") {
+      redirect(getDefaultLandingPath(user.role));
+    } else {
+      await supabase.auth.signOut();
+      return { error: "This portal is for admin accounts only." };
+    }
   });
 
 export const adminSignup = actionClient

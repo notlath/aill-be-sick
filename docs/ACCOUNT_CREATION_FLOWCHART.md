@@ -304,6 +304,26 @@ flowchart TD
 - Clear messaging about service area limitations
 - Easy navigation back to login
 
+## Route Reference
+
+This section lists all routes referenced in the account creation flows.
+
+| Route                                                           | Description                                      |
+| --------------------------------------------------------------- | ------------------------------------------------ |
+| `/login`                                                        | Main login page                                  |
+| `/need-account`                                                 | Account selection page                           |
+| `/clinician-signup`                                             | Clinician self-registration page                 |
+| `/clinician-login`                                              | Clinician login page                             |
+| `/clinician-forgot-password` — Clinician password reset request |
+| `/clinician-reset-password` — Clinician password reset form     |
+| `/waiting-for-approval`                                         | Pending approval page for unapproved clinicians  |
+| `/dashboard`                                                    | Clinician dashboard                              |
+| `/users`                                                        | User management page                             |
+| `/create-patient`                                               | Create patient account page                      |
+| `/patient/set-password`                                         | Patient password setting page (from invite link) |
+| `/auth/expired-invite`                                          | Expired invite error page                        |
+| `/auth/auth-code-error`                                         | OAuth/auth error page                            |
+
 ## Status Definitions
 
 ### Clinician Statuses

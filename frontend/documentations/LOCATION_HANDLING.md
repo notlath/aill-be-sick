@@ -39,7 +39,7 @@ The location handling system operates through two primary mechanisms for patient
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│              Create Patient Form Loads (Clinician)            │
+│              Register Patient Form Loads (Clinician)            │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼

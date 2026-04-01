@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+import path from "path";
 
 const nextConfig = {
   transpilePackages: ["@workspace/ui"],
@@ -18,19 +19,19 @@ const nextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
         port: "",
-      }
+      },
     ],
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '5mb'
+      bodySizeLimit: "5mb",
     },
     authInterrupts: true,
   },
   cacheComponents: true,
   turbopack: {
-    root: process.cwd(), // Explicitly set the root to avoid Turbopack using the parent directory's lockfiles
-  }
+    root: path.resolve(__dirname),
+  },
 };
 
 export default nextConfig;

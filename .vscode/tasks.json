@@ -16,8 +16,8 @@
     {
       "label": "Run Frontend",
       "type": "shell",
-      "command": "npm",
-      "args": ["run", "dev"],
+      "command": "bun",
+      "args": ["next", "dev"],
       "options": {
         "cwd": "${workspaceFolder}/frontend"
       },

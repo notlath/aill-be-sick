@@ -31,10 +31,10 @@ export default function CreatePatientPage() {
         <div className="mx-auto max-w-[1600px]">
           <div className="animate-fade-in space-y-3">
             <h1 className="from-base-content via-base-content to-base-content/70 bg-gradient-to-br bg-clip-text text-6xl font-semibold tracking-tight text-transparent">
-              Create Patient
+              Register Patient
             </h1>
             <p className="text-muted text-lg">
-              Add a new patient to the system
+              Register a new patient to the system
             </p>
           </div>
         </div>

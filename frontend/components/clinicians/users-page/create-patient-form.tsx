@@ -102,7 +102,7 @@ export default function CreatePatientForm({
         toast.error(data.error);
       }
     },
-    onError: () => toast.error("Failed to create patient account"),
+    onError: () => toast.error("Failed to register patient account"),
   });
 
   // Handle Mapbox SearchBox selection — fires for any suggestion type (streets, addresses, POIs)
@@ -261,10 +261,10 @@ export default function CreatePatientForm({
         </div>
         <div>
           <h2 className="text-xl font-semibold text-base-content">
-            Create Patient Account
+            Register Patient Account
           </h2>
           <p className="text-sm text-muted">
-            Enter patient details to create a new account
+            Enter patient details to register a new account
           </p>
         </div>
       </div>
@@ -389,7 +389,10 @@ export default function CreatePatientForm({
             </label>
             <Select value={district} onValueChange={setDistrict}>
               <SelectTrigger className="w-full bg-base-100">
-                <SelectValue placeholder="Select district or zone" className="text-muted" />
+                <SelectValue
+                  placeholder="Select district or zone"
+                  className="text-muted"
+                />
               </SelectTrigger>
               <SelectContent>
                 {BAGONG_SILANGAN_DISTRICTS.map((d) => (
@@ -480,7 +483,7 @@ export default function CreatePatientForm({
           ) : (
             <>
               <UserPlus className="w-4 h-4 mr-2" />
-              Create Patient Account
+              Register Patient Account
             </>
           )}
         </button>

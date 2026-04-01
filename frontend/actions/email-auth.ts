@@ -8,7 +8,14 @@ import { createClient } from "@/utils/supabase/server";
 import { actionClient } from "./client";
 import { EmailAuthSchema } from "@/schemas/EmailAuthSchema";
 import prisma from "@/prisma/prisma";
+import { getDefaultLandingPath } from "@/constants/default-landing-path";
 
+/**
+ * Email Login Action
+ *
+ * This action only handles Supabase Email/Password flows.
+ * Google Sign-In and other OAuth providers bypass this action entirely.
+ */
 export const emailLogin = actionClient
   .inputSchema(EmailAuthSchema)
   .action(async ({ parsedInput }) => {
@@ -57,9 +64,15 @@ export const emailLogin = actionClient
     }
 
     revalidatePath("/", "layout");
-    redirect("/map");
+    redirect(getDefaultLandingPath("CLINICIAN"));
   });
 
+/**
+ * Email Signup Action
+ *
+ * This action only handles Supabase Email signup flows.
+ * For clinician registration via allowed email domains.
+ */
 export const emailSignup = actionClient
   .inputSchema(EmailAuthSchema)
   .action(async ({ parsedInput }) => {
@@ -114,6 +127,12 @@ export const emailSignup = actionClient
     revalidatePath("/", "layout");
   });
 
+/**
+ * Request Password Reset Action
+ *
+ * This action only handles Supabase password reset email flows.
+ * Sends a magic link for password reset via email.
+ */
 export const requestPasswordReset = actionClient
   .inputSchema(z.object({ email: z.string().email() }))
   .action(async ({ parsedInput }) => {
@@ -138,22 +157,66 @@ export const requestPasswordReset = actionClient
     return { success: true };
   });
 
+/**
+ * Update Password Action
+ *
+ * This action only handles Supabase password update flows.
+ * Used for password resets and initial password setting for patients.
+ * On error, passes detailed error params to the callback URL for better UX.
+ */
 export const updatePassword = actionClient
   .inputSchema(z.object({ password: z.string().min(6) }))
   .action(async ({ parsedInput }) => {
     const { password } = parsedInput;
     const supabase = await createClient();
 
+    // Get current session to debug the session state
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+    console.log("[updatePassword] Current session:", {
+      hasSession: !!sessionData?.session,
+      sessionUserId: sessionData?.session?.user?.id,
+      sessionEmail: sessionData?.session?.user?.email,
+      sessionError: sessionError?.message,
+    });
+
+    // Get current user to debug the user state
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    console.log("[updatePassword] Current user:", {
+      userId: userData?.user?.id,
+      email: userData?.user?.email,
+      emailConfirmedAt: userData?.user?.email_confirmed_at,
+      userError: userError?.message,
+    });
+
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      console.error(`Error updating password: ${error.message}`);
-      return { error: `Error updating password: ${error.message}` };
+      console.error("[updatePassword] Error updating password:", {
+        code: error.code,
+        message: error.message,
+        status: error.status,
+      });
+
+      // Pass detailed error for better UX (Rank 1: Detailed Error Query)
+      // Error types: expired_link, invalid_token, session_expired
+      const errorParam =
+        error.code === "otp_expired" || error.code === "expired_token"
+          ? "expired_link"
+          : error.code === "invalid_token" || error.code === "invalid_grant"
+            ? "invalid_token"
+            : "session_expired";
+
+      return { error: `Error updating password: ${error.message}`, errorParam };
     }
 
+    console.log("[updatePassword] Password updated successfully");
+
     // Get the user's role to determine redirect
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (user) {
       const dbUser = await prisma.user.findUnique({
         where: { authId: user.id },
@@ -161,7 +224,7 @@ export const updatePassword = actionClient
       });
 
       revalidatePath("/", "layout");
-      
+
       // Redirect based on role
       if (dbUser?.role === "CLINICIAN" || dbUser?.role === "ADMIN") {
         redirect("/map");
