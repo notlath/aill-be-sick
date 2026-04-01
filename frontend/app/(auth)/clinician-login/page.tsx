@@ -253,8 +253,8 @@ const ClinicianLoginPage = () => {
                 className="text-neutral-content/80 text-sm leading-relaxed max-w-md"
                 style={{ textShadow: "0 1px 3px rgba(0,0,0,0.5)" }}
               >
-                Register patient accounts, review AI-assisted diagnoses, and
-                monitor community health trends.
+                Register patients, review AI-assisted diagnoses, and monitor
+                community health trends.
               </p>
             </div>
           </div>
