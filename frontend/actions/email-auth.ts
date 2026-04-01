@@ -10,6 +10,12 @@ import { EmailAuthSchema } from "@/schemas/EmailAuthSchema";
 import prisma from "@/prisma/prisma";
 import { getDefaultLandingPath } from "@/constants/default-landing-path";
 
+/**
+ * Email Login Action
+ *
+ * This action only handles Supabase Email/Password flows.
+ * Google Sign-In and other OAuth providers bypass this action entirely.
+ */
 export const emailLogin = actionClient
   .inputSchema(EmailAuthSchema)
   .action(async ({ parsedInput }) => {
@@ -61,6 +67,12 @@ export const emailLogin = actionClient
     redirect(getDefaultLandingPath("CLINICIAN"));
   });
 
+/**
+ * Email Signup Action
+ *
+ * This action only handles Supabase Email signup flows.
+ * For clinician registration via allowed email domains.
+ */
 export const emailSignup = actionClient
   .inputSchema(EmailAuthSchema)
   .action(async ({ parsedInput }) => {
@@ -115,6 +127,12 @@ export const emailSignup = actionClient
     revalidatePath("/", "layout");
   });
 
+/**
+ * Request Password Reset Action
+ *
+ * This action only handles Supabase password reset email flows.
+ * Sends a magic link for password reset via email.
+ */
 export const requestPasswordReset = actionClient
   .inputSchema(z.object({ email: z.string().email() }))
   .action(async ({ parsedInput }) => {
@@ -139,6 +157,13 @@ export const requestPasswordReset = actionClient
     return { success: true };
   });
 
+/**
+ * Update Password Action
+ *
+ * This action only handles Supabase password update flows.
+ * Used for password resets and initial password setting for patients.
+ * On error, passes detailed error params to the callback URL for better UX.
+ */
 export const updatePassword = actionClient
   .inputSchema(z.object({ password: z.string().min(6) }))
   .action(async ({ parsedInput }) => {
@@ -172,7 +197,17 @@ export const updatePassword = actionClient
         message: error.message,
         status: error.status,
       });
-      return { error: `Error updating password: ${error.message}` };
+
+      // Pass detailed error for better UX (Rank 1: Detailed Error Query)
+      // Error types: expired_link, invalid_token, session_expired
+      const errorParam =
+        error.code === "otp_expired" || error.code === "expired_token"
+          ? "expired_link"
+          : error.code === "invalid_token" || error.code === "invalid_grant"
+            ? "invalid_token"
+            : "session_expired";
+
+      return { error: `Error updating password: ${error.message}`, errorParam };
     }
 
     console.log("[updatePassword] Password updated successfully");
