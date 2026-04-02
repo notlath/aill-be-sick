@@ -119,6 +119,11 @@ model Diagnosis {
   temperature     Float?
   temperatureUnit String?
   weightKg        Float?
+  status          DiagnosisStatus    @default(PENDING)
+  verifiedAt      DateTime?
+  verifiedBy      Int?
+  rejectedAt      DateTime?
+  rejectedBy     Int?
   alerts          Alert[]
   chat            Chat               @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -130,6 +135,8 @@ model Diagnosis {
   @@index([disease])
   @@index([disease, createdAt])
   @@index([userId])
+  @@index([status])
+  @@index([status, createdAt])
 }
 
 model Explanation {
@@ -301,5 +308,11 @@ enum AlertStatus {
 enum ApprovalStatus {
   PENDING_ADMIN_APPROVAL
   ACTIVE
+  REJECTED
+}
+
+enum DiagnosisStatus {
+  PENDING
+  VERIFIED
   REJECTED
 }

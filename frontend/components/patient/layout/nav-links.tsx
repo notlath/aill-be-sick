@@ -38,6 +38,7 @@ const NavLinks = ({ dbUser }: NavLinksProps) => {
           pathname.startsWith("/users") ||
           pathname.startsWith("/alerts") ||
           pathname.startsWith("/map") ||
+          pathname.startsWith("/pending-diagnoses") ||
           pathname.startsWith("/pending-clinicians")
         ) {
           if (pathname.startsWith("/pending-clinicians")) {
