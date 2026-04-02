@@ -3,6 +3,7 @@
 import prisma from "@/prisma/prisma";
 import { cacheLife, cacheTag } from "next/cache";
 
+// Base diagnosis select - always includes these fields
 const diagnosisWithUserSelect = {
   id: true,
   disease: true,
@@ -26,6 +27,11 @@ const diagnosisWithUserSelect = {
   userId: true,
   chatId: true,
   createdAt: true,
+  status: true,
+  verifiedAt: true,
+  verifiedBy: true,
+  rejectedAt: true,
+  rejectedBy: true,
   user: {
     select: {
       id: true,
@@ -77,9 +83,11 @@ export const getLatestTempDiagnosisByChatId = async (chatId: string) => {
 export const getAllDiagnoses = async ({
   skip,
   take,
+  includeStatus,
 }: {
   skip?: number;
   take?: number;
+  includeStatus?: "VERIFIED" | "PENDING" | "REJECTED";
 }) => {
   try {
     const includeRelations = {
@@ -106,18 +114,28 @@ export const getAllDiagnoses = async ({
       },
     };
 
+    // Build where clause based on status filter
+    // Default to VERIFIED for backward compatibility in healthcare reports
+    const whereClause = includeStatus 
+      ? { status: includeStatus } 
+      : { status: "VERIFIED" };
+
     if (skip || take) {
       const diagnoses = await prisma.diagnosis.findMany({
         skip,
         take,
+        where: whereClause as any,
         include: includeRelations,
+        orderBy: { createdAt: "desc" },
       });
 
       return { success: diagnoses };
     }
 
     const diagnoses = await prisma.diagnosis.findMany({
+      where: whereClause as any,
       include: includeRelations,
+      orderBy: { createdAt: "desc" },
     });
 
     return { success: diagnoses };
@@ -125,6 +143,90 @@ export const getAllDiagnoses = async ({
     console.error(`Error fetching all diagnoses:`, error);
 
     return { error: `Could not fetch all diagnoses` };
+  }
+};
+
+/**
+ * Get all pending diagnoses awaiting clinician verification.
+ * Used for the Pending Diagnoses queue.
+ */
+export const getPendingDiagnoses = async ({
+  skip,
+  take,
+}: {
+  skip?: number;
+  take?: number;
+}) => {
+  try {
+    const includeRelations = {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          age: true,
+          gender: true,
+          email: true,
+          city: true,
+          province: true,
+          district: true,
+          barangay: true,
+        },
+      },
+      notes: {
+        include: {
+          clinician: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc" as const,
+        },
+      },
+    };
+
+    if (skip || take) {
+      const diagnoses = await prisma.diagnosis.findMany({
+        skip,
+        take,
+        where: { status: "PENDING" } as any,
+        include: includeRelations,
+        orderBy: { createdAt: "desc" },
+      });
+
+      return { success: diagnoses };
+    }
+
+    const diagnoses = await prisma.diagnosis.findMany({
+      where: { status: "PENDING" } as any,
+      include: includeRelations,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: diagnoses };
+  } catch (error) {
+    console.error(`Error fetching pending diagnoses:`, error);
+
+    return { error: `Could not fetch pending diagnoses` };
+  }
+};
+
+/**
+ * Get the count of pending diagnoses.
+ */
+export const getPendingDiagnosesCount = async () => {
+  try {
+    const count = await prisma.diagnosis.count({
+      where: { status: "PENDING" } as any,
+    });
+
+    return { success: count };
+  } catch (error) {
+    console.error(`Error fetching pending diagnoses count: ${error}`);
+
+    return { error: `Error fetching pending diagnoses count: ${error}` };
   }
 };
 
@@ -146,6 +248,14 @@ export const getDiseaseDiagnosesByDistricts = async (
   endDate?: string
 ) => {
   try {
+    // Filter by VERIFIED status and complete patient demographics for surveillance dashboards
+    const statusFilter = { status: "VERIFIED" } as any;
+    const userFilter = {
+      user: {
+        age: { not: null },
+        gender: { not: null },
+      },
+    };
 
     if (disease === 'all') {
       const [diagnoses, grouped] = await Promise.all([
@@ -156,6 +266,8 @@ export const getDiseaseDiagnosesByDistricts = async (
               gte: startDate ? new Date(startDate) : undefined,
               lte: endDate ? new Date(endDate) : undefined,
             },
+            ...statusFilter,
+            ...userFilter,
           },
           select: diagnosisWithUserSelect,
           orderBy: {
@@ -170,6 +282,8 @@ export const getDiseaseDiagnosesByDistricts = async (
               gte: startDate ? new Date(startDate) : undefined,
               lte: endDate ? new Date(endDate) : undefined,
             },
+            ...statusFilter,
+            ...userFilter,
           },
           _count: {
             id: true,
@@ -194,6 +308,8 @@ export const getDiseaseDiagnosesByDistricts = async (
             gte: startDate ? new Date(startDate) : undefined,
             lte: endDate ? new Date(endDate) : undefined,
           },
+          ...statusFilter,
+          ...userFilter,
         },
         select: diagnosisWithUserSelect,
       }),
@@ -206,6 +322,8 @@ export const getDiseaseDiagnosesByDistricts = async (
             gte: startDate ? new Date(startDate) : undefined,
             lte: endDate ? new Date(endDate) : undefined,
           },
+          ...statusFilter,
+          ...userFilter,
         },
         _count: {
           id: true,
@@ -237,6 +355,15 @@ export const getDiagnosesWithCoordinates = async (
       lte: endDate ? new Date(endDate) : undefined,
     };
 
+    // Filter by VERIFIED status and complete patient demographics for surveillance dashboards
+    const statusFilter = { status: "VERIFIED" } as any;
+    const userFilter = {
+      user: {
+        age: { not: null },
+        gender: { not: null },
+      },
+    };
+
     if (disease === "all") {
       const [diagnoses, unpinnedDiagnoses, totalCount] = await Promise.all([
         prisma.diagnosis.findMany({
@@ -244,6 +371,8 @@ export const getDiagnosesWithCoordinates = async (
             latitude: { not: null },
             longitude: { not: null },
             createdAt: dateFilter,
+            ...statusFilter,
+            ...userFilter,
           },
           select: diagnosisWithUserSelect,
           orderBy: { createdAt: "desc" },
@@ -252,12 +381,14 @@ export const getDiagnosesWithCoordinates = async (
           where: {
             OR: [{ latitude: null }, { longitude: null }],
             createdAt: dateFilter,
+            ...statusFilter,
+            ...userFilter,
           },
           select: diagnosisWithUserSelect,
           orderBy: { createdAt: "desc" },
         }),
         prisma.diagnosis.count({
-          where: { createdAt: dateFilter },
+          where: { createdAt: dateFilter, ...statusFilter, ...userFilter },
         }),
       ]);
 
@@ -271,6 +402,8 @@ export const getDiagnosesWithCoordinates = async (
           latitude: { not: null },
           longitude: { not: null },
           createdAt: dateFilter,
+          ...statusFilter,
+          ...userFilter,
         },
         select: diagnosisWithUserSelect,
         orderBy: { createdAt: "desc" },
@@ -280,6 +413,8 @@ export const getDiagnosesWithCoordinates = async (
           disease: disease.toUpperCase() as any,
           OR: [{ latitude: null }, { longitude: null }],
           createdAt: dateFilter,
+          ...statusFilter,
+          ...userFilter,
         },
         select: diagnosisWithUserSelect,
         orderBy: { createdAt: "desc" },
@@ -288,6 +423,8 @@ export const getDiagnosesWithCoordinates = async (
         where: {
           disease: disease.toUpperCase() as any,
           createdAt: dateFilter,
+          ...statusFilter,
+          ...userFilter,
         },
       }),
     ]);

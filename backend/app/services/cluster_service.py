@@ -37,6 +37,7 @@ def fetch_patient_data(
                              SELECT d.disease
                              FROM "Diagnosis" d
                              WHERE d."userId" = u.id
+                               AND d.status = 'VERIFIED'
                              ORDER BY d."createdAt" DESC
                              LIMIT 1
                          ) AS disease,
@@ -44,10 +45,11 @@ def fetch_patient_data(
                              SELECT d."createdAt"
                              FROM "Diagnosis" d
                              WHERE d."userId" = u.id
+                               AND d.status = 'VERIFIED'
                              ORDER BY d."createdAt" DESC
                              LIMIT 1
                          ) AS diagnosed_at
-            FROM "User" u
+             FROM "User" u
             WHERE u.role = 'PATIENT'
                 AND u.latitude IS NOT NULL
                 AND u.longitude IS NOT NULL

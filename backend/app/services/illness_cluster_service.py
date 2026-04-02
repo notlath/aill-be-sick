@@ -125,6 +125,7 @@ def fetch_diagnosis_data(
         WHERE u.role = 'PATIENT'
             AND u.age IS NOT NULL
             AND u.gender IS NOT NULL
+            AND d.status = 'VERIFIED'
     """
 
     params = {}

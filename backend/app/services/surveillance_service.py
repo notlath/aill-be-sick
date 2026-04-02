@@ -83,6 +83,9 @@ def fetch_diagnosis_data(
         JOIN "User" u ON d."userId" = u.id
         WHERE COALESCE(d.latitude, u.latitude)  IS NOT NULL
           AND COALESCE(d.longitude, u.longitude) IS NOT NULL
+          AND u.age IS NOT NULL
+          AND u.gender IS NOT NULL
+          AND d.status = 'VERIFIED'
     """
 
     params = {}
