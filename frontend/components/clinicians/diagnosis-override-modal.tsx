@@ -156,11 +156,24 @@ export function DiagnosisOverrideModal({
             </div>
             <p className="text-lg font-medium text-success">Override Saved</p>
             <p className="text-sm text-base-content/60 mt-1">
-              Your clinical assessment has been recorded
+              Your clinical assessment has been recorded and the diagnosis has been verified
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Auto-verification Info Alert */}
+            <div className="alert alert-info">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <div>
+                <p className="text-sm font-medium">Automatic Verification</p>
+                <p className="text-xs">
+                  Adding a clinical override will automatically verify this diagnosis and remove it from the pending queue.
+                </p>
+              </div>
+            </div>
+
             {/* Original AI Assessment Section */}
             <div className="bg-base-200/50 p-4 rounded-lg">
               <p className="text-sm font-medium text-base-content/70 mb-3">

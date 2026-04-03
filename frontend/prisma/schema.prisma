@@ -49,6 +49,8 @@ model User {
   diagnoses          Diagnosis[]
   diagnosisOverrides DiagnosisOverride[] @relation("OverrideClinicianRelation")
   diagnosisNotes     DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
+  verifiedDiagnoses  Diagnosis[]         @relation("DiagnosisVerifier")
+  rejectedDiagnoses  Diagnosis[]         @relation("DiagnosisRejector")
 
   @@index([latitude, longitude])
   @@index([region])
@@ -123,10 +125,12 @@ model Diagnosis {
   verifiedAt      DateTime?
   verifiedBy      Int?
   rejectedAt      DateTime?
-  rejectedBy     Int?
+  rejectedBy      Int?
   alerts          Alert[]
   chat            Chat               @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verifiedByUser  User?              @relation("DiagnosisVerifier", fields: [verifiedBy], references: [id])
+  rejectedByUser  User?              @relation("DiagnosisRejector", fields: [rejectedBy], references: [id])
   override        DiagnosisOverride?
   explanation     Explanation?
   notes           DiagnosisNote[]
@@ -273,6 +277,7 @@ enum Disease {
   DENGUE    @map("Dengue")
   PNEUMONIA @map("Pneumonia")
   TYPHOID   @map("Typhoid")
+  IMPETIGO  @map("Impetigo")
   DIARRHEA  @map("Diarrhea")
   MEASLES   @map("Measles")
   INFLUENZA @map("Influenza")

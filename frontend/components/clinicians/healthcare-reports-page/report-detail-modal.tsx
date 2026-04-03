@@ -5,7 +5,7 @@ import { DiagnosisRow } from "./columns";
 import { getAnonymizedPatientId } from "@/utils/patient";
 import { getReliability } from "@/utils/reliability";
 import { DiagnosisOverrideModal } from "../diagnosis-override-modal";
-import { FileEdit, CheckCircle2 } from "lucide-react";
+import { FileEdit, CheckCircle2, XCircle } from "lucide-react";
 import { useTheme } from "next-themes";
 import { processTokensForDisplay, type TokenWithImportance } from "@/utils/shap-tokens";
 import { getExplanationByDiagnosisId } from "@/utils/explanation";
@@ -16,12 +16,18 @@ interface ReportDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   report: DiagnosisRow | null;
+  onApprove?: () => void;
+  onReject?: () => void;
+  onSuccess?: () => void;
 }
 
 export function ReportDetailModal({
   isOpen,
   onClose,
   report,
+  onApprove,
+  onReject,
+  onSuccess,
 }: ReportDetailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
@@ -63,12 +69,19 @@ export function ReportDetailModal({
     e.stopPropagation();
   };
 
-  const handleOpenOverride = () => {
+  const handleOpenOverride = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+
     setIsOverrideModalOpen(true);
   };
 
   const handleCloseOverride = () => {
     setIsOverrideModalOpen(false);
+    // Call onSuccess if provided (useful for refreshing parent state)
+    if (onSuccess) {
+      onSuccess();
+    }
   };
 
   if (!isOpen || !report) return null;
@@ -189,8 +202,37 @@ export function ReportDetailModal({
               notes={report.notes || []}
             />
 
-            {/* Clinical Override Button */}
-            <div className="pt-2">
+            {/* Action Buttons */}
+            <div className="pt-2 space-y-3">
+              {/* Approve/Reject buttons (for pending diagnoses) */}
+              {onApprove && onReject && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onApprove();
+                      onClose();
+                    }}
+                    className="btn btn-success flex-1 gap-2"
+                  >
+                    <CheckCircle2 className="size-4" />
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onReject();
+                      onClose();
+                    }}
+                    className="btn btn-outline btn-error flex-1 gap-2"
+                  >
+                    <XCircle className="size-4" />
+                    Reject
+                  </button>
+                </div>
+              )}
+
+              {/* Clinical Override Button */}
               <button
                 type="button"
                 onClick={handleOpenOverride}
