@@ -22,6 +22,10 @@ import {
   CoordinatesStatsCards,
 } from "./disease-stats-cards";
 import { StatsSkeletonCards, TimelineSkeleton } from "./skeleton-loaders";
+import { getSurveillanceExportData, type SurveillanceExportData } from "@/utils/report-export";
+import { format } from "date-fns";
+import { ExportReportButton } from "@/components/ui/export-report-button";
+import { PdfImage } from "@/utils/pdf-export";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), {
   ssr: false,
@@ -263,6 +267,128 @@ const ByDiseaseTab = () => {
   const isLoading =
     mapLoading || (view === "district" && (geoLoading || !geoData));
 
+  const captureImages = async () => {
+    const domtoimage = (await import('dom-to-image-more')).default;
+    const images: PdfImage[] = [];
+
+    // Suppress console errors during capture
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
+    try {
+      // Capture map
+      const mapElement = document.querySelector('[data-surveillance-map]');
+      if (mapElement) {
+        const dataUrl = await domtoimage.toPng(mapElement as HTMLElement, {
+          quality: 0.8,
+          filter: (node: Node) => {
+            return !(node instanceof Element && node.tagName && node.tagName.toLowerCase() === 'link');
+          },
+        });
+        const img = new Image();
+        img.src = dataUrl;
+        await new Promise(resolve => img.onload = resolve);
+        images.push({
+          dataUrl,
+          width: img.width,
+          height: img.height,
+          title: 'Disease Surveillance Map',
+        });
+      }
+
+      // Capture chart
+      const chartElement = document.querySelector('[data-surveillance-chart]');
+      if (chartElement) {
+        const dataUrl = await domtoimage.toPng(chartElement as HTMLElement, {
+          quality: 0.8,
+          filter: (node: Node) => {
+            return !(node instanceof Element && node.tagName && node.tagName.toLowerCase() === 'link');
+          },
+        });
+        const img = new Image();
+        img.src = dataUrl;
+        await new Promise(resolve => img.onload = resolve);
+        images.push({
+          dataUrl,
+          width: img.width,
+          height: img.height,
+          title: 'Disease Timeline Chart',
+        });
+      }
+    } finally {
+      console.error = originalConsoleError;
+    }
+
+    return images;
+  };
+
+  const exportInfo = useMemo(() => {
+    const stats: Record<string, unknown> = view === "district"
+      ? {
+          totalCases,
+          affectedDistrictsCount,
+          highestCases,
+          highestDistrict,
+          averageCases,
+        }
+      : {
+          totalAllCases,
+          newestCaseDate: newestCaseDate?.toISOString(),
+          uniquePatientsCount,
+          casesThisWeek,
+        };
+
+    const mapData = view === "district"
+      ? Object.entries(casesData).map(([district, cases]) => ({ district, cases }))
+      : heatmapDiagnoses.map(d => ({
+          id: d.id,
+          disease: d.disease,
+          district: d.district,
+          latitude: d.latitude,
+          longitude: d.longitude,
+          createdAt: d.createdAt,
+          confidence: d.confidence,
+          uncertainty: d.uncertainty,
+        }));
+
+    const timelineAggregated = timelineDiagnoses.reduce((acc, d) => {
+      const date = format(new Date(d.createdAt), "yyyy-MM-dd");
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const timelineData = Object.entries(timelineAggregated).map(([date, cases]) => ({ date, cases }));
+
+    const exportData: SurveillanceExportData = {
+      tab: "by-disease",
+      disease: selectedDisease,
+      view,
+      dateRange: { start: startDate, end: endDate },
+      stats,
+      mapData,
+      timelineData,
+    };
+
+    return getSurveillanceExportData(exportData);
+  }, [
+    totalCases,
+    affectedDistrictsCount,
+    highestCases,
+    highestDistrict,
+    averageCases,
+    totalAllCases,
+    newestCaseDate,
+    uniquePatientsCount,
+    casesThisWeek,
+    view,
+    casesData,
+    heatmapDiagnoses,
+    timelineDiagnoses,
+    selectedDisease,
+    startDate,
+    endDate,
+  ]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-start justify-between lg:flex-row gap-4">
@@ -281,7 +407,19 @@ const ByDiseaseTab = () => {
         />
       </div>
 
-      <div>
+      <div className="flex justify-end">
+        <ExportReportButton
+          data={exportInfo.data}
+          columns={exportInfo.columns}
+          filenameSlug={exportInfo.filenameSlug}
+          title={exportInfo.title}
+          subtitle={exportInfo.subtitle}
+          disabled={isLoading}
+          images={captureImages}
+        />
+      </div>
+
+      <div data-surveillance-map suppressHydrationWarning>
         <Card>
           <CardContent className="p-8">
             {isLoading ? (
@@ -330,7 +468,7 @@ const ByDiseaseTab = () => {
         )}
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6" data-surveillance-chart suppressHydrationWarning>
         {isLoading ? (
           <TimelineSkeleton />
         ) : (

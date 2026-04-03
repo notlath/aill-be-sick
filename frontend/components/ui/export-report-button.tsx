@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FileDown } from "lucide-react";
-import { exportToPDF, PdfColumn } from "@/utils/pdf-export";
+import { exportToPDF, PdfColumn, PdfImage } from "@/utils/pdf-export";
 import {
   buildReportFilename,
   exportToCSV,
@@ -22,6 +22,7 @@ interface ExportReportButtonProps {
   subtitle?: string;
   generatedBy?: { name: string; email?: string };
   disabled?: boolean;
+  images?: () => Promise<PdfImage[]>;
 }
 
 export function ExportReportButton({
@@ -32,14 +33,16 @@ export function ExportReportButton({
   subtitle,
   generatedBy,
   disabled = false,
+  images,
 }: ExportReportButtonProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleGenerate = (exportFormat: ReportFormat) => {
+  const handleGenerate = async (exportFormat: ReportFormat) => {
     const filename = buildReportFilename(filenameSlug, exportFormat);
 
     switch (exportFormat) {
       case "pdf":
+        const pdfImages = images ? await images() : undefined;
         exportToPDF({
           title,
           subtitle,
@@ -47,6 +50,7 @@ export function ExportReportButton({
           data,
           columns,
           filename,
+          images: pdfImages,
         });
         break;
       case "csv":
