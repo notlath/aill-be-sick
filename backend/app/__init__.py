@@ -108,12 +108,14 @@ def create_app():
     from app.api.cluster import cluster_bp
     from app.api.surveillance import surveillance_bp
     from app.api.outbreak import outbreak_bp
+    from app.api.user import user_bp
 
     flask_app.register_blueprint(main_bp)
     flask_app.register_blueprint(diagnosis_bp)
     flask_app.register_blueprint(cluster_bp)
     flask_app.register_blueprint(surveillance_bp)
     flask_app.register_blueprint(outbreak_bp, url_prefix="/api/surveillance/outbreaks")
+    flask_app.register_blueprint(user_bp)
 
     return flask_app
 

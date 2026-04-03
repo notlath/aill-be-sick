@@ -1,7 +1,8 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Info } from "lucide-react";
+import { ArrowUpDown, Info, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import UsersPageActions from "./users-page-actions";
 
 export type UserRow = {
@@ -14,6 +15,10 @@ export type UserRow = {
   role: string;
   createdAt: Date;
   lastActivityAt: Date | null;
+  privacyAcceptedAt: Date | null;
+  privacyVersion: string | null;
+  termsAcceptedAt: Date | null;
+  termsVersion: string | null;
   _count: {
     diagnoses: number;
   };
@@ -143,6 +148,61 @@ export const columns: ColumnDef<UserRow>[] = [
     cell: ({ row }) => {
       const date = new Date(row.getValue("createdAt"));
       return <span>{date.toLocaleDateString()}</span>;
+    },
+  },
+  {
+    id: "consentStatus",
+    header: "Consent Status",
+    cell: ({ row }) => {
+      const privacyAcceptedAt = row.original.privacyAcceptedAt;
+      const termsAcceptedAt = row.original.termsAcceptedAt;
+      const privacyVersion = row.original.privacyVersion;
+      const termsVersion = row.original.termsVersion;
+
+      const hasPrivacy = !!privacyAcceptedAt;
+      const hasTerms = !!termsAcceptedAt;
+
+      if (hasPrivacy && hasTerms) {
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant="default" className="bg-success text-success-content">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Compliant
+            </Badge>
+            <span className="text-xs text-muted">
+              Privacy v{privacyVersion || "1.0"}
+            </span>
+          </div>
+        );
+      } else if (hasPrivacy || hasTerms) {
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant="default" className="bg-warning text-warning-content">
+              <Clock className="w-3 h-3 mr-1" />
+              Partial
+            </Badge>
+            <span className="text-xs text-muted">
+              Missing {hasPrivacy ? "terms" : "privacy"}
+            </span>
+          </div>
+        );
+      } else {
+        return (
+          <Badge variant="default" className="bg-error text-error-content">
+            <XCircle className="w-3 h-3 mr-1" />
+            Not Consented
+          </Badge>
+        );
+      }
+    },
+    filterFn: (row, id, value) => {
+      const privacyAcceptedAt = row.original.privacyAcceptedAt;
+      const termsAcceptedAt = row.original.termsAcceptedAt;
+
+      if (value === "compliant") return !!privacyAcceptedAt && !!termsAcceptedAt;
+      if (value === "partial") return (!!privacyAcceptedAt || !!termsAcceptedAt) && !(!!privacyAcceptedAt && !!termsAcceptedAt);
+      if (value === "not_consented") return !privacyAcceptedAt && !termsAcceptedAt;
+      return true;
     },
   },
   {

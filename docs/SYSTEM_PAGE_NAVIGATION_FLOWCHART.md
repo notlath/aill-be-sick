@@ -74,6 +74,8 @@ flowchart TD
     %% ========== PATIENT APP AREA ==========
     Diagnosis --> History["/history"]
     History --> Profile["/profile"]
+    Profile --> PrivacyRights["/privacy-rights"]
+    PrivacyRights --> Profile
     Profile --> Diagnosis
 
     History --> ChatDetail["/diagnosis/:chatId"]
@@ -133,7 +135,7 @@ flowchart TD
 
     %% Apply styles to nodes
     class Login,VerifyEmail,OAuthStart,AuthCallback,AuthCodeError,NeedAccount,ClinLogin,AdminLogin,ClinForgot,ClinReset,Privacy,Terms,AuthConfirm,SyncError authNode
-    class Diagnosis,History,Profile,ChatDetail patientNode
+    class Diagnosis,History,Profile,PrivacyRights,ChatDetail patientNode
     class Map,Dashboard,Alerts,Reports,Users,CreatePatient,ClinicianProfile,Waiting clinicianNode
     class PendingClinicians adminNode
     class Unauthorized,Forbidden,ErrorPage errorNode
@@ -196,6 +198,7 @@ flowchart TD
 - `/diagnosis/:chatId` — Individual chat/diagnosis detail
 - `/history` — Diagnosis history
 - `/profile` — Patient profile management
+- `/privacy-rights` — Privacy rights dashboard and data management
 
 ### Clinician Routes (Authenticated + Approved Clinician)
 

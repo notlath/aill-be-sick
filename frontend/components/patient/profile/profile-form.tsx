@@ -1,13 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, useCallback, useTransition } from "react";
-import { User, Upload, Trash2, Loader2, MapPin, LocateFixed } from "lucide-react";
+import { User, Upload, Trash2, Loader2, MapPin, LocateFixed, Download, Shield, AlertTriangle, CheckCircle, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { updateProfile, uploadAvatar, removeAvatar, updateProfileLocation } from "@/actions/update-profile";
+import { dataExport } from "@/actions/data-export";
+import { deleteAccount } from "@/actions/delete-account";
+import { withdrawConsent } from "@/actions/withdraw-consent";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useAction } from "next-safe-action/hooks";
 import Image from "next/image";
+import Link from "next/link";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,6 +55,10 @@ interface ProfileState {
   longitude: number | null;
   gender: "MALE" | "FEMALE" | "OTHER" | null;
   birthday: string | null;
+  privacyAcceptedAt: Date | null;
+  privacyVersion: string | null;
+  termsAcceptedAt: Date | null;
+  termsVersion: string | null;
 }
 
 interface ProfileFormProps {
@@ -79,6 +88,11 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
     initialUser.gender || null
   );
   const [birthday, setBirthday] = useState(initialUser.birthday || "");
+
+  // Privacy states
+  const [deletePassword, setDeletePassword] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   const {
     location,
@@ -241,6 +255,61 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
     },
   });
 
+  // Privacy actions
+  const { execute: executeExportData, isExecuting: isExporting } = useAction(dataExport, {
+    onSuccess: ({ data }) => {
+      if (data?.success && data.data) {
+        // Trigger download
+        const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "user-data.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.success("Data exported successfully");
+      } else if (data?.error) {
+        toast.error(data.error);
+      }
+    },
+    onError: () => {
+      toast.error("Failed to export data");
+    },
+  });
+
+  const { execute: executeDeleteAccount, isExecuting: isDeleting } = useAction(deleteAccount, {
+    onSuccess: ({ data }) => {
+      if (data?.success) {
+        toast.success("Account deleted successfully");
+        setShowDeleteModal(false);
+        setDeletePassword("");
+        window.location.href = "/";
+      } else if (data?.error) {
+        toast.error(data.error);
+      }
+    },
+    onError: () => {
+      toast.error("Failed to delete account");
+    },
+  });
+
+  const { execute: executeWithdrawConsent, isExecuting: isWithdrawing } = useAction(withdrawConsent, {
+    onSuccess: ({ data }) => {
+      if (data?.success) {
+        toast.success("Consent withdrawn successfully");
+        setShowWithdrawModal(false);
+        window.location.href = "/privacy";
+      } else if (data?.error) {
+        toast.error(data.error);
+      }
+    },
+    onError: () => {
+      toast.error("Failed to withdraw consent");
+    },
+  });
+
   const handleNameSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -253,7 +322,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
       gender: gender || undefined,
       birthday: birthday || undefined,
     });
-  }, [executeUpdateProfile, gender, birthday]);
+  }, [executeUpdateProfile, initialUser, gender, birthday]);
 
   const handleAvatarUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -339,6 +408,21 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
               >
                 <Trash2 className="w-4 h-4 text-error-content group-hover:scale-110 transition-transform" />
               </button>
+            )}
+          </div>
+
+          {/* Consent Status Badge */}
+          <div className="flex justify-center mb-4">
+            {initialUser.privacyAcceptedAt && initialUser.termsAcceptedAt ? (
+              <div className="badge badge-success gap-2">
+                <CheckCircle className="w-3 h-3" />
+                Privacy Compliant
+              </div>
+            ) : (
+              <div className="badge badge-warning gap-2">
+                <Clock className="w-3 h-3" />
+                Consent Required
+              </div>
             )}
           </div>
 
@@ -626,6 +710,212 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
           </div>
         </form>
       </section>
+
+      {/* Privacy Rights Section */}
+      <section className="bg-base-100/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-base-content">Privacy Rights</h2>
+            <p className="text-sm text-muted">Manage your data and privacy preferences</p>
+          </div>
+        </div>
+
+        {/* Current Consent Status */}
+        <div className="mb-6 p-4 bg-base-200/50 rounded-xl">
+          <h3 className="font-medium text-base-content mb-2">Current Status</h3>
+          <div className="grid gap-2 md:grid-cols-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">Privacy Policy:</span>
+              {initialUser.privacyAcceptedAt ? (
+                <Badge variant="default" className="bg-success text-success-content text-xs">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Accepted v{initialUser.privacyVersion || "1.0"}
+                </Badge>
+              ) : (
+                <Badge variant="default" className="bg-error text-error-content text-xs">
+                  <XCircle className="w-3 h-3 mr-1" />
+                  Not Accepted
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm">Terms of Service:</span>
+              {initialUser.termsAcceptedAt ? (
+                <Badge variant="default" className="bg-success text-success-content text-xs">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Accepted v{initialUser.termsVersion || "1.0"}
+                </Badge>
+              ) : (
+                <Badge variant="default" className="bg-error text-error-content text-xs">
+                  <XCircle className="w-3 h-3 mr-1" />
+                  Not Accepted
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* Export Data */}
+          <div className="card bg-base-100 border border-border">
+            <div className="card-body p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center">
+                  <Download className="w-4 h-4 text-info" />
+                </div>
+                <h3 className="card-title text-sm">Export My Data</h3>
+              </div>
+              <p className="text-xs text-muted mb-4">
+                Download a copy of all your personal data, diagnoses, and usage history.
+              </p>
+              <button
+                onClick={() => executeExportData({ format: "json" })}
+                disabled={isExporting}
+                className="btn btn-info btn-sm w-full"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Export Data"
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Privacy Rights Page */}
+          <div className="card bg-base-100 border border-border">
+            <div className="card-body p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="card-title text-sm">Privacy Dashboard</h3>
+              </div>
+              <p className="text-xs text-muted mb-4">
+                View consent history, manage preferences, and access all privacy rights.
+              </p>
+              <Link href="/privacy-rights" className="btn btn-primary btn-sm w-full">
+                Open Dashboard
+              </Link>
+            </div>
+          </div>
+
+          {/* Delete Account */}
+          <div className="card bg-base-100 border border-border">
+            <div className="card-body p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-error/10 flex items-center justify-center">
+                  <Trash2 className="w-4 h-4 text-error" />
+                </div>
+                <h3 className="card-title text-sm">Delete Account</h3>
+              </div>
+              <p className="text-xs text-muted mb-4">
+                Permanently delete your account and anonymize all associated data.
+              </p>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="btn btn-error btn-sm w-full"
+              >
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-error" />
+              <h3 className="font-bold text-lg">Delete Account</h3>
+            </div>
+            <p className="py-4 text-sm">
+              This action cannot be undone. Your account will be permanently deleted and all data will be anonymized.
+              Medical records will be retained for legal compliance but anonymized.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="label">
+                  <span className="label-text">Enter your password to confirm</span>
+                </label>
+                <Input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Password"
+                  className="w-full"
+                />
+              </div>
+            </div>
+            <div className="modal-action">
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletePassword("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-error"
+                disabled={!deletePassword || isDeleting}
+                onClick={() => {
+                  executeDeleteAccount({ password: deletePassword });
+                }}
+              >
+                {isDeleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Delete Account"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw Consent Modal */}
+      {showWithdrawModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-warning" />
+              <h3 className="font-bold text-lg">Withdraw Consent</h3>
+            </div>
+            <p className="py-4 text-sm">
+              Withdrawing consent will stop all data processing and anonymize your personal information.
+              You can provide consent again by visiting the privacy page.
+            </p>
+            <div className="modal-action">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowWithdrawModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-warning"
+                disabled={isWithdrawing}
+                onClick={() => {
+                  executeWithdrawConsent();
+                }}
+              >
+                {isWithdrawing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Withdraw Consent"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

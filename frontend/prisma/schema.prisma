@@ -51,6 +51,7 @@ model User {
   diagnosisNotes     DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
   verifiedDiagnoses  Diagnosis[]         @relation("DiagnosisVerifier")
   rejectedDiagnoses  Diagnosis[]         @relation("DiagnosisRejector")
+  auditLogs          AuditLog[]
 
   @@index([latitude, longitude])
   @@index([region])
@@ -220,6 +221,19 @@ model DiagnosisNote {
 
   @@index([diagnosisId])
   @@index([clinicianId])
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model diagnosis_sessions {
