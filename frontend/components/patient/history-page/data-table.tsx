@@ -158,7 +158,6 @@ export function DataTable<TData, TValue>({
               <SelectItem value="Dengue">Dengue</SelectItem>
               <SelectItem value="Pneumonia">Pneumonia</SelectItem>
               <SelectItem value="Typhoid">Typhoid</SelectItem>
-              <SelectItem value="Impetigo">Impetigo</SelectItem>
               <SelectItem value="Diarrhea">Diarrhea</SelectItem>
               <SelectItem value="Measles">Measles</SelectItem>
               <SelectItem value="Influenza">Influenza</SelectItem>

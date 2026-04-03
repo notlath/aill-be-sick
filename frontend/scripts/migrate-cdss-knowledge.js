@@ -94,13 +94,6 @@ const KNOWLEDGE_BY_DISEASE = {
       link: "https://www.cdc.gov/typhoid-fever/index.html",
     },
   ],
-  Impetigo: [
-    {
-      topic: "Impetigo overview and treatment",
-      source: "WHO",
-      link: "https://www.who.int/health-topics",
-    },
-  ],
 };
 
 const FALLBACK_KNOWLEDGE = [

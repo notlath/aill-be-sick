@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-AI'll Be Sick is an AI-assisted symptom checker and clinician dashboard application built with Next.js. The project enables users to input symptoms and receive AI-powered disease predictions for dengue, pneumonia, typhoid, and impetigo. It integrates with a Flask backend for disease detection algorithms, handles user authentication via Supabase, and manages patient cases with detailed confidence and uncertainty metrics.
+AI'll Be Sick is an AI-assisted symptom checker and clinician dashboard application built with Next.js. The project enables users to input symptoms and receive AI-powered disease predictions for dengue, pneumonia, typhoid, measles, influenza, and diarrhea. It integrates with a Flask backend for disease detection algorithms, handles user authentication via Supabase, and manages patient cases with detailed confidence and uncertainty metrics.
 
 ## Copilot Skill Files
 
@@ -239,7 +239,7 @@ if (!canManageClinicians(user.role)) {
   - Token importance scores for interpretation
   - Links to diagnoses or messages
 
-Models support multiple diseases (DENGUE, PNEUMONIA, TYPHOID, IMPETIGO) and AI models (BioClinical-ModernBERT, RoBERTa-Tagalog).
+Models support multiple diseases (DENGUE, PNEUMONIA, TYPHOID, MEASLES, INFLUENZA, DIARRHEA) and AI models (BioClinical-ModernBERT, RoBERTa-Tagalog).
 
 ## Key Pages & Routes
 

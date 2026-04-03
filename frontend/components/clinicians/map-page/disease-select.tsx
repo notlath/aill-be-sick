@@ -14,7 +14,6 @@ const DISEASES = [
   { value: "Dengue", label: "Dengue" },
   { value: "Pneumonia", label: "Pneumonia" },
   { value: "Typhoid", label: "Typhoid" },
-  { value: "Impetigo", label: "Impetigo" },
   { value: "Diarrhea", label: "Diarrhea" },
   { value: "Measles", label: "Measles" },
   { value: "Influenza", label: "Influenza" },

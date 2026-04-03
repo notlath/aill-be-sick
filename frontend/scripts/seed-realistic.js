@@ -44,7 +44,7 @@ const TOTAL_USERS = 500;
 // These user IDs will never be touched (real accounts)
 const PRESERVE_USER_IDS = [2, 111, 124, 127, 1486, 1487, 1491, 1496, 1497, 999999, 99999, 2967];
 
-const DISEASES = ["DENGUE", "PNEUMONIA", "TYPHOID", "IMPETIGO", "DIARRHEA", "MEASLES", "INFLUENZA"];
+const DISEASES = ["DENGUE", "PNEUMONIA", "TYPHOID", "DIARRHEA", "MEASLES", "INFLUENZA"];
 const MODELS   = ["BIOCLINICAL_MODERNBERT", "ROBERTA_TAGALOG"];
 
 // 6-month window ending today
@@ -134,7 +134,6 @@ const SYMPTOM_MAP = {
   DENGUE:    "I have had high fever, body aches, joint pain, and a rash over the past few days.",
   PNEUMONIA: "I am experiencing persistent cough, chest pain, and shortness of breath with fever.",
   TYPHOID:   "I have prolonged high fever, abdominal discomfort, and fatigue with poor appetite.",
-  IMPETIGO:  "I noticed red sores on my skin that have formed yellowish crusts and are very itchy.",
   DIARRHEA:  "I have been having frequent loose stools, stomach cramps, and mild fever since yesterday.",
   MEASLES:   "I have a fever, cough, runny nose, and I developed a red blotchy rash starting on my face.",
   INFLUENZA: "I have sudden high fever, severe headache, muscle aches, and fatigue along with a dry cough.",
