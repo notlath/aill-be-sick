@@ -113,7 +113,7 @@ frontend/
 ├── actions/                 # Server actions for authentication, diagnosis, and chat
 │   ├── client.ts           # Action client setup
 │   ├── create-chat.ts      # Chat creation logic
-│   ├── create-diagnosis.ts # Diagnosis creation
+│   ├── auto-record-diagnosis.ts # Auto-record diagnosis
 │   ├── create-message.ts   # Message creation
 │   ├── email-auth.ts       # Email authentication
 │   ├── explain-diagnosis.ts # Diagnosis explanation

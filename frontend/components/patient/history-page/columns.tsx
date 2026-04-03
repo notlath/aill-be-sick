@@ -49,13 +49,10 @@ export const columns: ColumnDef<HistoryRow>[] = [
       );
     },
     cell: ({ row }) => {
-      const rank = row.getValue("reliabilityRank") as number | null;
-      if (rank === null) {
-        return <span className="text-muted">—</span>;
-      }
-
       const label = row.original.reliabilityLabel;
       const badgeClass = row.original.reliabilityBadgeClass;
+
+      // No reliability info at all
       if (!label || !badgeClass) {
         return <span className="text-muted">—</span>;
       }

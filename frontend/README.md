@@ -115,7 +115,7 @@ frontend/
 ├── actions/                 # Server actions (25+ actions)
 │   ├── client.ts            # Action client setup
 │   ├── create-chat.ts       # Chat creation
-│   ├── create-diagnosis.ts  # Diagnosis creation
+│   ├── auto-record-diagnosis.ts # Auto-record diagnosis
 │   ├── run-diagnosis.ts     # Main diagnosis integration
 │   ├── explain-diagnosis.ts # SHAP explanations
 │   ├── email-auth.ts        # Email authentication

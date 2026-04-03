@@ -52,6 +52,15 @@ async function ChatHistoryList() {
         .join(" ");
       uncertainty = chat.diagnosis.uncertainty;
       confidence = chat.diagnosis.confidence;
+
+      // Only compute reliability for permanently recorded diagnoses
+      // (clinicians can only review these)
+      if (confidence !== null && uncertainty !== null) {
+        const reliability = getReliability(confidence, uncertainty);
+        reliabilityLabel = reliability.label;
+        reliabilityBadgeClass = reliability.badgeClass;
+        reliabilityRank = reliability.rank;
+      }
     } else if (chat.tempDiagnoses && chat.tempDiagnoses.length > 0) {
       const latestTemp = [...chat.tempDiagnoses].sort(
         (a, b) =>
@@ -62,8 +71,11 @@ async function ChatHistoryList() {
         .split("_")
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(" ");
-      uncertainty = latestTemp.uncertainty;
-      confidence = latestTemp.confidence;
+
+      // Temp diagnoses are not permanently recorded — clinicians cannot review them
+      reliabilityLabel = "Not Recorded";
+      reliabilityBadgeClass = "badge-soft";
+      reliabilityRank = null;
     } else {
       // Only the latest message is fetched (take: 1, orderBy desc) — no sort needed
       const latestMessageContentRaw = chat.messages?.[0]?.content ?? "";
@@ -72,13 +84,11 @@ async function ChatHistoryList() {
         latestMessageContentRaw.length > 120
           ? `${latestMessageContentRaw.slice(0, 120)}…`
           : latestMessageContentRaw;
-    }
 
-    if (confidence !== null && uncertainty !== null) {
-      const reliability = getReliability(confidence, uncertainty);
-      reliabilityLabel = reliability.label;
-      reliabilityBadgeClass = reliability.badgeClass;
-      reliabilityRank = reliability.rank;
+      // Incomplete session — no diagnosis at all
+      reliabilityLabel = "Incomplete";
+      reliabilityBadgeClass = "badge-soft";
+      reliabilityRank = null;
     }
 
     return {

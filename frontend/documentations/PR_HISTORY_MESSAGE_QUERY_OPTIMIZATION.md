@@ -71,7 +71,7 @@ Prisma now generates a correlated subquery (`ORDER BY "createdAt" DESC LIMIT 1`)
 | Component | Status | Reason |
 |---|---|---|
 | `"use cache"` / `cacheLife("hours")` / `cacheTag` in `getChats` | Untouched | Caching strategy is unchanged |
-| `revalidatePath("/history")` in `create-chat.ts`, `delete-chat.ts`, `create-diagnosis.ts`, `auto-record-diagnosis.ts` | Untouched | Cache invalidation paths are unchanged |
+| `revalidatePath("/history")` in `create-chat.ts`, `delete-chat.ts`, `auto-record-diagnosis.ts` | Untouched | Cache invalidation paths are unchanged |
 | `HistoryRow` type in `columns.tsx` | Untouched | Receives already-processed strings, never raw messages |
 | `DataTable` component | Untouched | Client-side pagination, sorting, filtering all operate on `HistoryRow[]` |
 | `ChatHistorySkeleton` | Untouched | Pure presentational, no data dependency |

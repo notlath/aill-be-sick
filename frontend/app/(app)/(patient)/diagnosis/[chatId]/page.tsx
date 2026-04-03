@@ -3,7 +3,7 @@ import ChatWindow from "@/components/patient/diagnosis-page/chat-window";
 import ThreadTransition from "@/components/patient/diagnosis-page/thread-transition";
 import { Chat } from "@/lib/generated/prisma";
 import { getChatById } from "@/utils/chat";
-import { getDiagnosisByChatId } from "@/utils/diagnosis";
+import { getDiagnosisByChatId, getTempDiagnosisRecoveryState } from "@/utils/diagnosis";
 import { getExplanationByChatId, getExplanationByDiagnosisId } from "@/utils/explanation";
 import { getMessagesByChatId } from "@/utils/message";
 import { getCurrentDbUser } from "@/utils/user";
@@ -90,6 +90,12 @@ const ChatDataLoader = async ({
     explanation = exp;
   }
 
+  // Check for limbo state: TempDiagnosis exists with explanation but no permanent Diagnosis.
+  // This can happen if auto-record fails (e.g. transient DB error).
+  const { success: recoveryState } = !chat.hasDiagnosis
+    ? await getTempDiagnosisRecoveryState(chatId)
+    : { success: null };
+
   // Decide rendering mode: if the chat already has a recorded diagnosis OR
   // messages contain a final DIAGNOSIS from the AI, render the lightweight
   // read-only history view. This component has zero diagnosis/follow-up logic
@@ -126,6 +132,7 @@ const ChatDataLoader = async ({
       messages={messages}
       chat={chat}
       userRole={userRole}
+      needsRecovery={recoveryState?.needsRecovery ?? false}
     />
   );
 };

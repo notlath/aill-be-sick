@@ -56,7 +56,7 @@ const ChatHistoryView = ({
   );
 
   return (
-    <>
+    <div className="space-y-4">
       <ChatContainer
         messages={processedMessages as any}
         isGettingQuestion={false}
@@ -69,7 +69,7 @@ const ChatHistoryView = ({
         userRole={userRole}
       />
       {dbCdss && (
-        <div className="w-full max-w-[768px] mx-auto mt-3 px-4">
+        <div className="w-full max-w-[768px] mx-auto px-4">
           <CDSSSummary 
             cdss={dbCdss} 
             confidence={dbConfidence ?? undefined}
@@ -77,30 +77,15 @@ const ChatHistoryView = ({
           />
         </div>
       )}
-      
       {diagnosisId && (
-        <div className="w-full max-w-[768px] mx-auto mt-3 px-4 pb-8">
-          <BmiAdviceSection 
-            diagnosisId={diagnosisId} 
-            initialData={initialBmiData} 
+        <div className="w-full max-w-[768px] mx-auto px-4 pb-8">
+          <BmiAdviceSection
+            diagnosisId={diagnosisId}
+            initialData={initialBmiData}
           />
         </div>
       )}
-      <dialog id="record_success_modal" className="modal">
-        <div className="modal-box">
-          <form method="dialog">
-            <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
-              ✕
-            </button>
-          </form>
-          <h3 className="font-bold text-lg">Diagnosis recorded</h3>
-          <p className="py-4 text-muted">
-            This diagnosis has been successfully stored and saved in the
-            records!
-          </p>
-        </div>
-      </dialog>
-    </>
+    </div>
   );
 };
 

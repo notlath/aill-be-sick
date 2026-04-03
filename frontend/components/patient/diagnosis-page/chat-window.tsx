@@ -19,6 +19,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
 import ThreadTransition from "./thread-transition";
+
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
 
 // Helpers to map backend strings to enum values expected by CreateMessageSchema
@@ -105,6 +106,7 @@ type ChatWindowProps = {
   chat: Chat;
   dbExplanation: Explanation | null;
   userRole?: string;
+  needsRecovery?: boolean;
 };
 
 const ChatWindow = ({
@@ -113,6 +115,7 @@ const ChatWindow = ({
   chat,
   dbExplanation,
   userRole,
+  needsRecovery,
 }: ChatWindowProps) => {
   const form = useForm<CreateChatSchemaType>({
     resolver: zodResolver(CreateChatSchema),
@@ -358,15 +361,8 @@ const ChatWindow = ({
       // Guard: ignore callbacks after unmount
       if (!isMountedRef.current) return;
       if (data?.success) {
-        if (data.requiresManualRecord) {
-          // Low-confidence diagnosis - requires user consent
-          console.log(
-            `[ChatWindow] Auto-record skipped (confidence ${data.confidence?.toFixed(3)}), waiting for manual record`,
-          );
-        } else {
-          // High-confidence diagnosis - auto-recorded successfully
-          console.log("[ChatWindow] Diagnosis auto-recorded:", data.success);
-        }
+        // All diagnoses are now auto-recorded successfully
+        console.log("[ChatWindow] Diagnosis auto-recorded:", data.success);
       } else if (data?.error) {
         console.error("[ChatWindow] Auto-record error:", data.error);
       }
@@ -399,8 +395,7 @@ const ChatWindow = ({
             );
 
             // Auto-record the diagnosis now that an explanation exists.
-            // HYBRID APPROACH: Only high-confidence diagnoses (≥95%) are auto-recorded.
-            // Low-confidence diagnoses require explicit user consent via manual recording.
+            // All diagnoses are auto-recorded regardless of confidence level.
             // This resolves the limbo state where the chat has a final AI
             // diagnosis but no permanent Diagnosis record (e.g. after refresh).
             if (!chat.hasDiagnosis) {
@@ -881,6 +876,27 @@ const ChatWindow = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, chatId, chat.hasDiagnosis]);
 
+  // Recovery: if the page detected a limbo TempDiagnosis (has explanation but
+  // no permanent Diagnosis), retry auto-record on mount. This handles the case
+  // where a transient DB error prevented the original auto-record from succeeding.
+  useEffect(() => {
+    if (!needsRecovery) return;
+
+    const diagnosisMessage = messages.find(
+      (m) => m.type === "DIAGNOSIS" && m.role === "AI",
+    );
+    if (!diagnosisMessage?.id) return;
+
+    console.log(
+      "[ChatWindow] Recovery mode: retrying auto-record for limbo diagnosis",
+    );
+    autoRecordExecute({
+      messageId: diagnosisMessage.id,
+      chatId,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsRecovery, chatId]);
+
   return (
     <FormProvider {...form}>
       <div className="flex flex-col h-full w-full">
@@ -907,32 +923,16 @@ const ChatWindow = ({
               dbExplanation={dbExplanation as unknown as TempExplanation}
               userRole={userRole}
             />
-            {isFinalDiagnosis &&
-              currentDiagnosis?.cdss &&
-              (
-                <div className="mt-2 w-full">
-                  <CDSSSummary
-                    cdss={currentDiagnosis.cdss}
-                    confidence={currentDiagnosis.confidence ?? undefined}
-                    uncertainty={currentDiagnosis.uncertainty ?? undefined}
-                    isValid={currentDiagnosis.is_valid}
-                  />
-                </div>
-              )}
-            <dialog id="record_success_modal" className="modal">
-              <div className="modal-box">
-                <form method="dialog">
-                  <button className="top-2 right-2 absolute btn btn-sm btn-circle btn-ghost">
-                    ✕
-                  </button>
-                </form>
-                <h3 className="font-bold text-lg">Result saved</h3>
-                <p className="py-4 text-muted">
-                  This assessment has been successfully saved to your records.
-                  Remember to consult a healthcare provider for proper evaluation.
-                </p>
+            {isFinalDiagnosis && currentDiagnosis?.cdss && (
+              <div className="mt-2 w-full">
+                <CDSSSummary
+                  cdss={currentDiagnosis.cdss}
+                  confidence={currentDiagnosis.confidence ?? undefined}
+                  uncertainty={currentDiagnosis.uncertainty ?? undefined}
+                  isValid={currentDiagnosis.is_valid}
+                />
               </div>
-            </dialog>
+            )}
           </ThreadTransition>
         </div>
 

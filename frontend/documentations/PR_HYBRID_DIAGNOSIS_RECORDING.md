@@ -62,30 +62,13 @@ export const discardDiagnosis = actionClient
 - Disabled state handling for recorded/invalid diagnoses
 - User-friendly modals for feedback
 
-#### `chat-bubble.tsx` (Modified)
-- **Low-confidence (<95%)**: Shows "Record" + "Discard" buttons side-by-side
-- **High-confidence (≥95%)**: Auto-recorded, shows only "View Insights"
-- **View Insights**: Now shows for ALL diagnoses (removed location dependency)
+#### `chat-bubble.tsx` (Updated)
+- All diagnoses now show only "View Insights" button
+- Record/Discard buttons removed — diagnosis is auto-recorded after SHAP explanation
 
-```tsx
-{type === "DIAGNOSIS" && (
-  <>
-    {/* Low-confidence diagnoses (<95%): Show Record + Discard buttons */}
-    {isLowConfidenceFinal && (
-      <div className="flex gap-2 mt-4">
-        {location && <RecordDiagnosisBtn ... />}
-        <DiscardDiagnosisBtn chatId={chatId} disabled={...} />
-      </div>
-    )}
-    {/* High-confidence diagnoses (≥95%): Auto-recorded, no buttons needed */}
-    <ViewInsightsBtn disabled={isGettingExplanations || !explanation} />
-  </>
-)}
-```
-
-#### `chat-window.tsx` (Modified)
+#### `chat-window.tsx` (Updated)
 - Triggers `autoRecordExecute` after explanation is saved
-- Handles both auto-record success and manual-record-required responses
+- Includes recovery effect for limbo diagnoses (TempDiagnosis exists but no permanent Diagnosis)
 - Includes detailed logging for debugging
 
 ```typescript
