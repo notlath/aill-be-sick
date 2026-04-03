@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUp, ClipboardList, Sparkles, Info } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { useRouter } from "nextjs-toploader/app";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import ChecklistModal from "@/components/patient/diagnosis-page/checklist-modal";
@@ -25,6 +26,7 @@ const PatientHomePage = () => {
     resolver: zodResolver(CreateChatSchema),
   });
   const router = useRouter();
+  const pathname = usePathname();
 
   // Guard: only navigate on an intentional submission within this lifecycle.
   const hasSubmittedRef = useRef(false);
@@ -54,7 +56,7 @@ const PatientHomePage = () => {
       isMountedRef.current = false;
       hasSubmittedRef.current = false;
     };
-  }, []);
+  }, [pathname, form]);
 
   const { execute, isExecuting } = useAction(createChat, {
     onSuccess: ({ data }) => {
