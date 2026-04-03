@@ -669,6 +669,31 @@ const ChatWindow = ({
             }
           }
         }
+
+        // Handle INFO messages with tempDiagnosis (inconclusive cases).
+        // These are diagnoses where is_valid=false from the backend.
+        // Auto-record them immediately with INCONCLUSIVE status — no SHAP needed.
+        if (
+          created.type === "INFO" &&
+          created.tempDiagnosis &&
+          created.tempDiagnosis.isValid === false
+        ) {
+          // Mark as final so the UI shows completion state
+          finalDiagnosisCreatedRef.current = true;
+
+          // Auto-record inconclusive diagnosis if not already recorded
+          if (!chat.hasDiagnosis) {
+            console.log(
+              "[ChatWindow] Auto-recording inconclusive diagnosis for message",
+              created.id,
+            );
+            autoRecordExecute({
+              messageId: created.id,
+              chatId,
+              isInconclusive: true,
+            });
+          }
+        }
       } else if (data.error) {
         console.error("Error creating message:", data.error);
       }

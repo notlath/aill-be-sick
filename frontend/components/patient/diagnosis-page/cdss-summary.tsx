@@ -318,7 +318,7 @@ const CDSSSummary = ({
                             )
                           )}
                         </strong>
-                        .
+                        . This will undergo clinician review and verification before any final decisions are made.
                       </p>
                       <details className="mt-2 group">
                         <summary className="cursor-pointer text-[11px] text-base-content/50 hover:text-base-content/70 font-medium transition-colors list-none flex items-center gap-1">
