@@ -27,6 +27,7 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { DiagnosisRow } from "./columns";
 import { ReportDetailModal } from "./report-detail-modal";
+import { DISEASE_SELECT_OPTIONS } from "@/constants/diseases";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -128,14 +129,6 @@ export function DataTable<TData, TValue>({
 
   const pageSizeOptions = useMemo(() => [10, 25, 50, 100], []);
 
-  const uniqueDiseases = useMemo(() => {
-    const diseases = new Set<string>();
-    (data as DiagnosisRow[]).forEach((item) => {
-      if (item.disease) diseases.add(item.disease);
-    });
-    return Array.from(diseases).sort();
-  }, [data]);
-
   const uniqueDistricts = useMemo(() => {
     const districts = new Set<string>();
     (data as DiagnosisRow[]).forEach((item) => {
@@ -231,7 +224,7 @@ export function DataTable<TData, TValue>({
             <Select
               value={selectedDisease}
               onValueChange={(value) => {
-                setSelectedDisease(value === "__all__" ? "" : value);
+                setSelectedDisease(value === "all" ? "" : value);
                 table.setPageIndex(0);
               }}
               className="w-auto"
@@ -240,10 +233,9 @@ export function DataTable<TData, TValue>({
                 <SelectValue placeholder="All Diseases" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">All Diseases</SelectItem>
-                {uniqueDiseases.map((disease) => (
-                  <SelectItem key={disease} value={disease}>
-                    {disease}
+                {DISEASE_SELECT_OPTIONS.map((disease) => (
+                  <SelectItem key={disease.value} value={disease.value}>
+                    {disease.label}
                   </SelectItem>
                 ))}
               </SelectContent>

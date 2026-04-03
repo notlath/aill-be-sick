@@ -1,10 +1,12 @@
 import { Suspense } from "react";
-import { getPendingDiagnoses, getPendingDiagnosesCount } from "@/utils/diagnosis";
+import { connection } from "next/server";
+import { getPendingDiagnoses, getPendingDiagnosesCount, getVerifiedTodayCount, getLowReliabilityPendingCount } from "@/utils/diagnosis";
 import { PendingDiagnosesDataTable } from "@/components/clinicians/pending-diagnoses-page/data-table";
 import { pendingDiagnosesColumns } from "@/components/clinicians/pending-diagnoses-page/columns";
 import { getAnonymizedPatientId } from "@/utils/patient";
 import { getReliability } from "@/utils/reliability";
-import { ClipboardCheck, Clock, AlertCircle } from "lucide-react";
+import { ClipboardCheck, Clock, AlertCircle, CheckCircle } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function VerificationsContent() {
   return (
@@ -17,11 +19,24 @@ export default function VerificationsContent() {
 }
 
 async function PendingDiagnosesData() {
-  const [{ success: diagnoses, error: diagnosesError }, { success: count, error: countError }] = 
-    await Promise.all([
-      getPendingDiagnoses({}),
-      getPendingDiagnosesCount(),
-    ]);
+  await connection();
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const [
+    { success: diagnoses, error: diagnosesError },
+    { success: count, error: countError },
+    { success: verifiedTodayCount, error: verifiedTodayError },
+    { success: lowReliabilityCount, error: lowReliabilityError },
+  ] = await Promise.all([
+    getPendingDiagnoses({}),
+    getPendingDiagnosesCount(),
+    getVerifiedTodayCount(startOfDay, endOfDay),
+    getLowReliabilityPendingCount(),
+  ]);
 
   if (diagnosesError) {
     throw new Error(
@@ -33,6 +48,14 @@ async function PendingDiagnosesData() {
     throw new Error(
       typeof countError === "string" ? countError : "Failed to load pending diagnoses count",
     );
+  }
+
+  if (verifiedTodayError) {
+    console.error("Failed to load verified today count:", verifiedTodayError);
+  }
+
+  if (lowReliabilityError) {
+    console.error("Failed to load low reliability count:", lowReliabilityError);
   }
 
   return (
@@ -50,37 +73,51 @@ async function PendingDiagnosesData() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-figure text-warning">
-              <Clock className="size-8" />
-            </div>
-            <div className="stat-title">Pending Review</div>
-            <div className="stat-value text-warning">{count ?? 0}</div>
-            <div className="stat-desc">Awaiting verification</div>
-          </div>
-        </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-figure text-success">
-              <ClipboardCheck className="size-8" />
-            </div>
-            <div className="stat-title">Verified Today</div>
-            <div className="stat-value text-success">—</div>
-            <div className="stat-desc">Since last session</div>
-          </div>
-        </div>
-        <div className="stats shadow">
-          <div className="stat">
-            <div className="stat-figure text-error">
-              <AlertCircle className="size-8" />
-            </div>
-            <div className="stat-title">Requires Attention</div>
-            <div className="stat-value text-error">—</div>
-            <div className="stat-desc">Low confidence cases</div>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+            <CardTitle className="text-sm font-medium text-base-content/60">
+              Pending Review
+            </CardTitle>
+            <Clock className="h-4 w-4 text-warning" />
+          </CardHeader>
+          <CardContent className="p-6 pt-0">
+            <div className="text-2xl font-bold">{count ?? 0}</div>
+            <p className="text-xs text-base-content/60 mt-1">
+              Awaiting verification
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+            <CardTitle className="text-sm font-medium text-base-content/60">
+              Verified Today
+            </CardTitle>
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent className="p-6 pt-0">
+            <div className="text-2xl font-bold">{verifiedTodayCount ?? 0}</div>
+            <p className="text-xs text-base-content/60 mt-1">
+              Diagnoses verified today
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+            <CardTitle className="text-sm font-medium text-base-content/60">
+              Requires Attention
+            </CardTitle>
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent className="p-6 pt-0">
+            <div className="text-2xl font-bold">{lowReliabilityCount ?? 0}</div>
+            <p className="text-xs text-base-content/60 mt-1">
+              Low reliability cases
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Data Table */}

@@ -273,7 +273,6 @@ enum Disease {
   DENGUE    @map("Dengue")
   PNEUMONIA @map("Pneumonia")
   TYPHOID   @map("Typhoid")
-  IMPETIGO  @map("Impetigo")
   DIARRHEA  @map("Diarrhea")
   MEASLES   @map("Measles")
   INFLUENZA @map("Influenza")
