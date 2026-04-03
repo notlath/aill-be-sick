@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type DiseaseType = 'all' | 'Dengue' | 'Pneumonia' | 'Typhoid' | 'Impetigo' | 'Diarrhea' | 'Measles' | 'Influenza';
+export type DiseaseType = 'all' | 'Dengue' | 'Pneumonia' | 'Typhoid' | 'Diarrhea' | 'Measles' | 'Influenza';
 
 interface SelectedDiseaseState {
   selectedDisease: DiseaseType;

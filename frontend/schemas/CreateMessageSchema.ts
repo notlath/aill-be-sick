@@ -27,7 +27,6 @@ export const CreateMessageSchema = z.object({
         "DIARRHEA",
         "MEASLES",
         "INFLUENZA",
-        "IMPETIGO",
       ]),
       symptoms: z.string(),
       cdss: z.any().optional(),

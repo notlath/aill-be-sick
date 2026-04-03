@@ -156,7 +156,7 @@ def fetch_patient_data(
 
         # Encode disease as one-hot over known diseases so k-means can consider it.
         # If disease is None or unknown, keep all zeros.
-        disease_list = ["Dengue", "Pneumonia", "Typhoid", "Impetigo"]
+        disease_list = ["Dengue", "Pneumonia", "Typhoid", "Diarrhea", "Measles", "Influenza"]
         disease_one_hot = [1 if disease == d else 0 for d in disease_list]
 
         features = []

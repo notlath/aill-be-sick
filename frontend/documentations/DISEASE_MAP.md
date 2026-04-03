@@ -328,7 +328,6 @@ export const DISEASE_COLOR_SCALES: Record<DiseaseType, chroma.Scale> = {
   Dengue: chroma.scale(["#FCBA9C", "#8B2F04"]).mode("lab").domain([0, 100]),
   Pneumonia: chroma.scale(["#0088CC", "#004466"]).mode("lab").domain([0, 100]),
   Typhoid: chroma.scale(["#6CAFB2", "#234143"]).mode("lab").domain([0, 100]),
-  Impetigo: chroma.scale(["#BD9FE5", "#421F70"]).mode("lab").domain([0, 100]),
   Diarrhea: chroma.scale(["#FC9E73", "#8C2E03"]).mode("lab").domain([0, 100]),
   Measles: chroma.scale(["#FE72FB", "#650163"]).mode("lab").domain([0, 100]),
   Influenza: chroma.scale(["#4AC3D3", "#185A63"]).mode("lab").domain([0, 100]),
@@ -415,7 +414,7 @@ No props - uses Zustand stores for state management.
 ```typescript
 {
   id: string;
-  disease: "DENGUE" | "PNEUMONIA" | "TYPHOID" | "IMPETIGO" | "DIARRHEA" | "MEASLES" | "INFLUENZA";
+  disease: "DENGUE" | "PNEUMONIA" | "TYPHOID" | "DIARRHEA" | "MEASLES" | "INFLUENZA";
   district: string | null;
   zone: string | null;
   userId: string;
@@ -549,7 +548,6 @@ Each disease has a unique color scale using chroma-js with LAB color mode for pe
 | **Dengue** | Orange → Brown | `#FCBA9C` → `#8B2F04` |
 | **Pneumonia** | Light Blue → Dark Blue | `#0088CC` → `#004466` |
 | **Typhoid** | Teal → Dark Teal | `#6CAFB2` → `#234143` |
-| **Impetigo** | Light Purple → Dark Purple | `#BD9FE5` → `#421F70` |
 | **Diarrhea** | Orange → Brown | `#FC9E73` → `#8C2E03` |
 | **Measles** | Magenta → Dark Magenta | `#FE72FB` → `#650163` |
 | **Influenza** | Cyan → Dark Cyan | `#4AC3D3` → `#185A63` |

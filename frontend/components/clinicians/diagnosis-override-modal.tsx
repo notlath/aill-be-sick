@@ -34,7 +34,6 @@ const DISEASES = [
   { value: "DIARRHEA", label: "Diarrhea" },
   { value: "MEASLES", label: "Measles" },
   { value: "INFLUENZA", label: "Influenza" },
-  { value: "IMPETIGO", label: "Impetigo" },
 ] as const;
 
 export function DiagnosisOverrideModal({

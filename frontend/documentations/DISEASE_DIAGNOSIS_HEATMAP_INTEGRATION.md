@@ -146,7 +146,6 @@ enum DiseaseType {
   DENGUE
   PNEUMONIA
   TYPHOID
-  IMPETIGO
   DIARRHEA
   MEASLES
   INFLUENZA
@@ -301,7 +300,6 @@ export type DiseaseType =
   | 'Dengue' 
   | 'Pneumonia' 
   | 'Typhoid' 
-  | 'Impetigo' 
   | 'Diarrhea' 
   | 'Measles' 
   | 'Influenza';
@@ -436,7 +434,6 @@ export const DISEASE_COLOR_SCALES: Record<DiseaseType, chroma.Scale> = {
   Dengue: chroma.scale(["#FCBA9C", "#8B2F04"]).mode("lab").domain([0, 100]),
   Pneumonia: chroma.scale(["#0088CC", "#004466"]).mode("lab").domain([0, 100]),
   Typhoid: chroma.scale(["#6CAFB2", "#234143"]).mode("lab").domain([0, 100]),
-  Impetigo: chroma.scale(["#BD9FE5", "#421F70"]).mode("lab").domain([0, 100]),
   Diarrhea: chroma.scale(["#FC9E73", "#8C2E03"]).mode("lab").domain([0, 100]),
   Measles: chroma.scale(["#FE72FB", "#650163"]).mode("lab").domain([0, 100]),
   Influenza: chroma.scale(["#4AC3D3", "#185A63"]).mode("lab").domain([0, 100]),
@@ -502,7 +499,6 @@ Each disease color was chosen for visual distinction and semantic association:
 | **Dengue** | Orange-Brown | Warm, alert color for vector-borne disease |
 | **Pneumonia** | Blue | Cool, respiratory association |
 | **Typhoid** | Teal | Distinct from pneumonia, water-borne association |
-| **Impetigo** | Purple | Skin condition, distinct from others |
 | **Diarrhea** | Orange | Digestive system, warm color |
 | **Measles** | Magenta | Viral, distinctive bright color |
 | **Influenza** | Cyan | Respiratory, cool clinical color |

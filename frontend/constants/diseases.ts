@@ -10,7 +10,6 @@
  *
  * Non-endemic but common:
  * - Pneumonia: Common but not considered endemic, can occur year-round
- * - Impetigo: Common bacterial skin infection, not endemic
  *
  * Data sources:
  * - DOH Philippines Disease Surveillance Reports

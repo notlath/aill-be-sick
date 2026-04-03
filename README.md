@@ -137,7 +137,7 @@ The API will be available at **http://localhost:10000**.
 - **Bilingual Support** — English and Tagalog symptom input with automatic language detection
 - **Dynamic Follow-Up** — evidence-weighted question selection with deduplication and early stopping
 
-**Supported diseases:** Dengue, Pneumonia, Typhoid, Impetigo, Diarrhea, Measles, Influenza
+**Supported diseases:** Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza
 
 ---
 

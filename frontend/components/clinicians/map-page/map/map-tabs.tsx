@@ -27,7 +27,6 @@ const MapTabs = () => {
         "Dengue",
         "Pneumonia",
         "Typhoid",
-        "Impetigo",
         "Diarrhea",
         "Measles",
         "Influenza",

@@ -9,7 +9,6 @@ export const OverrideDiagnosisSchema = z.object({
     "DIARRHEA",
     "MEASLES",
     "INFLUENZA",
-    "IMPETIGO",
   ]),
   clinicianNotes: z
     .string()

@@ -27,7 +27,6 @@ export const LEGAL_CONSTANTS = {
     "Dengue",
     "Pneumonia",
     "Typhoid",
-    "Impetigo",
     "Diarrhea",
     "Measles",
     "Influenza",

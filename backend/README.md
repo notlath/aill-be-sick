@@ -208,7 +208,6 @@ curl -X POST http://localhost:10000/diagnosis/new \
     "DENGUE": 0.85,
     "TYPHOID": 0.08,
     "PNEUMONIA": 0.05,
-    "IMPETIGO": 0.02
   },
   "model": "BioClinical-ModernBERT",
   "session_id": "abc123",

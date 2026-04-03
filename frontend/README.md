@@ -207,7 +207,7 @@ The application uses Prisma with PostgreSQL. Key models include:
 - **Explanation**: SHAP-based token importance scores for model explainability
 - **Alert**: Clinician alerts for outbreak surveillance
 
-Supported diseases: DENGUE, PNEUMONIA, TYPHOID, IMPETIGO
+Supported diseases: DENGUE, PNEUMONIA, TYPHOID, MEASLES, INFLUENZA, DIARRHEA
 
 ## Development
 
