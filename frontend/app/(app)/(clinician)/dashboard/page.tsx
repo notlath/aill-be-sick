@@ -19,14 +19,12 @@ const ClinicianHomePage = () => {
       {/* Main Content */}
       <div className="w-full px-4 pb-12 sm:pb-16 md:px-8 lg:px-12">
         <div className="mx-auto w-full max-w-7xl flex flex-col gap-6 sm:gap-8">
-          {/* Endemic Disease Awareness - Sidebar-style on large screens */}
+          {/* Endemic Disease Awareness - Full width */}
           <section
-            className="animate-slide-up"
+            className="animate-slide-up w-full"
             style={{ animationDelay: "100ms" }}
           >
-            <div className="lg:max-w-sm">
-              <EndemicDiseaseSummary />
-            </div>
+            <EndemicDiseaseSummary />
           </section>
 
           {/* Illness Clusters - Full Width Premium Card */}
