@@ -42,48 +42,82 @@ export const overrideDiagnosis = actionClient
         return { error: "The specified assessment record was not found." };
       }
 
-      // 3. Check if an override already exists
-      if (diagnosis.override) {
-        // Update the existing override
-        await prisma.diagnosisOverride.update({
-          where: { diagnosisId },
-          data: {
-            clinicianDisease,
-            clinicianNotes: clinicianNotes ?? null,
-            clinicianId: dbUser.id,
-            // Keep original AI values, just update clinician's override
-          },
-        });
+      // 3. Check the current status to determine if auto-verification is needed
+      const diagnosisData = diagnosis as any;
+      const isPending = diagnosisData.status === "PENDING";
+      const isAlreadyVerified = diagnosisData.status === "VERIFIED";
 
-        console.log(
-          `Updated override for diagnosis ${diagnosisId} by clinician ${dbUser.id}`,
-        );
-      } else {
-        // Create a new override, preserving the original AI assessment
-        await prisma.diagnosisOverride.create({
-          data: {
-            diagnosisId,
-            // Preserve original AI assessment for audit trail
-            aiDisease: diagnosis.disease,
-            aiConfidence: diagnosis.confidence,
-            aiUncertainty: diagnosis.uncertainty,
-            // Clinician's override
-            clinicianDisease,
-            clinicianNotes: clinicianNotes ?? null,
-            clinicianId: dbUser.id,
-          },
-        });
+      // 4. Use a transaction to ensure atomicity: override + auto-verify (if pending)
+      await prisma.$transaction(async (tx) => {
+        // 4a. Create or update the override
+        if (diagnosis.override) {
+          // Update the existing override
+          await tx.diagnosisOverride.update({
+            where: { diagnosisId },
+            data: {
+              clinicianDisease,
+              clinicianNotes: clinicianNotes ?? null,
+              clinicianId: dbUser.id,
+              // Keep original AI values, just update clinician's override
+            },
+          });
 
-        console.log(
-          `Created override for diagnosis ${diagnosisId} by clinician ${dbUser.id}: AI suggested ${diagnosis.disease}, clinician overrode to ${clinicianDisease}`,
-        );
-      }
+          console.log(
+            `Updated override for diagnosis ${diagnosisId} by clinician ${dbUser.id}`,
+          );
+        } else {
+          // Create a new override, preserving the original AI assessment
+          await tx.diagnosisOverride.create({
+            data: {
+              diagnosisId,
+              // Preserve original AI assessment for audit trail
+              aiDisease: diagnosis.disease,
+              aiConfidence: diagnosis.confidence,
+              aiUncertainty: diagnosis.uncertainty,
+              // Clinician's override
+              clinicianDisease,
+              clinicianNotes: clinicianNotes ?? null,
+              clinicianId: dbUser.id,
+            },
+          });
 
-      // 4. Revalidate relevant paths
+          console.log(
+            `Created override for diagnosis ${diagnosisId} by clinician ${dbUser.id}: AI suggested ${diagnosis.disease}, clinician overrode to ${clinicianDisease}`,
+          );
+        }
+
+        // 4b. Auto-verify if the diagnosis is still PENDING
+        if (isPending) {
+          await tx.diagnosis.update({
+            where: { id: diagnosisId },
+            data: {
+              status: "VERIFIED",
+              verifiedAt: new Date(),
+              verifiedBy: dbUser.id,
+            },
+          });
+
+          console.log(
+            `Auto-verified diagnosis ${diagnosisId} as part of clinical override by clinician ${dbUser.id}`,
+          );
+        }
+      });
+
+      // 5. Revalidate relevant paths
       revalidateTag("diagnosis", { expire: 0 });
       revalidatePath("/healthcare-reports", "page");
+      revalidatePath("/pending-diagnoses", "page");
       revalidatePath("/map", "page");
       revalidatePath("/dashboard", "page");
+
+      // 6. Return appropriate success message
+      if (isAlreadyVerified || isPending) {
+        // If it was pending, it's now auto-verified
+        const message = isPending
+          ? "Clinical override saved. This diagnosis has been automatically verified."
+          : "Clinical override updated successfully.";
+        return { success: message };
+      }
 
       return {
         success: "Assessment successfully updated with your clinical override.",
