@@ -108,13 +108,10 @@ const ChatContainer = memo(
       const symptomsText = symptomsMessage?.content || "";
 
       return (
-        <section className="flex flex-col flex-1 space-y-2 py-8 px-4 w-full max-w-[768px]">
+        <section className="flex flex-col flex-1 space-y-2 py-8 pb-0 px-4 w-full max-w-[768px]">
           {messages.map((message, idx) => (
             <ChatBubble
               key={message.id ? `${message.id}-${idx}` : `msg-${idx}`}
-              messagesLength={messages.length}
-              idx={idx}
-              chatHasDiagnosis={hasDiagnosis}
               isGettingExplanations={isGettingExplanations}
               explanation={message.explanation || dbExplanation || null}
               tempDiagnosis={message.tempDiagnosis}

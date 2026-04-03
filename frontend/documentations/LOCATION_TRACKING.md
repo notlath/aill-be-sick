@@ -96,11 +96,10 @@ The location tracking system follows a client-server architecture with three mai
    Hook State Updated: location = { latitude, longitude, city, region }
    ```
 
-5. **User Records Diagnosis**
-   - User clicks "Record diagnosis" button
-   - `RecordDiagnosisBtn` calls `createDiagnosis` action
-   - Location data is included in the request
-   - Database stores diagnosis with location snapshot
+5. **Diagnosis Auto-Recording**
+    - After a SHAP explanation is generated, `autoRecordDiagnosis` action runs automatically
+    - Location data is sourced from the authenticated user's profile fields
+    - Database stores diagnosis with location snapshot
 
 ---
 
@@ -424,133 +423,88 @@ const ChatContainer = forwardRef<HTMLDivElement, ChatContainerProps>(
 
 ---
 
-### 3. ChatBubble Component
+### 5. ChatBubble Component (Updated)
 
 **File**: `components/patient/diagnosis-page/chat-bubble.tsx`
 
-```typescript
-type ChatBubbleProps = {
-  messagesLength: number;
-  idx?: number;
-  tempDiagnosis?: TempDiagnosis;
-  chatHasDiagnosis?: boolean;
-  location?: LocationData | null; // ← Added
-} & Message;
-
-const ChatBubble = ({
-  content,
-  role,
-  type,
-  tempDiagnosis,
-  chatId,
-  location, // ← Destructured
-}: // ... other props
-ChatBubbleProps) => {
-  return (
-    <article>
-      {/* Message content */}
-      {type === "DIAGNOSIS" && (
-        <RecordDiagnosisBtn
-          tempDiagnosis={tempDiagnosis}
-          chatId={chatId}
-          location={location} // ← Passed to button
-        />
-      )}
-    </article>
-  );
-};
-```
-
-**Role**: Renders diagnosis messages and passes location to record button
+The `ChatBubble` component no longer receives location props or renders a
+record button. Location is handled server-side via the user profile.
 
 ---
 
-### 4. RecordDiagnosisBtn Component
+### 4. Auto-Record Diagnosis Flow
 
-**File**: `components/patient/diagnosis-page/record-diagnosis-btn.tsx`
+**File**: `actions/auto-record-diagnosis.ts`
+
+Location data is now sourced from the authenticated user's profile rather than
+passed through component props. When a SHAP explanation is generated, the
+`autoRecordDiagnosis` action runs automatically and reads `dbUser.latitude`,
+`dbUser.longitude`, `dbUser.city`, `dbUser.province`, `dbUser.region`,
+`dbUser.barangay`, and `dbUser.district` to snapshot the diagnosis location.
 
 ```typescript
-type RecordDiagnosisBtnProps = {
-  tempDiagnosis?: TempDiagnosis;
-  messagesLength: number;
-  chatId: string;
-  idx?: number;
-  disabled?: boolean;
-  location?: LocationData | null; // ← Added
-};
-
-const RecordDiagnosisBtn = ({
-  tempDiagnosis,
-  chatId,
-  location, // ← Destructured
-}: // ... other props
-RecordDiagnosisBtnProps) => {
-  const { execute, isExecuting } = useAction(createDiagnosis);
-
-  const handleRecordDiagnosis = () => {
-    if (!tempDiagnosis) return;
-
-    execute({
-      chatId,
-      confidence: tempDiagnosis.confidence,
-      disease: tempDiagnosis.disease,
-      modelUsed: tempDiagnosis.modelUsed,
-      uncertainty: tempDiagnosis.uncertainty,
-      symptoms: tempDiagnosis.symptoms,
-      location: location || undefined, // ← Included in action
-    });
-  };
-
-  return <button onClick={handleRecordDiagnosis}>Record diagnosis</button>;
-};
+const diagnosis = await prisma.diagnosis.create({
+  data: {
+    confidence: tempDiagnosis.confidence,
+    uncertainty: tempDiagnosis.uncertainty,
+    modelUsed: tempDiagnosis.modelUsed,
+    disease: tempDiagnosis.disease,
+    chatId,
+    symptoms: tempDiagnosis.symptoms,
+    userId: dbUser.id,
+    latitude: dbUser.latitude ?? null,
+    longitude: dbUser.longitude ?? null,
+    city: dbUser.city,
+    province: dbUser.province,
+    region: dbUser.region,
+    barangay: dbUser.barangay,
+    district: dbUser.district,
+    // ... explanation connection ...
+  },
+});
 ```
 
-**Role**: Final component that sends location to the server action
+**Role**: Automatically promotes TempDiagnosis to permanent Diagnosis with
+location data from the user profile. No manual button interaction required.
 
 ---
 
-### 5. CreateDiagnosis Action
+### 5. Auto-Record Diagnosis Action
 
-**File**: `actions/create-diagnosis.ts`
+**File**: `actions/auto-record-diagnosis.ts`
 
 ```typescript
-export const createDiagnosis = actionClient
-  .inputSchema(CreateDiagnosisSchema)
+export const autoRecordDiagnosis = actionClient
+  .inputSchema(AutoRecordDiagnosisSchema)
   .action(async ({ parsedInput }) => {
-    const {
-      confidence,
-      uncertainty,
-      modelUsed,
-      disease,
-      chatId,
-      symptoms,
-      location, // ← Extracted from input
-    } = parsedInput;
+    const { messageId, chatId } = parsedInput;
 
     // ... user validation ...
 
     await prisma.diagnosis.create({
       data: {
-        confidence,
-        uncertainty,
-        modelUsed,
-        disease,
+        confidence: tempDiagnosis.confidence,
+        uncertainty: tempDiagnosis.uncertainty,
+        modelUsed: tempDiagnosis.modelUsed,
+        disease: tempDiagnosis.disease,
         chatId,
-        symptoms,
+        symptoms: tempDiagnosis.symptoms,
         userId: dbUser.id,
-        // Location data stored here
-        latitude: location?.latitude,
-        longitude: location?.longitude,
-        city: location?.city,
-        region: location?.region,
+        latitude: dbUser.latitude ?? null,
+        longitude: dbUser.longitude ?? null,
+        city: dbUser.city,
+        province: dbUser.province,
+        region: dbUser.region,
+        barangay: dbUser.barangay,
+        district: dbUser.district,
       },
     });
 
-    return { success: "Successfully recorded diagnosis" };
+    return { success: "Diagnosis automatically recorded." };
   });
 ```
 
-**Role**: Persists diagnosis with location snapshot to database
+**Role**: Persists diagnosis with location snapshot from user profile to database.
 
 ---
 
