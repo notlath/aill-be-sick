@@ -20,6 +20,19 @@ export interface ReportExportOptions {
 
 export type ReportFormat = "pdf" | "csv" | "json" | "xlsx";
 
+export type SurveillanceTab = "by-disease" | "by-cluster" | "by-anomaly";
+
+export interface SurveillanceExportData {
+  tab: SurveillanceTab;
+  disease?: string;
+  view?: "district" | "coordinates";
+  dateRange?: { start: string; end: string };
+  stats?: Record<string, unknown>;
+  mapData?: Record<string, unknown>[];
+  timelineData?: Record<string, unknown>[];
+  additionalData?: Record<string, unknown>;
+}
+
 export function buildReportFilename(slug: string, ext: string): string {
   const now = new Date();
   const date = format(now, "yyyy-MM-dd");
@@ -115,4 +128,164 @@ export function exportToExcel(
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Report");
   XLSX.writeFile(wb, filename);
+}
+
+function getSurveillanceColumns(tab: SurveillanceTab, dataType: string): ReportColumn[] {
+  switch (tab) {
+    case "by-disease":
+      if (dataType === "stats") {
+        return [
+          { header: "Metric", dataKey: "metric" },
+          { header: "Value", dataKey: "value" },
+        ];
+      }
+      if (dataType === "map") {
+        return [
+          { header: "District", dataKey: "district" },
+          { header: "Cases", dataKey: "cases" },
+        ];
+      }
+      if (dataType === "diagnoses") {
+        return [
+          { header: "ID", dataKey: "id" },
+          { header: "Disease", dataKey: "disease" },
+          { header: "District", dataKey: "district" },
+          { header: "Latitude", dataKey: "latitude" },
+          { header: "Longitude", dataKey: "longitude" },
+          { header: "Created At", dataKey: "createdAt" },
+          { header: "Confidence", dataKey: "confidence" },
+          { header: "Uncertainty", dataKey: "uncertainty" },
+        ];
+      }
+      if (dataType === "timeline") {
+        return [
+          { header: "Date", dataKey: "date" },
+          { header: "Cases", dataKey: "cases" },
+        ];
+      }
+      break;
+    case "by-cluster":
+      if (dataType === "stats") {
+        return [
+          { header: "Metric", dataKey: "metric" },
+          { header: "Value", dataKey: "value" },
+        ];
+      }
+      if (dataType === "illnesses") {
+        return [
+          { header: "ID", dataKey: "id" },
+          { header: "Disease", dataKey: "disease" },
+          { header: "District", dataKey: "district" },
+          { header: "Latitude", dataKey: "latitude" },
+          { header: "Longitude", dataKey: "longitude" },
+          { header: "Created At", dataKey: "createdAt" },
+          { header: "Cluster", dataKey: "cluster" },
+        ];
+      }
+      break;
+    case "by-anomaly":
+      if (dataType === "stats") {
+        return [
+          { header: "Metric", dataKey: "metric" },
+          { header: "Value", dataKey: "value" },
+        ];
+      }
+      if (dataType === "anomalies") {
+        return [
+          { header: "ID", dataKey: "id" },
+          { header: "Disease", dataKey: "disease" },
+          { header: "District", dataKey: "district" },
+          { header: "Latitude", dataKey: "latitude" },
+          { header: "Longitude", dataKey: "longitude" },
+          { header: "Created At", dataKey: "createdAt" },
+          { header: "Anomaly Score", dataKey: "anomaly_score" },
+        ];
+      }
+      if (dataType === "normal") {
+        return [
+          { header: "ID", dataKey: "id" },
+          { header: "Disease", dataKey: "disease" },
+          { header: "District", dataKey: "district" },
+          { header: "Latitude", dataKey: "latitude" },
+          { header: "Longitude", dataKey: "longitude" },
+          { header: "Created At", dataKey: "createdAt" },
+        ];
+      }
+      break;
+  }
+  return [];
+}
+
+// Simplified for tabular export
+export async function exportSurveillanceData(
+  data: Record<string, unknown>[],
+  columns: ReportColumn[],
+  filenameSlug: string,
+  title: string,
+  subtitle: string,
+  metadata?: Record<string, unknown>
+): Promise<void> {
+  const filename = buildReportFilename(filenameSlug, "csv"); // For now, only CSV
+  exportToCSV(data, columns, filename);
+}
+
+// For modal export
+export function getSurveillanceExportData(
+  exportData: SurveillanceExportData
+): {
+  data: Record<string, unknown>[];
+  columns: ReportColumn[];
+  filenameSlug: string;
+  title: string;
+  subtitle: string;
+  metadata?: Record<string, unknown>;
+} {
+  const { tab, disease, view, dateRange, stats, mapData, timelineData, additionalData } = exportData;
+
+  let data: Record<string, unknown>[] = [];
+  let columns: ReportColumn[] = [];
+  let dataType = "";
+
+  const slug = `surveillance-${tab}-${disease || "all"}-${view || "district"}`;
+  const title = `Surveillance ${tab.replace("by-", "").replace("-", " ")} Data`;
+  const subtitle = `Disease: ${disease || "All"}, View: ${view || "District"}, Dates: ${dateRange?.start || "N/A"} to ${dateRange?.end || "N/A"}`;
+
+  const metadata = {
+    tab,
+    disease: disease || "all",
+    view: view || "district",
+    dateRange,
+    stats,
+    exportedAt: new Date().toISOString(),
+  };
+
+  // Choose main data
+  if (tab === "by-disease") {
+    if (view === "district" && mapData) {
+      data = mapData;
+      dataType = "map";
+    } else if (mapData) {
+      data = mapData;
+      dataType = "diagnoses";
+    }
+  } else if (tab === "by-cluster") {
+    if (mapData) {
+      data = mapData;
+      dataType = "illnesses";
+    }
+  } else if (tab === "by-anomaly") {
+    if (additionalData?.anomalies) {
+      data = additionalData.anomalies as Record<string, unknown>[];
+      dataType = "anomalies";
+    } else if (additionalData?.normal) {
+      data = additionalData.normal as Record<string, unknown>[];
+      dataType = "normal";
+    }
+  }
+
+  if (dataType) {
+    columns = getSurveillanceColumns(tab, dataType);
+  }
+
+  return { data, columns, filenameSlug: slug, title, subtitle, metadata };
 }

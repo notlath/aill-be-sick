@@ -13,6 +13,9 @@ import PatientsModal from "../patients-modal";
 import { AlertCircle } from "lucide-react";
 import SelectedClusterDetails from "./selected-cluster-details";
 import StatisticsCards from "./statistics-cards";
+import { getSurveillanceExportData, type SurveillanceExportData } from "@/utils/report-export";
+import { ExportReportButton } from "@/components/ui/export-report-button";
+import { PdfImage } from "@/utils/pdf-export";
 import {
   MapSkeleton,
   StatsSkeletonCards,
@@ -114,8 +117,90 @@ const ByClusterTab = () => {
 
         const isMapLoading = geoLoading || loading;
 
+        const captureImages = async () => {
+          const domtoimage = (await import('dom-to-image-more')).default;
+          const images: PdfImage[] = [];
+
+          // Suppress console errors during capture
+          const originalConsoleError = console.error;
+          console.error = () => {};
+
+          try {
+            // Capture map
+            const mapElement = document.querySelector('[data-surveillance-map]');
+            if (mapElement) {
+              const dataUrl = await domtoimage.toPng(mapElement as HTMLElement, {
+                quality: 0.8,
+                filter: (node) => {
+                  return !(node.tagName && node.tagName.toLowerCase() === 'link');
+                },
+              });
+              const img = new Image();
+              img.src = dataUrl;
+              await new Promise(resolve => img.onload = resolve);
+              images.push({
+                dataUrl,
+                width: img.width,
+                height: img.height,
+                title: 'Illness Group Surveillance Map',
+              });
+            }
+          } finally {
+            console.error = originalConsoleError;
+          }
+
+          return images;
+        };
+
+        const exportInfo = useMemo(() => {
+          if (!clusterData || !selectedClusterStat) return null;
+
+          const stats: Record<string, unknown> = {
+            clusterId: selectedClusterId,
+            clusterLabel: selectedClusterLabel,
+            totalIllnesses: filteredIllnesses.length,
+            ...selectedClusterStat,
+            nClusters: k,
+            appliedVariables,
+          };
+
+          const illnessesData = filteredIllnesses.map(i => ({
+            id: i.id,
+            disease: i.disease,
+            district: i.district,
+            latitude: i.latitude,
+            longitude: i.longitude,
+            createdAt: i.diagnosed_at,
+            cluster: i.cluster,
+          }));
+
+          const exportData: SurveillanceExportData = {
+            tab: "by-cluster",
+            disease: "all", // clusters are across diseases
+            view,
+            stats,
+            mapData: illnessesData,
+          };
+
+          return getSurveillanceExportData(exportData);
+        }, [clusterData, selectedClusterStat, selectedClusterId, selectedClusterLabel, filteredIllnesses, k, appliedVariables, view]);
+
         return (
           <div className="space-y-4">
+            <div className="flex justify-end">
+              {exportInfo && (
+                <ExportReportButton
+                  data={exportInfo.data}
+                  columns={exportInfo.columns}
+                  filenameSlug={exportInfo.filenameSlug}
+                  title={exportInfo.title}
+                  subtitle={exportInfo.subtitle}
+                  disabled={loading}
+                  images={captureImages}
+                />
+              )}
+            </div>
+
             {!loading && (error || geoError) ? (
               <Card className="col-span-2 border-red-200/50 bg-red-50/50">
                 <CardHeader className="py-12 text-center">
@@ -130,7 +215,7 @@ const ByClusterTab = () => {
               </Card>
             ) : null}
 
-            <div>
+            <div data-surveillance-map suppressHydrationWarning>
               <Card>
                 <CardContent className="p-8">
                   {isMapLoading || !geoData ? (

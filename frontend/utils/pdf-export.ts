@@ -4,11 +4,19 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from "date-fns";
 import { registerGeistFont } from "./fonts/geist-pdf";
+import html2canvas from "html2canvas";
 
 export interface PdfColumn {
   header: string;
   dataKey: string;
   width?: number;
+}
+
+export interface PdfImage {
+  dataUrl: string;
+  width: number;
+  height: number;
+  title?: string;
 }
 
 export interface PdfExportOptions {
@@ -18,6 +26,7 @@ export interface PdfExportOptions {
   filename?: string;
   subtitle?: string;
   generatedBy?: { name: string; email?: string };
+  images?: PdfImage[];
 }
 
 // --color-primary: oklch(59% 0.145 163.225) from globals.css → teal/green, matches #009764 used in app
@@ -32,6 +41,7 @@ export function exportToPDF({
   filename,
   subtitle,
   generatedBy,
+  images,
 }: PdfExportOptions) {
   const doc = new jsPDF();
   registerGeistFont(doc);
@@ -72,6 +82,28 @@ export function exportToPDF({
     currentY += 8;
   }
 
+  // Add images if provided
+  if (images && images.length > 0) {
+    for (const image of images) {
+      if (image.title) {
+        doc.setFontSize(12);
+        doc.setTextColor(...TEXT_COLOR);
+        doc.text(image.title, 14, currentY);
+        currentY += 8;
+      }
+
+      // Scale image to fit page width and remaining height
+      const maxWidth = pageWidth - 28;
+      const maxHeight = pageHeight - currentY - 30; // Leave some margin
+      const scale = Math.min(1, maxWidth / image.width, maxHeight / image.height);
+      const imgWidth = image.width * scale;
+      const imgHeight = image.height * scale;
+
+      doc.addImage(image.dataUrl, 'PNG', 14, currentY, imgWidth, imgHeight);
+      currentY += imgHeight + 10;
+    }
+  }
+
   doc.setFontSize(8);
   doc.setTextColor(...MUTED_COLOR);
   doc.text(`Generated on ${generatedDate}`, 14, pageHeight - 10);
@@ -96,7 +128,7 @@ export function exportToPDF({
     })
   );
 
-  const tableStartY = generatedBy ? currentY : subtitle ? 42 : 38;
+  const tableStartY = currentY;
 
   autoTable(doc, {
     head: [columns.map((col) => col.header)],
