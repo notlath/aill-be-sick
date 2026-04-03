@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { getCurrentDbUser } from "@/utils/user";
 import prisma from "@/prisma/prisma";
 import PrivacyRightsContent from "@/components/privacy-rights/privacy-rights-content";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 async function PrivacyRightsData() {
   const { success: dbUser, error } = await getCurrentDbUser();
@@ -83,13 +85,19 @@ export default function PrivacyRightsPage() {
   return (
     <div className="flex flex-col min-h-full">
       <div className="space-y-10 mx-auto p-8 pt-12 max-w-4xl flex-1 w-full relative">
-        <div className="space-y-2">
-          <h1 className="mb-1 font-semibold text-base-content text-4xl tracking-tight">
-            Privacy Rights
-          </h1>
-          <p className="text-muted text-lg">
-            View your consent history and manage your privacy settings
-          </p>
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Link href="/profile" className="btn btn-ghost btn-sm gap-2 mb-2">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Profile
+            </Link>
+            <h1 className="font-semibold text-base-content text-4xl tracking-tight">
+              Privacy Rights
+            </h1>
+            <p className="text-muted text-lg">
+              View your consent history and manage your privacy settings
+            </p>
+          </div>
         </div>
 
         <Suspense fallback={<PrivacyRightsSkeleton />}>
