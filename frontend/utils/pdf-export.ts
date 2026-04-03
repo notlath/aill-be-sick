@@ -50,18 +50,24 @@ export function exportToPDF({
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  const headerText = "AI'll Be Sick";
+  const headerText = "Clinical Disease Surveillance & Reporting System (CDSRS)";
   doc.setFontSize(10);
   doc.setTextColor(...MUTED_COLOR);
   doc.text(headerText, 14, 15);
 
-  doc.setFontSize(20);
+  doc.setFontSize(16);
   doc.setFont("GeistSans", "bold");
   doc.setTextColor(...TEXT_COLOR);
-  doc.text(title, 14, 28);
+  doc.text("Epidemiological Summary Report", 14, 28);
   doc.setFont("GeistSans", "normal");
 
-  let currentY = 36;
+  // Add metadata
+  doc.setFontSize(10);
+  doc.setTextColor(...MUTED_COLOR);
+  const metadataText = `Facility: Barangay Bagong Silangan Health Center | Exported: ${format(new Date(), "MMM d, yyyy")} | Reporting Period: Sept 2025 – April 2026`;
+  doc.text(metadataText, 14, 36);
+
+  let currentY = 44;
   if (subtitle) {
     doc.setFontSize(10);
     doc.setTextColor(...MUTED_COLOR);
@@ -87,9 +93,25 @@ export function exportToPDF({
     for (const image of images) {
       if (image.title) {
         doc.setFontSize(12);
+        doc.setFont("GeistSans", "bold");
         doc.setTextColor(...TEXT_COLOR);
         doc.text(image.title, 14, currentY);
-        currentY += 8;
+        currentY += 6;
+
+        // Add sub-text
+        doc.setFontSize(10);
+        doc.setFont("GeistSans", "normal");
+        doc.setTextColor(...MUTED_COLOR);
+        const subText = image.title.includes('Map')
+          ? 'Geospatial visualization of disease incidence by location'
+          : 'Temporal trends in disease cases over time';
+        doc.text(subText, 14, currentY);
+        currentY += 4;
+
+        // Add horizontal divider
+        doc.setLineWidth(0.5);
+        doc.line(14, currentY, pageWidth - 14, currentY);
+        currentY += 10; // Reduced margin for closer visual
       }
 
       // Scale image to fit page width and remaining height
@@ -99,10 +121,41 @@ export function exportToPDF({
       const imgWidth = image.width * scale;
       const imgHeight = image.height * scale;
 
-      doc.addImage(image.dataUrl, 'PNG', 14, currentY, imgWidth, imgHeight);
-      currentY += imgHeight + 10;
+      const imgX = Math.max(14, (pageWidth - imgWidth) / 2);
+      doc.addImage(image.dataUrl, 'PNG', imgX, currentY, imgWidth, imgHeight);
+
+      // Add legend below map image
+      if (image.title?.includes('Map')) {
+        doc.setFontSize(8);
+        doc.setTextColor(...MUTED_COLOR);
+        const legendText = "Legend: Blue = Low Density, Yellow = Moderate, Red = High Density/Outbreak Cluster";
+        doc.text(legendText, 14, currentY + imgHeight + 5);
+      }
+
+      currentY += imgHeight + 15; // Increased spacing to next section
     }
   }
+
+  // Add table heading
+  doc.setFontSize(14);
+  doc.setFont("GeistSans", "bold");
+  doc.setTextColor(...TEXT_COLOR);
+  doc.text("Verified Case Registry & Confidence Analysis", 14, currentY);
+  currentY += 6;
+
+  // Add sub-text
+  doc.setFontSize(10);
+  doc.setFont("GeistSans", "normal");
+  doc.setTextColor(...MUTED_COLOR);
+  const tableSubText = 'Detailed registry of verified cases with confidence metrics';
+  doc.text(tableSubText, 14, currentY);
+  currentY += 4;
+
+  // Add horizontal divider
+  doc.setLineWidth(0.5);
+  doc.line(14, currentY, pageWidth - 14, currentY);
+  currentY += 10; // Reduced margin for closer visual
+  doc.setFont("GeistSans", "normal");
 
   doc.setFontSize(8);
   doc.setTextColor(...MUTED_COLOR);

@@ -150,8 +150,6 @@ function getSurveillanceColumns(tab: SurveillanceTab, dataType: string): ReportC
           { header: "ID", dataKey: "id" },
           { header: "Disease", dataKey: "disease" },
           { header: "District", dataKey: "district" },
-          { header: "Latitude", dataKey: "latitude" },
-          { header: "Longitude", dataKey: "longitude" },
           { header: "Created At", dataKey: "createdAt" },
           { header: "Confidence", dataKey: "confidence" },
           { header: "Uncertainty", dataKey: "uncertainty" },
@@ -176,8 +174,6 @@ function getSurveillanceColumns(tab: SurveillanceTab, dataType: string): ReportC
           { header: "ID", dataKey: "id" },
           { header: "Disease", dataKey: "disease" },
           { header: "District", dataKey: "district" },
-          { header: "Latitude", dataKey: "latitude" },
-          { header: "Longitude", dataKey: "longitude" },
           { header: "Created At", dataKey: "createdAt" },
           { header: "Cluster", dataKey: "cluster" },
         ];
@@ -195,8 +191,6 @@ function getSurveillanceColumns(tab: SurveillanceTab, dataType: string): ReportC
           { header: "ID", dataKey: "id" },
           { header: "Disease", dataKey: "disease" },
           { header: "District", dataKey: "district" },
-          { header: "Latitude", dataKey: "latitude" },
-          { header: "Longitude", dataKey: "longitude" },
           { header: "Created At", dataKey: "createdAt" },
           { header: "Anomaly Score", dataKey: "anomaly_score" },
         ];
@@ -206,8 +200,6 @@ function getSurveillanceColumns(tab: SurveillanceTab, dataType: string): ReportC
           { header: "ID", dataKey: "id" },
           { header: "Disease", dataKey: "disease" },
           { header: "District", dataKey: "district" },
-          { header: "Latitude", dataKey: "latitude" },
-          { header: "Longitude", dataKey: "longitude" },
           { header: "Created At", dataKey: "createdAt" },
         ];
       }
@@ -248,7 +240,7 @@ export function getSurveillanceExportData(
 
   const slug = `surveillance-${tab}-${disease || "all"}-${view || "district"}`;
   const title = `Surveillance ${tab.replace("by-", "").replace("-", " ")} Data`;
-  const subtitle = `Disease: ${disease || "All"}, View: ${view || "District"}, Dates: ${dateRange?.start || "N/A"} to ${dateRange?.end || "N/A"}`;
+  const subtitle = `Disease: ${disease || "All"}`;
 
   const metadata = {
     tab,

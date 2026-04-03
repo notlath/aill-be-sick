@@ -142,27 +142,23 @@ export function AnomalyTimelineChart({
 
   return (
     <Card className="relative overflow-hidden border">
-      <CardHeader className="relative pb-2 flex flex-row items-center justify-between gap-4">
-        <p className="font-semibold text-base">
-          {disease === "all" ? "All Diseases" : disease} — Anomalies Over Time
-        </p>
-        <Select
-          value={granularity}
-          onValueChange={(v) => setGranularity(v as TimeGranularity)}
-          className="w-auto"
-        >
-          <SelectTrigger className="w-28 h-8 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="right-0 left-auto">
-            <SelectItem value="day">By day</SelectItem>
-            <SelectItem value="week">By week</SelectItem>
-            <SelectItem value="month">By month</SelectItem>
-          </SelectContent>
-        </Select>
-      </CardHeader>
-
       <CardContent className="relative pt-2">
+        <div className="flex justify-end mb-2">
+          <Select
+            value={granularity}
+            onValueChange={(v) => setGranularity(v as TimeGranularity)}
+            className="w-auto"
+          >
+            <SelectTrigger className="w-28 h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="right-0 left-auto">
+              <SelectItem value="day">By day</SelectItem>
+              <SelectItem value="week">By week</SelectItem>
+              <SelectItem value="month">By month</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="w-full h-[220px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
