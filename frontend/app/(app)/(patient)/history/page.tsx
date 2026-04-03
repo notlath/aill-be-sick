@@ -53,9 +53,14 @@ async function ChatHistoryList() {
       uncertainty = chat.diagnosis.uncertainty;
       confidence = chat.diagnosis.confidence;
 
-      // Only compute reliability for permanently recorded diagnoses
-      // (clinicians can only review these)
-      if (confidence !== null && uncertainty !== null) {
+      // Handle INCONCLUSIVE diagnoses — AI could not reach a confident prediction
+      if (chat.diagnosis.status === "INCONCLUSIVE") {
+        reliabilityLabel = "Inconclusive";
+        reliabilityBadgeClass = "badge-soft";
+        reliabilityRank = null;
+      } else if (confidence !== null && uncertainty !== null) {
+        // Only compute reliability for conclusive diagnoses
+        // (clinicians can only review these)
         const reliability = getReliability(confidence, uncertainty);
         reliabilityLabel = reliability.label;
         reliabilityBadgeClass = reliability.badgeClass;

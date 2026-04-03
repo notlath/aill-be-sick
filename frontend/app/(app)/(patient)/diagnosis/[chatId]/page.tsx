@@ -96,10 +96,9 @@ const ChatDataLoader = async ({
     ? await getTempDiagnosisRecoveryState(chatId)
     : { success: null };
 
-  // Decide rendering mode: if the chat already has a recorded diagnosis OR
-  // messages contain a final DIAGNOSIS from the AI, render the lightweight
-  // read-only history view. This component has zero diagnosis/follow-up logic
-  // so it can never re-trigger the diagnosis engine.
+  // Decide rendering mode: if the chat already has a recorded diagnosis,
+  // render the lightweight read-only history view. This component has zero
+  // diagnosis/follow-up logic so it can never re-trigger the diagnosis engine.
   const isCompleted = chat.hasDiagnosis;
 
   if (isCompleted) {
