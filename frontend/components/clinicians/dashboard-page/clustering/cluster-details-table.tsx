@@ -41,10 +41,10 @@ const CLUSTER_THEMES = [
     dot: "bg-[#7eb8e0]",
   },
   {
-    bg: "bg-[#6cc67e]/15",
-    text: "text-[#4aa55c]",
-    border: "border-[#6cc67e]/20",
-    dot: "bg-[#6cc67e]",
+    bg: "bg-[#22c55e]/15",
+    text: "text-[#189e48]",
+    border: "border-[#22c55e]/20",
+    dot: "bg-[#22c55e]",
   },
   {
     bg: "bg-[#b8a0d8]/15",

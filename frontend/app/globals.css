@@ -5,24 +5,24 @@
   name: "light";
   default: true; /* set as default */
   color-scheme: light; /* color of browser-provided UI */
-  --color-base-100: #f6f6f3;
-  --color-base-200: #ededea;
-  --color-base-300: #e4e4e1;
+  --color-base-100: #f8f8f5;
+  --color-base-200: #f4f4f1;
+  --color-base-300: #ebebe8;
   --color-base-content: #4a4a46;
   --color-muted: #8a8a84;
   --color-border: #d8d8d4;
-  --color-primary: #6cc67e;
-  --color-primary-content: #f6f6f3;
+  --color-primary: #22c55e;
+  --color-primary-content: #f8f8f5;
   --color-secondary: #7ec8c8;
-  --color-secondary-content: #f6f6f3;
+  --color-secondary-content: #f8f8f5;
   --color-accent: #5eb5a0;
-  --color-accent-content: #f6f6f3;
+  --color-accent-content: #f8f8f5;
   --color-neutral: #4a4a46;
-  --color-neutral-content: #f6f6f3;
+  --color-neutral-content: #f8f8f5;
   --color-info: oklch(70% 0.165 254.624);
   --color-info-content: #ffffff;
-  --color-success: #6cc67e;
-  --color-success-content: #f6f6f3;
+  --color-success: #22c55e;
+  --color-success-content: #f8f8f5;
   --color-warning: #e8b86d;
   --color-warning-content: #4a4a46;
   --color-error: #e8706a;
@@ -47,7 +47,7 @@
   --color-base-content: #e8e8e4;
   --color-muted: #9a9a94;
   --color-border: #3a4a5e;
-  --color-primary: #6cc67e;
+  --color-primary: #22c55e;
   --color-primary-content: #0B1326;
   --color-secondary: #7ec8c8;
   --color-secondary-content: #0B1326;
@@ -57,7 +57,7 @@
   --color-neutral-content: #e8e8e4;
   --color-info: oklch(70% 0.165 254.624);
   --color-info-content: #ffffff;
-  --color-success: #6cc67e;
+  --color-success: #22c55e;
   --color-success-content: #0B1326;
   --color-warning: #e8b86d;
   --color-warning-content: #0B1326;
