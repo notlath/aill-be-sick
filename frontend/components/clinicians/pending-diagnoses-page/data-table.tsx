@@ -14,7 +14,6 @@ import {
 } from "@tanstack/react-table";
 import { Search, X, Loader2 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { useAction } from "next-safe-action/hooks";
 
@@ -30,6 +29,9 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { PendingDiagnosisRow } from "./columns";
 import { approveDiagnosis, rejectDiagnosis } from "@/actions/verify-diagnosis";
 import { DISEASE_SELECT_OPTIONS } from "@/constants/diseases";
+import { ReportDetailModal } from "../healthcare-reports-page/report-detail-modal";
+import { DiagnosisRow } from "../healthcare-reports-page/columns";
+import { createPortal } from "react-dom";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -64,8 +66,8 @@ export function PendingDiagnosesDataTable<TData, TValue>({
   const [isMounted, setIsMounted] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
-  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
-  const [selectedDiagnosis, setSelectedDiagnosis] = useState<TData | null>(null);
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const [selectedDiagnosis, setSelectedDiagnosis] = useState<PendingDiagnosisRow | null>(null);
   const [selectedDiagnosisId, setSelectedDiagnosisId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState("");
 
@@ -82,8 +84,6 @@ export function PendingDiagnosesDataTable<TData, TValue>({
       }
       if (data?.success) {
         toast.success(data.success as string);
-        // Refresh the page to show updated data
-        window.location.reload();
       }
     },
     onError: () => {
@@ -100,8 +100,6 @@ export function PendingDiagnosesDataTable<TData, TValue>({
       }
       if (data?.success) {
         toast.success(data.success as string);
-        // Refresh the page to show updated data
-        window.location.reload();
       }
     },
     onError: () => {
@@ -193,9 +191,9 @@ export function PendingDiagnosesDataTable<TData, TValue>({
     meta: {
       onApprove: handleApprove,
       onReject: handleReject,
-      openDiagnosisModal: (row: TData) => {
+      openDiagnosisModal: (row: PendingDiagnosisRow) => {
         setSelectedDiagnosis(row);
-        setDetailsModalOpen(true);
+        setReportModalOpen(true);
       },
     },
   });
@@ -526,85 +524,31 @@ export function PendingDiagnosesDataTable<TData, TValue>({
         document.body
       )}
 
-      {/* Details Modal */}
-      {isMounted && createPortal(
-        <dialog className={`modal ${detailsModalOpen ? "modal-open" : ""}`}>
-          <div className="modal-box max-w-2xl">
-            <h3 className="font-bold text-lg mb-4">Diagnosis Details</h3>
-            {selectedDiagnosis && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-base-content/60">Condition</p>
-                    <p className="font-medium">{(selectedDiagnosis as any).disease}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-base-content/60">Patient ID</p>
-                    <p className="font-medium">{(selectedDiagnosis as any).patientId}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-base-content/60">Location</p>
-                    <p className="font-medium">{(selectedDiagnosis as any).district || (selectedDiagnosis as any).barangay || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-base-content/60">Submitted</p>
-                    <p className="font-medium">{new Date((selectedDiagnosis as any).submittedAt).toLocaleString()}</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm text-base-content/60">Symptoms</p>
-                  <p className="text-sm mt-1 p-3 bg-base-200 rounded-lg">{(selectedDiagnosis as any).symptoms}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-base-content/60">Confidence:</p>
-                  <span className={`badge ${(selectedDiagnosis as any).reliability.badgeClass} badge-sm`}>
-                    {(selectedDiagnosis as any).reliability.label}
-                  </span>
-                </div>
-              </div>
-            )}
-            <div className="modal-action">
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  if (selectedDiagnosis) {
-                    handleApprove((selectedDiagnosis as any).id);
-                  }
-                  setDetailsModalOpen(false);
-                  setSelectedDiagnosis(null);
-                }}
-              >
-                Approve
-              </button>
-              <button
-                className="btn btn-outline btn-error"
-                onClick={() => {
-                  if (selectedDiagnosis) {
-                    handleReject((selectedDiagnosis as any).id);
-                  }
-                  setDetailsModalOpen(false);
-                  setSelectedDiagnosis(null);
-                }}
-              >
-                Reject
-              </button>
-              <button
-                className="btn btn-ghost"
-                onClick={() => {
-                  setDetailsModalOpen(false);
-                  setSelectedDiagnosis(null);
-                }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-          <div className="modal-backdrop" onClick={() => {
-            setDetailsModalOpen(false);
+      {/* Report Detail Modal */}
+      {isMounted && selectedDiagnosis && (
+        <ReportDetailModal
+          isOpen={reportModalOpen}
+          onClose={() => {
+            setReportModalOpen(false);
             setSelectedDiagnosis(null);
-          }} />
-        </dialog>,
-        document.body
+          }}
+          report={
+            {
+              id: selectedDiagnosis.id,
+              disease: selectedDiagnosis.disease,
+              confidence: selectedDiagnosis.confidence,
+              uncertainty: selectedDiagnosis.uncertainty,
+              symptoms: selectedDiagnosis.symptoms,
+              userId: selectedDiagnosis.userId,
+              district: selectedDiagnosis.district,
+              barangay: selectedDiagnosis.barangay,
+              createdAt: selectedDiagnosis.submittedAt,
+              notes: selectedDiagnosis.notes,
+            } as DiagnosisRow
+          }
+          onApprove={() => handleApprove(selectedDiagnosis.id)}
+          onReject={() => handleReject(selectedDiagnosis.id)}
+        />
       )}
     </>
   );
