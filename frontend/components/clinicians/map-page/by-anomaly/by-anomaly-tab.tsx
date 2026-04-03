@@ -287,8 +287,8 @@ const ByAnomalyTab = () => {
       if (mapElement) {
         const dataUrl = await domtoimage.toPng(mapElement as HTMLElement, {
           quality: 0.8,
-          filter: (node) => {
-            return !(node.tagName && node.tagName.toLowerCase() === 'link');
+          filter: (node: Node) => {
+            return !(node instanceof Element && node.tagName && node.tagName.toLowerCase() === 'link');
           },
         });
         const img = new Image();
@@ -307,8 +307,8 @@ const ByAnomalyTab = () => {
       if (chartElement) {
         const dataUrl = await domtoimage.toPng(chartElement as HTMLElement, {
           quality: 0.8,
-          filter: (node) => {
-            return !(node.tagName && node.tagName.toLowerCase() === 'link');
+          filter: (node: Node) => {
+            return !(node instanceof Element && node.tagName && node.tagName.toLowerCase() === 'link');
           },
         });
         const img = new Image();
