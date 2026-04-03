@@ -61,8 +61,8 @@
   --color-success-content: #0B1326;
   --color-warning: oklch(82% 0.189 84.429);
   --color-warning-content: #0B1326;
-  --color-error: #EF4444;
-  --color-error-content: #ffffff;
+  --color-error: #ff637d;
+  --color-error-content: #4d0218;
   --radius-selector: 0.25rem;
   --radius-field: 10px;
   --radius-box: 1.25rem;
