@@ -2,7 +2,11 @@ import hashlib
 import os
 import torch
 import torch.nn.functional as F
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, PreTrainedTokenizerFast
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    PreTrainedTokenizerFast,
+)
 from scipy.stats import entropy
 import numpy as np
 import gc
@@ -113,7 +117,9 @@ class MCDClassifierWithSHAP:
         # tokenizer_class (e.g. "TokenizersBackend" instead of a real class).
         # Fall back to PreTrainedTokenizerFast which loads tokenizer.json directly.
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_path, **tokenizer_kwargs)
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                model_path, **tokenizer_kwargs
+            )
         except ValueError as tok_err:
             if "TokenizersBackend" in str(tok_err):
                 print(
@@ -359,7 +365,13 @@ class MCDClassifierWithSHAP:
 
         # 2️⃣ Define a forward function that takes embeddings
         def forward_func(embeds):
-            attention_mask = inputs["attention_mask"]
+            # Dynamically expand attention_mask to match embeds batch size.
+            # GradientSHAP passes embeddings with varying batch sizes (n_samples * baselines),
+            # but inputs["attention_mask"] has shape [1, seq_len]. ModernBERT's sliding window
+            # attention expects the mask batch dim to match the input batch dim.
+            batch_size = embeds.shape[0]
+            attention_mask = inputs["attention_mask"].expand(batch_size, -1)
+
             outputs = self.explanation_model(
                 inputs_embeds=embeds, attention_mask=attention_mask
             )

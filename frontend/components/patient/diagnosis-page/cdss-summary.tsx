@@ -166,12 +166,6 @@ const CDSSSummary = ({
 
   return (
     <>
-      {/* Fonts inherited from layout */}
-      <style>{`
-        .cdss-card { font-family: var(--font-geist-sans), 'Geist Fallback'; }
-        .cdss-card .cdss-heading { font-family: var(--font-geist-sans), 'Geist Fallback'; }
-      `}</style>
-
       <Card className="cdss-card border border-primary/20 bg-base-100 shadow-sm rounded-2xl overflow-hidden">
 
         {/* ── Header ──────────────────────────────────────────────── */}

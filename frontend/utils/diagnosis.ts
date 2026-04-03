@@ -81,6 +81,41 @@ export const getLatestTempDiagnosisByChatId = async (chatId: string) => {
   }
 };
 
+/**
+ * Check if a chat is in a "limbo" state: has a TempDiagnosis and an
+ * Explanation but no permanent Diagnosis record. This can happen if
+ * auto-record fails (e.g. transient DB error). The caller should
+ * attempt recovery by re-running auto-record.
+ */
+export const getTempDiagnosisRecoveryState = async (chatId: string) => {
+  try {
+    const [tempDiagnosis, permanentDiagnosis] = await Promise.all([
+      prisma.tempDiagnosis.findFirst({
+        where: { chatId },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.diagnosis.findUnique({
+        where: { chatId },
+        select: { id: true },
+      }),
+    ]);
+
+    return {
+      success: {
+        needsRecovery: !!tempDiagnosis && !permanentDiagnosis,
+        hasTempDiagnosis: !!tempDiagnosis,
+        hasPermanentDiagnosis: !!permanentDiagnosis,
+      },
+    };
+  } catch (error) {
+    console.error(
+      `Error checking temp diagnosis recovery state for chatId ${chatId}:`,
+      error,
+    );
+    return { error: `Could not check recovery state for chatId ${chatId}` };
+  }
+};
+
 export const getAllDiagnoses = async ({
   skip,
   take,

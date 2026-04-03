@@ -12,21 +12,15 @@ const BACKEND_URL = getBackendUrl();
 
 /**
  * Automatically promotes a TempDiagnosis to a permanent Diagnosis record once
- * a SHAP explanation has been generated. This runs without requiring the user
- * to click "Record diagnosis", preventing the limbo state where a chat has a
- * final AI diagnosis message but no permanent record.
- *
- * AUTO-RECORD THRESHOLD: Only auto-records for high-confidence diagnoses (≥0.95).
- * Low-confidence diagnoses require explicit user consent via manual recording.
+ * a SHAP explanation has been generated. All diagnoses are auto-recorded
+ * regardless of confidence or uncertainty levels, ensuring no diagnosis is
+ * left in a limbo state.
  *
  * GPS coordinates are optional — profile-based location fields (city, province,
  * region, barangay, district) are always sourced from the authenticated user.
  * The full alert pipeline (anomaly + outbreak) runs identically to the manual
  * recording path.
  */
-
-/** Confidence threshold for auto-recording (95%) */
-const AUTO_RECORD_CONFIDENCE_THRESHOLD = 0.95;
 
 export const autoRecordDiagnosis = actionClient
   .inputSchema(AutoRecordDiagnosisSchema)
@@ -60,19 +54,6 @@ export const autoRecordDiagnosis = actionClient
           `[autoRecordDiagnosis] No TempDiagnosis found for chat ${chatId}`,
         );
         return { error: "No pending diagnosis found to record." };
-      }
-
-      // HYBRID APPROACH: Only auto-record high-confidence diagnoses (≥95%)
-      // Low-confidence diagnoses require explicit user consent
-      if (tempDiagnosis.confidence < AUTO_RECORD_CONFIDENCE_THRESHOLD) {
-        console.log(
-          `[autoRecordDiagnosis] Skipping auto-record for low-confidence diagnosis: ${tempDiagnosis.confidence.toFixed(3)} < ${AUTO_RECORD_CONFIDENCE_THRESHOLD}`,
-        );
-        return {
-          success: "Diagnosis requires manual confirmation (low confidence).",
-          requiresManualRecord: true,
-          confidence: tempDiagnosis.confidence,
-        };
       }
 
       // Link the already-generated Explanation (if any) to the new Diagnosis.
@@ -201,7 +182,11 @@ function buildAlertMessage(
     style: "long",
     type: "conjunction",
   });
-  return `A ${severity.toLowerCase()}-priority ${disease} diagnosis requires attention. The case was flagged due to ${formatter.format(validLabels)}.`;
+  const reasons =
+    validLabels.length > 0
+      ? formatter.format(validLabels)
+      : "unrecognized anomalies";
+  return `A ${severity.toLowerCase()}-priority ${disease} diagnosis requires attention. The case was flagged due to ${reasons}.`;
 }
 
 type AlertCheckParams = {

@@ -4,16 +4,11 @@ import { Explanation } from "@/types";
 import { cn } from "@/utils/lib";
 import { ChevronDown, ChevronUp, Info, XCircle } from "lucide-react";
 import { memo, useState } from "react";
-import DiscardDiagnosisBtn from "./discard-diagnosis-btn";
 import InsightsModal from "./insights-modal";
-import RecordDiagnosisBtn from "./record-diagnosis-btn";
 import ViewInsightsBtn from "./view-insights-btn";
 
 type ChatBubbleProps = {
-  messagesLength: number;
-  idx?: number;
   tempDiagnosis?: TempDiagnosis;
-  chatHasDiagnosis?: boolean;
   isGettingExplanations: boolean;
   explanation: Explanation | null;
   userRole?: string;
@@ -66,11 +61,7 @@ const ChatBubble = ({
   content,
   role,
   type,
-  messagesLength,
-  idx,
   tempDiagnosis,
-  chatId,
-  chatHasDiagnosis,
   isGettingExplanations,
   explanation,
   userRole,
@@ -82,11 +73,6 @@ const ChatBubble = ({
   const isInfo = type === "INFO";
   const isDiagnosis = type === "DIAGNOSIS";
 
-  const isLowConfidenceFinal =
-    isDiagnosis &&
-    tempDiagnosis &&
-    (tempDiagnosis.confidence ?? 0) < 0.95;
-
   const canSeeDetails = userRole === "DEVELOPER" || userRole === "CLINICIAN";
   // Clinicians/devs can see raw details on any diagnosis, not only low-confidence ones
   const shouldShowToggle = isDiagnosis && tempDiagnosis && canSeeDetails;
@@ -97,7 +83,7 @@ const ChatBubble = ({
     const tier = getConfidenceTier(confidence);
 
     return (
-      <article className="self-start w-full max-w-[85%] sm:max-w-[60%] break-words rounded-xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
+      <article className="self-start !mb-0 w-full max-w-[85%] sm:max-w-[60%] break-words rounded-xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
         {/* Header strip */}
         <div className="flex items-center gap-2 px-4 py-2.5 bg-base-200 border-b border-base-300">
           <span className="text-base-content/50">
@@ -187,27 +173,6 @@ const ChatBubble = ({
 
         {/* Action buttons */}
         <div className="px-4 pb-4">
-          {isLowConfidenceFinal && (
-            <div className="flex gap-2 mb-2">
-              <RecordDiagnosisBtn
-                disabled={
-                  chatHasDiagnosis ||
-                  !tempDiagnosis ||
-                  messagesLength - 1 !== idx
-                }
-                tempDiagnosis={tempDiagnosis}
-                chatId={chatId}
-              />
-              <DiscardDiagnosisBtn
-                chatId={chatId}
-                disabled={
-                  chatHasDiagnosis ||
-                  !tempDiagnosis ||
-                  messagesLength - 1 !== idx
-                }
-              />
-            </div>
-          )}
           <ViewInsightsBtn disabled={isGettingExplanations || !explanation} />
         </div>
 

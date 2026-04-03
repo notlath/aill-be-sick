@@ -41,14 +41,14 @@ When a patient submits symptoms and a diagnosis is confirmed:
 ┌──────────────────────┐
 │  Patient Browser     │
 │  /diagnosis          │
-│  createDiagnosis()   │
+│  autoRecordDiagnosis │
 └──────────┬───────────┘
            │ next-safe-action (Server Action)
            ▼
 ┌──────────────────────┐     ┌──────────────────────┐
 │  Next.js Server      │────▶│  PostgreSQL           │
-│  create-diagnosis.ts │     │  Diagnosis table      │
-│                      │     │  (Prisma INSERT)      │
+│  auto-record-        │     │  Diagnosis table      │
+│  diagnosis.ts        │     │  (Prisma INSERT)      │
 └──────────┬───────────┘     └──────────────────────┘
            │ fire-and-forget (.catch)
            ▼
@@ -236,7 +236,7 @@ frontend/
 │   ├── AlertNoteSchema.ts                    # Zod schema for creating a note
 │   └── UpdateAlertNoteSchema.ts              # Zod schema for editing a note
 ├── actions/
-│   ├── create-diagnosis.ts                   # Modified: fires checkAndCreateAlert()
+│   ├── auto-record-diagnosis.ts              # Modified: fires checkAndCreateAlert()
 │   ├── create-alert.ts                       # next-safe-action: creates an Alert
 │   ├── acknowledge-alert.ts                  # next-safe-action: sets ACKNOWLEDGED
 │   ├── dismiss-alert.ts                      # next-safe-action: sets DISMISSED
@@ -341,11 +341,11 @@ export type AlertMetadata = {
 
 ## Component Architecture
 
-### 1. `create-diagnosis.ts` — Diagnosis Action (Modified)
+### 1. `auto-record-diagnosis.ts` — Diagnosis Action (Modified)
 
-**Location**: `frontend/actions/create-diagnosis.ts`
+**Location**: `frontend/actions/auto-record-diagnosis.ts`
 
-The existing diagnosis creation action was extended to call `checkAndCreateAlert()` as a fire-and-forget operation after the diagnosis is successfully persisted:
+The auto-record diagnosis action calls `checkAndCreateAlert()` as a fire-and-forget operation after the diagnosis is successfully persisted:
 
 ```typescript
 // Non-blocking — diagnosis success is never conditional on alert creation
@@ -660,7 +660,7 @@ This means that whenever `addNote()` or `editNote()` updates the store and `data
 
 #### `create-alert.ts`
 
-A `next-safe-action` action for manually creating alerts (e.g. from tests or future admin tools). In the automated pipeline, `checkAndCreateAlert()` in `create-diagnosis.ts` writes directly via Prisma to avoid a nested server-action round-trip.
+A `next-safe-action` action for manually creating alerts (e.g. from tests or future admin tools). In the automated pipeline, `checkAndCreateAlert()` in `auto-record-diagnosis.ts` writes directly via Prisma to avoid a nested server-action round-trip.
 
 ```typescript
 export const createAlert = actionClient

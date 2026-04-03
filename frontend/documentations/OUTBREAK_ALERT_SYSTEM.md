@@ -393,7 +393,7 @@ The core logic resides in the Flask backend. It fetches data through the `illnes
 - `OUTBREAK:VOL_SPIKE`: Sudden increase in volume where no historical baseline exists.
 
 ### Frontend: Alert Pipeline
-The system is triggered via a Server Action in `frontend/actions/create-diagnosis.ts`.
+The system is triggered via a Server Action in `frontend/actions/auto-record-diagnosis.ts`.
 
 ```typescript
 // Triggered in the background after every diagnosis
