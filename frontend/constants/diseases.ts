@@ -21,7 +21,6 @@ export type DiseaseValue =
   | "DENGUE"
   | "PNEUMONIA"
   | "TYPHOID"
-  | "IMPETIGO"
   | "DIARRHEA"
   | "MEASLES"
   | "INFLUENZA";
@@ -30,7 +29,6 @@ export type DiseaseDisplayName =
   | "Dengue"
   | "Pneumonia"
   | "Typhoid"
-  | "Impetigo"
   | "Diarrhea"
   | "Measles"
   | "Influenza";
@@ -111,19 +109,6 @@ export const DISEASES: DiseaseMetadata[] = [
       text: "text-amber-600",
       border: "border-amber-200",
       badge: "bg-amber-100 text-amber-700 border-amber-200",
-    },
-  },
-  {
-    name: "Impetigo",
-    value: "IMPETIGO",
-    endemic: false,
-    endemicDescription: "Common bacterial skin infection, not endemic",
-    severityLevel: "low",
-    colorTheme: {
-      bg: "bg-orange-500/10",
-      text: "text-orange-600",
-      border: "border-orange-200",
-      badge: "bg-orange-100 text-orange-700 border-orange-200",
     },
   },
   {

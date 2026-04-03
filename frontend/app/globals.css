@@ -13,7 +13,7 @@
   --color-border: #e7e7e7;
   --color-primary: #22C55E;
   --color-primary-content: #FFFFFF;
-  --color-secondary: #10B981;
+  --color-secondary: #22C55E;
   --color-secondary-content: #FFFFFF;
   --color-accent: #059669;
   --color-accent-content: #FFFFFF;
@@ -21,7 +21,7 @@
   --color-neutral-content: #FFFFFF;
   --color-info: oklch(70% 0.165 254.624);
   --color-info-content: #ffffff;
-  --color-success: #10B981;
+  --color-success: #22C55E;
   --color-success-content: #FFFFFF;
   --color-warning: #F59E0B;
   --color-warning-content: #191C1C;

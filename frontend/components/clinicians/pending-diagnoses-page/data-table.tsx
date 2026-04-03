@@ -12,7 +12,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { Search, X, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Search, X, Loader2 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { PendingDiagnosisRow } from "./columns";
 import { approveDiagnosis, rejectDiagnosis } from "@/actions/verify-diagnosis";
+import { DISEASE_SELECT_OPTIONS } from "@/constants/diseases";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -201,14 +202,6 @@ export function PendingDiagnosesDataTable<TData, TValue>({
 
   const pageSizeOptions = useMemo(() => [10, 25, 50, 100], []);
 
-  const uniqueDiseases = useMemo(() => {
-    const diseases = new Set<string>();
-    (data as PendingDiagnosisRow[]).forEach((item) => {
-      if (item.disease) diseases.add(item.disease);
-    });
-    return Array.from(diseases).sort();
-  }, [data]);
-
   const handleSortChange = (value: string) => {
     const option = sortOptions.find((opt) => opt.label === value);
     if (option) {
@@ -295,7 +288,7 @@ export function PendingDiagnosesDataTable<TData, TValue>({
               <Select
                 value={selectedDisease}
                 onValueChange={(value) => {
-                  setSelectedDisease(value === "__all__" ? "" : value);
+                  setSelectedDisease(value === "all" ? "" : value);
                   table.setPageIndex(0);
                 }}
                 className="w-auto"
@@ -304,10 +297,9 @@ export function PendingDiagnosesDataTable<TData, TValue>({
                   <SelectValue placeholder="All Diseases" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__all__">All Diseases</SelectItem>
-                  {uniqueDiseases.map((disease) => (
-                    <SelectItem key={disease} value={disease}>
-                      {disease}
+                  {DISEASE_SELECT_OPTIONS.map((disease) => (
+                    <SelectItem key={disease.value} value={disease.value}>
+                      {disease.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

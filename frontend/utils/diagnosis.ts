@@ -2,6 +2,7 @@
 
 import prisma from "@/prisma/prisma";
 import { cacheLife, cacheTag } from "next/cache";
+import { RELIABILITY_THRESHOLDS } from "@/constants/reliability-thresholds";
 
 // Base diagnosis select - always includes these fields
 const diagnosisWithUserSelect = {
@@ -439,5 +440,59 @@ export const getDiagnosesWithCoordinates = async (
     return {
       error: `Could not fetch diagnoses with coordinates for disease ${disease}`,
     };
+  }
+};
+
+/**
+ * Get the count of diagnoses verified within a specific date range.
+ */
+export const getVerifiedTodayCount = async (
+  startOfDay: Date,
+  endOfDay: Date,
+) => {
+  try {
+    const count = await prisma.diagnosis.count({
+      where: {
+        status: "VERIFIED",
+        verifiedAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      } as any,
+    });
+
+    return { success: count };
+  } catch (error) {
+    console.error(`Error fetching verified today count: ${error}`);
+    return { error: `Error fetching verified today count: ${error}` };
+  }
+};
+
+/**
+ * Get the count of pending diagnoses with low reliability
+ * (Review Recommended or Expert Review Needed).
+ */
+export const getLowReliabilityPendingCount = async () => {
+  try {
+    const diagnoses = await prisma.diagnosis.findMany({
+      where: { status: "PENDING" } as any,
+      select: { confidence: true, uncertainty: true },
+    });
+
+    let lowReliabilityCount = 0;
+    for (const d of diagnoses) {
+      const { confidence, uncertainty } = d;
+      const isReliable =
+        confidence >= RELIABILITY_THRESHOLDS.reliable.minConfidence &&
+        uncertainty < RELIABILITY_THRESHOLDS.reliable.maxUncertainty;
+      if (!isReliable) {
+        lowReliabilityCount++;
+      }
+    }
+
+    return { success: lowReliabilityCount };
+  } catch (error) {
+    console.error(`Error fetching low reliability count: ${error}`);
+    return { error: `Error fetching low reliability count: ${error}` };
   }
 };

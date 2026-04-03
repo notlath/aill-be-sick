@@ -6,6 +6,7 @@ import { getCurrentDbUser } from "@/utils/user";
 import axios, { AxiosError } from "axios";
 import { actionClient } from "./client";
 import { createMessage } from "./create-message";
+import { RELIABILITY_THRESHOLDS } from "@/constants/reliability-thresholds";
 
 const BACKEND_URL = getBackendUrl();
 const DIAGNOSIS_TIMEOUT_MS = 30000;
@@ -86,7 +87,7 @@ export const runDiagnosis = actionClient
 
       // Check if diagnosis is confident enough OR backend says to skip follow-up
       const isConfident =
-        skip_followup || (confidence >= 0.9 && uncertainty <= 0.03);
+        skip_followup || (confidence >= RELIABILITY_THRESHOLDS.reliable.minConfidence && uncertainty <= RELIABILITY_THRESHOLDS.reliable.maxUncertainty);
 
       const transformedModelUsed = model_used
         ? model_used.toUpperCase().replace(/\s+/g, "_")
@@ -96,7 +97,7 @@ export const runDiagnosis = actionClient
       if (isConfident && !skipMessage) {
         let diagnosisMessage = "";
 
-        if (uncertainty <= 0.03 && confidence >= 0.9) {
+        if (uncertainty < RELIABILITY_THRESHOLDS.reliable.maxUncertainty && confidence >= RELIABILITY_THRESHOLDS.reliable.minConfidence) {
           // Safe
           diagnosisMessage = `
 Based on your symptom description, you might be experiencing: **${pred}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
@@ -119,7 +120,7 @@ A high confidence score (${(confidence * 100).toFixed(
 
 Do you want to record this diagnosis?
                 `;
-        } else if (uncertainty > 0.03 && confidence < 0.9) {
+        } else if (uncertainty > RELIABILITY_THRESHOLDS.reliable.maxUncertainty && confidence < RELIABILITY_THRESHOLDS.reliable.minConfidence) {
           // Escalate to clinician
           diagnosisMessage = `
 Based on your symptom description, you might be experiencing: **${pred}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
@@ -142,7 +143,7 @@ A low confidence score (${(confidence * 100).toFixed(
 
 Do you want to record this diagnosis?
                 `;
-        } else if (uncertainty > 0.03 && confidence >= 0.9) {
+        } else if (uncertainty > RELIABILITY_THRESHOLDS.reliable.maxUncertainty && confidence >= RELIABILITY_THRESHOLDS.reliable.minConfidence) {
           // Potential distribution shift
           diagnosisMessage = `
 Based on your symptom description, you might be experiencing: **${pred}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
@@ -165,7 +166,7 @@ A high confidence score (${(confidence * 100).toFixed(
 
 Do you want to record this diagnosis?
                 `;
-        } else if (uncertainty <= 0.03 && confidence < 0.9) {
+        } else if (uncertainty <= RELIABILITY_THRESHOLDS.reliable.maxUncertainty && confidence < RELIABILITY_THRESHOLDS.reliable.minConfidence) {
           // Ambiguous case, the model doesn't know and knows that it doesn't know
           diagnosisMessage = `
 Based on your symptom description, you might be experiencing: **${pred}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
