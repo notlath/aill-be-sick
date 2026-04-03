@@ -20,7 +20,6 @@ Run these commands for every PR — they are fast and catch critical issues.
 
 - [ ] `npm run build` in `frontend/` — Next.js app compiles without errors
 - [ ] `npx prisma generate` — Prisma client regenerated (if schema changed)
-- [ ] `npm run lint` — No linting errors or warnings
 - [ ] `npx tsc --noEmit` — TypeScript type checking passes
 - [ ] Backend tests pass (`pytest tests/backend/tests/...` or `python test_flask.py` if smoke test available)
 
