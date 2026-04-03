@@ -29,6 +29,9 @@ import AnomalyPatientsModal from "./anomaly-patients-modal";
 import { AnomalyTimelineChart } from "../anomaly-timeline-chart";
 import AnomalySummary from "./anomaly-summary";
 import TopCriticalAnomalies from "./top-critical-anomalies";
+import { getSurveillanceExportData, type SurveillanceExportData } from "@/utils/report-export";
+import { ExportReportButton } from "@/components/ui/export-report-button";
+import { PdfImage } from "@/utils/pdf-export";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), {
   ssr: false,
@@ -270,6 +273,102 @@ const ByAnomalyTab = () => {
   const isMapLoading =
     loading || (view === "district" && (geoLoading || !geoData));
 
+  const captureImages = async () => {
+    const domtoimage = (await import('dom-to-image-more')).default;
+    const images: PdfImage[] = [];
+
+    // Suppress console errors during capture
+    const originalConsoleError = console.error;
+    console.error = () => {};
+
+    try {
+      // Capture map
+      const mapElement = document.querySelector('[data-surveillance-map]');
+      if (mapElement) {
+        const dataUrl = await domtoimage.toPng(mapElement as HTMLElement, {
+          quality: 0.8,
+          filter: (node: Node) => {
+            return !(node instanceof Element && node.tagName && node.tagName.toLowerCase() === 'link');
+          },
+        });
+        const img = new Image();
+        img.src = dataUrl;
+        await new Promise(resolve => img.onload = resolve);
+        images.push({
+          dataUrl,
+          width: img.width,
+          height: img.height,
+          title: 'Anomaly Surveillance Map',
+        });
+      }
+
+      // Capture chart
+      const chartElement = document.querySelector('[data-surveillance-chart]');
+      if (chartElement) {
+        const dataUrl = await domtoimage.toPng(chartElement as HTMLElement, {
+          quality: 0.8,
+          filter: (node: Node) => {
+            return !(node instanceof Element && node.tagName && node.tagName.toLowerCase() === 'link');
+          },
+        });
+        const img = new Image();
+        img.src = dataUrl;
+        await new Promise(resolve => img.onload = resolve);
+        images.push({
+          dataUrl,
+          width: img.width,
+          height: img.height,
+          title: 'Anomaly Timeline Chart',
+        });
+      }
+    } finally {
+      console.error = originalConsoleError;
+    }
+
+    return images;
+  };
+
+  const exportInfo = useMemo(() => {
+    const stats: Record<string, unknown> = view === "district"
+      ? districtStats
+      : {
+          totalAnomalies: anomalies.length,
+          normalDiagnosesCount: normalDiagnoses.length,
+          uniqueLocations,
+        };
+
+    const additionalData: Record<string, unknown> = {
+      anomalies: anomalies.map(a => ({
+        id: a.id,
+        disease: a.disease,
+        district: a.district,
+        latitude: a.latitude,
+        longitude: a.longitude,
+        createdAt: a.createdAt,
+        anomaly_score: a.anomaly_score,
+      })),
+      normal: normalDiagnoses.map(n => ({
+        id: n.id,
+        disease: n.disease,
+        district: n.district,
+        latitude: n.latitude,
+        longitude: n.longitude,
+        createdAt: n.createdAt,
+      })),
+    };
+
+    const exportData: SurveillanceExportData = {
+      tab: "by-anomaly",
+      disease: selectedDisease,
+      view,
+      dateRange: { start: startDate, end: endDate },
+      stats,
+      additionalData,
+    };
+
+    return getSurveillanceExportData(exportData);
+  }, [view, districtStats, anomalies, normalDiagnoses, uniqueLocations, selectedDisease, startDate, endDate]);
+
   return (
     <div className="space-y-4">
       {/* Controls */}
@@ -289,6 +388,18 @@ const ByAnomalyTab = () => {
         />
       </div>
 
+      <div className="flex justify-end">
+        <ExportReportButton
+          data={exportInfo.data}
+          columns={exportInfo.columns}
+          filenameSlug={exportInfo.filenameSlug}
+          title={exportInfo.title}
+          subtitle={exportInfo.subtitle}
+          disabled={loading}
+          images={captureImages}
+        />
+      </div>
+
       {/* Error state */}
       {!loading && (error || geoError) ? (
         <Card className="col-span-2 border-red-200/50 bg-red-50/50">
@@ -305,7 +416,7 @@ const ByAnomalyTab = () => {
       ) : null}
 
       {/* Map */}
-      <div>
+      <div data-surveillance-map suppressHydrationWarning>
         <Card>
           <CardContent className="p-8">
             {isMapLoading ? (
@@ -373,7 +484,7 @@ const ByAnomalyTab = () => {
       </div>
 
       {/* Timeline */}
-      <div className="mt-6">
+      <div className="mt-6" data-surveillance-chart suppressHydrationWarning>
         {loading ? (
           <TimelineSkeleton />
         ) : (
