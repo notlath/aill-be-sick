@@ -5,7 +5,6 @@ import { useAction } from "next-safe-action/hooks";
 import {
   Download,
   X,
-  Trash2,
   FileText,
   ExternalLink,
   AlertTriangle,
@@ -13,7 +12,6 @@ import {
 } from "lucide-react";
 import { dataExport } from "@/actions/data-export";
 import { withdrawConsent } from "@/actions/withdraw-consent";
-import { deleteAccount } from "@/actions/delete-account";
 import type { User, AuditLog } from "@/lib/generated/prisma";
 import Link from "next/link";
 
@@ -43,6 +41,7 @@ export default function PrivacyRightsContent({
         }
       },
     });
+
   const { execute: executeWithdraw, status: withdrawStatus } =
     useAction(withdrawConsent, {
       onSuccess: ({ data }) => {
@@ -51,19 +50,8 @@ export default function PrivacyRightsContent({
         }
       },
     });
-  const { execute: executeDelete, status: deleteStatus } =
-    useAction(deleteAccount, {
-      onSuccess: ({ data }) => {
-        if (data?.success) {
-          setShowDeleteModal(false);
-          window.location.href = "/";
-        }
-      },
-    });
 
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletePassword, setDeletePassword] = useState("");
 
   const handleExport = () => {
     executeExport({ format: "json" });
@@ -71,10 +59,6 @@ export default function PrivacyRightsContent({
 
   const handleWithdraw = () => {
     setShowWithdrawModal(true);
-  };
-
-  const handleDelete = () => {
-    setShowDeleteModal(true);
   };
 
   return (
@@ -230,8 +214,7 @@ export default function PrivacyRightsContent({
         <div className="card-body">
           <h2 className="card-title">Your Privacy Actions</h2>
           <p className="text-base-content/70 text-sm">
-            Use these buttons to download your data, change your consent, or
-            delete your account.
+            Use these buttons to download your data or manage your consent.
           </p>
           <div className="flex flex-wrap gap-4 mt-2">
             <button
@@ -255,16 +238,6 @@ export default function PrivacyRightsContent({
                 : !user.privacyAcceptedAt && !user.termsAcceptedAt
                   ? "Consent Withdrawn"
                   : "Withdraw Consent"}
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleteStatus === "executing"}
-              className="btn btn-error flex items-center gap-2"
-            >
-              <Trash2 size={16} />
-              {deleteStatus === "executing"
-                ? "Deleting..."
-                : "Delete My Account"}
             </button>
           </div>
         </div>
@@ -302,63 +275,6 @@ export default function PrivacyRightsContent({
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   "Withdraw Consent"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Account Modal */}
-      {showDeleteModal && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-6 h-6 text-error" />
-              <h3 className="font-bold text-lg">Delete Account</h3>
-            </div>
-            <p className="text-sm text-base-content/70 mb-4">
-              This action cannot be undone. Your account will be permanently
-              deleted and all data will be anonymized. Medical records will be
-              retained for legal compliance but anonymized.
-            </p>
-            <div className="space-y-4 mb-4">
-              <div>
-                <label className="label">
-                  <span className="label-text">
-                    Enter your password to confirm
-                  </span>
-                </label>
-                <input
-                  type="password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  placeholder="Password"
-                  className="input input-bordered w-full"
-                />
-              </div>
-            </div>
-            <div className="modal-action">
-              <button
-                className="btn btn-ghost"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeletePassword("");
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-error"
-                disabled={!deletePassword || deleteStatus === "executing"}
-                onClick={() => {
-                  executeDelete({ password: deletePassword });
-                }}
-              >
-                {deleteStatus === "executing" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "Delete Account"
                 )}
               </button>
             </div>

@@ -19,7 +19,6 @@ import {
   Shield,
   AlertTriangle,
   CheckCircle,
-  Clock,
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -30,7 +29,6 @@ import {
   updateProfileLocation,
 } from "@/actions/update-profile";
 import { dataExport } from "@/actions/data-export";
-import { deleteAccount } from "@/actions/delete-account";
 import { withdrawConsent } from "@/actions/withdraw-consent";
 import { Input } from "@/components/ui/input";
 import {
@@ -134,8 +132,6 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
   const [birthday, setBirthday] = useState(initialUser.birthday || "");
 
   // Privacy states
-  const [deletePassword, setDeletePassword] = useState("");
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   const {
@@ -320,25 +316,6 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
       },
       onError: () => {
         toast.error("Failed to export data");
-      },
-    },
-  );
-
-  const { execute: executeDeleteAccount, isExecuting: isDeleting } = useAction(
-    deleteAccount,
-    {
-      onSuccess: ({ data }) => {
-        if (data?.success) {
-          toast.success("Account deleted successfully");
-          setShowDeleteModal(false);
-          setDeletePassword("");
-          window.location.href = "/";
-        } else if (data?.error) {
-          toast.error(data.error);
-        }
-      },
-      onError: () => {
-        toast.error("Failed to delete account");
       },
     },
   );
@@ -827,7 +804,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           {/* Export Data */}
           <div className="card bg-base-100 border border-border">
             <div className="card-body p-4">
@@ -876,87 +853,8 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
               </Link>
             </div>
           </div>
-
-          {/* Delete Account */}
-          <div className="card bg-base-100 border border-border">
-            <div className="card-body p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-error/10 flex items-center justify-center">
-                  <Trash2 className="w-4 h-4 text-error" />
-                </div>
-                <h3 className="card-title text-sm">Delete Account</h3>
-              </div>
-              <p className="text-xs text-muted mb-4">
-                Permanently delete your account and anonymize all associated
-                data.
-              </p>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="btn btn-error btn-sm w-full"
-              >
-                Delete Account
-              </button>
-            </div>
-          </div>
         </div>
       </section>
-
-      {/* Delete Account Modal */}
-      {showDeleteModal && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-6 h-6 text-error" />
-              <h3 className="font-bold text-lg">Delete Account</h3>
-            </div>
-            <p className="py-4 text-sm">
-              This action cannot be undone. Your account will be permanently
-              deleted and all data will be anonymized. Medical records will be
-              retained for legal compliance but anonymized.
-            </p>
-            <div className="space-y-4">
-              <div>
-                <label className="label">
-                  <span className="label-text">
-                    Enter your password to confirm
-                  </span>
-                </label>
-                <Input
-                  type="password"
-                  value={deletePassword}
-                  onChange={(e) => setDeletePassword(e.target.value)}
-                  placeholder="Password"
-                  className="w-full"
-                />
-              </div>
-            </div>
-            <div className="modal-action">
-              <button
-                className="btn btn-ghost"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeletePassword("");
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-error"
-                disabled={!deletePassword || isDeleting}
-                onClick={() => {
-                  executeDeleteAccount({ password: deletePassword });
-                }}
-              >
-                {isDeleting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "Delete Account"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Withdraw Consent Modal */}
       {showWithdrawModal && (

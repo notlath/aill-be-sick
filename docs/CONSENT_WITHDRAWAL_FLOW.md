@@ -140,3 +140,122 @@ flowchart TD
 8. Backend permanently deletes the account and anonymizes data
 9. On success: cache tags are invalidated and paths (`/`, `/diagnosis`, `/profile`) are revalidated
 10. Modal closes and user is redirected to the home page via `window.location.href = "/"`
+
+---
+
+## Clinician-Initiated Patient Deletion Flow (with Grace Period)
+
+### Scheduling Deletion
+
+```mermaid
+flowchart TD
+    A[Clinician navigates to patient detail page] --> B{Patient already scheduled?}
+    B -->|Yes| C[Show scheduled alert + restore option]
+    B -->|No| D[Show Danger Zone card]
+
+    D --> E[Clinician clicks Delete Account]
+    E --> F[Modal opens with reason textarea]
+    F --> G[Clinician enters reason]
+    G --> H[Clinician confirms Schedule Deletion]
+
+    H --> I[schedulePatientDeletion Server Action]
+    I --> J[ScheduleDeletionSchema validates]
+    J --> K[POST /api/user/schedule-deletion]
+
+    K --> L{Requester has CLINICIAN/ADMIN/DEVELOPER role?}
+    L -->|No| M[Return error: Permission denied]
+    L -->|Yes| N{Patient exists and not already scheduled?}
+
+    N -->|No| O[Return error]
+    N -->|Yes| P[Calculate scheduledDeletionAt = now + GRACE_PERIOD_DAYS]
+
+    P --> Q[Insert DeletionSchedule record]
+    Q --> R[Invalidate patient sessions via Supabase Admin API]
+    R --> S[Create AuditLog: SCHEDULE_DELETION]
+    S --> T[revalidatePath /users and /users/patientId]
+
+    T --> U[Patient sees Grace Period Banner on next login]
+    U --> V[30-day grace period countdown begins]
+
+    style A fill:#3b82f6,color:#fff
+    style E fill:#f9d71c,color:#000
+    style K fill:#ff6b6b,color:#fff
+    style U fill:#ff6b6b,color:#fff
+    style V fill:#4ecdc4,color:#000
+```
+
+### Patient Grace Period Response
+
+```mermaid
+flowchart TD
+    A[Patient logs in during grace period] --> B[GracePeriodBanner renders at top of page]
+    B --> C{Patient choice}
+
+    C -->|Keep My Account| D[patientChooseDeletionOutcome action: restore]
+    C -->|Continue with Deletion| E[patientChooseDeletionOutcome action: confirm]
+
+    D --> F[POST /api/user/restore-deletion]
+    F --> G{Requester is scheduling clinician or ADMIN/DEVELOPER?}
+    G -->|No| H[Return error]
+    G -->|Yes| I[Update status to RESTORED, set restoredAt]
+    I --> J[Create AuditLog: RESTORE_DELETION]
+    J --> K[revalidatePath, page reloads]
+    K --> L[Account fully restored, banner removed]
+
+    E --> M[Set scheduledDeletionAt = now]
+    M --> N[Triggers immediate anonymization on next cron run]
+    N --> O[Patient redirected, account pending anonymization]
+
+    style A fill:#3b82f6,color:#fff
+    style B fill:#ff6b6b,color:#fff
+    style D fill:#4ecdc4,color:#000
+    style E fill:#ff6b6b,color:#fff
+    style L fill:#4ecdc4,color:#000
+    style O fill:#ff6b6b,color:#fff
+```
+
+### Automated Anonymization (Cron / CLI)
+
+```mermaid
+flowchart TD
+    A[Cron job runs daily at midnight OR CLI script executed] --> B[POST /api/user/anonymize-scheduled]
+
+    B --> C[Find all DeletionSchedule where status=SCHEDULED and scheduledDeletionAt <= now]
+    C --> D{Any expired schedules?}
+
+    D -->|No| E[Log: No expired schedules, exit]
+    D -->|Yes| F[For each expired schedule, run anonymization]
+
+    F --> G[Update User: clear PII fields, set email to deleted_X@anonymous.com]
+    G --> H[Update Diagnoses: clear location data]
+    H --> I[Delete all patient chats]
+    I --> J[Update DeletionSchedule: status=ANONYMIZED, set anonymizedAt]
+    J --> K[Create AuditLog: ANONYMIZE_ACCOUNT]
+    K --> L[Log success, continue to next]
+
+    L --> M{More schedules?}
+    M -->|Yes| F
+    M -->|No| N[Done, log summary]
+
+    style A fill:#3b82f6,color:#fff
+    style B fill:#ff6b6b,color:#fff
+    style G fill:#ff6b6b,color:#fff
+    style J fill:#4ecdc4,color:#000
+    style N fill:#4ecdc4,color:#000
+```
+
+### Key Behaviors
+
+| Scenario | Behavior |
+|----------|----------|
+| Patient submits symptoms during grace period | Allowed, banner shows on every page |
+| Clinician who scheduled deletion is inactive | ADMIN or DEVELOPER can restore |
+| GRACE_PERIOD_DAYS=0 | Immediate anonymization (demo mode) |
+| Multiple schedules for same patient | Prevented by unique constraint on userId |
+| Patient confirms deletion early | scheduledDeletionAt set to now, anonymizes on next cron run |
+
+### Clinician UI Components
+
+- **Users List Page**: "Pending Deletion" tab with badge count showing patients scheduled for deletion
+- **User Detail Page**: Danger Zone card with delete modal (active patients) or warning alert with restore button (scheduled patients)
+- **Patient Layout**: Grace period banner with "Keep My Account" and "Continue with Deletion" options
