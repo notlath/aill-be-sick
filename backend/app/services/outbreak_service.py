@@ -86,19 +86,30 @@ def find_optimal_clusters(data):
             
     return best_k
 
-def detect_outbreaks(db_url=None):
+def detect_outbreaks(db_url=None, reference_now=None):
     """
     Main entry point for outbreak detection.
     Analyzes recent diagnoses (last 7 days) against 30-day historical baselines.
+
+    Args:
+        db_url: Optional database URL
+        reference_now: Optional fixed datetime for testing (defaults to datetime.now())
     """
+    if reference_now is None:
+        reference_now = datetime.now()
+
     # 1. Fetch historical data (last 37 days to have 30 days of baseline + 7 days of analysis)
-    end_date = datetime.now()
+    end_date = reference_now
     start_date = end_date - timedelta(days=37)
     
     encoded_data, illness_info = fetch_diagnosis_data(
         db_url=db_url,
         start_date=start_date.strftime("%Y-%m-%d"),
-        end_date=end_date.strftime("%Y-%m-%d")
+        end_date=end_date.strftime("%Y-%m-%d"),
+        include_coordinates=True,
+        include_age=False,
+        include_gender=False,
+        include_district=False,
     )
     
     if len(illness_info) < 5:
@@ -106,8 +117,16 @@ def detect_outbreaks(db_url=None):
 
     # 2. Split into baseline (last 37 to 8 days) and analysis (last 7 days)
     analysis_cutoff = end_date - timedelta(days=7)
-    baseline_diagnoses = [d for d in illness_info if datetime.fromisoformat(d['diagnosed_at']) < analysis_cutoff]
-    recent_diagnoses = [d for d in illness_info if datetime.fromisoformat(d['diagnosed_at']) >= analysis_cutoff]
+
+    def _parse_diagnosed_at(d):
+        """Parse diagnosed_at from ISO string or return datetime directly."""
+        val = d['diagnosed_at']
+        if isinstance(val, str):
+            return datetime.fromisoformat(val)
+        return val  # Already a datetime object
+
+    baseline_diagnoses = [d for d in illness_info if _parse_diagnosed_at(d) < analysis_cutoff]
+    recent_diagnoses = [d for d in illness_info if _parse_diagnosed_at(d) >= analysis_cutoff]
     
     if not recent_diagnoses:
         return []
@@ -173,8 +192,13 @@ def detect_outbreaks(db_url=None):
                 }
             })
 
-    # 5. Cluster-based detection (K-Means)
-    recent_indices = [i for i, d in enumerate(illness_info) if datetime.fromisoformat(d['diagnosed_at']) >= analysis_cutoff]
+    # 5. Cluster-based detection (K-Means on geographic coordinates)
+    recent_indices = [
+        i for i, d in enumerate(illness_info)
+        if _parse_diagnosed_at(d) >= analysis_cutoff
+        and d['latitude'] is not None
+        and d['longitude'] is not None
+    ]
     if len(recent_indices) >= 5:
         recent_encoded = encoded_data[recent_indices]
         recent_info = [illness_info[i] for i in recent_indices]

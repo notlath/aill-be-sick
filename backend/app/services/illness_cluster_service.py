@@ -13,6 +13,7 @@ def fetch_diagnosis_data(
     include_age=True,
     include_gender=True,
     include_district=True,
+    include_coordinates=False,
     include_time=False,
     diagnosis_month=None,
     diagnosis_week=None,
@@ -22,21 +23,19 @@ def fetch_diagnosis_data(
     """
     Fetch diagnosis data from PostgreSQL database with linked patient demographics.
     Uses DATABASE_URL environment variable if db_url not provided.
-    
+
     Args:
         db_url: Optional database URL
         include_age: Include age in clustering features
         include_gender: Include gender in clustering features
-        include_city: Include city in clustering features
-        include_province: Include province in clustering features
-        include_barangay: Include barangay in clustering features
-        include_region: Include region in clustering features
+        include_district: Include district in clustering features
+        include_coordinates: Include latitude/longitude in clustering features (for geographic clustering)
         include_time: Include time-based features
         diagnosis_month: Filter by single month (YYYY-MM format)
         diagnosis_week: Filter by ISO week (YYYY-Www format)
         start_date: Start of date range filter (YYYY-MM-DD format) - use with end_date
         end_date: End of date range filter (YYYY-MM-DD format) - use with start_date
-    
+
     Returns: tuple of (encoded_data, illness_info)
         - encoded_data: numpy array for clustering
         - illness_info: list of dicts with diagnosis and patient details
@@ -170,6 +169,23 @@ def fetch_diagnosis_data(
     if include_district:
         district_values = sorted({(row[8] or "UNKNOWN") for row in data})
 
+    # Pre-compute coordinate normalization bounds (for geographic clustering)
+    coord_bounds = None
+    if include_coordinates:
+        valid_coords = [(row[9], row[10]) for row in data if row[9] is not None and row[10] is not None]
+        if valid_coords:
+            lats = [c[0] for c in valid_coords]
+            lngs = [c[1] for c in valid_coords]
+            min_lat, max_lat = min(lats), max(lats)
+            min_lng, max_lng = min(lngs), max(lngs)
+            # Avoid division by zero if all points are at same location
+            lat_range = max_lat - min_lat if max_lat != min_lat else 1.0
+            lng_range = max_lng - min_lng if max_lng != min_lng else 1.0
+            coord_bounds = {
+                "min_lat": min_lat, "max_lat": max_lat, "lat_range": lat_range,
+                "min_lng": min_lng, "max_lng": max_lng, "lng_range": lng_range,
+            }
+
     # Encode data for clustering and store illness info
     encoded_data = []
     illness_info = []
@@ -225,7 +241,7 @@ def fetch_diagnosis_data(
 
         # Add disease features (always included for illness clustering)
         features.extend(disease_one_hot)
-        
+
         if include_age:
             features.append(age_normalized)
         if include_gender:
@@ -234,6 +250,18 @@ def fetch_diagnosis_data(
             features.extend(district_one_hot)
         if include_time and time_features:
             features.extend(time_features)
+
+        # Add coordinate features (for geographic clustering)
+        if include_coordinates:
+            if latitude is not None and longitude is not None and coord_bounds is not None:
+                lat_norm = (latitude - coord_bounds["min_lat"]) / coord_bounds["lat_range"]
+                lng_norm = (longitude - coord_bounds["min_lng"]) / coord_bounds["lng_range"]
+                features.append(lat_norm)
+                features.append(lng_norm)
+            else:
+                # Fallback for missing coordinates: center point
+                features.append(0.5)
+                features.append(0.5)
 
         encoded_data.append(features)
 
