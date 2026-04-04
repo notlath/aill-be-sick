@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useMemo, useCallback, useTransition } from "react";
+import { useState, useRef, useEffect, useCallback, useTransition } from "react";
 import { User, Upload, Trash2, Loader2, MapPin, LocateFixed } from "lucide-react";
 import { toast } from "sonner";
 import { updateProfile, uploadAvatar, removeAvatar, updateProfileLocation } from "@/actions/update-profile";
@@ -288,9 +288,9 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
   return (
     <div className="space-y-10">
       {/* Profile Card */}
-      <section className="bg-base-100/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm overflow-hidden">
+      <section className="rounded-2xl bg-base-200 border border-border shadow-sm">
         {/* Header with gradient */}
-        <div className="relative h-32 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20">
+        <div className="relative h-32 overflow rounded-t-2xl bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20">
           <div className="absolute inset-0 opacity-40" style={GRADIENT_STYLE} />
         </div>
 
@@ -356,7 +356,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
-                  className="flex-1"
+                  className="flex-1 bg-base-100"
                 />
               </div>
             </div>
@@ -371,7 +371,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                   type="email"
                   value={initialUser.email}
                   disabled
-                  className="pr-10 bg-base-200/50"
+                  className="pr-10 bg-base-100"
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
                   <LockIcon />
@@ -392,7 +392,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                 value={gender ?? ""}
                 onValueChange={(value) => setGender(value as "MALE" | "FEMALE" | "OTHER" | null)}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full bg-base-100">
                   <SelectValue placeholder="Select gender" />
                 </SelectTrigger>
                 <SelectContent>
@@ -444,7 +444,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
       </section>
 
       {/* Location Section */}
-      <section className="bg-base-100/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm p-8">
+      <section className="rounded-2xl bg-base-200 border border-border shadow-sm p-8">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
             <MapPin className="w-5 h-5 text-primary" />

@@ -485,12 +485,12 @@ export function PendingDiagnosesDataTable<TData, TValue>({
             <p className="py-4">
               Are you sure you want to reject this diagnosis? This action cannot be undone.
             </p>
-            <div className="form-control">
+            <div className="form-control flex flex-col gap-1">
               <label className="label">
                 <span className="label-text">Reason (optional)</span>
               </label>
               <textarea
-                className="textarea textarea-bordered h-24"
+                className="textarea textarea-bordered h-24 w-full"
                 placeholder="Enter a reason for rejection..."
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
