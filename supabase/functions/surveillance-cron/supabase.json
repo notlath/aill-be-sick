@@ -1,0 +1,5 @@
+{
+  "name": "surveillance-cron",
+  "verify_jwt": false,
+  "schedule": "*/15 * * * *"
+}
