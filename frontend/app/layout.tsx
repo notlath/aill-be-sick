@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 import { Toaster } from "@/components/ui/toaster";
@@ -34,7 +33,7 @@ export default async function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
+      {/* <head>
         {process.env.NODE_ENV === "development" && (
           <Script
             src="//unpkg.com/react-grab/dist/index.global.js"
@@ -48,7 +47,7 @@ export default async function RootLayout({
             strategy="lazyOnload"
           />
         )}
-      </head>
+      </head> */}
       <body
         suppressHydrationWarning
         // Suppress hydration warnings caused by browser extensions (e.g., Grammarly)

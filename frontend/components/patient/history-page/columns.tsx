@@ -8,6 +8,7 @@ import DeleteChatButton from "./delete-chat-button";
 export type HistoryRow = {
   id: string; // chatId
   diagnosis: string;
+  diagnosisStatus: string | null;
   reliabilityLabel: string | null;
   reliabilityBadgeClass: string | null;
   reliabilityRank: number | null;
@@ -34,6 +35,35 @@ export const columns: ColumnDef<HistoryRow>[] = [
     },
     // filterFn is customized for both global search and exact select matching if needed
     // or we can stick to includesString and it will work with Selects if we use exact values
+  },
+  {
+    accessorKey: "diagnosisStatus",
+    header: ({ column }) => {
+      return (
+        <button
+          className="flex items-center gap-1 hover:text-primary"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Status
+          <ArrowUpDown className="w-4 h-4" />
+        </button>
+      );
+    },
+    cell: ({ row }) => {
+      const status = row.getValue("diagnosisStatus") as string | null;
+
+      if (!status) {
+        return <span className="text-muted">—</span>;
+      }
+
+      const statusConfig = getStatusConfig(status);
+
+      return (
+        <span className={`badge ${statusConfig.badgeClass} badge-sm whitespace-nowrap`}>
+          {statusConfig.label}
+        </span>
+      );
+    },
   },
   {
     accessorKey: "reliabilityRank",
@@ -118,3 +148,33 @@ export const columns: ColumnDef<HistoryRow>[] = [
     },
   },
 ];
+
+function getStatusConfig(status: string) {
+  switch (status) {
+    case "PENDING":
+      return {
+        label: "Pending Review",
+        badgeClass: "badge-warning",
+      };
+    case "VERIFIED":
+      return {
+        label: "Verified",
+        badgeClass: "badge-success",
+      };
+    case "REJECTED":
+      return {
+        label: "Reviewed",
+        badgeClass: "badge-error",
+      };
+    case "INCONCLUSIVE":
+      return {
+        label: "Pending Review",
+        badgeClass: "badge-warning",
+      };
+    default:
+      return {
+        label: status,
+        badgeClass: "badge-ghost",
+      };
+  }
+}
