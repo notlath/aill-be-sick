@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — `feat/privacy-compliance` — 2026-04-05
+
+> Full details: [`CHANGELOG-feat-privacy-compliance.md`](./CHANGELOG-feat-privacy-compliance.md)
+
+### Added
+
+- **Privacy Compliance** — User data export, consent withdrawal, account deletion, and scheduled patient deletion with grace period. New `DeletionSchedule` and `AuditLog` models.
+- **Inconclusive Diagnosis Support** — New `INCONCLUSIVE` diagnosis status with dedicated clinician tab and patient-facing badges.
+- **Rejected Diagnosis Revert** — Clinicians can revert rejected diagnoses back to their original status with full audit tracking.
+- **Alert Pipeline Centralization** — Moved alert triggers from diagnosis creation to verification time; removed `LOW_CONFIDENCE` and `HIGH_UNCERTAINTY` alert types.
+- **User Detail Page** — Clinician-facing user management with danger zone for account actions.
+- **Supabase JWT Verification** — Backend now validates Supabase tokens instead of trusting `X-User-ID` headers.
+- **Database Backup Utility** — New `backup-db.js` script and management scripts for patient data.
+- **Surveillance PDF Export** — Professional epidemiological report export with formatting.
+
+### Changed
+
+- **Auto-Record All Diagnoses** — Removed confidence threshold; all diagnoses now auto-record without manual confirmation.
+- **Diagnosis Verification Flow** — Alert pipeline runs at verification time, not creation time.
+- **Clustering Themes** — Updated color palette and button styles.
+- **Profile Forms** — Improved error handling, success notifications, and theme consistency.
+
+### Removed
+
+- Manual "Record" and "Discard" diagnosis buttons and actions.
+- `LOW_CONFIDENCE` and `HIGH_UNCERTAINTY` alert types.
+- Direct account deletion (replaced with scheduled deletion).
+
+### Fixed
+
+- Alert pipeline duplicate alerts during batch verification.
+- Empty clustering prevention.
+- TypeScript errors from Prisma schema updates.
+- SHAP attention mask batch size handling in ML service.
+- Data export CSV returning actual user data instead of just counts.
+
+### Breaking Changes
+
+- `DIRECT_URL` environment variable now required alongside `DATABASE_URL`.
+- `LOW_CONFIDENCE` and `HIGH_UNCERTAINTY` alert types removed from schema.
+- Manual diagnosis recording no longer available.
+- Direct account deletion replaced with scheduled deletion flow.
+
+---
+
 ## [Unreleased] — 2026-03-31
 
 ### Fixed
