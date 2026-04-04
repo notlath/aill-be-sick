@@ -47,15 +47,132 @@ AI'll Be Sick is a full-stack disease detection application. Users submit sympto
 
 ### Architecture
 
-| Layer       | Technology                                         |
-| ----------- | -------------------------------------------------- |
-| Backend API | Python, Flask (port `10000`)                       |
-| ML Models   | BioClinical-ModernBERT (EN), RoBERTa-Tagalog (FIL) |
-| Frontend    | TypeScript, Next.js 15 App Router                  |
-| Database    | PostgreSQL + Prisma ORM                            |
-| Auth        | Supabase Auth                                      |
-| Styling     | Tailwind CSS + DaisyUI                             |
-| Icons       | Lucide React                                       |
+| Layer       | Technology                                                    |
+| ----------- | ------------------------------------------------------------- |
+| Backend API | Python, Flask (port `10000`)                                  |
+| ML Models   | BioClinical-ModernBERT (EN), RoBERTa-Tagalog (FIL)            |
+| Frontend    | TypeScript, Next.js 16 App Router, React 19                   |
+| Database    | PostgreSQL (Supabase) + Prisma ORM v6.19.2                    |
+| Auth        | Supabase Auth                                                 |
+| Styling     | Tailwind CSS v4 + DaisyUI v5                                  |
+| Icons       | Lucide React                                                  |
+| State       | Zustand                                                       |
+| Charts      | D3 v7, Recharts v3                                            |
+| Maps        | Leaflet + Mapbox                                              |
+| AI          | Google Generative AI SDK                                      |
+| Testing     | Vitest (frontend), pytest (backend)                           |
+
+### Project Structure
+
+```
+aill-be-sick/
+├── AGENTS.md                     # This file — single source of truth
+├── README.md                     # Project overview and setup guide
+├── backend/                      # Flask REST API
+│   ├── AGENTS.md                 # Backend-specific agent guide
+│   ├── README.md                 # Backend setup and API docs
+│   ├── app/
+│   │   ├── __init__.py           # Flask app factory
+│   │   ├── config.py             # All thresholds and tunables
+│   │   ├── evidence_keywords.py  # Medical keyword definitions
+│   │   ├── question_groups.py    # Follow-up question banks
+│   │   ├── api/
+│   │   │   ├── diagnosis.py      # Diagnosis endpoints
+│   │   │   ├── cluster.py        # Clustering endpoints
+│   │   │   ├── outbreak.py       # Outbreak detection
+│   │   │   ├── surveillance.py   # Surveillance endpoints
+│   │   │   ├── user.py           # User management endpoints
+│   │   │   └── main.py           # Main routes
+│   │   ├── models/
+│   │   │   └── diagnosis_session.py
+│   │   ├── services/
+│   │   │   ├── ml_service.py           # ML model inference
+│   │   │   ├── cluster_service.py      # Clustering logic
+│   │   │   ├── illness_cluster_service.py
+│   │   │   ├── information_gain.py     # EIG calculations
+│   │   │   ├── outbreak_service.py     # Outbreak detection
+│   │   │   ├── surveillance_service.py
+│   │   │   └── verification.py         # Diagnosis verification
+│   │   └── utils/
+│   │       ├── database.py
+│   │       └── scoring.py
+│   ├── requirements.txt
+│   ├── run.py                    # Entry point
+│   └── Dockerfile
+├── frontend/                     # Next.js App Router UI
+│   ├── AGENTS.md                 # Frontend-specific agent guide
+│   ├── README.md                 # Frontend setup guide
+│   ├── actions/                  # Server actions (mutations)
+│   ├── app/
+│   │   ├── (app)/
+│   │   │   ├── (clinician)/      # Clinician route group
+│   │   │   │   ├── alerts/
+│   │   │   │   ├── clinician-profile/
+│   │   │   │   ├── create-patient/
+│   │   │   │   ├── dashboard/
+│   │   │   │   ├── healthcare-reports/
+│   │   │   │   ├── map/
+│   │   │   │   ├── pending-clinicians/
+│   │   │   │   └── users/
+│   │   │   └── (patient)/        # Patient route group
+│   │   │       ├── diagnosis/
+│   │   │       ├── history/
+│   │   │       └── profile/
+│   │   ├── (auth)/               # Auth route group
+│   │   │   ├── login/
+│   │   │   ├── clinician-login/
+│   │   │   ├── admin-login/
+│   │   │   ├── onboarding/
+│   │   │   ├── privacy/
+│   │   │   ├── terms/
+│   │   │   └── ...
+│   │   ├── comparison/
+│   │   ├── privacy-rights/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/               # Reusable React components
+│   ├── constants/                # Constant values
+│   ├── hooks/                    # Custom React hooks
+│   ├── lib/                      # Library utilities (including generated Prisma)
+│   ├── schemas/                  # Zod validation schemas
+│   ├── stores/                   # Zustand state stores
+│   ├── types/                    # TypeScript type definitions
+│   ├── utils/                    # Utility functions
+│   ├── prisma/
+│   │   └── schema.prisma         # Database schema
+│   ├── middleware.ts             # Supabase session middleware
+│   └── package.json
+├── tests/                        # Test suites
+│   └── backend/tests/            # Backend pytest tests
+├── docs/                         # Documentation
+└── notebooks/                    # Jupyter notebooks
+```
+
+### Environment Variables
+
+#### Frontend (`.env.local`)
+
+| Variable                        | Description                                              |
+| ------------------------------- | -------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL                                     |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous client key                            |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service role key (SECRET — never commit)        |
+| `DATABASE_URL`                  | PostgreSQL connection string (pgBouncer mode)            |
+| `DIRECT_DATABASE_URL`           | Direct PostgreSQL connection (for migrations)            |
+| `DIRECT_URL`                    | Direct connection to database (for migrations)           |
+| `NEXT_PUBLIC_BACKEND_URL`       | Flask backend URL (default: `http://localhost:10000`)    |
+| `NEXT_PUBLIC_DIAGNOSIS_MODE`    | Diagnosis mode: `adaptive` or other modes                |
+| `NEXT_PUBLIC_MAPBOX_TOKEN`      | Mapbox access token for map features                     |
+| `NODE_ENV`                      | Environment: `development` or `production`               |
+
+#### Backend
+
+| Variable                  | Description                                    |
+| ------------------------- | ---------------------------------------------- |
+| `FLASK_ENV`               | Flask environment mode                         |
+| `FRONTEND_URL`            | Frontend URL for CORS                          |
+| `DATABASE_URL`            | PostgreSQL connection string for SQLAlchemy    |
+| Model-related env vars    | See `backend/app/config.py` for all thresholds |
 
 ---
 
@@ -120,6 +237,56 @@ if (currentUser.role !== "CLINICIAN") {
 
 ---
 
+## Database Schema
+
+The application uses PostgreSQL with Prisma ORM. Key models:
+
+### Core Models
+
+| Model                 | Description                                                    |
+| --------------------- | -------------------------------------------------------------- |
+| `User`                | User accounts with role, demographics, location, consent       |
+| `Chat`                | Conversational sessions linked to users                        |
+| `Message`             | Individual chat messages with role and type                    |
+| `TempDiagnosis`       | Temporary diagnosis suggestions during conversations           |
+| `Diagnosis`           | Confirmed diagnoses with confidence, uncertainty, verification |
+| `Explanation`         | SHAP-based token importance scores                             |
+
+### Clinical & Surveillance Models
+
+| Model                 | Description                                                    |
+| --------------------- | -------------------------------------------------------------- |
+| `DiagnosisOverride`   | Clinician overrides of AI diagnoses with audit trail           |
+| `Alert`               | Clinician alerts for outbreak/anomaly surveillance             |
+| `AlertNote`           | Notes attached to alerts                                       |
+| `DiagnosisNote`       | Notes attached to diagnoses                                    |
+| `AuditLog`            | System-wide audit trail                                        |
+| `diagnosis_sessions`  | Raw session data from backend                                  |
+
+### Privacy & Access Control Models
+
+| Model                      | Description                                      |
+| -------------------------- | ------------------------------------------------ |
+| `DeletionSchedule`         | Privacy-compliant deletion scheduling            |
+| `AllowedClinicianEmail`    | Allowlist for clinician signup                   |
+
+### Key Enums
+
+| Enum                    | Values                                                        |
+| ----------------------- | ------------------------------------------------------------- |
+| `Role`                  | PATIENT, CLINICIAN, ADMIN, DEVELOPER                          |
+| `DiagnosisStatus`       | PENDING, VERIFIED, REJECTED, INCONCLUSIVE                     |
+| `ApprovalStatus`        | PENDING_ADMIN_APPROVAL, ACTIVE, REJECTED                      |
+| `Disease`               | DENGUE, PNEUMONIA, TYPHOID, DIARRHEA, MEASLES, INFLUENZA      |
+| `Model`                 | BIOCLINICAL_MODERNBERT, ROBERTA_TAGALOG                       |
+| `AlertType`             | ANOMALY, OUTBREAK                                             |
+| `AlertSeverity`         | LOW, MEDIUM, HIGH, CRITICAL                                   |
+| `AlertStatus`           | NEW, ACKNOWLEDGED, DISMISSED, RESOLVED                        |
+| `MessageType`           | SYMPTOMS, ANSWER, QUESTION, DIAGNOSIS, URGENT_WARNING, ERROR, INFO |
+| `DeletionScheduleStatus`| SCHEDULED, RESTORED, ANONYMIZED                               |
+
+---
+
 ## Commands
 
 ### Backend (Flask)
@@ -147,11 +314,7 @@ python test_flask.py   # Integration smoke test (requires server running)
 # From /frontend
 bun install
 
-# Configure .env.local:
-# NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-# NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-# NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:10000   ← backend URL (includes localhost normalization in frontend/utils/backend-url.ts)
-# DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
+# Configure .env.local (see Environment Variables section above)
 
 npx prisma generate && npx prisma db push
 bun dev                                              # Runs on http://localhost:3000
@@ -159,13 +322,20 @@ bun dev                                              # Runs on http://localhost:
 
 **Available scripts:**
 
-```bash
-bun run build          # Production build
-bun run start          # Production server
-bun run lint           # Next.js linting
-npx tsc --noEmit       # TypeScript type check (run before committing)
-node scripts/seed-diagnoses.js   # Seed diagnosis data
-```
+| Script                     | Description                                                |
+| -------------------------- | ---------------------------------------------------------- |
+| `bun run dev`              | Start development server with Turbopack                    |
+| `bun run build`            | Production build                                           |
+| `bun run start`            | Production server                                          |
+| `bun run lint`             | Next.js linting                                            |
+| `npx tsc --noEmit`         | TypeScript type check (run before committing)              |
+| `bun run seed:diagnoses`   | Seed diagnosis data                                        |
+| `bun run seed:users`       | Seed user data                                             |
+| `bun run seed:realistic`   | Seed realistic patient/diagnosis data (requires .env.local)|
+| `bun run db:backup`        | Export database backup                                     |
+| `bun run db:backup:list`   | List available backups                                     |
+| `bun run db:backup:restore`| Restore from a backup                                      |
+| `bun run db:backfill-consent`| Backfill consent records for existing users              |
 
 ---
 
@@ -334,7 +504,7 @@ The `d3-viz` skill may have compatibility copies across tool folders (`.gemini/`
 
 Before committing AI-generated changes, verify:
 
-- [ ] Architecture facts are correct (Flask backend on port `10000`, Next.js App Router)
+- [ ] Architecture facts are correct (Flask backend on port `10000`, Next.js 16 App Router)
 - [ ] Frontend mutations follow the schema + server-action pattern (`next-safe-action`)
 - [ ] `revalidatePath` / `revalidateTag` is applied after mutations where needed
 - [ ] User-facing medical text is plain-language, calm, and non-absolute
@@ -418,3 +588,7 @@ The agent **MUST** actively check for and eliminate duplicated code. Before writ
 | Backend not responding    | Ensure Flask is running on `http://localhost:10000`; check `NEXT_PUBLIC_BACKEND_URL`      |
 | Prisma client errors      | Run `npx prisma generate`                                                                 |
 | Model confidence warnings | System uses different UI paths based on confidence/uncertainty combos — expected behavior |
+| Map not rendering         | Check `NEXT_PUBLIC_MAPBOX_TOKEN` in `.env.local`                                          |
+| Wrong diagnosis mode      | Verify `NEXT_PUBLIC_DIAGNOSIS_MODE` in `.env.local` (default: `adaptive`)                 |
+| Migration failures        | Use `DIRECT_DATABASE_URL` or `DIRECT_URL` for migrations, not `DATABASE_URL` (pgBouncer)  |
+| Secret key exposed        | `SUPABASE_SERVICE_ROLE_KEY` must never be committed to version control                    |
