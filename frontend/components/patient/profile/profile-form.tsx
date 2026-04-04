@@ -243,10 +243,10 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
     isExecuting: isUpdatingLocation,
   } = useAction(updateProfileLocation, {
     onSuccess: ({ data }) => {
-      if (data?.success) {
-        toast.success("Location updated successfully");
-      } else if (data?.error) {
+      if (data && "error" in data) {
         toast.error(data.error);
+      } else if (data && "success" in data) {
+        toast.success("Location updated successfully");
       }
     },
     onError: () => {
@@ -258,11 +258,11 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
   const { execute: executeUploadAvatar, isExecuting: isUploadingAvatar } =
     useAction(uploadAvatar, {
       onSuccess: ({ data }) => {
-        if (data?.success && data.avatarUrl) {
+        if (data && "error" in data) {
+          toast.error(data.error);
+        } else if (data && "success" in data && data.avatarUrl) {
           setAvatar(data.avatarUrl);
           toast.success("Avatar updated successfully");
-        } else if (data?.error) {
-          toast.error(data.error);
         }
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
@@ -279,11 +279,11 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
   // Handle avatar removal
   const { execute: executeRemoveAvatar } = useAction(removeAvatar, {
     onSuccess: ({ data }) => {
-      if (data?.success) {
+      if (data && "error" in data) {
+        toast.error(data.error);
+      } else if (data && "success" in data) {
         setAvatar(null);
         toast.success("Avatar removed successfully");
-      } else if (data?.error) {
-        toast.error(data.error);
       }
     },
     onError: () => {
