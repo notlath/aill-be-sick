@@ -14,6 +14,13 @@
 
 const path = require("path");
 const fs = require("fs");
+
+// Load environment variables from .env.local
+const envPath = path.join(__dirname, "../.env.local");
+if (fs.existsSync(envPath)) {
+  require("dotenv").config({ path: envPath });
+}
+
 const { PrismaClient } = require("../lib/generated/prisma");
 
 const prisma = new PrismaClient();

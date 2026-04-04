@@ -402,8 +402,15 @@ def schedule_deletion():
 
             if existing_schedule:
                 trans.rollback()
+                current_app.logger.info(
+                    f"Patient {patient_id} already has a SCHEDULED deletion (id={existing_schedule[0]})"
+                )
                 return jsonify({"error": "Patient already has a scheduled deletion"}), 409
 
+            current_app.logger.info(
+                f"Scheduling deletion for patient {patient_id} by clinician {clinician['id']}, "
+                f"deletion date: {scheduled_deletion_at.isoformat()}"
+            )
             conn.execute(text("""
                 INSERT INTO "DeletionSchedule"
                 ("userId", "scheduledBy", "scheduledAt", "scheduledDeletionAt", reason, status)

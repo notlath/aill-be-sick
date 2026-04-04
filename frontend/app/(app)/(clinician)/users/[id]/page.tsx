@@ -13,7 +13,8 @@ async function getUserDetail(id: number) {
   const user = await prisma.user.findUnique({
     where: { id },
     include: {
-      scheduledDeletion: {
+      patientDeletionSchedules: {
+        where: { status: "SCHEDULED" },
         include: {
           scheduledByUser: {
             select: { id: true, name: true, email: true },
@@ -55,7 +56,7 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
     notFound();
   }
 
-  const deletionSchedule = user.scheduledDeletion;
+  const deletionSchedule = user.patientDeletionSchedules[0] || null;
   const isScheduled = deletionSchedule?.status === "SCHEDULED";
   const canRestore = isScheduled
     ? canRestoreDeletion(dbUser.role, dbUser.id, deletionSchedule.scheduledBy)

@@ -2,8 +2,8 @@ import prisma from "@/prisma/prisma";
 
 export async function getActiveDeletionSchedule(userId: number) {
   try {
-    const schedule = await prisma.deletionSchedule.findUnique({
-      where: { userId },
+    const schedule = await prisma.deletionSchedule.findFirst({
+      where: { userId, status: "SCHEDULED" },
       include: {
         scheduledByUser: {
           select: { name: true, email: true },
@@ -12,7 +12,6 @@ export async function getActiveDeletionSchedule(userId: number) {
     });
 
     if (!schedule) return null;
-    if (schedule.status !== "SCHEDULED") return null;
 
     return schedule;
   } catch (error) {

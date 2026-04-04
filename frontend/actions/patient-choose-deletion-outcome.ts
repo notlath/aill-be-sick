@@ -23,16 +23,16 @@ export const patientChooseDeletionOutcome = actionClient
 
     try {
       if (action === "restore") {
-        const schedule = await prisma.deletionSchedule.findUnique({
-          where: { userId: dbUser.id },
+        const schedule = await prisma.deletionSchedule.findFirst({
+          where: { userId: dbUser.id, status: "SCHEDULED" },
         });
 
-        if (!schedule || schedule.status !== "SCHEDULED") {
+        if (!schedule) {
           return { error: "No active deletion schedule found", outcome: null };
         }
 
         await prisma.deletionSchedule.update({
-          where: { userId: dbUser.id },
+          where: { id: schedule.id },
           data: {
             status: "RESTORED",
             restoredAt: new Date(),
@@ -56,16 +56,16 @@ export const patientChooseDeletionOutcome = actionClient
       }
 
       if (action === "confirm") {
-        const schedule = await prisma.deletionSchedule.findUnique({
-          where: { userId: dbUser.id },
+        const schedule = await prisma.deletionSchedule.findFirst({
+          where: { userId: dbUser.id, status: "SCHEDULED" },
         });
 
-        if (!schedule || schedule.status !== "SCHEDULED") {
+        if (!schedule) {
           return { error: "No active deletion schedule found", outcome: null };
         }
 
         await prisma.deletionSchedule.update({
-          where: { userId: dbUser.id },
+          where: { id: schedule.id },
           data: {
             scheduledDeletionAt: new Date(),
           },
