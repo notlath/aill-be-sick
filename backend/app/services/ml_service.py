@@ -1,5 +1,7 @@
 import hashlib
+import json
 import os
+from pathlib import Path
 import torch
 import torch.nn.functional as F
 from transformers import (
@@ -7,6 +9,7 @@ from transformers import (
     AutoTokenizer,
     PreTrainedTokenizerFast,
 )
+from huggingface_hub import snapshot_download
 from scipy.stats import entropy
 import numpy as np
 import gc
@@ -110,8 +113,22 @@ class MCDClassifierWithSHAP:
             model_kwargs["revision"] = model_revision
             tokenizer_kwargs["revision"] = model_revision
 
+        # The published model repos contain a malformed config.json. Load a local
+        # snapshot and repair the label maps before instantiating the model.
+        model_source = snapshot_download(model_path, revision=model_revision)
+        config_path = Path(model_source) / "config.json"
+        if config_path.exists():
+            config_data = json.loads(config_path.read_text(encoding="utf-8"))
+            config_data["id2label"] = {
+                str(idx): label for idx, label in CORRECT_ID2LABEL.items()
+            }
+            config_data["label2id"] = {
+                label: idx for idx, label in CORRECT_ID2LABEL.items()
+            }
+            config_path.write_text(json.dumps(config_data, indent=2), encoding="utf-8")
+
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            model_path, **model_kwargs
+            model_source, **model_kwargs
         )
         # AutoTokenizer may fail if tokenizer_config.json has a broken
         # tokenizer_class (e.g. "TokenizersBackend" instead of a real class).
@@ -164,7 +181,7 @@ class MCDClassifierWithSHAP:
                 self.device = "cpu"
                 # Re-load model in CPU mode for quantization
                 self.model = AutoModelForSequenceClassification.from_pretrained(
-                    model_path, **model_kwargs
+                    model_source, **model_kwargs
                 )
                 self.model.config.id2label = CORRECT_ID2LABEL
                 self.model.config.label2id = {v: k for k, v in CORRECT_ID2LABEL.items()}

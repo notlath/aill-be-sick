@@ -18,6 +18,7 @@ type ChatHistoryViewProps = {
   dbCdss?: any | null;
   dbConfidence?: number | null;
   dbUncertainty?: number | null;
+  dbIsValid?: boolean | null;
   diagnosisId?: number;
   initialBmiData?: {
     heightCm: number | null;
@@ -43,6 +44,7 @@ const ChatHistoryView = ({
   dbCdss,
   dbConfidence,
   dbUncertainty,
+  dbIsValid,
   diagnosisId,
   initialBmiData,
 }: ChatHistoryViewProps) => {
@@ -70,10 +72,11 @@ const ChatHistoryView = ({
       />
       {dbCdss && (
         <div className="w-full max-w-[768px] mx-auto px-4">
-          <CDSSSummary 
-            cdss={dbCdss} 
+          <CDSSSummary
+            cdss={dbCdss}
             confidence={dbConfidence ?? undefined}
             uncertainty={dbUncertainty ?? undefined}
+            isValid={dbIsValid ?? undefined}
           />
         </div>
       )}

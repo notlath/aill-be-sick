@@ -113,6 +113,7 @@ const ChatDataLoader = async ({
         dbCdss={(diagnosis as any)?.cdss ?? null}
         dbConfidence={diagnosis?.confidence ?? null}
         dbUncertainty={diagnosis?.uncertainty ?? null}
+        dbIsValid={diagnosis?.isValid ?? null}
         diagnosisId={diagnosis?.id}
         initialBmiData={{
           heightCm: diagnosis?.heightCm ?? null,
