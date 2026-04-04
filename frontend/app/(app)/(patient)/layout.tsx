@@ -2,7 +2,7 @@ import Sidebar from "@/components/patient/layout/sidebar";
 import ConsentModal from "@/components/consent-modal";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import HelpModal from "@/components/patient/layout/help-modal";
-import GracePeriodBanner from "@/components/layout/grace-period-banner";
+import ScheduledDeletionModal from "@/components/layout/scheduled-deletion-modal";
 import { getCurrentDbUser } from "@/utils/user";
 import {
   needsTermsUpdate,
@@ -42,6 +42,15 @@ const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
 
   // Check for active deletion schedule
   const deletionSchedule = await getActiveDeletionSchedule(dbUser.id);
+  console.log("[DEBUG] Deletion schedule check:", { userId: dbUser.id, hasSchedule: !!deletionSchedule, schedule: deletionSchedule });
+
+  if (deletionSchedule) {
+    return <ScheduledDeletionModal
+      scheduledDeletionAt={deletionSchedule.scheduledDeletionAt}
+      reason={deletionSchedule.reason}
+      scheduledByName={deletionSchedule.scheduledByUser?.name}
+    />;
+  }
 
   return (
     <LayoutWrapper>
@@ -49,16 +58,7 @@ const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
       <HelpModal />
       {/* Show consent modal if user hasn't accepted terms or needs to re-accept */}
       {requiresConsent && <ConsentModal reasons={reasons} />}
-      <div className="flex flex-col min-h-full">
-        {deletionSchedule && (
-          <GracePeriodBanner
-            scheduledDeletionAt={deletionSchedule.scheduledDeletionAt}
-            reason={deletionSchedule.reason}
-            scheduledByName={deletionSchedule.scheduledByUser?.name}
-          />
-        )}
-        <main className="flex-1 flex flex-col">{children}</main>
-      </div>
+      <main className="flex-1 flex flex-col">{children}</main>
     </LayoutWrapper>
   );
 };

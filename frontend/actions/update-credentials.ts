@@ -6,9 +6,21 @@ import {
   UpdatePasswordSchema,
 } from "@/schemas/UpdateCredentialsSchema";
 import { createClient } from "@/utils/supabase/server";
-import { getAuthUser } from "@/utils/user";
+import { getAuthUser, getDbUserByAuthId } from "@/utils/user";
+import { hasActiveDeletionSchedule } from "@/utils/check-deletion-schedule";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
+
+async function guardDeletionSchedule(authId: string) {
+  const dbUser = await getDbUserByAuthId(authId);
+  if (dbUser?.role === "PATIENT") {
+    const hasSchedule = await hasActiveDeletionSchedule(dbUser.id);
+    if (hasSchedule) {
+      return { error: "Your account is scheduled for deletion. Please keep your account or exit to continue using the app." };
+    }
+  }
+  return null;
+}
 
 export const updateEmailAction = actionClient
   .inputSchema(UpdateEmailSchema)
@@ -21,6 +33,9 @@ export const updateEmailAction = actionClient
       return { error: "Not authenticated" };
     }
 
+    const guard = await guardDeletionSchedule(authUser.id);
+    if (guard) return guard;
+
     try {
       const supabase = await createClient();
 
@@ -31,7 +46,6 @@ export const updateEmailAction = actionClient
         return { error: `Failed to update email: ${error.message}` };
       }
 
-      // Also update the database record
       await prisma.user.update({
         where: { authId: authUser.id },
         data: {
@@ -60,6 +74,9 @@ export const updatePasswordAction = actionClient
       return { error: "Not authenticated" };
     }
 
+    const guard = await guardDeletionSchedule(authUser.id);
+    if (guard) return guard;
+
     try {
       const supabase = await createClient();
 
@@ -70,7 +87,6 @@ export const updatePasswordAction = actionClient
         return { error: `Failed to update password: ${error.message}` };
       }
 
-      // We do not redirect here, so the user can just see a success status.
       return { success: true };
     } catch (error) {
       console.error(`Error updating password: ${error}`);

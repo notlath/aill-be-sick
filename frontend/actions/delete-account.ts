@@ -4,6 +4,7 @@ import { actionClient } from "./client";
 import { DeleteAccountSchema } from "@/schemas/DeleteAccountSchema";
 import { getBackendUrl } from "@/utils/backend-url";
 import { getCurrentDbUser } from "@/utils/user";
+import { hasActiveDeletionSchedule } from "@/utils/check-deletion-schedule";
 import { createClient } from "@/utils/supabase/server";
 import axios, { AxiosError } from "axios";
 import { revalidatePath, revalidateTag } from "next/cache";
@@ -18,6 +19,13 @@ export const deleteAccount = actionClient
     if (!dbUser) {
       console.error(`Error fetching user: ${error}`);
       return { error: `Authentication required: ${error}` };
+    }
+
+    if (dbUser.role === "PATIENT") {
+      const hasSchedule = await hasActiveDeletionSchedule(dbUser.id);
+      if (hasSchedule) {
+        return { error: "Your account is scheduled for deletion. Please keep your account or exit to continue using the app." };
+      }
     }
 
     const supabase = await createClient();
