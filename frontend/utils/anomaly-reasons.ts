@@ -91,16 +91,6 @@ export const REASON_CODES = {
     description:
       "There is an unusual concentration of cases in this specific location. Multiple cases are being reported from the same area.",
   },
-  "CONFIDENCE:LOW": {
-    label: "Low confidence",
-    description:
-      "The system had low confidence when making this diagnosis. The result may be less reliable and warrants further review.",
-  },
-  "UNCERTAINTY:HIGH": {
-    label: "High uncertainty",
-    description:
-      "The system reported high uncertainty for this diagnosis. The findings should be interpreted with caution.",
-  },
   "COMBINED:MULTI": {
     label: "Multiple factors",
     description:

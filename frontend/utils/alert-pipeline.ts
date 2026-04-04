@@ -22,18 +22,6 @@ export type AlertCheckParams = {
   patientGender?: string;
 };
 
-// ── Alert Type Resolution ──────────────────────────────────────────────────
-
-function resolveAlertType(
-  reasonCodes: string[],
-): "ANOMALY" | "LOW_CONFIDENCE" | "HIGH_UNCERTAINTY" {
-  if (reasonCodes.length === 1 && reasonCodes[0] === "CONFIDENCE:LOW")
-    return "LOW_CONFIDENCE";
-  if (reasonCodes.length === 1 && reasonCodes[0] === "UNCERTAINTY:HIGH")
-    return "HIGH_UNCERTAINTY";
-  return "ANOMALY";
-}
-
 // ── Alert Message Builder ──────────────────────────────────────────────────
 
 function buildAlertMessage(
@@ -45,8 +33,6 @@ function buildAlertMessage(
     "GEOGRAPHIC:RARE": "an occurrence in an unusual location",
     "TEMPORAL:RARE": "a presentation during an off-season period",
     "CLUSTER:SPATIAL": "a sudden geographic group of similar cases",
-    "CONFIDENCE:LOW": "low predictive confidence from the AI model",
-    "UNCERTAINTY:HIGH": "high statistical uncertainty from the AI model",
     "COMBINED:MULTI": "multiple overlapping anomalies",
     "AGE:RARE": "a patient age outside the typical demographic range",
     "GENDER:RARE": "a patient demographic that is uncommon for this disease",
@@ -116,12 +102,11 @@ export async function checkAndCreateAlert(params: AlertCheckParams): Promise<voi
 
     const reasonCodes = match.reason.split("|").filter(Boolean);
     const severity = mapReasonCodesToSeverity(reasonCodes);
-    const type = resolveAlertType(reasonCodes);
     const message = buildAlertMessage(disease, reasonCodes, severity);
 
     await prisma.alert.create({
       data: {
-        type,
+        type: "ANOMALY",
         severity,
         reasonCodes,
         message,

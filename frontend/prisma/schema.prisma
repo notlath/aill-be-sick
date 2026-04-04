@@ -128,10 +128,10 @@ model Diagnosis {
   weightKg        Float?
   rejectedAt      DateTime?
   rejectedBy      Int?
-  originalStatus  DiagnosisStatus?
   status          DiagnosisStatus    @default(PENDING)
   verifiedAt      DateTime?
   verifiedBy      Int?
+  originalStatus  DiagnosisStatus?
   alerts          Alert[]
   chat            Chat               @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   rejectedByUser  User?              @relation("DiagnosisRejector", fields: [rejectedBy], references: [id])
@@ -328,8 +328,6 @@ enum Model {
 
 enum AlertType {
   ANOMALY
-  LOW_CONFIDENCE
-  HIGH_UNCERTAINTY
   OUTBREAK
 }
 

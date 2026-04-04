@@ -1,7 +1,7 @@
 import * as z from "zod";
 
 export const CreateAlertSchema = z.object({
-  type: z.enum(["ANOMALY", "LOW_CONFIDENCE", "HIGH_UNCERTAINTY"]),
+  type: z.enum(["ANOMALY", "OUTBREAK"]),
   severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
   diagnosisId: z.number().optional(),
   reasonCodes: z.array(z.string()).min(1, "At least one reason code is required"),

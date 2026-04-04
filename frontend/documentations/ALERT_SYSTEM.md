@@ -182,17 +182,12 @@ When a clinician verifies a diagnosis:
                     │  CLUSTER:SPATIAL + COMBINED    │
                     │  → CRITICAL                   │
                     │  CLUSTER:SPATIAL alone → HIGH  │
-                    │  CONFIDENCE:LOW → MEDIUM       │
                     │  other → LOW                  │
                     └──────────┬────────────────────┘
                                ▼
                     ┌──────────────────────┐
                     │  resolveAlertType()  │
-                    │  CONFIDENCE:LOW only │
-                    │   → LOW_CONFIDENCE   │
-                    │  UNCERTAINTY:HIGH    │
-                    │   → HIGH_UNCERTAINTY │
-                    │  all others          │
+                    │  Always returns      │
                     │   → ANOMALY          │
                     └──────────┬───────────┘
                                ▼
@@ -362,15 +357,13 @@ model Alert {
 
 ```prisma
 enum AlertType {
-  ANOMALY           // Geographic, temporal, spatial group, or combined anomaly
-  LOW_CONFIDENCE    // Only reason is CONFIDENCE:LOW
-  HIGH_UNCERTAINTY  // Only reason is UNCERTAINTY:HIGH
+  ANOMALY           // Geographic, temporal, spatial group, age, gender, or combined anomaly
 }
 
 enum AlertSeverity {
   CRITICAL  // CLUSTER:SPATIAL + COMBINED:MULTI both present
   HIGH      // CLUSTER:SPATIAL alone, or COMBINED:MULTI with ≥3 codes
-  MEDIUM    // CONFIDENCE:LOW or UNCERTAINTY:HIGH
+  MEDIUM    // CLUSTER:DENSE or OUTBREAK:VOL_SPIKE
   LOW       // Any other single reason
 }
 
@@ -800,7 +793,7 @@ Evaluated in priority order:
 | `CLUSTER:SPATIAL` AND `COMBINED:MULTI` both present | `CRITICAL` |
 | `CLUSTER:SPATIAL` alone | `HIGH` |
 | `COMBINED:MULTI` with ≥ 3 codes | `HIGH` |
-| `CONFIDENCE:LOW` or `UNCERTAINTY:HIGH` | `MEDIUM` |
+| `CLUSTER:DENSE` or `OUTBREAK:VOL_SPIKE` | `MEDIUM` |
 | Any other single code | `LOW` |
 
 #### `getSeverityBadgeClass(severity): string`
@@ -820,7 +813,7 @@ Alert-related types are exported from `frontend/types/index.ts` alongside all ot
 ```typescript
 export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type AlertStatus = "NEW" | "ACKNOWLEDGED" | "RESOLVED" | "DISMISSED";
-export type AlertType = "ANOMALY" | "LOW_CONFIDENCE" | "HIGH_UNCERTAINTY";
+export type AlertType = "ANOMALY" | "OUTBREAK";
 export type AlertMetadata = { ... };
 export type Alert = { ... };
 ```
@@ -835,7 +828,7 @@ Import from `@/types` in any component or store that needs these types.
 
 ```typescript
 z.object({
-  type: z.enum(["ANOMALY", "LOW_CONFIDENCE", "HIGH_UNCERTAINTY"]),
+  type: z.enum(["ANOMALY", "OUTBREAK"]),
   severity: z.enum(["LOW", "MEDIUM", "HIGH", "CRITICAL"]),
   diagnosisId: z.number().optional(),
   reasonCodes: z.array(z.string()).min(1),
@@ -869,8 +862,6 @@ Reason codes are sourced from the Flask surveillance service's `reason` field (p
 | `GEOGRAPHIC:RARE` | Unusual location | Disease rarely reported in this area |
 | `TEMPORAL:RARE` | Unusual timing | Case recorded at an atypical time of year |
 | `CLUSTER:SPATIAL` | Spatial group | Unusual concentration of cases in this location |
-| `CONFIDENCE:LOW` | Low confidence | System had low confidence making this diagnosis |
-| `UNCERTAINTY:HIGH` | High uncertainty | System reported high uncertainty for this diagnosis |
 | `COMBINED:MULTI` | Multiple factors | Two or more independent factors contributed |
 | `AGE:RARE` | Unusual age | Patient age outside typical range for this disease |
 | `GENDER:RARE` | Unusual gender | Patient gender uncommon for this disease |
@@ -898,7 +889,7 @@ A Server Component page with the standard clinician gradient header layout. The 
 ├──────────┼────────┼──────────┼──────┼───────────┤
 │ CRITICAL │ NEW    │ Anomaly  │ ...  │ 👁 ✓ ✕   │
 │ HIGH     │ NEW    │ Anomaly  │ ...  │ 👁 ✓ ✕   │
-│ MEDIUM   │ ACK'd  │ Low Conf │ ...  │ 👁        │
+│ LOW      │ ACK'd  │ Anomaly  │ ...  │ 👁        │
 └──────────┴────────┴──────────┴──────┴───────────┘
 │  Rows per page: [10 ▼]   1-10 of 24  ← Prev Next→ │
 ```
