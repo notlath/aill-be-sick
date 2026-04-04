@@ -81,6 +81,7 @@ export const autoRecordDiagnosis = actionClient
           chatId,
           symptoms: tempDiagnosis.symptoms,
           cdss: (tempDiagnosis as any).cdss ?? undefined,
+          isValid: tempDiagnosis.isValid,
           userId: dbUser.id,
           latitude: dbUser.latitude ?? null,
           longitude: dbUser.longitude ?? null,

@@ -122,6 +122,9 @@ def create_app():
 
 # ── Backward-Compatible Module-Level `app` Instance ──────────────────────────
 # Tests do `from app import app` and use `app.test_client()`.
-# This creates a shared app instance at import time.
-
-app = create_app()
+# Allow notebooks and utility imports to disable eager app bootstrapping so
+# importing submodules does not trigger circular imports.
+if os.getenv("APP_SKIP_AUTOCREATE", "false").lower() not in ("1", "true", "yes"):
+    app = create_app()
+else:
+    app = None

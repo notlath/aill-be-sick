@@ -121,6 +121,7 @@ model Diagnosis {
   barangay        String?
   district        String?
   cdss            Json?
+  isValid         Boolean            @default(true)
   bmiAdvice       String?
   heightCm        Float?
   temperature     Float?

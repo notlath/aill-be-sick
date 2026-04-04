@@ -13,6 +13,18 @@ __pycache__/
 *.so
 .Python
 
+# Tool and test caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.tox/
+.nox/
+.cache/
+.ipynb_checkpoints/
+notebooks/cache/*.pkl
+
 # Database files
 *.sqlite3
 *.db
@@ -46,6 +58,12 @@ Thumbs.db
 # Node
 node_modules/
 package-lock.json
+
+# JS/TS build caches
+.next/cache/
+.turbo/
+.parcel-cache/
+.eslintcache
 
 # Model files (if they're large, you might want to use Git LFS instead)
 # ml_models/
