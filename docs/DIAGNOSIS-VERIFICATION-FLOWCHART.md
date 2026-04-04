@@ -27,7 +27,11 @@ flowchart TD
     %% ========== VERIFICATION PATH ==========
     ActionDecision -->|Verify Diagnosis| VerifyAction[Mark diagnosis as VERIFIED]
     VerifyAction --> RecordVerify[Record verifiedAt timestamp and verifiedBy clinician ID]
-    RecordVerify --> UpdateStats[Update verification dashboard statistics]
+    RecordVerify --> AlertPipeline[Run anomaly + outbreak alert pipeline]
+    AlertPipeline --> AlertCheck{Diagnosis flagged?}
+    AlertCheck -->|Yes| CreateAlert[Create Alert record + broadcast via Supabase Realtime]
+    AlertCheck -->|No| UpdateStats[Update verification dashboard statistics]
+    CreateAlert --> UpdateStats
     UpdateStats --> VerifiedEnd([Diagnosis marked as verified])
 
     %% ========== REJECTION PATH ==========
@@ -40,7 +44,11 @@ flowchart TD
     ActionDecision -->|Apply Clinical Override| OverrideAction[Apply clinical diagnosis override]
     OverrideAction --> AutoVerify[Automatically set status to VERIFIED with override details]
     AutoVerify --> RecordOverride[Record override timestamp and clinician ID]
-    RecordOverride --> UpdateStatsOverride[Update verification dashboard statistics]
+    RecordOverride --> AlertPipelineOverride[Run anomaly + outbreak alert pipeline]
+    AlertPipelineOverride --> AlertCheckOverride{Diagnosis flagged?}
+    AlertCheckOverride -->|Yes| CreateAlertOverride[Create Alert record + broadcast via Supabase Realtime]
+    AlertCheckOverride -->|No| UpdateStatsOverride[Update verification dashboard statistics]
+    CreateAlertOverride --> UpdateStatsOverride
     UpdateStatsOverride --> OverrideEnd([Diagnosis overridden and verified])
 
     %% ========== STYLES ==========
@@ -48,12 +56,14 @@ flowchart TD
     classDef successNode fill:#e8f5e9,stroke:#388e3c
     classDef errorNode fill:#ffebee,stroke:#d32f2f
     classDef processNode fill:#f3e5f5,stroke:#7b1fa2
+    classDef alertNode fill:#e1f5fe,stroke:#0277bd
 
     %% Apply styles to nodes
     class ClinicianView,VerifyAction,RejectAction,OverrideAction,RecordVerify,RecordReject,RecordOverride clinicianNode
     class VerifiedEnd,OverrideEnd successNode
     class RejectedEnd errorNode
     class SetPending,UpdateStats,UpdateStatsReject,UpdateStatsOverride,AutoVerify processNode
+    class AlertPipeline,AlertCheck,CreateAlert,AlertPipelineOverride,AlertCheckOverride,CreateAlertOverride alertNode
 ```
 
 ## Legend
@@ -110,13 +120,16 @@ flowchart TD
 2. Clinician selects "Verify Diagnosis" action
 3. System updates status to VERIFIED
 4. System records verification timestamp and clinician ID
-5. Dashboard statistics updated to reflect verification
+5. System runs anomaly and outbreak alert pipeline (fire-and-forget)
+6. If diagnosis is flagged as anomalous, an Alert record is created and broadcast via Supabase Realtime
+7. Dashboard statistics updated to reflect verification
 
 **Key Points**:
 
 - Verification indicates clinical acceptance of AI diagnosis
 - Audit trail maintained for compliance
 - Statistics help track verification rates
+- Alert pipeline runs asynchronously and never blocks the verification response
 
 ### Rejection Flow
 
@@ -147,13 +160,16 @@ flowchart TD
 3. Clinician provides override diagnosis details
 4. System automatically sets status to VERIFIED
 5. System records override timestamp and clinician ID
-6. Dashboard statistics updated
+6. System runs anomaly and outbreak alert pipeline (fire-and-forget)
+7. If diagnosis is flagged as anomalous, an Alert record is created and broadcast via Supabase Realtime
+8. Dashboard statistics updated
 
 **Key Points**:
 
 - Overrides represent clinician expertise over AI
 - Automatic verification prevents double-review
 - Override details preserved for audit and analysis
+- Alert pipeline runs after auto-verification, same as direct verification
 
 ## Status Definitions
 
@@ -173,3 +189,5 @@ flowchart TD
 4. **Role Restrictions**: Only CLINICIAN, ADMIN, and DEVELOPER roles can perform verification actions
 5. **Status Immutability**: Once VERIFIED or REJECTED, status cannot be changed
 6. **Override Integration**: Clinical overrides automatically trigger VERIFIED status to streamline workflow
+7. **Alert Pipeline Integration**: After any diagnosis transitions to VERIFIED (via approve, batch approve, or override), the anomaly and outbreak alert pipeline runs asynchronously. This ensures only clinician-confirmed cases enter the surveillance system. The alert pipeline is fire-and-forget and never blocks the verification response.
+8. **Backend Data Filter**: Both `surveillance_service.py` and `outbreak_service.py` only query diagnoses with `status = 'VERIFIED'`, so the alert pipeline will only flag diagnoses that have been confirmed by a clinician.

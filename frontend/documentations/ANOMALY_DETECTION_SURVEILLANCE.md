@@ -65,23 +65,27 @@ The system uses **scikit-learn's Isolation Forest** algorithm to detect anomalie
 
 1. **Page Load**: User navigates to Map page, selects "By Anomaly" tab
 2. **Initial Fetch**: Frontend requests all diagnosis data (no disease filter)
-3. **Anomaly Detection**: Backend runs Isolation Forest on full dataset
+3. **Anomaly Detection**: Backend runs Isolation Forest on full dataset of VERIFIED diagnoses
 4. **Reason Computation**: Per-disease baselines computed for geographic/temporal reasons
 5. **Data Return**: Backend returns both anomalies and normal diagnoses with reason codes
 6. **Client Filtering**: Frontend filters displayed data by selected disease
 7. **Visualization**: Map shows filtered anomalies; timeline shows temporal distribution
 8. **Drill-Down**: User clicks stats cards to open modal tables with full details
 
+> **Important:** Both the anomaly detection (`surveillance_service.py`) and outbreak detection (`outbreak_service.py`) only analyze diagnoses with `status = 'VERIFIED'`. This means newly created diagnoses (status: PENDING) will not appear in anomaly results until a clinician verifies them. Alert creation is triggered at verification time, not at diagnosis creation.
+
 ### System Integration
 
 | Component | Integration Point |
 |-----------|------------------|
-| **Backend API** | `GET /api/surveillance/outbreaks` — Flask endpoint |
-| **Surveillance Service** | `analyze_surveillance()` — Main entry point |
+| **Backend API** | `GET /api/surveillance/outbreaks` — Flask endpoint (VERIFIED diagnoses only) |
+| **Surveillance Service** | `analyze_surveillance()` — Main entry point (filters `status = 'VERIFIED'`) |
 | **Isolation Forest** | `sklearn.ensemble.IsolationForest` — Anomaly detection |
 | **State Management** | Zustand stores for disease/date selection |
 | **UI Components** | TanStack Table, DaisyUI Cards/Modals |
 | **Timeline Chart** | Recharts AreaChart for temporal view |
+| **Alert Trigger** | `verify-diagnosis.ts` — Fires `checkAndCreateAlert()` on VERIFIED status |
+| **Outbreak Trigger** | `verify-diagnosis.ts` — Fires `checkAndCreateOutbreakAlert()` on VERIFIED status |
 
 ---
 
