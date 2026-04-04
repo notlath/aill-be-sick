@@ -1,13 +1,18 @@
 import { notFound, redirect } from "next/navigation";
 import prisma from "@/prisma/prisma";
 import { getCurrentDbUser } from "@/utils/user";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { canCreatePatient, isAdminLike } from "@/utils/role-hierarchy";
 import { canRestoreDeletion } from "@/utils/deletion-schedule";
 import { UserDetailDangerZone } from "@/components/clinicians/users-page/user-detail-danger-zone";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle, CheckCircle, Clock, Trash2 } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Trash2 } from "lucide-react";
 
 async function getUserDetail(id: number) {
   const user = await prisma.user.findUnique({
@@ -30,7 +35,11 @@ async function getUserDetail(id: number) {
   return user;
 }
 
-const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) => {
+const UserDetailPage = async ({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) => {
   const { id } = await params;
   const userId = parseInt(id, 10);
 
@@ -78,26 +87,6 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
                 </h1>
                 <p className="text-muted text-lg">{user.email}</p>
               </div>
-              <Badge
-                variant="default"
-                className={
-                  isScheduled
-                    ? "bg-warning text-warning-content"
-                    : "bg-success text-success-content"
-                }
-              >
-                {isScheduled ? (
-                  <>
-                    <Clock className="w-3 h-3 mr-1" />
-                    Scheduled for Deletion
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Active
-                  </>
-                )}
-              </Badge>
             </div>
           </div>
         </div>
@@ -116,7 +105,9 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
                   <p>
                     This account is scheduled for deletion on{" "}
                     <strong>
-                      {new Date(deletionSchedule.scheduledDeletionAt).toLocaleDateString(undefined, {
+                      {new Date(
+                        deletionSchedule.scheduledDeletionAt,
+                      ).toLocaleDateString(undefined, {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
@@ -128,7 +119,9 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
                     <p>Reason: {deletionSchedule.reason}</p>
                   )}
                   <p>
-                    Scheduled by: {deletionSchedule.scheduledByUser.name || deletionSchedule.scheduledByUser.email}
+                    Scheduled by:{" "}
+                    {deletionSchedule.scheduledByUser.name ||
+                      deletionSchedule.scheduledByUser.email}
                   </p>
                   <p>
                     The patient can reclaim their account during this period.
@@ -241,7 +234,8 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
                   <div>
                     <CardTitle className="text-error">Danger Zone</CardTitle>
                     <CardDescription>
-                      Permanently delete and anonymize this patient&apos;s account.
+                      Permanently delete and anonymize this patient&apos;s
+                      account.
                     </CardDescription>
                   </div>
                 </div>
