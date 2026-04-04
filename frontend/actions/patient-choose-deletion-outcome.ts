@@ -4,6 +4,7 @@ import { actionClient } from "./client";
 import { PatientDeletionOutcomeSchema } from "@/schemas/PatientDeletionOutcomeSchema";
 import { getCurrentDbUser } from "@/utils/user";
 import { revalidatePath } from "next/cache";
+import prisma from "@/prisma/prisma";
 
 export const patientChooseDeletionOutcome = actionClient
   .inputSchema(PatientDeletionOutcomeSchema)
@@ -13,67 +14,73 @@ export const patientChooseDeletionOutcome = actionClient
     const { success: dbUser, error: userError } = await getCurrentDbUser();
 
     if (userError || !dbUser) {
-      return { error: "Authentication required" };
+      return { error: "Authentication required", outcome: null };
     }
 
     if (dbUser.role !== "PATIENT") {
-      return { error: "Only patients can choose their deletion outcome" };
+      return { error: "Only patients can choose their deletion outcome", outcome: null };
     }
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
-      const { createClient } = await import("@/utils/supabase/server");
-      const supabase = await createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-
       if (action === "restore") {
-        const response = await fetch(`${backendUrl}/api/user/restore-deletion`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ patientId: dbUser.id }),
+        const schedule = await prisma.deletionSchedule.findUnique({
+          where: { userId: dbUser.id },
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          return { error: data.error || "Failed to restore account" };
+        if (!schedule || schedule.status !== "SCHEDULED") {
+          return { error: "No active deletion schedule found", outcome: null };
         }
+
+        await prisma.deletionSchedule.update({
+          where: { userId: dbUser.id },
+          data: {
+            status: "RESTORED",
+            restoredAt: new Date(),
+            restoredBy: dbUser.id,
+          },
+        });
+
+        await prisma.auditLog.create({
+          data: {
+            userId: dbUser.id,
+            action: "RESTORE_DELETION",
+            details: { patientId: dbUser.id, restoredBy: "self" },
+          },
+        });
 
         revalidatePath("/");
         revalidatePath("/diagnosis");
         revalidatePath("/history");
 
-        return { success: data, outcome: "restored" };
+        return { success: true, outcome: "restored" as const };
       }
 
       if (action === "confirm") {
-        const response = await fetch(`${backendUrl}/api/user/anonymize-scheduled`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer internal-skip`,
-          },
+        const schedule = await prisma.deletionSchedule.findUnique({
+          where: { userId: dbUser.id },
         });
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          return { error: data.error || "Failed to confirm deletion" };
+        if (!schedule || schedule.status !== "SCHEDULED") {
+          return { error: "No active deletion schedule found", outcome: null };
         }
+
+        await prisma.deletionSchedule.update({
+          where: { userId: dbUser.id },
+          data: {
+            scheduledDeletionAt: new Date(),
+          },
+        });
 
         revalidatePath("/");
         revalidatePath("/diagnosis");
         revalidatePath("/history");
 
-        return { success: data, outcome: "confirmed" };
+        return { success: true, outcome: "confirmed" as const };
       }
 
-      return { error: "Invalid action" };
+      return { error: "Invalid action", outcome: null };
     } catch (error) {
       console.error(`Error processing deletion outcome: ${error}`);
-      return { error: "Failed to process your request. Please try again." };
+      return { error: "Failed to process your request. Please try again.", outcome: null };
     }
   });

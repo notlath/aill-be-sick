@@ -1,7 +1,5 @@
 "use client";
 
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Clock, CheckCircle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useAction } from "next-safe-action/hooks";
@@ -22,7 +20,7 @@ export default function GracePeriodBanner({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const { execute: executeOutcome, status } = useAction(patientChooseDeletionOutcome, {
-    onSuccess: (data) => {
+    onSuccess: ({ data }) => {
       if (data.outcome === "restored") {
         window.location.reload();
       }
@@ -39,62 +37,60 @@ export default function GracePeriodBanner({
 
   return (
     <>
-      <Alert
-        variant="warning"
-        className="mx-4 mt-4 border-warning/50 bg-warning/10"
+      <div
+        role="alert"
+        className="alert alert-warning mx-4 mt-4 border-warning/50 bg-warning/10"
       >
-        <Clock className="h-5 w-5 text-warning" />
+        <Clock className="h-5 w-5 text-warning shrink-0" />
         <div className="flex-1">
-          <AlertTitle className="text-warning font-semibold">
+          <h3 className="text-warning font-semibold">
             Account Scheduled for Deletion
-          </AlertTitle>
-          <AlertDescription className="text-warning/90 space-y-2">
+          </h3>
+          <div className="text-warning/90 space-y-2 text-sm">
             <p>
               Your account is scheduled for deletion on{" "}
               <strong>{new Date(scheduledDeletionAt).toLocaleDateString()}</strong>.{" "}
               {formatGracePeriodRemaining(scheduledDeletionAt)}.
             </p>
             {reason && (
-              <p className="text-sm">
+              <p>
                 Reason provided: {reason}
               </p>
             )}
             {scheduledByName && (
-              <p className="text-sm">
+              <p>
                 Scheduled by: {scheduledByName}
               </p>
             )}
-            <p className="text-sm">
+            <p>
               If this was a mistake or you&apos;d like to keep your account, click &quot;Keep My Account&quot; below.
             </p>
-          </AlertDescription>
+          </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:ml-4">
-          <Button
-            variant="outline"
-            size="sm"
+        <div className="flex flex-col gap-2 sm:flex-row sm:ml-4 shrink-0">
+          <button
+            type="button"
+            className="btn btn-outline btn-sm border-success text-success hover:bg-success/10"
             onClick={handleRestore}
             disabled={status === "executing"}
-            className="border-success text-success hover:bg-success/10"
           >
             <CheckCircle className="w-4 h-4 mr-1" />
             Keep My Account
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm border-error text-error hover:bg-error/10"
             onClick={() => setShowConfirmModal(true)}
             disabled={status === "executing"}
-            className="border-error text-error hover:bg-error/10"
           >
             <Trash2 className="w-4 h-4 mr-1" />
             Continue with Deletion
-          </Button>
+          </button>
         </div>
-      </Alert>
+      </div>
 
       {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <dialog className="modal modal-open">
           <div className="modal-box max-w-md">
             <h3 className="text-lg font-bold text-error">Confirm Account Deletion</h3>
             <p className="py-4">
@@ -102,23 +98,28 @@ export default function GracePeriodBanner({
               cannot be undone. Your personal information will be permanently removed.
             </p>
             <div className="modal-action">
-              <Button
-                variant="outline"
+              <button
+                type="button"
+                className="btn btn-ghost"
                 onClick={() => setShowConfirmModal(false)}
                 disabled={status === "executing"}
               >
                 Cancel
-              </Button>
-              <Button
-                variant="error"
+              </button>
+              <button
+                type="button"
+                className="btn btn-error"
                 onClick={handleConfirm}
                 disabled={status === "executing"}
               >
                 {status === "executing" ? "Processing..." : "Yes, Delete My Account"}
-              </Button>
+              </button>
             </div>
           </div>
-        </div>
+          <form method="dialog" className="modal-backdrop">
+            <button type="submit">close</button>
+          </form>
+        </dialog>
       )}
     </>
   );

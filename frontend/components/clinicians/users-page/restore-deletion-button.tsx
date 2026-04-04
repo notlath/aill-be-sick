@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { RotateCcw } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
 import { restorePatientDeletion } from "@/actions/restore-patient-deletion";
@@ -13,15 +12,14 @@ export function RestoreButton({ patientId }: { patientId: number }) {
   });
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
+    <button
+      type="button"
       onClick={() => execute({ patientId })}
       disabled={status === "executing"}
-      className="border-success text-success hover:bg-success/10"
+      className="btn btn-outline btn-sm border-success text-success hover:bg-success/10"
     >
       <RotateCcw className="w-4 h-4 mr-1" />
       {status === "executing" ? "Restoring..." : "Restore"}
-    </Button>
+    </button>
   );
 }

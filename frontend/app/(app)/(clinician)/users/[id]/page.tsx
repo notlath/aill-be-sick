@@ -3,8 +3,6 @@ import prisma from "@/prisma/prisma";
 import { getCurrentDbUser } from "@/utils/user";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { canCreatePatient } from "@/utils/role-hierarchy";
 import { canRestoreDeletion } from "@/utils/deletion-schedule";
 import { UserDetailDangerZone } from "@/components/clinicians/users-page/user-detail-danger-zone";
@@ -105,16 +103,13 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
       <div className="px-8 pb-16 md:px-16 lg:px-24">
         <div className="mx-auto max-w-[1600px] space-y-8">
           {isScheduled && (
-            <Alert
-              variant="warning"
-              className="border-warning/50 bg-warning/10"
-            >
-              <AlertTriangle className="h-5 w-5 text-warning" />
+            <div className="alert alert-warning border-warning/50 bg-warning/10">
+              <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
               <div className="flex-1">
-                <AlertTitle className="text-warning font-semibold">
+                <h3 className="text-warning font-semibold">
                   Account Scheduled for Deletion
-                </AlertTitle>
-                <AlertDescription className="text-warning/90 space-y-1">
+                </h3>
+                <div className="text-warning/90 space-y-1 text-sm">
                   <p>
                     This account is scheduled for deletion on{" "}
                     <strong>
@@ -129,13 +124,13 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
                   {deletionSchedule.reason && (
                     <p>Reason: {deletionSchedule.reason}</p>
                   )}
-                  <p className="text-sm">
+                  <p>
                     Scheduled by: {deletionSchedule.scheduledByUser.name || deletionSchedule.scheduledByUser.email}
                   </p>
-                  <p className="text-sm">
+                  <p>
                     The patient can reclaim their account during this period.
                   </p>
-                </AlertDescription>
+                </div>
               </div>
               {canRestore && (
                 <UserDetailDangerZone
@@ -145,7 +140,7 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
                   currentUserId={dbUser.id}
                 />
               )}
-            </Alert>
+            </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
