@@ -86,6 +86,8 @@ flowchart TD
     Dashboard --> Alerts["/alerts"]
     Alerts --> Reports["/healthcare-reports"]
     Reports --> Users["/users"]
+    Users --> UserDetail["/users/:id"]
+    UserDetail --> Users
     Users --> Map
     Users --> CreatePatient["/create-patient"]
     CreatePatient --> Users
@@ -207,6 +209,7 @@ flowchart TD
 - `/alerts` — Alert management
 - `/healthcare-reports` — Healthcare reports and analytics
 - `/users` — Patient/user management
+- `/users/:id` — Individual user detail and account deletion management
 - `/create-patient` — Create new patient account
 - `/clinician-profile` — Clinician profile management
 - `/waiting-for-approval` — Pending approval page (for unapproved clinicians)

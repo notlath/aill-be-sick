@@ -1,9 +1,10 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Info, CheckCircle, XCircle, Clock } from "lucide-react";
+import { ArrowUpDown, Info, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import UsersPageActions from "./users-page-actions";
+import Link from "next/link";
 
 export type UserRow = {
   id: number;
@@ -39,11 +40,15 @@ export const columns: ColumnDef<UserRow>[] = [
     cell: ({ row }) => {
       const name = row.getValue("name") as string | null;
       const email = row.original.email;
+      const userId = row.original.id;
       return (
-        <div className="flex flex-col gap-0.5">
+        <Link
+          href={`/users/${userId}`}
+          className="group flex flex-col gap-0.5 hover:text-primary transition-colors"
+        >
           <span className="font-medium">{name || "—"}</span>
           <span className="text-xs text-muted">{email}</span>
-        </div>
+        </Link>
       );
     },
   },
@@ -212,6 +217,13 @@ export const columns: ColumnDef<UserRow>[] = [
       const user = row.original;
       return (
         <div className="flex items-center gap-2">
+          <Link
+            href={`/users/${user.id}`}
+            className="btn btn-ghost btn-sm gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            View Details
+          </Link>
           <UsersPageActions
             currentUserRole="CLINICIAN"
             userId={user.id.toString()}
