@@ -3,7 +3,7 @@ import prisma from "@/prisma/prisma";
 import { getCurrentDbUser } from "@/utils/user";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { canCreatePatient } from "@/utils/role-hierarchy";
+import { canCreatePatient, isAdminLike } from "@/utils/role-hierarchy";
 import { canRestoreDeletion } from "@/utils/deletion-schedule";
 import { UserDetailDangerZone } from "@/components/clinicians/users-page/user-detail-danger-zone";
 import Link from "next/link";
@@ -46,6 +46,8 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
   if (!canCreatePatient(dbUser.role)) {
     redirect("/unauthorized");
   }
+
+  const isAdmin = isAdminLike(dbUser.role);
 
   const user = await getUserDetail(userId);
 
@@ -138,6 +140,7 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
                   scheduledBy={deletionSchedule.scheduledBy}
                   currentUserRole={dbUser.role}
                   currentUserId={dbUser.id}
+                  isScheduled={true}
                 />
               )}
             </div>
@@ -227,7 +230,7 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
             </Card>
           </div>
 
-          {!isScheduled && (
+          {!isScheduled && isAdmin && (
             <Card className="border-error/50">
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -248,6 +251,7 @@ const UserDetailPage = async ({ params }: { params: Promise<{ id: string }> }) =
                   scheduledBy={dbUser.id}
                   currentUserRole={dbUser.role}
                   currentUserId={dbUser.id}
+                  isScheduled={false}
                 />
               </CardContent>
             </Card>

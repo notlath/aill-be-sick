@@ -16,7 +16,7 @@ export const restorePatientDeletion = actionClient
       return { error: "Authentication required" };
     }
 
-    const allowedRoles = ["CLINICIAN", "ADMIN", "DEVELOPER"];
+    const allowedRoles = ["ADMIN", "DEVELOPER"];
     if (!allowedRoles.includes(dbUser.role)) {
       return { error: "Permission denied" };
     }

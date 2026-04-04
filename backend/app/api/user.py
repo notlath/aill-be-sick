@@ -368,7 +368,7 @@ def schedule_deletion():
             return jsonify({"error": "Clinician not found"}), 404
 
         clinician_role = clinician_result[1]
-        if clinician_role not in ("CLINICIAN", "ADMIN", "DEVELOPER"):
+        if clinician_role not in ("ADMIN", "DEVELOPER"):
             return jsonify({"error": "Permission denied"}), 403
 
     body = request.get_json(silent=True)
@@ -452,7 +452,7 @@ def restore_deletion():
             return jsonify({"error": "User not found"}), 404
 
         clinician_role = clinician_result[1]
-        if clinician_role not in ("CLINICIAN", "ADMIN", "DEVELOPER"):
+        if clinician_role not in ("ADMIN", "DEVELOPER"):
             return jsonify({"error": "Permission denied"}), 403
 
     body = request.get_json(silent=True)

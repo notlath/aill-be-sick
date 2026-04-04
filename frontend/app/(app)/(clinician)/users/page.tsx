@@ -8,6 +8,7 @@ import PendingDeletionsTab from "@/components/clinicians/users-page/pending-dele
 import type { PdfColumn } from "@/utils/pdf-export";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
+import { isAdminLike } from "@/utils/role-hierarchy";
 
 function UsersTableSkeleton() {
   return (
@@ -100,6 +101,7 @@ async function UsersTable({
 const UsersPage = async () => {
   const { success: dbUser } = await getCurrentDbUser();
   const currentUserRole = dbUser?.role || "";
+  const isAdmin = isAdminLike(currentUserRole);
 
   const pendingDeletions = await getPendingDeletionSchedules();
   const pendingCount = pendingDeletions.length;
@@ -136,12 +138,14 @@ const UsersPage = async () => {
         <div className="mx-auto max-w-[1600px] space-y-8">
           <div className="tabs tabs-boxed bg-base-200">
             <a className="tab tab-lg flex-1" href="#all-users">All Users</a>
-            <a className="tab tab-lg flex-1" href="#pending-deletion">
-              Pending Deletion
-              {pendingCount > 0 && (
-                <span className="badge badge-sm badge-warning ml-1">{pendingCount}</span>
-              )}
-            </a>
+            {isAdmin && (
+              <a className="tab tab-lg flex-1" href="#pending-deletion">
+                Pending Deletion
+                {pendingCount > 0 && (
+                  <span className="badge badge-sm badge-warning ml-1">{pendingCount}</span>
+                )}
+              </a>
+            )}
           </div>
 
           <div id="all-users" className="animate-slide-up" style={{ animationDelay: "200ms" }}>
@@ -160,9 +164,11 @@ const UsersPage = async () => {
             </Suspense>
           </div>
 
-          <div id="pending-deletion" className="animate-slide-up" style={{ animationDelay: "300ms" }}>
-            <PendingDeletionsTab />
-          </div>
+          {isAdmin && (
+            <div id="pending-deletion" className="animate-slide-up" style={{ animationDelay: "300ms" }}>
+              <PendingDeletionsTab />
+            </div>
+          )}
         </div>
       </div>
     </main>

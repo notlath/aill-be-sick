@@ -51,9 +51,6 @@ export function canRestoreDeletion(
   if (["ADMIN", "DEVELOPER"].includes(currentUserRole)) {
     return true;
   }
-  if (currentUserRole === "CLINICIAN" && currentUserId === scheduledBy) {
-    return true;
-  }
   return false;
 }
 

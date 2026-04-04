@@ -11,6 +11,7 @@ interface UserDetailDangerZoneProps {
   scheduledBy: number;
   currentUserRole: string;
   currentUserId: number;
+  isScheduled: boolean;
 }
 
 export function UserDetailDangerZone({
@@ -18,6 +19,7 @@ export function UserDetailDangerZone({
   scheduledBy,
   currentUserRole,
   currentUserId,
+  isScheduled,
 }: UserDetailDangerZoneProps) {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [reason, setReason] = useState("");
@@ -45,9 +47,7 @@ export function UserDetailDangerZone({
     restoreDeletion({ patientId });
   };
 
-  const canRestore =
-    ["ADMIN", "DEVELOPER"].includes(currentUserRole) ||
-    (currentUserRole === "CLINICIAN" && currentUserId === scheduledBy);
+  const canRestore = isScheduled;
 
   return (
     <>
