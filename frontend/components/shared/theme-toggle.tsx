@@ -7,7 +7,7 @@ import { cn } from "@/utils/lib";
 
 export function ThemeToggle({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -17,7 +17,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     return <div className={cn("w-10 h-10 animate-pulse bg-base-300 rounded-xl", className)} />;
   }
 
-  const isDark = theme === "dark";
+  const isDark = resolvedTheme === "dark";
 
   return (
     <button
