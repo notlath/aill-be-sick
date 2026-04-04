@@ -6,7 +6,6 @@ import { getCurrentDbUser } from "@/utils/user";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 import { canOverrideDiagnosis } from "@/utils/role-hierarchy";
-import { checkAndCreateAlert, checkAndCreateOutbreakAlert } from "@/utils/alert-pipeline";
 
 export const overrideDiagnosis = actionClient
   .inputSchema(OverrideDiagnosisSchema)
@@ -111,40 +110,7 @@ export const overrideDiagnosis = actionClient
       revalidatePath("/map", "page");
       revalidatePath("/dashboard", "page");
 
-      // 6. Run anomaly and outbreak checks if we auto-verified — non-blocking.
-      // Only verified diagnoses enter the surveillance pipeline.
-      if (needsAutoVerify) {
-        const patient = diagnosis.user;
-        checkAndCreateAlert({
-          diagnosisId,
-          disease: diagnosis.disease,
-          confidence: diagnosis.confidence,
-          uncertainty: diagnosis.uncertainty,
-          city: diagnosis.city,
-          province: diagnosis.province,
-          region: diagnosis.region,
-          barangay: diagnosis.barangay,
-          district: diagnosis.district,
-          latitude: diagnosis.latitude ?? null,
-          longitude: diagnosis.longitude ?? null,
-          patientAge: patient?.age ?? undefined,
-          patientGender: patient?.gender ?? undefined,
-        }).catch((err) =>
-          console.error(
-            `[overrideDiagnosis] Anomaly alert failed for diagnosis ${diagnosisId}:`,
-            err,
-          ),
-        );
-
-        checkAndCreateOutbreakAlert().catch((err) =>
-          console.error(
-            `[overrideDiagnosis] Outbreak alert failed for diagnosis ${diagnosisId}:`,
-            err,
-          ),
-        );
-      }
-
-      // 7. Return appropriate success message
+      // 6. Return appropriate success message
       if (isAlreadyVerified || needsAutoVerify) {
         const message = needsAutoVerify
           ? "Clinical override saved. This diagnosis has been automatically verified."
