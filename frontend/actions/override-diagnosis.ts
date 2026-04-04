@@ -6,6 +6,7 @@ import { getCurrentDbUser } from "@/utils/user";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 import { canOverrideDiagnosis } from "@/utils/role-hierarchy";
+import { checkAndCreateAlert, checkAndCreateOutbreakAlert } from "@/utils/alert-pipeline";
 
 export const overrideDiagnosis = actionClient
   .inputSchema(OverrideDiagnosisSchema)
@@ -35,7 +36,7 @@ export const overrideDiagnosis = actionClient
       // 2. Verify the diagnosis exists and get original AI assessment
       const diagnosis = await prisma.diagnosis.findUnique({
         where: { id: diagnosisId },
-        include: { override: true },
+        include: { override: true, user: true },
       });
 
       if (!diagnosis) {
@@ -44,10 +45,10 @@ export const overrideDiagnosis = actionClient
 
       // 3. Check the current status to determine if auto-verification is needed
       const diagnosisData = diagnosis as any;
-      const isPending = diagnosisData.status === "PENDING";
+      const needsAutoVerify = ["PENDING", "INCONCLUSIVE"].includes(diagnosisData.status);
       const isAlreadyVerified = diagnosisData.status === "VERIFIED";
 
-      // 4. Use a transaction to ensure atomicity: override + auto-verify (if pending)
+      // 4. Use a transaction to ensure atomicity: override + auto-verify (if pending/inconclusive)
       await prisma.$transaction(async (tx) => {
         // 4a. Create or update the override
         if (diagnosis.override) {
@@ -86,8 +87,8 @@ export const overrideDiagnosis = actionClient
           );
         }
 
-        // 4b. Auto-verify if the diagnosis is still PENDING
-        if (isPending) {
+        // 4b. Auto-verify if the diagnosis is PENDING or INCONCLUSIVE
+        if (needsAutoVerify) {
           await tx.diagnosis.update({
             where: { id: diagnosisId },
             data: {
@@ -110,10 +111,42 @@ export const overrideDiagnosis = actionClient
       revalidatePath("/map", "page");
       revalidatePath("/dashboard", "page");
 
-      // 6. Return appropriate success message
-      if (isAlreadyVerified || isPending) {
-        // If it was pending, it's now auto-verified
-        const message = isPending
+      // 6. Run anomaly and outbreak checks if we auto-verified — non-blocking.
+      // Only verified diagnoses enter the surveillance pipeline.
+      if (needsAutoVerify) {
+        const patient = diagnosis.user;
+        checkAndCreateAlert({
+          diagnosisId,
+          disease: diagnosis.disease,
+          confidence: diagnosis.confidence,
+          uncertainty: diagnosis.uncertainty,
+          city: diagnosis.city,
+          province: diagnosis.province,
+          region: diagnosis.region,
+          barangay: diagnosis.barangay,
+          district: diagnosis.district,
+          latitude: diagnosis.latitude ?? null,
+          longitude: diagnosis.longitude ?? null,
+          patientAge: patient?.age ?? undefined,
+          patientGender: patient?.gender ?? undefined,
+        }).catch((err) =>
+          console.error(
+            `[overrideDiagnosis] Anomaly alert failed for diagnosis ${diagnosisId}:`,
+            err,
+          ),
+        );
+
+        checkAndCreateOutbreakAlert().catch((err) =>
+          console.error(
+            `[overrideDiagnosis] Outbreak alert failed for diagnosis ${diagnosisId}:`,
+            err,
+          ),
+        );
+      }
+
+      // 7. Return appropriate success message
+      if (isAlreadyVerified || needsAutoVerify) {
+        const message = needsAutoVerify
           ? "Clinical override saved. This diagnosis has been automatically verified."
           : "Clinical override updated successfully.";
         return { success: message };

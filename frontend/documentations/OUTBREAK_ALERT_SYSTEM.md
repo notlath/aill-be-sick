@@ -23,11 +23,11 @@ The Outbreak Alert System provides automated, real-time detection of collective 
 
 This section provides a high-level summary of how the system identifies and communicates potential outbreaks.
 
-1. **The Trigger (Patient Diagnosis)**
-   Whenever a patient completes a symptom chat and receives a diagnosis, the Next.js server saves the record and silently triggers the Outbreak Detection process in the background.
+1. **The Trigger (Clinician Verification)**
+   Whenever a clinician verifies a PENDING diagnosis (or applies a clinical override that auto-verifies), the Next.js server updates the status to `VERIFIED` and silently triggers the Outbreak Detection process in the background.
 
 2. **Data Gathering (37-Day Window)**
-   The Flask backend pulls the last **37 days** of diagnosis records from the database. It splits this data into two groups:
+   The Flask backend pulls the last **37 days** of VERIFIED diagnosis records from the database. It splits this data into two groups:
    - **The Baseline:** The first 30 days.
    - **The Recent Analysis:** The last 7 days.
 
@@ -351,18 +351,24 @@ graph LR
 sequenceDiagram
     participant P as Patient
     participant N as Next.js Server
+    participant C as Clinician
     participant F as Flask Backend
     participant DB as PostgreSQL (Prisma)
-    participant C as Clinician Dashboard
+    participant D as Clinician Dashboard
 
-    P->>N: Submits Symptoms (createDiagnosis)
-    N->>DB: Saves Diagnosis Record
-    N-->>P: Returns Success Response (Non-blocking)
+    P->>N: Submits Symptoms (autoRecordDiagnosis)
+    N->>DB: Saves Diagnosis (status: PENDING)
+    N-->>P: Returns Success Response
+    
+    Note over C: Later: Clinician Reviews
+    C->>N: Verifies Diagnosis (approveDiagnosis)
+    N->>DB: Updates Diagnosis to VERIFIED
+    N-->>C: Returns Success Response
     
     Note over N: Background Task Starts
     
     N->>F: GET /api/surveillance/outbreaks/detect
-    F->>DB: Fetch 37-day historical data
+    F->>DB: Fetch 37-day VERIFIED diagnosis data
     F->>F: Calculate Thresholds (Baseline 30d)
     F->>F: Run K-Means (Recent 7d)
     F-->>N: Returns detected outbreaks JSON
@@ -371,8 +377,8 @@ sequenceDiagram
         N->>DB: Check for duplicate alert (last 24h)
         alt No Duplicate Exists
             N->>DB: Create Alert (type: OUTBREAK)
-            DB-->>C: Supabase Realtime Broadcast
-            C->>C: Show Toast + Update Table
+            DB-->>D: Supabase Realtime Broadcast
+            D->>D: Show Toast + Update Table
         else Duplicate Exists
             N->>N: Log & Skip
         end
@@ -393,15 +399,27 @@ The core logic resides in the Flask backend. It fetches data through the `illnes
 - `OUTBREAK:VOL_SPIKE`: Sudden increase in volume where no historical baseline exists.
 
 ### Frontend: Alert Pipeline
-The system is triggered via a Server Action in `frontend/actions/auto-record-diagnosis.ts`.
+The system is triggered via Server Actions when a clinician verifies a diagnosis.
 
 ```typescript
-// Triggered in the background after every diagnosis
+// Triggered in the background after every diagnosis verification
+// (approveDiagnosis, batchApproveDiagnoses, overrideDiagnosis)
+checkAndCreateAlert({ diagnosisId, disease, confidence, ... })
+  .catch((err) => console.error("Anomaly alert failed", err));
+
 checkAndCreateOutbreakAlert({
   disease,
-  district: dbUser.district,
+  district: diagnosis.district,
 }).catch((err) => console.error("Outbreak alert failed", err));
 ```
+
+**Trigger Points:**
+
+| Action | File | When |
+|--------|------|------|
+| `approveDiagnosis` | `verify-diagnosis.ts` | After single diagnosis verified |
+| `batchApproveDiagnoses` | `verify-diagnosis.ts` | After batch verification, runs for each verified diagnosis |
+| `overrideDiagnosis` | `override-diagnosis.ts` | Only when PENDING → VERIFIED via auto-verify |
 
 ### Database Schema
 The `Alert` model in Prisma was extended to support the `OUTBREAK` type.
