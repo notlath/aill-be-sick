@@ -26,17 +26,80 @@ The Real-Time Alert System automatically notifies clinicians when a newly submit
 
 ### Core Functionality
 
-When a patient submits symptoms and a diagnosis is confirmed:
+When a clinician verifies a diagnosis:
 
-1. The diagnosis is saved to PostgreSQL via Prisma
+1. The diagnosis status is updated to `VERIFIED` in PostgreSQL
 2. A non-blocking background function calls the Flask surveillance endpoint
-3. The response is scanned to see if the new diagnosis appears in the anomalies list
+3. The response is scanned to see if the newly verified diagnosis appears in the anomalies list
 4. If it does, an `Alert` record is created in PostgreSQL
 5. Supabase Realtime broadcasts the INSERT event to all subscribed clinician browsers
 6. Every connected clinician sees the alert appear in the table, the sidebar badge update, and a toast notification fire — all without refreshing
 
+> **Note:** Anomaly and outbreak alert checks are triggered at verification time, not at diagnosis creation. This ensures only clinician-confirmed cases enter the surveillance pipeline. See `verify-diagnosis.ts` and `override-diagnosis.ts` for the trigger points.
+
 ### End-to-End Data Flow
 
+```
+┌──────────────────────┐
+│  Clinician Browser    │
+│  /pending-diagnoses   │
+│  approveDiagnosis     │
+└──────────┬───────────┘
+           │ next-safe-action (Server Action)
+           ▼
+┌──────────────────────┐     ┌──────────────────────┐
+│  Next.js Server      │────▶│  PostgreSQL           │
+│  verify-diagnosis.ts │     │  Diagnosis table      │
+│  or override-        │     │  (Prisma UPDATE to    │
+│  diagnosis.ts        │     │   VERIFIED status)    │
+└──────────┬───────────┘     └──────────────────────┘
+           │ fire-and-forget (.catch)
+           ▼
+┌──────────────────────┐
+│  checkAndCreateAlert │
+│  (async, background) │
+└──────────┬───────────┘
+           │ HTTP GET (no-store)
+           ▼
+┌──────────────────────┐
+│  Flask Backend       │
+│  /api/surveillance/  │
+│  outbreaks           │
+│  IsolationForest     │
+│  (VERIFIED-only)     │
+└──────────┬───────────┘
+           │ JSON { anomalies: [...] }
+           ▼
+┌──────────────────────┐     ┌──────────────────────┐
+│  match anomaly by    │────▶│  PostgreSQL           │
+│  diagnosisId?        │     │  Alert table          │
+│                      │     │  (Prisma INSERT)      │
+└──────────────────────┘     └──────────────────────┘
+                              │ WAL → Supabase Realtime
+                              ▼
+                   ┌──────────────────────┐
+                   │  supabase_realtime   │
+                   │  publication         │
+                   │  (postgres_changes)  │
+                   └──────────┬───────────┘
+                              │ WebSocket push
+                              ▼
+             ┌───────────────────────────────────────┐
+             │  Clinician Browser(s)                 │
+             │                                       │
+             │  useAlertsStore ("alerts-store")      │
+             │  ← single shared Zustand store        │
+             │    + single Supabase channel          │
+             │                                       │
+             │  AlertsList        reads store        │
+             │  → table updated                      │
+             │                                       │
+             │  AlertsNavBadge    reads store        │
+             │  → sidebar badge updated              │
+             │                                       │
+             │  AlertsToastListener reads store      │
+             │  → toast notification fired           │
+             └───────────────────────────────────────┘
 ```
 ┌──────────────────────┐
 │  Patient Browser     │
@@ -151,13 +214,13 @@ When a patient submits symptoms and a diagnosis is confirmed:
 
 ### User Flow — Clinician
 
-1. Clinician opens any page under `/dashboard`, `/alerts`, `/map`, etc.
-2. `AlertsStoreProvider` mounts once in the clinician layout, calling `initialize()` on the Zustand store
-3. The store opens a single Supabase Realtime channel (`"alerts-store"`) and fetches all existing alerts
-4. `AlertsList`, `AlertsNavBadge`, and `AlertsToastListener` each read from the store via selectors — no separate subscriptions
-5. A patient submits a symptom chat on the patient side
-6. The diagnosis is saved; background anomaly check fires
-7. If anomalous: an `Alert` row is inserted into PostgreSQL
+1. Patient submits symptoms and receives an AI-generated diagnosis (status: PENDING)
+2. Clinician opens `/pending-diagnoses` or any page under `/dashboard`
+3. Clinician reviews the diagnosis and clicks "Verify"
+4. `approveDiagnosis` action updates the diagnosis status to `VERIFIED`
+5. Fire-and-forget alert pipeline calls `checkAndCreateAlert()` and `checkAndCreateOutbreakAlert()`
+6. Flask surveillance endpoint analyzes all VERIFIED diagnoses via Isolation Forest
+7. If the new diagnosis is anomalous: an `Alert` row is inserted into PostgreSQL
 8. Supabase Realtime broadcasts the INSERT via WebSocket to all connected clinician browsers
 9. The store's single channel callback fires, updating `alerts` and `latestAlert` in one place
 10. All consumers react via their selectors:
@@ -167,6 +230,8 @@ When a patient submits symptoms and a diagnosis is confirmed:
 11. Clinician clicks "View Alerts" on the toast or navigates to `/alerts`
 12. Clinician reviews the alert detail modal (reason codes, metadata, diagnosis link)
 13. Clinician acknowledges or dismisses the alert; status change propagates back via Realtime UPDATE event to all connected clinicians
+
+> **Clinical Override Path:** When a clinician applies a clinical override (`override-diagnosis.ts`), the diagnosis is auto-verified and the alert pipeline runs identically to the approve path.
 
 ---
 
@@ -236,7 +301,8 @@ frontend/
 │   ├── AlertNoteSchema.ts                    # Zod schema for creating a note
 │   └── UpdateAlertNoteSchema.ts              # Zod schema for editing a note
 ├── actions/
-│   ├── auto-record-diagnosis.ts              # Modified: fires checkAndCreateAlert()
+│   ├── verify-diagnosis.ts                   # Modified: fires alert pipeline on approve/batch
+│   ├── override-diagnosis.ts                 # Modified: fires alert pipeline on auto-verify
 │   ├── create-alert.ts                       # next-safe-action: creates an Alert
 │   ├── acknowledge-alert.ts                  # next-safe-action: sets ACKNOWLEDGED
 │   ├── dismiss-alert.ts                      # next-safe-action: sets DISMISSED
@@ -244,7 +310,8 @@ frontend/
 │   ├── create-alert-note.ts                  # next-safe-action: adds a note to an alert
 │   └── update-alert-note.ts                  # next-safe-action: edits an existing note (author only)
 ├── utils/
-│   └── alert-severity.ts                     # Severity mapping + badge helpers
+│   ├── alert-severity.ts                     # Severity mapping + badge helpers
+│   └── alert-pipeline.ts                     # Shared checkAndCreateAlert + checkAndCreateOutbreakAlert
 ├── stores/
 │   └── use-alerts-store.ts                   # Zustand store: single channel + all alert state
 ├── components/clinicians/alerts/
@@ -341,21 +408,29 @@ export type AlertMetadata = {
 
 ## Component Architecture
 
-### 1. `auto-record-diagnosis.ts` — Diagnosis Action (Modified)
+### 1. `alert-pipeline.ts` — Shared Alert Utilities
 
-**Location**: `frontend/actions/auto-record-diagnosis.ts`
+**Location**: `frontend/utils/alert-pipeline.ts`
 
-The auto-record diagnosis action calls `checkAndCreateAlert()` as a fire-and-forget operation after the diagnosis is successfully persisted:
+Contains the shared `checkAndCreateAlert()` and `checkAndCreateOutbreakAlert()` functions used by verification actions. These functions are called as fire-and-forget operations after a diagnosis is verified:
 
 ```typescript
-// Non-blocking — diagnosis success is never conditional on alert creation
-checkAndCreateAlert({ diagnosisId: diagnosis.id, disease, confidence, ... })
-  .catch((err) => console.error(`Alert creation failed:`, err));
+// Non-blocking — verification success is never conditional on alert creation
+checkAndCreateAlert({ diagnosisId, disease, confidence, ... })
+  .catch((err) => console.error(`Anomaly alert failed:`, err));
 ```
+
+#### Trigger Points
+
+| Action | File | When Alerts Run |
+|--------|------|-----------------|
+| `approveDiagnosis` | `verify-diagnosis.ts` | After status updated to VERIFIED |
+| `batchApproveDiagnoses` | `verify-diagnosis.ts` | After batch update, queries each verified diagnosis |
+| `overrideDiagnosis` | `override-diagnosis.ts` | Only when `isPending` was true (auto-verify path) |
 
 #### `checkAndCreateAlert()`
 
-This private async function performs the full anomaly-to-alert pipeline:
+This async function performs the full anomaly-to-alert pipeline:
 
 ```typescript
 async function checkAndCreateAlert(params: AlertCheckParams): Promise<void> {
@@ -384,9 +459,10 @@ async function checkAndCreateAlert(params: AlertCheckParams): Promise<void> {
 ```
 
 Key design decisions:
-- **Fire-and-forget**: `checkAndCreateAlert` is called without `await`, so a slow or unavailable Flask service never blocks the patient from receiving their diagnosis
+- **Fire-and-forget**: Alert functions are called without `await`, so a slow or unavailable Flask service never blocks the verification action
 - **Direct Prisma**: Since we are already in a Next.js Server Action (server context), the alert is created via Prisma directly rather than calling `createAlert` as a nested server action
 - **ID matching**: The Flask service may return IDs as strings or integers; the match uses `String(a.id) === String(diagnosisId)` to handle both
+- **VERIFIED-only data**: The Flask surveillance endpoint only queries diagnoses with `status = 'VERIFIED'`, so alerts are only created for confirmed cases
 
 ---
 
@@ -839,10 +915,10 @@ Action buttons per row:
 
 | Scenario | Behavior |
 |----------|----------|
-| Flask surveillance unavailable | `checkAndCreateAlert` catches the error, logs a warning, returns early — diagnosis is always saved |
+| Flask surveillance unavailable | `checkAndCreateAlert` catches the error, logs a warning, returns early — verification is always successful |
 | Flask responds non-200 | Warning logged, no alert created |
 | Diagnosis not in anomaly list | No alert created (diagnosis is normal) |
-| Prisma alert creation fails | Error logged; does not affect diagnosis record |
+| Prisma alert creation fails | Error logged; does not affect verification record |
 | Supabase initial fetch fails | `error` state set in store; `AlertsList` renders an error alert banner |
 | RLS permission denied (42501) | Caused by missing `GRANT USAGE ON SCHEMA public` — fixed by migration `20260309143938_alert_rls_realtime.sql` |
 | Realtime events not firing | Caused by `Alert` table missing from `supabase_realtime` publication — fixed by `ALTER PUBLICATION supabase_realtime ADD TABLE public."Alert"` |
@@ -874,18 +950,19 @@ This can be made configurable via an environment variable if different sensitivi
 
 ## Performance Considerations
 
-- **Non-blocking alert creation**: The anomaly check never delays the patient's diagnosis response. The `checkAndCreateAlert` call is fire-and-forget
+- **Non-blocking alert creation**: The anomaly check never delays the clinician's verification response. The `checkAndCreateAlert` call is fire-and-forget
 - **Single Supabase channel**: All three consumers (`AlertsList`, `AlertsNavBadge`, `AlertsToastListener`) share one WebSocket channel via the Zustand store. Previously, each opened its own channel
 - **Single fetch**: The store fetches all alerts once on `initialize()`. All consumers filter or derive what they need client-side via selectors — no duplicate Supabase queries
 - **Selector optimization**: `useShallow` is used for multi-value selectors to prevent unnecessary re-renders when unrelated store fields change
 - **`isInitialized` guard**: Prevents double-initialization in React Strict Mode (which mounts components twice in development)
 - **Pagination**: TanStack Table handles large alert sets client-side; no server-side pagination needed at current scale
+- **VERIFIED-only analysis**: The Flask surveillance endpoint only queries diagnoses with `status = 'VERIFIED'`, so alerts are only created for confirmed cases. This means newly PENDING diagnoses won't trigger alerts until a clinician verifies them
 
 ---
 
 ## Testing Checklist
 
-- [ ] Create a diagnosis on the patient side — verify alert appears in `/alerts` without page refresh
+- [ ] Verify a diagnosis on the pending diagnoses page — verify alert appears in `/alerts` without page refresh
 - [ ] Verify toast notification fires on any clinician page when alert is created
 - [ ] Verify sidebar badge increments on new alert
 - [ ] Acknowledge an alert — verify status changes to ACKNOWLEDGED on all open browser tabs
@@ -897,6 +974,9 @@ This can be made configurable via an environment variable if different sensitivi
 - [ ] Check browser console shows `[useAlertsStore] channel status: SUBSCRIBED`
 - [ ] Verify only one channel is opened (no duplicate `"alerts-store"` entries in console)
 - [ ] Verify `/alerts` page loads without `42501 permission denied` error
+- [ ] Verify that a PENDING diagnosis does NOT trigger an alert (alert only fires after verification)
+- [ ] Batch verify multiple diagnoses — verify alert pipeline runs for each verified diagnosis
+- [ ] Apply clinical override on a PENDING diagnosis — verify alert pipeline runs after auto-verification
 
 ---
 
@@ -918,7 +998,8 @@ This can be made configurable via an environment variable if different sensitivi
 | **Anomaly Detection & Surveillance** | Source of anomaly classifications that trigger alerts. See `ANOMALY_DETECTION_SURVEILLANCE.md` |
 | **Disease Map** | Visualizes the same anomalous diagnoses geographically |
 | **Healthcare Reports** | Full table of all diagnoses, including those that generated alerts |
-| **Diagnosis Creation** | The entry point that triggers `checkAndCreateAlert()` |
+| **Diagnosis Verification** | The entry point that triggers `checkAndCreateAlert()` — see `verify-diagnosis.ts` |
+| **Clinical Override** | Auto-verifies PENDING diagnoses and triggers alert pipeline — see `override-diagnosis.ts` |
 
 ---
 
@@ -935,7 +1016,7 @@ This can be made configurable via an environment variable if different sensitivi
 
 ---
 
-**Version**: 4.0
-**Last Updated**: March 10, 2026
+**Version**: 5.0
+**Last Updated**: April 04, 2026
 **Maintainer**: AI'll Be Sick Development Team
 

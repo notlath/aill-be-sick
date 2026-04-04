@@ -5,6 +5,7 @@ import { getCurrentDbUser } from "@/utils/user";
 import { actionClient } from "./client";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
+import { checkAndCreateAlert, checkAndCreateOutbreakAlert } from "@/utils/alert-pipeline";
 
 /**
  * Schema for approving a diagnosis
@@ -41,9 +42,10 @@ export const approveDiagnosis = actionClient
     }
 
     try {
-      // Check if diagnosis exists and is pending
+      // Check if diagnosis exists and is pending, including patient demographics
       const diagnosis = await prisma.diagnosis.findUnique({
         where: { id: diagnosisId },
+        include: { user: true },
       });
 
       if (!diagnosis) {
@@ -80,6 +82,37 @@ export const approveDiagnosis = actionClient
       revalidatePath("/healthcare-reports");
       revalidatePath("/pending-diagnoses");
       revalidatePath(`/diagnosis/${diagnosis.chatId}`);
+
+      // Run anomaly and outbreak checks in the background — non-blocking.
+      // Only verified diagnoses enter the surveillance pipeline.
+      const patient = diagnosis.user;
+      checkAndCreateAlert({
+        diagnosisId,
+        disease: diagnosis.disease,
+        confidence: diagnosis.confidence,
+        uncertainty: diagnosis.uncertainty,
+        city: diagnosis.city,
+        province: diagnosis.province,
+        region: diagnosis.region,
+        barangay: diagnosis.barangay,
+        district: diagnosis.district,
+        latitude: diagnosis.latitude ?? null,
+        longitude: diagnosis.longitude ?? null,
+        patientAge: patient?.age ?? undefined,
+        patientGender: patient?.gender ?? undefined,
+      }).catch((err) =>
+        console.error(
+          `[approveDiagnosis] Anomaly alert failed for diagnosis ${diagnosisId}:`,
+          err,
+        ),
+      );
+
+      checkAndCreateOutbreakAlert().catch((err) =>
+        console.error(
+          `[approveDiagnosis] Outbreak alert failed for diagnosis ${diagnosisId}:`,
+          err,
+        ),
+      );
 
       return { 
         success: "Diagnosis verified successfully",
@@ -197,20 +230,64 @@ export const batchApproveDiagnoses = actionClient
 
     try {
       const now = new Date();
-      
+
+      // Query diagnoses that are eligible for verification BEFORE updating,
+      // so we only run the alert pipeline for diagnoses actually changed by this call.
+      const eligibleDiagnoses = await prisma.diagnosis.findMany({
+        where: {
+          id: { in: diagnosisIds },
+          status: { in: ["PENDING", "INCONCLUSIVE"] },
+        },
+        include: { user: true },
+      });
+
       // Update all diagnoses to VERIFIED in a single transaction
       // Handles both PENDING and INCONCLUSIVE diagnoses
       const result = await prisma.diagnosis.updateMany({
         where: {
           id: { in: diagnosisIds },
           status: { in: ["PENDING", "INCONCLUSIVE"] },
-        } as any,
+        },
         data: {
           status: "VERIFIED",
           verifiedAt: now,
           verifiedBy: dbUser.id,
         } as any,
       });
+
+      // Run anomaly and outbreak checks for each newly verified diagnosis — non-blocking.
+      // Only verified diagnoses enter the surveillance pipeline.
+      for (const dx of eligibleDiagnoses) {
+        const patient = dx.user;
+        checkAndCreateAlert({
+          diagnosisId: dx.id,
+          disease: dx.disease,
+          confidence: dx.confidence,
+          uncertainty: dx.uncertainty,
+          city: dx.city,
+          province: dx.province,
+          region: dx.region,
+          barangay: dx.barangay,
+          district: dx.district,
+          latitude: dx.latitude ?? null,
+          longitude: dx.longitude ?? null,
+          patientAge: patient?.age ?? undefined,
+          patientGender: patient?.gender ?? undefined,
+        }).catch((err) =>
+          console.error(
+            `[batchApproveDiagnoses] Anomaly alert failed for diagnosis ${dx.id}:`,
+            err,
+          ),
+        );
+      }
+
+      // Run outbreak detection once for the full dataset — it scans all VERIFIED diagnoses globally.
+      checkAndCreateOutbreakAlert().catch((err) =>
+        console.error(
+          `[batchApproveDiagnoses] Outbreak alert failed:`,
+          err,
+        ),
+      );
 
       // Revalidate paths
       revalidatePath("/healthcare-reports");
@@ -260,25 +337,25 @@ export const batchRejectDiagnoses = actionClient
           where: {
             id: { in: diagnosisIds },
             status: "PENDING",
-          } as any,
+          },
           data: {
             status: "REJECTED",
             originalStatus: "PENDING",
             rejectedAt: now,
             rejectedBy: dbUser.id,
-          } as any,
+          },
         }),
         prisma.diagnosis.updateMany({
           where: {
             id: { in: diagnosisIds },
             status: "INCONCLUSIVE",
-          } as any,
+          },
           data: {
             status: "REJECTED",
             originalStatus: "INCONCLUSIVE",
             rejectedAt: now,
             rejectedBy: dbUser.id,
-          } as any,
+          },
         }),
       ]);
 
