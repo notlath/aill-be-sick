@@ -13,6 +13,7 @@ const diagnosisWithUserSelect = {
   symptoms: true,
   modelUsed: true,
   cdss: true,
+  isValid: true,
   city: true,
   region: true,
   province: true,
