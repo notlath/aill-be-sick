@@ -35,6 +35,8 @@ export type DiagnosisRow = {
   user?: User;
   override?: DiagnosisOverrideRow | null;
   notes?: DiagnosisNoteRow[];
+  status?: string;
+  rejectionReason?: string;
 };
 
 export const columns: ColumnDef<DiagnosisRow>[] = [
