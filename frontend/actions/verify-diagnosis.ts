@@ -140,6 +140,7 @@ export const rejectDiagnosis = actionClient
         where: { id: diagnosisId },
         data: {
           status: "REJECTED",
+          originalStatus: diagnosisData.status,
           rejectedAt: new Date(),
           rejectedBy: dbUser.id,
         } as any,
@@ -252,19 +253,36 @@ export const batchRejectDiagnoses = actionClient
     try {
       const now = new Date();
       
-      // Update all diagnoses to REJECTED
-      // Handles both PENDING and INCONCLUSIVE diagnoses
-      const result = await prisma.diagnosis.updateMany({
-        where: {
-          id: { in: diagnosisIds },
-          status: { in: ["PENDING", "INCONCLUSIVE"] },
-        } as any,
-        data: {
-          status: "REJECTED",
-          rejectedAt: now,
-          rejectedBy: dbUser.id,
-        } as any,
-      });
+      // Update all diagnoses to REJECTED, preserving original status
+      // Split into two queries to set correct originalStatus for each
+      const [pendingResult, inconclusiveResult] = await prisma.$transaction([
+        prisma.diagnosis.updateMany({
+          where: {
+            id: { in: diagnosisIds },
+            status: "PENDING",
+          } as any,
+          data: {
+            status: "REJECTED",
+            originalStatus: "PENDING",
+            rejectedAt: now,
+            rejectedBy: dbUser.id,
+          } as any,
+        }),
+        prisma.diagnosis.updateMany({
+          where: {
+            id: { in: diagnosisIds },
+            status: "INCONCLUSIVE",
+          } as any,
+          data: {
+            status: "REJECTED",
+            originalStatus: "INCONCLUSIVE",
+            rejectedAt: now,
+            rejectedBy: dbUser.id,
+          } as any,
+        }),
+      ]);
+
+      const totalRejected = pendingResult.count + inconclusiveResult.count;
 
       // If a reason is provided, add diagnosis notes for all rejected diagnoses
       if (reason) {
@@ -282,8 +300,8 @@ export const batchRejectDiagnoses = actionClient
       revalidatePath("/pending-diagnoses");
 
       return { 
-        success: `${result.count} diagnoses rejected successfully`,
-        count: result.count,
+        success: `${totalRejected} diagnoses rejected successfully`,
+        count: totalRejected,
       };
     } catch (error) {
       console.error(`Error batch rejecting diagnoses:`, error);

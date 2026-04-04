@@ -26,10 +26,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import { InconclusiveDiagnosisRow } from "./inconclusive-columns";
-import { approveDiagnosis, rejectDiagnosis } from "@/actions/verify-diagnosis";
+import { RejectedDiagnosisRow } from "./rejected-columns";
+import { revertDiagnosis } from "@/actions/revert-diagnosis";
 import { DISEASE_SELECT_OPTIONS } from "@/constants/diseases";
-import { InconclusiveDetailModal } from "./inconclusive-detail-modal";
+import { ReportDetailModal } from "./report-detail-modal";
 import { createPortal } from "react-dom";
 
 interface DataTableProps<TData, TValue> {
@@ -46,11 +46,11 @@ type SortOption = {
 const sortOptions: SortOption[] = [
   { value: "disease", label: "Disease (A-Z)", desc: false },
   { value: "disease", label: "Disease (Z-A)", desc: true },
-  { value: "submittedAt", label: "Oldest First", desc: false },
-  { value: "submittedAt", label: "Newest First", desc: true },
+  { value: "rejectedAt", label: "Oldest First", desc: false },
+  { value: "rejectedAt", label: "Newest First", desc: true },
 ];
 
-export function InconclusiveDataTable<TData, TValue>({
+export function RejectedDataTable<TData, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
@@ -64,56 +64,34 @@ export function InconclusiveDataTable<TData, TValue>({
 
   const [isMounted, setIsMounted] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [selectedDiagnosis, setSelectedDiagnosis] = useState<InconclusiveDiagnosisRow | null>(null);
-  const [selectedDiagnosisId, setSelectedDiagnosisId] = useState<number | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
+  const [selectedDiagnosis, setSelectedDiagnosis] = useState<RejectedDiagnosisRow | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // Handle approve diagnosis with useAction
-  const { execute: executeApprove } = useAction(approveDiagnosis, {
+  const { execute: executeRevert } = useAction(revertDiagnosis, {
     onSuccess: ({ data }) => {
       if (data?.error) {
         toast.error(data.error);
         return;
       }
       if (data?.success) {
-        toast.success("Diagnosis verified successfully");
+        toast.success("Diagnosis reverted successfully");
       }
     },
     onError: () => {
-      toast.error("Failed to verify diagnosis");
+      toast.error("Failed to revert diagnosis");
     },
   });
 
-  // Handle reject diagnosis with useAction
-  const { execute: executeReject } = useAction(rejectDiagnosis, {
-    onSuccess: ({ data }) => {
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
-      if (data?.success) {
-        toast.success("Diagnosis rejected successfully");
-      }
-    },
-    onError: () => {
-      toast.error("Failed to reject diagnosis");
-    },
-  });
-
-  // Extra client-side filters
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [selectedDisease, setSelectedDisease] = useState("");
 
-  // Apply all client-side filters manually
   const filteredData = useMemo(() => {
-    let rows = data as InconclusiveDiagnosisRow[];
+    let rows = data as RejectedDiagnosisRow[];
 
     if (selectedDisease) {
       rows = rows.filter((r) => r.disease === selectedDisease);
@@ -133,38 +111,14 @@ export function InconclusiveDataTable<TData, TValue>({
     return rows as TData[];
   }, [data, selectedDisease, dateFrom, dateTo]);
 
-  const handleApprove = (diagnosisId: number) => {
+  const handleUndo = (diagnosisId: number) => {
     if (processingIds.has(diagnosisId)) return;
     setProcessingIds((prev) => new Set(prev).add(diagnosisId));
-    executeApprove({ diagnosisId });
-    // Clear processing after a delay if not reloaded
+    executeRevert({ diagnosisId });
     setTimeout(() => {
       setProcessingIds((prev) => {
         const next = new Set(prev);
         next.delete(diagnosisId);
-        return next;
-      });
-    }, 5000);
-  };
-
-  const handleReject = (diagnosisId: number) => {
-    setSelectedDiagnosisId(diagnosisId);
-    setRejectModalOpen(true);
-  };
-
-  const confirmReject = () => {
-    if (selectedDiagnosisId === null) return;
-    setProcessingIds((prev) => new Set(prev).add(selectedDiagnosisId));
-    setRejectModalOpen(false);
-    executeReject({
-      diagnosisId: selectedDiagnosisId,
-      reason: rejectReason,
-    });
-    // Clear processing after a delay if not reloaded
-    setTimeout(() => {
-      setProcessingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(selectedDiagnosisId);
         return next;
       });
     }, 5000);
@@ -188,9 +142,8 @@ export function InconclusiveDataTable<TData, TValue>({
       pagination,
     },
     meta: {
-      onApprove: handleApprove,
-      onReject: handleReject,
-      openDiagnosisModal: (row: InconclusiveDiagnosisRow) => {
+      onUndo: handleUndo,
+      openDiagnosisModal: (row: RejectedDiagnosisRow) => {
         setSelectedDiagnosis(row);
         setDetailModalOpen(true);
       },
@@ -231,13 +184,12 @@ export function InconclusiveDataTable<TData, TValue>({
     <>
       <div className="space-y-4">
         <div className="flex flex-col gap-3">
-          {/* Top row: search */}
           <div className="flex w-full">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-base-content/60 z-10 pointer-events-none" />
               <Input
                 type="text"
-                placeholder="Search inconclusive diagnoses..."
+                placeholder="Search rejected diagnoses..."
                 value={globalFilter ?? ""}
                 onChange={(e) => {
                   setGlobalFilter(e.target.value);
@@ -260,10 +212,8 @@ export function InconclusiveDataTable<TData, TValue>({
             </div>
           </div>
 
-          {/* Controls row */}
           <div className="flex flex-wrap gap-2 items-center justify-between">
             <div className="flex flex-wrap gap-2 items-center">
-              {/* Sort */}
               <Select
                 value={currentSortLabel}
                 onValueChange={handleSortChange}
@@ -281,7 +231,6 @@ export function InconclusiveDataTable<TData, TValue>({
                 </SelectContent>
               </Select>
 
-              {/* Disease filter */}
               <Select
                 value={selectedDisease}
                 onValueChange={(value) => {
@@ -302,7 +251,6 @@ export function InconclusiveDataTable<TData, TValue>({
                 </SelectContent>
               </Select>
 
-              {/* Date From */}
               <DatePicker
                 value={dateFrom}
                 onChange={(date) => {
@@ -313,7 +261,6 @@ export function InconclusiveDataTable<TData, TValue>({
                 className="w-[150px] shrink-0 h-10"
               />
 
-              {/* Date To */}
               <DatePicker
                 value={dateTo}
                 onChange={(date) => {
@@ -324,7 +271,6 @@ export function InconclusiveDataTable<TData, TValue>({
                 className="w-[150px] shrink-0 h-10"
               />
 
-              {/* Clear filters button */}
               {hasActiveFilters && (
                 <button
                   onClick={clearAllFilters}
@@ -340,7 +286,6 @@ export function InconclusiveDataTable<TData, TValue>({
           </div>
         </div>
 
-        {/* Data Table */}
         <div className="bg-base-200 border border-border rounded-xl mx-auto overflow-hidden">
           <div className="overflow-x-auto w-full">
             <table className="table w-full whitespace-nowrap lg:whitespace-normal">
@@ -352,10 +297,10 @@ export function InconclusiveDataTable<TData, TValue>({
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                      </th>
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                    </th>
                     ))}
                   </tr>
                 ))}
@@ -363,16 +308,15 @@ export function InconclusiveDataTable<TData, TValue>({
               <tbody>
                 {table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => {
-                    const diagnosis = row.original as InconclusiveDiagnosisRow;
+                    const diagnosis = row.original as RejectedDiagnosisRow;
                     const isProcessing = processingIds.has(diagnosis.id);
-                    
+
                     return (
                       <tr
                         key={row.id}
                         className="hover:bg-base-200/50 transition-colors"
                       >
                         {row.getVisibleCells().map((cell) => {
-                          // Check if this is the actions cell and we're processing this row
                           if (cell.column.id === "actions" && isProcessing) {
                             return (
                               <td key={cell.id} className="first:pl-6 last:pr-6 py-4">
@@ -383,7 +327,7 @@ export function InconclusiveDataTable<TData, TValue>({
                               </td>
                             );
                           }
-                          
+
                           return (
                             <td key={cell.id} className="first:pl-6 last:pr-6 py-4">
                               {flexRender(
@@ -400,8 +344,8 @@ export function InconclusiveDataTable<TData, TValue>({
                   <tr>
                     <td colSpan={columns.length} className="h-24 text-center">
                       {hasActiveFilters
-                        ? "No inconclusive diagnoses match your filters."
-                        : "No inconclusive diagnoses."}
+                        ? "No rejected diagnoses match your filters."
+                        : "No rejected diagnoses."}
                     </td>
                   </tr>
                 )}
@@ -410,7 +354,6 @@ export function InconclusiveDataTable<TData, TValue>({
           </div>
         </div>
 
-        {/* Pagination Controls */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between py-2">
           <div className="flex items-center gap-2 whitespace-nowrap">
             <span className="text-sm text-base-content/60">Rows per page:</span>
@@ -439,9 +382,9 @@ export function InconclusiveDataTable<TData, TValue>({
             <span className="text-sm text-base-content/60">
               {table.getFilteredRowModel().rows.length > 0
                 ? `${pagination.pageIndex * pagination.pageSize + 1} - ${Math.min(
-                  (pagination.pageIndex + 1) * pagination.pageSize,
-                  table.getFilteredRowModel().rows.length
-                )} of ${table.getFilteredRowModel().rows.length}`
+                    (pagination.pageIndex + 1) * pagination.pageSize,
+                    table.getFilteredRowModel().rows.length
+                  )} of ${table.getFilteredRowModel().rows.length}`
                 : "0 of 0"}
             </span>
             <button
@@ -476,64 +419,29 @@ export function InconclusiveDataTable<TData, TValue>({
         </div>
       </div>
 
-      {/* Reject Confirmation Modal */}
-      {isMounted && createPortal(
-        <dialog className={`modal ${rejectModalOpen ? "modal-open" : ""}`}>
-          <div className="modal-box">
-            <h3 className="font-bold text-lg">Reject Diagnosis</h3>
-            <p className="py-4">
-              Are you sure you want to reject this inconclusive diagnosis? This action cannot be undone.
-            </p>
-            <div className="form-control flex flex-col gap-1">
-              <label className="label">
-                <span className="label-text">Reason (optional)</span>
-              </label>
-              <textarea
-                className="textarea textarea-bordered h-24 w-full"
-                placeholder="Enter a reason for rejection..."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-              />
-            </div>
-            <div className="modal-action">
-              <button
-                className="btn btn-ghost"
-                onClick={() => {
-                  setRejectModalOpen(false);
-                  setSelectedDiagnosisId(null);
-                  setRejectReason("");
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-error"
-                onClick={confirmReject}
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-          <div className="modal-backdrop" onClick={() => {
-            setRejectModalOpen(false);
-            setSelectedDiagnosisId(null);
-            setRejectReason("");
-          }} />
-        </dialog>,
-        document.body
-      )}
-
-      {/* Inconclusive Detail Modal */}
       {isMounted && selectedDiagnosis && (
-        <InconclusiveDetailModal
+        <ReportDetailModal
           isOpen={detailModalOpen}
           onClose={() => {
             setDetailModalOpen(false);
             setSelectedDiagnosis(null);
           }}
-          report={selectedDiagnosis}
-          onApprove={() => handleApprove(selectedDiagnosis.id)}
-          onReject={() => handleReject(selectedDiagnosis.id)}
+          report={{
+            id: selectedDiagnosis.id,
+            disease: selectedDiagnosis.disease,
+            confidence: selectedDiagnosis.confidence,
+            uncertainty: selectedDiagnosis.uncertainty,
+            symptoms: selectedDiagnosis.symptoms,
+            userId: selectedDiagnosis.userId,
+            district: selectedDiagnosis.district,
+            barangay: selectedDiagnosis.barangay,
+            createdAt: selectedDiagnosis.createdAt,
+            user: selectedDiagnosis.user,
+            notes: selectedDiagnosis.notes,
+            status: "REJECTED",
+            rejectionReason: selectedDiagnosis.rejectionReason,
+          }}
+          onUndoRejection={() => handleUndo(selectedDiagnosis.id)}
         />
       )}
     </>

@@ -5,7 +5,7 @@ import { DiagnosisRow } from "./columns";
 import { getAnonymizedPatientId } from "@/utils/patient";
 import { getReliability } from "@/utils/reliability";
 import { DiagnosisOverrideModal } from "../diagnosis-override-modal";
-import { FileEdit, CheckCircle2, XCircle } from "lucide-react";
+import { FileEdit, CheckCircle2, XCircle, RotateCcw } from "lucide-react";
 import { useTheme } from "next-themes";
 import { processTokensForDisplay, type TokenWithImportance } from "@/utils/shap-tokens";
 import { getExplanationByDiagnosisId } from "@/utils/explanation";
@@ -19,6 +19,7 @@ interface ReportDetailModalProps {
   onApprove?: () => void;
   onReject?: () => void;
   onSuccess?: () => void;
+  onUndoRejection?: () => void;
 }
 
 export function ReportDetailModal({
@@ -28,6 +29,7 @@ export function ReportDetailModal({
   onApprove,
   onReject,
   onSuccess,
+  onUndoRejection,
 }: ReportDetailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
@@ -101,6 +103,13 @@ export function ReportDetailModal({
   // Check if this diagnosis has been overridden
   const hasOverride = report.override !== undefined && report.override !== null;
 
+  const rejectionReason = report.rejectionReason || (() => {
+    const note = report.notes?.find((n) => n.content.startsWith("Rejection reason: "));
+    return note ? note.content.replace("Rejection reason: ", "") : null;
+  })();
+
+  const isRejected = report.status === "REJECTED";
+
   return (
     <>
       <dialog
@@ -148,6 +157,22 @@ export function ReportDetailModal({
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Rejection Reason indicator if rejected */}
+            {isRejected && (
+              <div className="bg-error/10 border border-error/30 p-4 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <XCircle className="size-5 text-error" />
+                  <p className="font-medium text-error">Diagnosis Rejected</p>
+                </div>
+                {rejectionReason && (
+                  <div className="text-sm">
+                    <p className="text-base-content/60 mb-1">Rejection Reason</p>
+                    <p>{rejectionReason}</p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -204,6 +229,21 @@ export function ReportDetailModal({
 
             {/* Action Buttons */}
             <div className="pt-2 space-y-3">
+              {/* Undo Rejection button (for rejected diagnoses) */}
+              {isRejected && onUndoRejection && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onUndoRejection();
+                    onClose();
+                  }}
+                  className="btn btn-outline btn-warning w-full gap-2"
+                >
+                  <RotateCcw className="size-4" />
+                  Undo Rejection
+                </button>
+              )}
+
               {/* Approve/Reject buttons (for pending diagnoses) */}
               {onApprove && onReject && (
                 <div className="flex gap-2">
