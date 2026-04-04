@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
@@ -32,6 +32,7 @@ import TopCriticalAnomalies from "./top-critical-anomalies";
 import { getSurveillanceExportData, type SurveillanceExportData } from "@/utils/report-export";
 import { ExportReportButton } from "@/components/ui/export-report-button";
 import { PdfImage } from "@/utils/pdf-export";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), {
   ssr: false,
@@ -47,6 +48,7 @@ const ByAnomalyTab = () => {
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
 
   const [view, setView] = useState<"coordinates" | "district">("coordinates");
+  const generatedBy = useCurrentUser();
 
   // Modal state:
   //   coordinatesModal — "anomalies" | "normal" | null
@@ -380,24 +382,24 @@ const ByAnomalyTab = () => {
           />
           <ViewSelect value={view} onValueChange={setView} />
         </div>
-        <DateRangeFilter
-          startDate={startDate}
-          endDate={endDate}
-          onStartDateChange={handleStartDateChange}
-          onEndDateChange={handleEndDateChange}
-        />
-      </div>
-
-      <div className="flex justify-end">
-        <ExportReportButton
-          data={exportInfo.data}
-          columns={exportInfo.columns}
-          filenameSlug={exportInfo.filenameSlug}
-          title={exportInfo.title}
-          subtitle={exportInfo.subtitle}
-          disabled={loading}
-          images={captureImages}
-        />
+        <div  className="flex gap-2">
+          <DateRangeFilter
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={handleStartDateChange}
+            onEndDateChange={handleEndDateChange}
+          />
+          <ExportReportButton
+            data={exportInfo.data}
+            columns={exportInfo.columns}
+            filenameSlug={exportInfo.filenameSlug}
+            title={exportInfo.title}
+            subtitle={exportInfo.subtitle}
+            disabled={loading}
+            images={captureImages}
+            generatedBy={generatedBy}
+          />
+        </div>
       </div>
 
       {/* Error state */}
