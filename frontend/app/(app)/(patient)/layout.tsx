@@ -2,11 +2,13 @@ import Sidebar from "@/components/patient/layout/sidebar";
 import ConsentModal from "@/components/consent-modal";
 import LayoutWrapper from "@/components/shared/layout/layout-wrapper";
 import HelpModal from "@/components/patient/layout/help-modal";
+import ScheduledDeletionModal from "@/components/layout/scheduled-deletion-modal";
 import { getCurrentDbUser } from "@/utils/user";
 import {
   needsTermsUpdate,
   getTermsUpdateInfo,
 } from "@/utils/check-terms-version";
+import { getActiveDeletionSchedule } from "@/utils/deletion-schedule";
 import { forbidden, redirect, unauthorized } from "next/navigation";
 import { ReactNode, Suspense } from "react";
 
@@ -38,15 +40,25 @@ const PatientLayoutContent = async ({ children }: { children: ReactNode }) => {
   const requiresConsent = needsTermsUpdate(dbUser);
   const { reasons } = getTermsUpdateInfo(dbUser);
 
+  // Check for active deletion schedule
+  const deletionSchedule = await getActiveDeletionSchedule(dbUser.id);
+  console.log("[DEBUG] Deletion schedule check:", { userId: dbUser.id, hasSchedule: !!deletionSchedule, schedule: deletionSchedule });
+
+  if (deletionSchedule) {
+    return <ScheduledDeletionModal
+      scheduledDeletionAt={deletionSchedule.scheduledDeletionAt}
+      reason={deletionSchedule.reason}
+      scheduledByName={deletionSchedule.scheduledByUser?.name}
+    />;
+  }
+
   return (
     <LayoutWrapper>
       <Sidebar dbUser={dbUser} />
       <HelpModal />
       {/* Show consent modal if user hasn't accepted terms or needs to re-accept */}
       {requiresConsent && <ConsentModal reasons={reasons} />}
-      <div className="flex flex-col min-h-full">
-        <main className="flex-1 flex flex-col">{children}</main>
-      </div>
+      <main className="flex-1 flex flex-col">{children}</main>
     </LayoutWrapper>
   );
 };

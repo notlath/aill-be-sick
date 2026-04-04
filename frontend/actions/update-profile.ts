@@ -4,10 +4,22 @@ import prisma from "@/prisma/prisma";
 import { UpdateProfileSchema } from "@/schemas/UpdateProfileSchema";
 import { ProfileSchema } from "@/schemas/ProfileSchema";
 import { createClient } from "@/utils/supabase/server";
-import { getAuthUser } from "@/utils/user";
+import { getAuthUser, getDbUserByAuthId } from "@/utils/user";
+import { hasActiveDeletionSchedule } from "@/utils/check-deletion-schedule";
 import { revalidatePath, revalidateTag } from "next/cache";
 import * as z from "zod";
 import { actionClient } from "./client";
+
+async function guardDeletionSchedule(authId: string) {
+  const dbUser = await getDbUserByAuthId(authId);
+  if (dbUser?.role === "PATIENT") {
+    const hasSchedule = await hasActiveDeletionSchedule(dbUser.id);
+    if (hasSchedule) {
+      return { error: "Your account is scheduled for deletion. Please keep your account or exit to continue using the app." };
+    }
+  }
+  return null;
+}
 
 export const updateProfile = actionClient
   .inputSchema(UpdateProfileSchema)
@@ -20,6 +32,9 @@ export const updateProfile = actionClient
     if (!authUser) {
       return { error: "Not authenticated" };
     }
+
+    const guard = await guardDeletionSchedule(authUser.id);
+    if (guard) return guard;
 
     try {
       const updatedUser = await prisma.user.update({
@@ -67,10 +82,10 @@ export const updateProfileLocation = actionClient
       return { error: "Not authenticated" };
     }
 
+    const guard = await guardDeletionSchedule(authUser.id);
+    if (guard) return guard;
+
     try {
-      // Note: latitude and longitude represent the patient's residential location,
-      // geocoded from their home address. This is used for disease surveillance
-      // and outbreak detection, NOT for tracking healthcare facility locations.
       const updatedUser = await prisma.user.update({
         where: { authId: authUser.id },
         data: {
@@ -111,7 +126,6 @@ export const uploadAvatar = actionClient
       return { error: "No file provided" };
     }
 
-    // Validate file type
     const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
     if (!allowedTypes.includes(file.type)) {
       return {
@@ -119,7 +133,6 @@ export const uploadAvatar = actionClient
       };
     }
 
-    // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       return { error: "File size must be less than 5MB" };
@@ -131,15 +144,16 @@ export const uploadAvatar = actionClient
       return { error: "Not authenticated" };
     }
 
+    const guard = await guardDeletionSchedule(authUser.id);
+    if (guard) return guard;
+
     try {
       const supabase = await createClient();
 
-      // Generate unique filename
       const fileExt = file.name.split(".").pop();
       const fileName = `${authUser.id}-${Date.now()}.${fileExt}`;
       const filePath = `${authUser.id}/${fileName}`;
 
-      // Upload to Supabase Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, file, {
@@ -152,14 +166,12 @@ export const uploadAvatar = actionClient
         return { error: "Failed to upload avatar" };
       }
 
-      // Get public URL
       const { data: urlData } = supabase.storage
         .from("avatars")
         .getPublicUrl(filePath);
 
       const avatarUrl = urlData.publicUrl;
 
-      // Update user in database
       const updatedUser = await prisma.user.update({
         where: { authId: authUser.id },
         data: {
@@ -184,24 +196,23 @@ export const removeAvatar = actionClient.action(async () => {
     return { error: "Not authenticated" };
   }
 
+  const guard = await guardDeletionSchedule(authUser.id);
+  if (guard) return guard;
+
   try {
     const supabase = await createClient();
 
-    // Get current user to find avatar path
     const dbUser = await prisma.user.findUnique({
       where: { authId: authUser.id },
     });
 
     if (dbUser?.avatar) {
-      // Extract file path from URL
       const urlParts = dbUser.avatar.split("/");
       const filePath = urlParts.slice(-2).join("/");
 
-      // Delete from Supabase Storage
       await supabase.storage.from("avatars").remove([filePath]);
     }
 
-    // Update user in database
     const updatedUser = await prisma.user.update({
       where: { authId: authUser.id },
       data: {

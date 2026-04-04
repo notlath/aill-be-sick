@@ -3,6 +3,7 @@
 import prisma from "@/prisma/prisma";
 import { DeleteChatSchema } from "@/schemas/DeleteChatSchema";
 import { getCurrentDbUser } from "@/utils/user";
+import { hasActiveDeletionSchedule } from "@/utils/check-deletion-schedule";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 
@@ -20,6 +21,13 @@ export const deleteChat = actionClient
     if (error) {
       console.error(`Error fetching user: ${error}`);
       return { error: `Error fetching user: ${error}` };
+    }
+
+    if (dbUser.role === "PATIENT") {
+      const hasSchedule = await hasActiveDeletionSchedule(dbUser.id);
+      if (hasSchedule) {
+        return { error: "Your account is scheduled for deletion. Please keep your account or exit to continue using the app." };
+      }
     }
 
     try {

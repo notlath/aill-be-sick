@@ -42,7 +42,8 @@ for (const f of GEOJSON.features) {
 const TOTAL_USERS = 500;
 
 // These user IDs will never be touched (real accounts)
-const PRESERVE_USER_IDS = [2, 111, 124, 127, 1486, 1487, 1491, 1496, 1497, 999999, 99999, 2967];
+// Add hardcoded IDs here if needed, but the script also dynamically preserves non-PATIENT users
+const PRESERVE_USER_IDS = [];
 
 const DISEASES = ["DENGUE", "PNEUMONIA", "TYPHOID", "DIARRHEA", "MEASLES", "INFLUENZA"];
 const MODELS   = ["BIOCLINICAL_MODERNBERT", "ROBERTA_TAGALOG"];
@@ -248,10 +249,23 @@ async function seed() {
     // 1. Delete all PATIENT users except preserved IDs (cascade removes their
     //    Diagnoses and Chats automatically via onDelete: Cascade)
     console.log("Removing existing seeded PATIENT users (preserving real accounts)...");
+
+    // Dynamically preserve all non-PATIENT users (clinicians, admins, developers)
+    const nonPatients = await prisma.user.findMany({
+      where: { role: { not: "PATIENT" } },
+      select: { id: true },
+    });
+    const dynamicPreserve = nonPatients.map(u => u.id);
+    const allPreserve = [...new Set([...PRESERVE_USER_IDS, ...dynamicPreserve])];
+
+    if (allPreserve.length > 0) {
+      console.log(`  Preserving ${allPreserve.length} non-patient account(s): ${allPreserve.join(", ")}`);
+    }
+
     const deleted = await prisma.user.deleteMany({
       where: {
         role: "PATIENT",
-        id:   { notIn: PRESERVE_USER_IDS },
+        id:   { notIn: allPreserve },
       },
     });
     console.log(`  Deleted ${deleted.count} users.\n`);
@@ -290,9 +304,7 @@ async function seed() {
       const gender     = randChoice(GENDERS);
 
       // Compute a birthday consistent with the random age.
-      // A DB trigger (calculate_age_from_birthday) fires on INSERT/UPDATE and
-      // overwrites the age column from birthday, so birthday must be provided —
-      // passing age directly is silently discarded by the trigger when birthday is null.
+      // We pass both age and birthday since the DB trigger may not exist.
       const now = new Date();
       const birthdayYear  = now.getFullYear() - age;
       const birthdayMonth = randInt(0, 11); // 0-indexed month
@@ -303,13 +315,14 @@ async function seed() {
       const district   = randChoice(DISTRICT_POOL);
       const { latitude, longitude } = jitteredCoordInDistrict(district);
 
-      // Create user — pass birthday (not age); the trigger derives age from birthday
+      // Create user — pass both age and birthday
       const user = await prisma.user.create({
         data: {
           email,
           name,
           role:      "PATIENT",
           gender,
+          age,
           birthday,
           region:    "National Capital Region (NCR)",
           province:  "NCR, Second District (Not a Province)",
@@ -352,6 +365,11 @@ async function seed() {
           },
         });
 
+        // Status: first 10 stay PENDING, rest are VERIFIED
+        const isPending = diagnosesCreated < 10;
+        const status = isPending ? "PENDING" : "VERIFIED";
+        const verifiedAt = isPending ? null : createdAt;
+
         // Create Diagnosis
         await prisma.diagnosis.create({
           data: {
@@ -369,6 +387,8 @@ async function seed() {
             barangay:  "Bagong Silangan",
             region:    "National Capital Region (NCR)",
             district:  district.name,
+            status,
+            verifiedAt,
             createdAt,
           },
         });

@@ -74,16 +74,87 @@ flowchart TD
     CaptureChart --> ErrorCaptureChart[Handle capture error] --> PrepareData
 
     %% ========== STYLES ==========
-    classDef captureNode fill:#e3f2fd,stroke:#1976d2
-    classDef processNode fill:#f3e5f5,stroke:#7b1fa2
-    classDef pdfNode fill:#e8f5e9,stroke:#388e3c
-    classDef errorNode fill:#ffebee,stroke:#d32f2f
+    classDef captureNode fill:#bbdefb,stroke:#1976d2,color:#000
+    classDef processNode fill:#ce93d8,stroke:#7b1fa2,color:#000
+    classDef pdfNode fill:#a5d6a7,stroke:#388e3c,color:#000
+    classDef errorNode fill:#ef9a9a,stroke:#d32f2f,color:#000
 
     %% Apply styles to nodes
     class CaptureImages,CaptureMap,CaptureChart,MapElement,ChartElement captureNode
     class GetColumns,BuildMetadata,CreateExportData,PrepareData,ScaleImage,CenterImage,PrepareTableData processNode
     class SetupDoc,AddHeader,AddTitle,AddMetadata,AddImageTitle,AddImageSubtext,AddImageDivider,AddTableTitle,AddTableSubtext,AddTableDivider,GenerateTable,AddFooter,SavePdf pdfNode
     class ErrorCaptureMap,ErrorCaptureChart,SkipMap,SkipChart errorNode
+```
+
+## Simplified Overview (Non-Technical)
+
+This version shows the same process in plain language without technical details.
+
+```mermaid
+flowchart TD
+    %% ========== ENTRY POINT ==========
+    Start([User clicks Export Button]) --> GetReady[System prepares to create your report]
+
+    %% ========== IMAGE CAPTURE ==========
+    GetReady --> CheckMap{Is there a map?}
+    CheckMap -->|Yes| SaveMap[Save a picture of the map]
+    CheckMap -->|No| NextMap[No map to save]
+    SaveMap --> CheckChart{Is there a chart?}
+    NextMap --> CheckChart
+    CheckChart -->|Yes| SaveChart[Save a picture of the chart]
+    CheckChart -->|No| NextChart[No chart to save]
+    SaveChart --> GatherInfo[Gather report information]
+    NextChart --> GatherInfo
+
+    %% ========== DATA PREPARATION ==========
+    GatherInfo --> GetTableData[Get the case data table]
+    GetTableData --> GetDetails[Get report details like facility name and date]
+    GetDetails --> StartPdf[Start building the PDF]
+
+    %% ========== PDF GENERATION ==========
+    StartPdf --> AddHeader[Add report header with system name]
+    AddHeader --> AddTitle[Add report title]
+    AddTitle --> AddInfo[Add facility name and date]
+    AddInfo --> CheckImages{Are there pictures?}
+
+    %% ========== IMAGE PROCESSING LOOP ==========
+    CheckImages -->|Yes| AddPicTitle[Add picture title]
+    AddPicTitle --> AddPicDesc[Add description below title]
+    AddPicDesc --> AddLine[Add separator line]
+    AddLine --> PlacePic[Place and center the picture]
+    PlacePic --> IsMapPic{Is it a map?}
+    IsMapPic -->|Yes| AddKey[Add map color guide]
+    IsMapPic -->|No| SkipKey[Skip the guide]
+    AddKey --> MorePics{More pictures?}
+    SkipKey --> MorePics
+    MorePics -->|Yes| AddPicTitle
+    MorePics -->|No| AddTable[Add the case data table]
+
+    %% ========== TABLE PROCESSING ==========
+    AddTable --> AddTableTitle[Add table title]
+    AddTableTitle --> AddTableDesc[Add table description]
+    AddTableDesc --> AddTableLine[Add separator line]
+    AddTableLine --> FormatTable[Format table with green headers]
+    FormatTable --> AddFooter[Add date and page numbers]
+    AddFooter --> Download[Download your PDF report]
+    Download --> End([Report saved to your device])
+
+    %% ========== ERROR HANDLING ==========
+    CheckImages -->|No| AddTable
+    SaveMap --> PicError[Skip picture if error] --> CheckChart
+    SaveChart --> PicError
+
+    %% ========== STYLES ==========
+    classDef captureNode fill:#bbdefb,stroke:#1976d2,color:#000
+    classDef processNode fill:#ce93d8,stroke:#7b1fa2,color:#000
+    classDef pdfNode fill:#a5d6a7,stroke:#388e3c,color:#000
+    classDef errorNode fill:#ef9a9a,stroke:#d32f2f,color:#000
+
+    %% Apply styles to nodes
+    class CheckMap,SaveMap,CheckChart,SaveChart,IsMapPic,MorePics captureNode
+    class GetReady,GatherInfo,GetTableData,GetDetails,PlacePic,FormatTable processNode
+    class StartPdf,AddHeader,AddTitle,AddInfo,AddPicTitle,AddPicDesc,AddLine,AddKey,AddTable,AddTableTitle,AddTableDesc,AddTableLine,AddFooter,Download pdfNode
+    class PicError,NextMap,NextChart,SkipKey errorNode
 ```
 
 ## Legend
@@ -105,12 +176,12 @@ flowchart TD
 
 ### Color Coding
 
-| Color  | Process Type                |
-| ------ | --------------------------- |
-| Blue   | Image capture operations    |
-| Purple | Data preparation processes  |
-| Green  | PDF generation and output   |
-| Red    | Error handling and skips    |
+| Color  | Process Type               |
+| ------ | -------------------------- |
+| Blue   | Image capture operations   |
+| Purple | Data preparation processes |
+| Green  | PDF generation and output  |
+| Red    | Error handling and skips   |
 
 ## Flow Descriptions
 

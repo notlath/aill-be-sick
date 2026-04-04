@@ -209,7 +209,7 @@ export function DataTable<TData, TValue>({
             </Select>
           )}
 
-          <Select className="w-auto" 
+          <Select className="w-auto"
             value={(table.getColumn("gender")?.getFilterValue() as string) ?? ""}
             onValueChange={(value) => {
               table.getColumn("gender")?.setFilterValue(value || undefined);
@@ -224,6 +224,24 @@ export function DataTable<TData, TValue>({
               <SelectItem value="Male">Male</SelectItem>
               <SelectItem value="Female">Female</SelectItem>
               <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select className="w-auto"
+            value={(table.getColumn("consentStatus")?.getFilterValue() as string) ?? ""}
+            onValueChange={(value) => {
+              table.getColumn("consentStatus")?.setFilterValue(value || undefined);
+              table.setPageIndex(0);
+            }}
+          >
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="All Consent Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Consent Status</SelectItem>
+              <SelectItem value="compliant">Compliant</SelectItem>
+              <SelectItem value="partial">Partial</SelectItem>
+              <SelectItem value="not_consented">Not Consented</SelectItem>
             </SelectContent>
           </Select>
         </div>

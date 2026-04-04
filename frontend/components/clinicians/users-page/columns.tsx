@@ -1,8 +1,10 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, Info } from "lucide-react";
+import { ArrowUpDown, Info, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import UsersPageActions from "./users-page-actions";
+import Link from "next/link";
 
 export type UserRow = {
   id: number;
@@ -14,6 +16,10 @@ export type UserRow = {
   role: string;
   createdAt: Date;
   lastActivityAt: Date | null;
+  privacyAcceptedAt: Date | null;
+  privacyVersion: string | null;
+  termsAcceptedAt: Date | null;
+  termsVersion: string | null;
   _count: {
     diagnoses: number;
   };
@@ -34,11 +40,15 @@ export const columns: ColumnDef<UserRow>[] = [
     cell: ({ row }) => {
       const name = row.getValue("name") as string | null;
       const email = row.original.email;
+      const userId = row.original.id;
       return (
-        <div className="flex flex-col gap-0.5">
+        <Link
+          href={`/users/${userId}`}
+          className="group flex flex-col gap-0.5 hover:text-primary transition-colors"
+        >
           <span className="font-medium">{name || "—"}</span>
           <span className="text-xs text-muted">{email}</span>
-        </div>
+        </Link>
       );
     },
   },
@@ -146,12 +156,74 @@ export const columns: ColumnDef<UserRow>[] = [
     },
   },
   {
+    id: "consentStatus",
+    header: "Consent Status",
+    cell: ({ row }) => {
+      const privacyAcceptedAt = row.original.privacyAcceptedAt;
+      const termsAcceptedAt = row.original.termsAcceptedAt;
+      const privacyVersion = row.original.privacyVersion;
+      const termsVersion = row.original.termsVersion;
+
+      const hasPrivacy = !!privacyAcceptedAt;
+      const hasTerms = !!termsAcceptedAt;
+
+      if (hasPrivacy && hasTerms) {
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant="default" className="bg-success text-success-content">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Compliant
+            </Badge>
+            <span className="text-xs text-muted">
+              Privacy v{privacyVersion || "1.0"}
+            </span>
+          </div>
+        );
+      } else if (hasPrivacy || hasTerms) {
+        return (
+          <div className="flex flex-col gap-1">
+            <Badge variant="default" className="bg-warning text-warning-content">
+              <Clock className="w-3 h-3 mr-1" />
+              Partial
+            </Badge>
+            <span className="text-xs text-muted">
+              Missing {hasPrivacy ? "terms" : "privacy"}
+            </span>
+          </div>
+        );
+      } else {
+        return (
+          <Badge variant="default" className="bg-error text-error-content">
+            <XCircle className="w-3 h-3 mr-1" />
+            Not Consented
+          </Badge>
+        );
+      }
+    },
+    filterFn: (row, id, value) => {
+      const privacyAcceptedAt = row.original.privacyAcceptedAt;
+      const termsAcceptedAt = row.original.termsAcceptedAt;
+
+      if (value === "compliant") return !!privacyAcceptedAt && !!termsAcceptedAt;
+      if (value === "partial") return (!!privacyAcceptedAt || !!termsAcceptedAt) && !(!!privacyAcceptedAt && !!termsAcceptedAt);
+      if (value === "not_consented") return !privacyAcceptedAt && !termsAcceptedAt;
+      return true;
+    },
+  },
+  {
     id: "actions",
     header: () => "Actions",
     cell: ({ row }) => {
       const user = row.original;
       return (
         <div className="flex items-center gap-2">
+          <Link
+            href={`/users/${user.id}`}
+            className="btn btn-ghost btn-sm gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            View Details
+          </Link>
           <UsersPageActions
             currentUserRole="CLINICIAN"
             userId={user.id.toString()}

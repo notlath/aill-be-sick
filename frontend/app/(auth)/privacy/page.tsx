@@ -9,23 +9,19 @@ import {
   FlaskConical,
   Users,
   Mail,
-  ArrowLeft,
   FileText,
 } from "lucide-react";
 import Link from "next/link";
+import BackButton from "@/components/shared/back-button";
 
 const PrivacyPolicyPage = () => {
   return (
     <main className="min-h-screen bg-base-200 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Back Link */}
-        <Link
-          href="/login"
-          className="btn btn-ghost btn-sm gap-2 mb-4"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Login
-        </Link>
+        <div className="mb-4">
+          <BackButton />
+        </div>
 
         {/* Header */}
         <div className="card bg-base-100 shadow-lg mb-6">

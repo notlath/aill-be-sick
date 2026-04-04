@@ -76,6 +76,10 @@ export const getAllUsers = async (currentUserRole?: string) => {
         region: true,
         role: true,
         createdAt: true,
+        privacyAcceptedAt: true,
+        privacyVersion: true,
+        termsAcceptedAt: true,
+        termsVersion: true,
         diagnoses: {
           select: { createdAt: true },
           orderBy: { createdAt: "desc" },

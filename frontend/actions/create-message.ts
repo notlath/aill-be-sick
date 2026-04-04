@@ -2,6 +2,8 @@
 
 import prisma from "@/prisma/prisma";
 import { CreateMessageSchema } from "@/schemas/CreateMessageSchema";
+import { getCurrentDbUser } from "@/utils/user";
+import { hasActiveDeletionSchedule } from "@/utils/check-deletion-schedule";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
 
@@ -9,6 +11,14 @@ export const createMessage = actionClient
   .inputSchema(CreateMessageSchema)
   .action(async ({ parsedInput }) => {
     const { content, chatId, type, role, tempDiagnosis } = parsedInput;
+
+    const { success: dbUser, error: userError } = await getCurrentDbUser();
+    if (dbUser && dbUser.role === "PATIENT") {
+      const hasSchedule = await hasActiveDeletionSchedule(dbUser.id);
+      if (hasSchedule) {
+        return { error: "Your account is scheduled for deletion. Please keep your account or exit to continue using the app." };
+      }
+    }
 
     try {
       let createdMessage;

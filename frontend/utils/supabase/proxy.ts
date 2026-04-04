@@ -72,6 +72,8 @@
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isAnonymizedUser } from '@/utils/is-anonymized'
+import prisma from '@/prisma/prisma'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -108,6 +110,24 @@ export async function updateSession(request: NextRequest) {
   const { data } = await supabase.auth.getClaims()
 
   const user = data?.claims
+
+  // Check if the user has been anonymized (deleted) and kick them out.
+  // We must query the app database because anonymization updates the DB email
+  // but NOT the JWT claims (which are stale from login time).
+  const authId = user?.sub as string | undefined
+  if (authId) {
+    const dbUser = await prisma.user.findUnique({
+      where: { authId },
+      select: { email: true },
+    })
+    if (dbUser && isAnonymizedUser(dbUser.email)) {
+      await supabase.auth.signOut()
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.searchParams.set('anonymized', '1')
+      return NextResponse.redirect(url)
+    }
+  }
 
   if (
     !user &&

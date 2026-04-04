@@ -1130,7 +1130,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
               <div className="flex flex-wrap items-center gap-3 mt-1.5">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary btn-soft" : ""}`}
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary" : ""}`}
                   >
                     <input
                       type="checkbox"
@@ -1141,7 +1141,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                     <span>Age</span>
                   </label>
                   <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary btn-soft" : ""}`}
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary" : ""}`}
                   >
                     <input
                       type="checkbox"
@@ -1152,7 +1152,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                     <span>Gender</span>
                   </label>
                   <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary btn-soft" : ""}`}
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary" : ""}`}
                   >
                     <input
                       type="checkbox"
@@ -1163,7 +1163,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                     <span>District</span>
                   </label>
                   <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary btn-soft" : ""}`}
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary" : ""}`}
                   >
                     <input
                       type="checkbox"

@@ -504,3 +504,30 @@ For tabbed navigation, use the components from `@/components/ui/tabs` as demonst
 - Maintain a calm, supportive, and professional tone; avoid slang, sarcasm, and fear-inducing wording.
 - Because this is a medical app, avoid absolute guarantees and avoid language that implies certain diagnosis outcomes.
 - Prefer clear, action-oriented text that helps users understand the next step.
+
+## Database Operations & Backup Reminders
+
+When asked to perform **destructive database operations** (seeding, clearing, schema migrations, running `seed-realistic.js`, `clear-patients.js`, or Prisma migrations), the agent **MUST**:
+
+- **Remind the developer** to create a backup first using `npm run db:backup`
+- **Reference the backup documentation**: `docs/SEEDING_AND_BACKUP.md`
+- **NOT automatically run backup commands** (avoids redundant files and unexpected behavior)
+
+This gives developers control over when backups are created and prevents redundant backup files from multiple developers.
+
+### Schema Change & Backup Sync
+
+When the **Prisma schema** (`frontend/prisma/schema.prisma`) is modified, the agent **MUST**:
+
+- Review `frontend/scripts/backup-db.js` and assess if the schema modifications affect backup/restore logic
+- Update the backup script if new tables, renamed fields, or removed columns require changes to the export/import process
+- Verify that backup and restore still work end-to-end after schema changes
+
+### Code Duplication Guard
+
+The agent **MUST** actively check for and eliminate duplicated code. Before writing new code:
+
+- Search existing files for similar logic that could be reused
+- Extract repeated patterns into shared utility functions or helpers
+- Never copy-paste blocks of code that already exist elsewhere
+- Prefer DRY (Don't Repeat Yourself) principles across all layers

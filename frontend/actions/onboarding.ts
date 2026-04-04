@@ -3,7 +3,8 @@
 import { actionClient } from "./client";
 import prisma from "@/prisma/prisma";
 import { revalidatePath } from "next/cache";
-import { getAuthUser } from "@/utils/user";
+import { getAuthUser, getDbUserByAuthId } from "@/utils/user";
+import { hasActiveDeletionSchedule } from "@/utils/check-deletion-schedule";
 
 import { OnboardingSchema } from "@/schemas/OnboardingSchema";
 
@@ -14,6 +15,14 @@ export const completeOnboarding = actionClient
 
     if (!authUser) {
       return { error: "Not authenticated" };
+    }
+
+    const dbUser = await getDbUserByAuthId(authUser.id);
+    if (dbUser?.role === "PATIENT") {
+      const hasSchedule = await hasActiveDeletionSchedule(dbUser.id);
+      if (hasSchedule) {
+        return { error: "Your account is scheduled for deletion. Please keep your account or exit to continue using the app." };
+      }
     }
 
     try {

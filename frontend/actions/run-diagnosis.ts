@@ -3,6 +3,7 @@
 import { RunDiagnosisSchema } from "@/schemas/RunDiagnosisSchema";
 import { getBackendUrl } from "@/utils/backend-url";
 import { getCurrentDbUser } from "@/utils/user";
+import { hasActiveDeletionSchedule } from "@/utils/check-deletion-schedule";
 import axios, { AxiosError } from "axios";
 import { actionClient } from "./client";
 import { createMessage } from "./create-message";
@@ -21,6 +22,13 @@ export const runDiagnosis = actionClient
       console.error(`Error fetching user: ${error}`);
 
       return { error: `Error fetching user: ${error}` };
+    }
+
+    if (dbUser.role === "PATIENT") {
+      const hasSchedule = await hasActiveDeletionSchedule(dbUser.id);
+      if (hasSchedule) {
+        return { error: "Your account is scheduled for deletion. Please keep your account or exit to continue using the app." };
+      }
     }
 
     try {

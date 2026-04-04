@@ -6,55 +6,55 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id                                                  Int                 @id @default(autoincrement())
-  email                                               String              @unique
-  name                                                String?
-  authId                                              String?             @unique
-  avatar                                              String?
-  createdAt                                           DateTime            @default(now())
-  updatedAt                                           DateTime            @default(now()) @updatedAt
-  role                                                Role                @default(PATIENT)
-  city                                                String?
-  latitude                                            Float?
-  longitude                                           Float?
-  region                                              String?
-  age                                                 Int?
-  gender                                              Gender?
-  province                                            String?
-  barangay                                            String?
-  birthday                                            DateTime?
-  isOnboarded                                         Boolean             @default(false)
-  district                                            String?
-  address                                             String?
-  privacyAcceptedAt                                   DateTime?
-  privacyVersion                                      String?
-  termsAcceptedAt                                     DateTime?
-  termsVersion                                        String?
-  approvalStatus                                      ApprovalStatus      @default(ACTIVE)
-  approvedAt                                          DateTime?
-  approvedBy                                          Int?
-  approvalNotes                                       String?
-  rejectedAt                                          DateTime?
-  mustChangePassword                                  Boolean             @default(false)
-  emailVerified                                       Boolean             @default(false)
-  patientAccessCode                                   String?             @unique
-  acknowledgedAlerts                                  Alert[]             @relation("AlertAcknowledger")
-  resolvedAlerts                                      Alert[]             @relation("AlertResolver")
-  alertNotes                                          AlertNote[]         @relation("AlertNoteAuthor")
-  AuditLog                                            AuditLog[]
-  chats                                               Chat[]
-  DeletionSchedule_DeletionSchedule_restoredByToUser  DeletionSchedule[]  @relation("DeletionSchedule_restoredByToUser")
-  DeletionSchedule_DeletionSchedule_scheduledByToUser DeletionSchedule[]  @relation("DeletionSchedule_scheduledByToUser")
-  DeletionSchedule_DeletionSchedule_userIdToUser      DeletionSchedule[]  @relation("DeletionSchedule_userIdToUser")
-  rejectedDiagnoses                                   Diagnosis[]         @relation("DiagnosisRejector")
-  diagnoses                                           Diagnosis[]
-  verifiedDiagnoses                                   Diagnosis[]         @relation("DiagnosisVerifier")
-  diagnosisNotes                                      DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
-  diagnosisOverrides                                  DiagnosisOverride[] @relation("OverrideClinicianRelation")
+  id                 Int                 @id @default(autoincrement())
+  email              String              @unique
+  name               String?
+  authId             String?             @unique
+  avatar             String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @default(now()) @updatedAt
+  role               Role                @default(PATIENT)
+  city               String?
+  latitude           Float?
+  longitude          Float?
+  region             String?
+  age                Int?
+  gender             Gender?
+  province           String?
+  barangay           String?
+  birthday           DateTime?
+  isOnboarded        Boolean             @default(false)
+  district           String?
+  address            String?
+  privacyAcceptedAt  DateTime?
+  privacyVersion     String?
+  termsAcceptedAt    DateTime?
+  termsVersion       String?
+  approvalStatus     ApprovalStatus      @default(ACTIVE)
+  approvedAt         DateTime?
+  approvedBy         Int?
+  approvalNotes      String?
+  rejectedAt         DateTime?
+  mustChangePassword Boolean             @default(false)
+  emailVerified      Boolean             @default(false)
+  patientAccessCode  String?             @unique
+  acknowledgedAlerts Alert[]             @relation("AlertAcknowledger")
+  resolvedAlerts     Alert[]             @relation("AlertResolver")
+  alertNotes         AlertNote[]         @relation("AlertNoteAuthor")
+  auditLogs          AuditLog[]
+  chats              Chat[]
+  restoredDeletions  DeletionSchedule[]  @relation("DeletionRestoredBy")
+  scheduledDeletions DeletionSchedule[]  @relation("DeletionScheduledBy")
+  patientDeletionSchedules DeletionSchedule[]  @relation("PatientDeletionSchedule")
+  rejectedDiagnoses  Diagnosis[]         @relation("DiagnosisRejector")
+  diagnoses          Diagnosis[]
+  verifiedDiagnoses  Diagnosis[]         @relation("DiagnosisVerifier")
+  diagnosisNotes     DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
+  diagnosisOverrides DiagnosisOverride[] @relation("OverrideClinicianRelation")
 
   @@index([latitude, longitude])
   @@index([region])
@@ -228,6 +228,19 @@ model DiagnosisNote {
   @@index([clinicianId])
 }
 
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
 model diagnosis_sessions {
   session_id       String @id
   chat_id          String
@@ -251,37 +264,24 @@ model diagnosis_sessions {
   @@index([created_at], map: "idx_diagnosis_sessions_created_at")
 }
 
-model AuditLog {
-  id        Int      @id @default(autoincrement())
-  userId    Int?
-  action    String
-  details   Json?
-  createdAt DateTime @default(now())
-  User      User?    @relation(fields: [userId], references: [id])
-
-  @@index([action])
-  @@index([createdAt])
-  @@index([userId])
-}
-
 model DeletionSchedule {
-  id                                      Int                    @id @default(autoincrement())
-  userId                                  Int
-  scheduledBy                             Int
-  scheduledAt                             DateTime               @default(now())
-  scheduledDeletionAt                     DateTime
-  reason                                  String?
-  status                                  DeletionScheduleStatus @default(SCHEDULED)
-  restoredAt                              DateTime?
-  restoredBy                              Int?
-  anonymizedAt                            DateTime?
-  User_DeletionSchedule_restoredByToUser  User?                  @relation("DeletionSchedule_restoredByToUser", fields: [restoredBy], references: [id])
-  User_DeletionSchedule_scheduledByToUser User                   @relation("DeletionSchedule_scheduledByToUser", fields: [scheduledBy], references: [id])
-  User_DeletionSchedule_userIdToUser      User                   @relation("DeletionSchedule_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
+  id                  Int                    @id @default(autoincrement())
+  userId              Int
+  scheduledBy         Int
+  scheduledAt         DateTime               @default(now())
+  scheduledDeletionAt DateTime
+  reason              String?
+  status              DeletionScheduleStatus @default(SCHEDULED)
+  restoredAt          DateTime?
+  restoredBy          Int?
+  anonymizedAt        DateTime?
+  restoredByUser      User?                  @relation("DeletionRestoredBy", fields: [restoredBy], references: [id])
+  scheduledByUser     User                   @relation("DeletionScheduledBy", fields: [scheduledBy], references: [id])
+  user                User                   @relation("PatientDeletionSchedule", fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, status])
-  @@index([scheduledDeletionAt])
+  @@unique([userId, status], map: "DeletionSchedule_userId_status_key")
   @@index([status])
+  @@index([scheduledDeletionAt])
 }
 
 enum Role {

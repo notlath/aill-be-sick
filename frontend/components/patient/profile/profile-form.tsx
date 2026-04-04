@@ -1,13 +1,47 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useTransition } from "react";
-import { User, Upload, Trash2, Loader2, MapPin, LocateFixed } from "lucide-react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+  useTransition,
+} from "react";
+import {
+  User,
+  Upload,
+  Trash2,
+  Loader2,
+  MapPin,
+  LocateFixed,
+  Download,
+  Shield,
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
-import { updateProfile, uploadAvatar, removeAvatar, updateProfileLocation } from "@/actions/update-profile";
+import {
+  updateProfile,
+  uploadAvatar,
+  removeAvatar,
+  updateProfileLocation,
+} from "@/actions/update-profile";
+import { dataExport } from "@/actions/data-export";
+import { withdrawConsent } from "@/actions/withdraw-consent";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useAction } from "next-safe-action/hooks";
 import Image from "next/image";
+import Link from "next/link";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,11 +55,11 @@ type ProfileFormValues = ProfileSchemaType;
 
 const SearchBox = dynamic(
   () => import("@mapbox/search-js-react").then((mod) => mod.SearchBox),
-  { ssr: false }
+  { ssr: false },
 );
 const AddressMinimap = dynamic(
   () => import("@mapbox/search-js-react").then((mod) => mod.AddressMinimap),
-  { ssr: false }
+  { ssr: false },
 );
 
 // Fixed location constants for Bagong Silangan, Quezon City
@@ -50,6 +84,10 @@ interface ProfileState {
   longitude: number | null;
   gender: "MALE" | "FEMALE" | "OTHER" | null;
   birthday: string | null;
+  privacyAcceptedAt: Date | null;
+  privacyVersion: string | null;
+  termsAcceptedAt: Date | null;
+  termsVersion: string | null;
 }
 
 interface ProfileFormProps {
@@ -58,8 +96,19 @@ interface ProfileFormProps {
 
 // Static JSX - extracted outside component to prevent recreation on each render
 const LockIcon = () => (
-  <svg className="w-5 h-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+  <svg
+    className="w-5 h-5 text-muted"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    aria-hidden="true"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+    />
   </svg>
 );
 
@@ -71,14 +120,19 @@ const GRADIENT_STYLE = {
 export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
-  const [minimapFeature, setMinimapFeature] = useState<GeoJSON.Feature<GeoJSON.Point> | undefined>(undefined);
+  const [minimapFeature, setMinimapFeature] = useState<
+    GeoJSON.Feature<GeoJSON.Point> | undefined
+  >(undefined);
 
   const [name, setName] = useState(initialUser.name || "");
   const [avatar, setAvatar] = useState<string | null>(initialUser.avatar);
   const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | null>(
-    initialUser.gender || null
+    initialUser.gender || null,
   );
   const [birthday, setBirthday] = useState(initialUser.birthday || "");
+
+  // Privacy states
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   const {
     location,
@@ -169,9 +223,8 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
   };
 
   // Memoized profile update action with unified success handler
-  const { execute: executeUpdateProfile, isExecuting: isUpdatingProfile } = useAction(
-    updateProfile,
-    {
+  const { execute: executeUpdateProfile, isExecuting: isUpdatingProfile } =
+    useAction(updateProfile, {
       onSuccess: ({ data }) => {
         if (data?.success) {
           toast.success("Profile updated successfully");
@@ -182,36 +235,34 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
       onError: () => {
         toast.error("Failed to update profile");
       },
-    }
-  );
+    });
 
   // Location update action
-  const { execute: executeUpdateProfileLocation, isExecuting: isUpdatingLocation } = useAction(
-    updateProfileLocation,
-    {
-      onSuccess: ({ data }) => {
-        if (data?.success) {
-          toast.success("Location updated successfully");
-        } else if (data?.error) {
-          toast.error(data.error);
-        }
-      },
-      onError: () => {
-        toast.error("Failed to update location");
-      },
-    }
-  );
+  const {
+    execute: executeUpdateProfileLocation,
+    isExecuting: isUpdatingLocation,
+  } = useAction(updateProfileLocation, {
+    onSuccess: ({ data }) => {
+      if (data && "error" in data) {
+        toast.error(data.error);
+      } else if (data && "success" in data) {
+        toast.success("Location updated successfully");
+      }
+    },
+    onError: () => {
+      toast.error("Failed to update location");
+    },
+  });
 
   // Handle avatar upload
-  const { execute: executeUploadAvatar, isExecuting: isUploadingAvatar } = useAction(
-    uploadAvatar,
-    {
+  const { execute: executeUploadAvatar, isExecuting: isUploadingAvatar } =
+    useAction(uploadAvatar, {
       onSuccess: ({ data }) => {
-        if (data?.success && data.avatarUrl) {
+        if (data && "error" in data) {
+          toast.error(data.error);
+        } else if (data && "success" in data && data.avatarUrl) {
           setAvatar(data.avatarUrl);
           toast.success("Avatar updated successfully");
-        } else if (data?.error) {
-          toast.error(data.error);
         }
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
@@ -223,17 +274,16 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
           fileInputRef.current.value = "";
         }
       },
-    }
-  );
+    });
 
   // Handle avatar removal
   const { execute: executeRemoveAvatar } = useAction(removeAvatar, {
     onSuccess: ({ data }) => {
-      if (data?.success) {
+      if (data && "error" in data) {
+        toast.error(data.error);
+      } else if (data && "success" in data) {
         setAvatar(null);
         toast.success("Avatar removed successfully");
-      } else if (data?.error) {
-        toast.error(data.error);
       }
     },
     onError: () => {
@@ -241,47 +291,101 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
     },
   });
 
-  const handleNameSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    executeUpdateProfile({
-      name: formData.get("name") as string,
-      region: initialUser.region || undefined,
-      province: initialUser.province || undefined,
-      city: initialUser.city || undefined,
-      barangay: initialUser.barangay || undefined,
-      gender: gender || undefined,
-      birthday: birthday || undefined,
+  // Privacy actions
+  const { execute: executeExportData, isExecuting: isExporting } = useAction(
+    dataExport,
+    {
+      onSuccess: ({ data }) => {
+        if (data?.success && data.data) {
+          // Trigger download
+          const blob = new Blob([JSON.stringify(data.data, null, 2)], {
+            type: "application/json",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "user-data.json";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast.success("Data exported successfully");
+        } else if (data?.error) {
+          toast.error(data.error);
+        }
+      },
+      onError: () => {
+        toast.error("Failed to export data");
+      },
+    },
+  );
+
+  const { execute: executeWithdrawConsent, isExecuting: isWithdrawing } =
+    useAction(withdrawConsent, {
+      onSuccess: ({ data }) => {
+        if (data?.success) {
+          toast.success("Consent withdrawn successfully");
+          setShowWithdrawModal(false);
+          window.location.href = "/privacy";
+        } else if (data?.error) {
+          toast.error(data.error);
+        }
+      },
+      onError: () => {
+        toast.error("Failed to withdraw consent");
+      },
     });
-  }, [executeUpdateProfile, gender, birthday]);
 
-  const handleAvatarUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleNameSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const formData = new FormData(e.currentTarget);
+      executeUpdateProfile({
+        name: formData.get("name") as string,
+        region: initialUser.region || undefined,
+        province: initialUser.province || undefined,
+        city: initialUser.city || undefined,
+        barangay: initialUser.barangay || undefined,
+        gender: gender || undefined,
+        birthday: birthday || undefined,
+      });
+    },
+    [executeUpdateProfile, initialUser, gender, birthday],
+  );
 
-    const formData = new FormData();
-    formData.append("avatar", file);
-    executeUploadAvatar({ formData });
-  }, [executeUploadAvatar]);
+  const handleAvatarUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("avatar", file);
+      executeUploadAvatar({ formData });
+    },
+    [executeUploadAvatar],
+  );
 
   const handleRemoveAvatar = useCallback(() => {
     executeRemoveAvatar();
   }, [executeRemoveAvatar]);
 
-  const handleLocationSubmit = useCallback((data: ProfileFormValues) => {
-    executeUpdateProfileLocation({
-      birthday: data.birthday,
-      gender: data.gender || null,
-      address: data.address,
-      district: data.district,
-      city: data.city,
-      barangay: data.barangay,
-      region: data.region,
-      province: data.province,
-      latitude: data.latitude,
-      longitude: data.longitude,
-    });
-  }, [executeUpdateProfileLocation]);
+  const handleLocationSubmit = useCallback(
+    (data: ProfileFormValues) => {
+      executeUpdateProfileLocation({
+        birthday: data.birthday,
+        gender: data.gender || null,
+        address: data.address,
+        district: data.district,
+        city: data.city,
+        barangay: data.barangay,
+        region: data.region,
+        province: data.province,
+        latitude: data.latitude,
+        longitude: data.longitude,
+      });
+    },
+    [executeUpdateProfileLocation],
+  );
 
   const isSubmitting = isUpdatingLocation;
 
@@ -313,7 +417,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
 
               {/* Upload overlay */}
               <label
-                className={`absolute bottom-0 right-0 w-10 h-10 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center cursor-pointer shadow-md transition-all duration-200 ${isUploadingAvatar ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`absolute bottom-0 right-0 w-10 h-10 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center cursor-pointer shadow-md transition-all duration-200 ${isUploadingAvatar ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {isUploadingAvatar ? (
                   <Loader2 className="w-5 h-5 text-primary-content animate-spin" />
@@ -343,7 +447,10 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
           </div>
 
           {/* Name and Email Section */}
-          <form onSubmit={handleNameSubmit} className="grid gap-6 md:grid-cols-2">
+          <form
+            onSubmit={handleNameSubmit}
+            className="grid gap-6 md:grid-cols-2"
+          >
             {/* Name Field */}
             <div className="space-y-2">
               <label className="text-sm block font-medium text-base-content">
@@ -377,9 +484,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                   <LockIcon />
                 </div>
               </div>
-              <p className="text-xs text-muted">
-                Managed by Google account
-              </p>
+              <p className="text-xs text-muted">Managed by Google account</p>
             </div>
 
             {/* Gender Field */}
@@ -390,7 +495,9 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
               <Select
                 className="w-full"
                 value={gender ?? ""}
-                onValueChange={(value) => setGender(value as "MALE" | "FEMALE" | "OTHER" | null)}
+                onValueChange={(value) =>
+                  setGender(value as "MALE" | "FEMALE" | "OTHER" | null)
+                }
               >
                 <SelectTrigger className="w-full bg-base-100">
                   <SelectValue placeholder="Select gender" />
@@ -450,8 +557,12 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
             <MapPin className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-base-content">Location</h2>
-            <p className="text-sm text-muted">Help us provide location-specific health insights</p>
+            <h2 className="text-xl font-semibold text-base-content">
+              Location
+            </h2>
+            <p className="text-sm text-muted">
+              Help us provide location-specific health insights
+            </p>
           </div>
         </div>
 
@@ -474,13 +585,16 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
         {location && !location.address && !isLocating && (
           <div className="alert alert-warning flex items-center gap-2 mb-4">
             <span>
-              We couldn&apos;t retrieve the address for your location.
-              Please enter it manually.
+              We couldn&apos;t retrieve the address for your location. Please
+              enter it manually.
             </span>
           </div>
         )}
 
-        <form onSubmit={form.handleSubmit(handleLocationSubmit)} className="grid gap-6 md:grid-cols-2">
+        <form
+          onSubmit={form.handleSubmit(handleLocationSubmit)}
+          className="grid gap-6 md:grid-cols-2"
+        >
           {/* Fixed: Barangay & City */}
           <div className="space-y-2">
             <label className="text-sm block font-medium text-base-content">
@@ -626,6 +740,159 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
           </div>
         </form>
       </section>
+
+      {/* Privacy Rights Section */}
+      <section className="bg-base-100/80 backdrop-blur-sm rounded-2xl border border-border shadow-sm p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Shield className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-base-content">
+              Privacy Rights
+            </h2>
+            <p className="text-sm text-muted">
+              Manage your data and privacy preferences
+            </p>
+          </div>
+        </div>
+
+        {/* Current Consent Status */}
+        <div className="mb-6 p-4 bg-base-200/50 rounded-xl">
+          <h3 className="font-medium text-base-content mb-2">Current Status</h3>
+          <div className="grid gap-2 md:grid-cols-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">Privacy Policy:</span>
+              {initialUser.privacyAcceptedAt ? (
+                <Badge
+                  variant="default"
+                  className="bg-success text-success-content text-xs"
+                >
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Accepted v{initialUser.privacyVersion || "1.0"}
+                </Badge>
+              ) : (
+                <Badge
+                  variant="default"
+                  className="bg-error text-error-content text-xs"
+                >
+                  <XCircle className="w-3 h-3 mr-1" />
+                  Not Accepted
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm">Terms of Service:</span>
+              {initialUser.termsAcceptedAt ? (
+                <Badge
+                  variant="default"
+                  className="bg-success text-success-content text-xs"
+                >
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Accepted v{initialUser.termsVersion || "1.0"}
+                </Badge>
+              ) : (
+                <Badge
+                  variant="default"
+                  className="bg-error text-error-content text-xs"
+                >
+                  <XCircle className="w-3 h-3 mr-1" />
+                  Not Accepted
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Export Data */}
+          <div className="card bg-base-100 border border-border">
+            <div className="card-body p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-info/10 flex items-center justify-center">
+                  <Download className="w-4 h-4 text-info" />
+                </div>
+                <h3 className="card-title text-sm">Export My Data</h3>
+              </div>
+              <p className="text-xs text-muted mb-4">
+                Download a copy of all your personal data, diagnoses, and usage
+                history.
+              </p>
+              <button
+                onClick={() => executeExportData({ format: "json" })}
+                disabled={isExporting}
+                className="btn btn-info btn-sm w-full"
+              >
+                {isExporting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Export Data"
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Privacy Rights Page */}
+          <div className="card bg-base-100 border border-border">
+            <div className="card-body p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Shield className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="card-title text-sm">Privacy Dashboard</h3>
+              </div>
+              <p className="text-xs text-muted mb-4">
+                View consent history, manage preferences, and access all privacy
+                rights.
+              </p>
+              <Link
+                href="/privacy-rights"
+                className="btn btn-primary btn-sm w-full"
+              >
+                Open Dashboard
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Withdraw Consent Modal */}
+      {showWithdrawModal && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-warning" />
+              <h3 className="font-bold text-lg">Withdraw Consent</h3>
+            </div>
+            <p className="py-4 text-sm">
+              Withdrawing consent will block your access to the app until you
+              re-accept the privacy policy and terms. Your data will remain
+              intact. You can re-accept consent by visiting the privacy page.
+            </p>
+            <div className="modal-action">
+              <button
+                className="btn btn-ghost"
+                onClick={() => setShowWithdrawModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-warning"
+                disabled={isWithdrawing}
+                onClick={() => {
+                  executeWithdrawConsent();
+                }}
+              >
+                {isWithdrawing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Withdraw Consent"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

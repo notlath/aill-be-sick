@@ -58,8 +58,11 @@ export default function ClinicianProfileForm({
   const { execute: executeUpdateProfile, isExecuting: isUpdatingProfile } =
     useAction(updateProfile, {
       onSuccess: ({ data }) => {
-        if (data?.success) toast.success("Profile updated successfully");
-        else if (data?.error) toast.error(data.error);
+        if (data && "error" in data) {
+          toast.error(data.error);
+        } else if (data && "success" in data) {
+          toast.success("Profile updated successfully");
+        }
       },
       onError: () => toast.error("Failed to update profile"),
     });
@@ -79,10 +82,12 @@ export default function ClinicianProfileForm({
   const { execute: executeUpdatePassword, isExecuting: isUpdatingPassword } =
     useAction(updatePasswordAction, {
       onSuccess: ({ data }) => {
-        if (data?.success) {
+        if (data && "error" in data) {
+          toast.error(data.error);
+        } else if (data && "success" in data) {
           toast.success("Password updated successfully");
-          setPassword(""); // clear password input
-        } else if (data?.error) toast.error(data.error);
+          setPassword("");
+        }
       },
       onError: () => toast.error("Failed to update password"),
     });
@@ -91,10 +96,12 @@ export default function ClinicianProfileForm({
   const { execute: executeUploadAvatar, isExecuting: isUploadingAvatar } =
     useAction(uploadAvatar, {
       onSuccess: ({ data }) => {
-        if (data?.success && data.avatarUrl) {
+        if (data && "error" in data) {
+          toast.error(data.error);
+        } else if (data && "success" in data && data.avatarUrl) {
           setAvatar(data.avatarUrl);
           toast.success("Avatar updated successfully");
-        } else if (data?.error) toast.error(data.error);
+        }
         if (fileInputRef.current) fileInputRef.current.value = "";
       },
       onError: () => {
@@ -105,10 +112,12 @@ export default function ClinicianProfileForm({
 
   const { execute: executeRemoveAvatar } = useAction(removeAvatar, {
     onSuccess: ({ data }) => {
-      if (data?.success) {
+      if (data && "error" in data) {
+        toast.error(data.error);
+      } else if (data && "success" in data) {
         setAvatar(null);
         toast.success("Avatar removed successfully");
-      } else if (data?.error) toast.error(data.error);
+      }
     },
     onError: () => toast.error("Failed to remove avatar"),
   });

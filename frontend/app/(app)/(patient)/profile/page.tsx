@@ -26,6 +26,10 @@ async function ProfileData() {
         longitude: dbUser.longitude || null,
         gender: dbUser.gender || null,
         birthday: dbUser.birthday ? dbUser.birthday.toISOString().split("T")[0] : null,
+        privacyAcceptedAt: dbUser.privacyAcceptedAt,
+        privacyVersion: dbUser.privacyVersion,
+        termsAcceptedAt: dbUser.termsAcceptedAt,
+        termsVersion: dbUser.termsVersion,
       }}
     />
   );
