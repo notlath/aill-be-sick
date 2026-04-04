@@ -5,7 +5,6 @@
  *  - CRITICAL : CLUSTER:SPATIAL and COMBINED:MULTI both present (spatial cluster
  *               with multiple contributing factors — strongest outbreak signal)
  *  - HIGH     : CLUSTER:SPATIAL alone, or COMBINED:MULTI with ≥ 3 codes
- *  - MEDIUM   : CONFIDENCE:LOW or UNCERTAINTY:HIGH (model reliability issue)
  *  - LOW      : any other single reason code
  */
 
@@ -17,7 +16,7 @@ export function mapReasonCodesToSeverity(reasonCodes: string[]): AlertSeverity {
   if (has("OUTBREAK:EPIDEMIC_THRESHOLD") || (has("CLUSTER:SPATIAL") && has("COMBINED:MULTI"))) return "CRITICAL";
   if (has("OUTBREAK:ALERT_THRESHOLD") || has("CLUSTER:SPATIAL") || (has("COMBINED:MULTI") && reasonCodes.length >= 3))
     return "HIGH";
-  if (has("CLUSTER:DENSE") || has("OUTBREAK:VOL_SPIKE") || has("CONFIDENCE:LOW") || has("UNCERTAINTY:HIGH")) return "MEDIUM";
+  if (has("CLUSTER:DENSE") || has("OUTBREAK:VOL_SPIKE")) return "MEDIUM";
 
   return "LOW";
 }

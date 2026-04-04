@@ -249,7 +249,7 @@ export type SearchParams = Record<string, string | string[] | undefined>;
 
 export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type AlertStatus = "NEW" | "ACKNOWLEDGED" | "RESOLVED" | "DISMISSED";
-export type AlertType = "ANOMALY" | "OUTBREAK" | "LOW_CONFIDENCE" | "HIGH_UNCERTAINTY";
+export type AlertType = "ANOMALY" | "OUTBREAK";
 
 export type AlertMetadata = {
   disease?: string;
