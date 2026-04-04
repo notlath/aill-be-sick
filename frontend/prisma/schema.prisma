@@ -10,48 +10,51 @@ datasource db {
 }
 
 model User {
-  id                 Int                 @id @default(autoincrement())
-  email              String              @unique
-  name               String?
-  authId             String?             @unique
-  avatar             String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @default(now()) @updatedAt
-  role               Role                @default(PATIENT)
-  city               String?
-  latitude           Float?
-  longitude          Float?
-  region             String?
-  age                Int?
-  gender             Gender?
-  province           String?
-  barangay           String?
-  birthday           DateTime?
-  isOnboarded        Boolean             @default(false)
-  district           String?
-  address            String?
-  privacyAcceptedAt  DateTime?
-  privacyVersion     String?
-  termsAcceptedAt    DateTime?
-  termsVersion       String?
-  approvalStatus     ApprovalStatus      @default(ACTIVE)
-  approvedAt         DateTime?
-  approvedBy         Int?
-  approvalNotes      String?
-  rejectedAt         DateTime?
-  mustChangePassword Boolean             @default(false)
-  emailVerified      Boolean             @default(false)
-  patientAccessCode  String?             @unique
-  acknowledgedAlerts Alert[]             @relation("AlertAcknowledger")
-  resolvedAlerts     Alert[]             @relation("AlertResolver")
-  alertNotes         AlertNote[]         @relation("AlertNoteAuthor")
-  AuditLog           AuditLog[]
-  chats              Chat[]
-  rejectedDiagnoses  Diagnosis[]         @relation("DiagnosisRejector")
-  diagnoses          Diagnosis[]
-  verifiedDiagnoses  Diagnosis[]         @relation("DiagnosisVerifier")
-  diagnosisNotes     DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
-  diagnosisOverrides DiagnosisOverride[] @relation("OverrideClinicianRelation")
+  id                                                  Int                 @id @default(autoincrement())
+  email                                               String              @unique
+  name                                                String?
+  authId                                              String?             @unique
+  avatar                                              String?
+  createdAt                                           DateTime            @default(now())
+  updatedAt                                           DateTime            @default(now()) @updatedAt
+  role                                                Role                @default(PATIENT)
+  city                                                String?
+  latitude                                            Float?
+  longitude                                           Float?
+  region                                              String?
+  age                                                 Int?
+  gender                                              Gender?
+  province                                            String?
+  barangay                                            String?
+  birthday                                            DateTime?
+  isOnboarded                                         Boolean             @default(false)
+  district                                            String?
+  address                                             String?
+  privacyAcceptedAt                                   DateTime?
+  privacyVersion                                      String?
+  termsAcceptedAt                                     DateTime?
+  termsVersion                                        String?
+  approvalStatus                                      ApprovalStatus      @default(ACTIVE)
+  approvedAt                                          DateTime?
+  approvedBy                                          Int?
+  approvalNotes                                       String?
+  rejectedAt                                          DateTime?
+  mustChangePassword                                  Boolean             @default(false)
+  emailVerified                                       Boolean             @default(false)
+  patientAccessCode                                   String?             @unique
+  acknowledgedAlerts                                  Alert[]             @relation("AlertAcknowledger")
+  resolvedAlerts                                      Alert[]             @relation("AlertResolver")
+  alertNotes                                          AlertNote[]         @relation("AlertNoteAuthor")
+  AuditLog                                            AuditLog[]
+  chats                                               Chat[]
+  DeletionSchedule_DeletionSchedule_restoredByToUser  DeletionSchedule[]  @relation("DeletionSchedule_restoredByToUser")
+  DeletionSchedule_DeletionSchedule_scheduledByToUser DeletionSchedule[]  @relation("DeletionSchedule_scheduledByToUser")
+  DeletionSchedule_DeletionSchedule_userIdToUser      DeletionSchedule?   @relation("DeletionSchedule_userIdToUser")
+  rejectedDiagnoses                                   Diagnosis[]         @relation("DiagnosisRejector")
+  diagnoses                                           Diagnosis[]
+  verifiedDiagnoses                                   Diagnosis[]         @relation("DiagnosisVerifier")
+  diagnosisNotes                                      DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
+  diagnosisOverrides                                  DiagnosisOverride[] @relation("OverrideClinicianRelation")
 
   @@index([latitude, longitude])
   @@index([region])
@@ -260,6 +263,25 @@ model AuditLog {
   @@index([userId])
 }
 
+model DeletionSchedule {
+  id                                      Int                    @id @default(autoincrement())
+  userId                                  Int                    @unique
+  scheduledBy                             Int
+  scheduledAt                             DateTime               @default(now())
+  scheduledDeletionAt                     DateTime
+  reason                                  String?
+  status                                  DeletionScheduleStatus @default(SCHEDULED)
+  restoredAt                              DateTime?
+  restoredBy                              Int?
+  anonymizedAt                            DateTime?
+  User_DeletionSchedule_restoredByToUser  User?                  @relation("DeletionSchedule_restoredByToUser", fields: [restoredBy], references: [id])
+  User_DeletionSchedule_scheduledByToUser User                   @relation("DeletionSchedule_scheduledByToUser", fields: [scheduledBy], references: [id])
+  User_DeletionSchedule_userIdToUser      User                   @relation("DeletionSchedule_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([scheduledDeletionAt])
+  @@index([status])
+}
+
 enum Role {
   PATIENT
   CLINICIAN
@@ -334,4 +356,10 @@ enum DiagnosisStatus {
   VERIFIED
   REJECTED
   INCONCLUSIVE
+}
+
+enum DeletionScheduleStatus {
+  SCHEDULED
+  RESTORED
+  ANONYMIZED
 }
