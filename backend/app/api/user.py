@@ -106,6 +106,41 @@ def log_audit_action(user_id, action, details=None):
         conn.commit()
 
 
+def _anonymize_user_data(conn, user_id):
+    """Shared helper to anonymize a user's PII data.
+
+    Used by account deletion and scheduled anonymization.
+    Replaces email, name, location, demographics, and consent fields with
+    anonymous values, and deletes all chats.
+
+    Args:
+        conn: SQLAlchemy connection (must be within a transaction).
+        user_id: The user's database ID.
+    """
+    conn.execute(text("""
+        UPDATE "User"
+        SET email = CONCAT('deleted_', id, '@anonymous.com'),
+            name = 'Anonymous User',
+            city = NULL, latitude = NULL, longitude = NULL, region = NULL,
+            age = NULL, gender = NULL, province = NULL, barangay = NULL,
+            birthday = NULL, district = NULL, address = NULL,
+            "privacyAcceptedAt" = NULL, "privacyVersion" = NULL,
+            "termsAcceptedAt" = NULL, "termsVersion" = NULL
+        WHERE id = :user_id
+    """), {"user_id": user_id})
+
+    conn.execute(text("""
+        UPDATE "Diagnosis"
+        SET city = NULL, latitude = NULL, longitude = NULL, region = NULL,
+            province = NULL, barangay = NULL, district = NULL
+        WHERE "userId" = :user_id
+    """), {"user_id": user_id})
+
+    conn.execute(text("""
+        DELETE FROM "Chat" WHERE "userId" = :user_id
+    """), {"user_id": user_id})
+
+
 @user_bp.route("/data-export", methods=["POST"])
 def data_export():
     """Export user data as JSON or CSV."""
@@ -263,35 +298,22 @@ def delete_account():
 
     engine = get_db_engine()
     with engine.connect() as conn:
-        # Start transaction
         trans = conn.begin()
 
         try:
-            # Anonymize user data
-            conn.execute(text("""
-                UPDATE "User"
-                SET email = CONCAT('deleted_', id, '@anonymous.com'),
-                    name = 'Anonymous User',
-                    city = NULL, latitude = NULL, longitude = NULL, region = NULL,
-                    age = NULL, gender = NULL, province = NULL, barangay = NULL,
-                    birthday = NULL, district = NULL, address = NULL,
-                    "privacyAcceptedAt" = NULL, "privacyVersion" = NULL,
-                    "termsAcceptedAt" = NULL, "termsVersion" = NULL
-                WHERE id = :user_id
-            """), {"user_id": user_id})
+            existing_schedule = conn.execute(text("""
+                SELECT id FROM "DeletionSchedule"
+                WHERE "userId" = :user_id AND status = 'SCHEDULED'
+            """), {"user_id": user_id}).fetchone()
 
-            # Anonymize diagnoses (remove location data)
-            conn.execute(text("""
-                UPDATE "Diagnosis"
-                SET city = NULL, latitude = NULL, longitude = NULL, region = NULL,
-                    province = NULL, barangay = NULL, district = NULL
-                WHERE "userId" = :user_id
-            """), {"user_id": user_id})
+            if existing_schedule:
+                trans.rollback()
+                current_app.logger.info(
+                    f"Account deletion blocked for user {user_id}: has active scheduled deletion"
+                )
+                return jsonify({"error": "Account is scheduled for deletion by a clinician"}), 409
 
-            # Delete chats and related data (cascade)
-            conn.execute(text("""
-                DELETE FROM "Chat" WHERE "userId" = :user_id
-            """), {"user_id": user_id})
+            _anonymize_user_data(conn, user_id)
 
             trans.commit()
 
@@ -305,7 +327,12 @@ def delete_account():
 
 @user_bp.route("/withdraw-consent", methods=["POST"])
 def withdraw_consent():
-    """Withdraw user consent and anonymize data."""
+    """Withdraw user consent. Clears consent flags and logs the action.
+
+    The user will be blocked by the consent modal on next page load until
+    they reconsent. No data is anonymized — the user's profile and history
+    remain intact for when they choose to reconsent.
+    """
     user = get_current_user()
     if not user:
         return jsonify({"error": "Authentication required"}), 401
@@ -314,7 +341,6 @@ def withdraw_consent():
 
     engine = get_db_engine()
     with engine.connect() as conn:
-        # Clear consent flags
         conn.execute(text("""
             UPDATE "User"
             SET "privacyAcceptedAt" = NULL, "privacyVersion" = NULL,
@@ -322,30 +348,11 @@ def withdraw_consent():
             WHERE id = :user_id
         """), {"user_id": user_id})
 
-        # Anonymize data (similar to deletion but keep account)
-        conn.execute(text("""
-            UPDATE "User"
-            SET name = CONCAT('Anonymous_', id),
-                city = NULL, latitude = NULL, longitude = NULL, region = NULL,
-                age = NULL, gender = NULL, province = NULL, barangay = NULL,
-                birthday = NULL, district = NULL, address = NULL
-            WHERE id = :user_id
-        """), {"user_id": user_id})
-
-        # Anonymize diagnoses
-        conn.execute(text("""
-            UPDATE "Diagnosis"
-            SET city = NULL, latitude = NULL, longitude = NULL, region = NULL,
-                province = NULL, barangay = NULL, district = NULL
-            WHERE "userId" = :user_id
-        """), {"user_id": user_id})
-
-        # Log the withdrawal
-        log_audit_action(user_id, "consent_withdrawal", {"anonymized": True})
+        log_audit_action(user_id, "consent_withdrawal")
 
         conn.commit()
 
-    return jsonify({"message": "Consent withdrawn. Data has been anonymized and processing restricted."})
+    return jsonify({"message": "Consent withdrawn. You will need to re-accept the privacy policy and terms to continue using the app."})
 
 
 @user_bp.route("/schedule-deletion", methods=["POST"])
@@ -435,6 +442,12 @@ def schedule_deletion():
 
         except Exception as e:
             trans.rollback()
+            error_str = str(e).lower()
+            if "unique constraint" in error_str or "23505" in str(e):
+                current_app.logger.info(
+                    f"Patient {patient_id} already has a SCHEDULED deletion (race condition caught)"
+                )
+                return jsonify({"error": "Patient already has a scheduled deletion"}), 409
             current_app.logger.error(f"Schedule deletion failed: {e}")
             return jsonify({"error": "Failed to schedule deletion"}), 500
 
@@ -527,7 +540,7 @@ def anonymize_scheduled():
         trans = conn.begin()
         try:
             expired_schedules = conn.execute(text("""
-                SELECT ds.id, ds."userId", u.email, u.name
+                SELECT ds.id, ds."userId", ds."scheduledBy", u.email, u.name
                 FROM "DeletionSchedule" ds
                 JOIN "User" u ON ds."userId" = u.id
                 WHERE ds.status = 'SCHEDULED' AND ds."scheduledDeletionAt" <= NOW()
@@ -535,30 +548,9 @@ def anonymize_scheduled():
 
             anonymized_count = 0
             for schedule in expired_schedules:
-                schedule_id, patient_id, patient_email, patient_name = schedule
+                schedule_id, patient_id, scheduled_by, patient_email, patient_name = schedule
 
-                conn.execute(text("""
-                    UPDATE "User"
-                    SET email = CONCAT('deleted_', id, '@anonymous.com'),
-                        name = 'Anonymous User',
-                        city = NULL, latitude = NULL, longitude = NULL, region = NULL,
-                        age = NULL, gender = NULL, province = NULL, barangay = NULL,
-                        birthday = NULL, district = NULL, address = NULL,
-                        "privacyAcceptedAt" = NULL, "privacyVersion" = NULL,
-                        "termsAcceptedAt" = NULL, "termsVersion" = NULL
-                    WHERE id = :user_id
-                """), {"user_id": patient_id})
-
-                conn.execute(text("""
-                    UPDATE "Diagnosis"
-                    SET city = NULL, latitude = NULL, longitude = NULL, region = NULL,
-                        province = NULL, barangay = NULL, district = NULL
-                    WHERE "userId" = :user_id
-                """), {"user_id": patient_id})
-
-                conn.execute(text("""
-                    DELETE FROM "Chat" WHERE "userId" = :user_id
-                """), {"user_id": patient_id})
+                _anonymize_user_data(conn, patient_id)
 
                 conn.execute(text("""
                     UPDATE "DeletionSchedule"
@@ -566,10 +558,11 @@ def anonymize_scheduled():
                     WHERE id = :schedule_id
                 """), {"schedule_id": schedule_id})
 
-                log_audit_action(None, "ANONYMIZE_ACCOUNT", {
+                log_audit_action(scheduled_by, "ANONYMIZE_ACCOUNT", {
                     "patientId": patient_id,
                     "scheduleId": schedule_id,
                     "originalEmail": patient_email,
+                    "automated": True,
                 })
 
                 anonymized_count += 1

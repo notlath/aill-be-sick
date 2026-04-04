@@ -865,9 +865,9 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
               <h3 className="font-bold text-lg">Withdraw Consent</h3>
             </div>
             <p className="py-4 text-sm">
-              Withdrawing consent will stop all data processing and anonymize
-              your personal information. You can provide consent again by
-              visiting the privacy page.
+              Withdrawing consent will block your access to the app until you
+              re-accept the privacy policy and terms. Your data will remain
+              intact. You can re-accept consent by visiting the privacy page.
             </p>
             <div className="modal-action">
               <button

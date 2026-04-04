@@ -42,7 +42,7 @@ export const dataExport = actionClient
       const data = response.data;
 
       const payloadSize = JSON.stringify(data).length;
-      const MAX_PAYLOAD_SIZE = 5 * 1024 * 1024;
+      const MAX_PAYLOAD_SIZE = 3 * 1024 * 1024;
 
       if (payloadSize > MAX_PAYLOAD_SIZE) {
         return {

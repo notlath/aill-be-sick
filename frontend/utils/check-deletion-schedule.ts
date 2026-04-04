@@ -8,6 +8,6 @@ export async function hasActiveDeletionSchedule(userId: number): Promise<boolean
     return !!schedule;
   } catch (error) {
     console.error("Error checking deletion schedule:", error);
-    return false;
+    return true;
   }
 }

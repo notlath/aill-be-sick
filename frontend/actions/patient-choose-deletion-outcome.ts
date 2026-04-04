@@ -55,29 +55,6 @@ export const patientChooseDeletionOutcome = actionClient
         return { success: true, outcome: "restored" as const };
       }
 
-      if (action === "confirm") {
-        const schedule = await prisma.deletionSchedule.findFirst({
-          where: { userId: dbUser.id, status: "SCHEDULED" },
-        });
-
-        if (!schedule) {
-          return { error: "No active deletion schedule found", outcome: null };
-        }
-
-        await prisma.deletionSchedule.update({
-          where: { id: schedule.id },
-          data: {
-            scheduledDeletionAt: new Date(),
-          },
-        });
-
-        revalidatePath("/");
-        revalidatePath("/diagnosis");
-        revalidatePath("/history");
-
-        return { success: true, outcome: "confirmed" as const };
-      }
-
       return { error: "Invalid action", outcome: null };
     } catch (error) {
       console.error(`Error processing deletion outcome: ${error}`);

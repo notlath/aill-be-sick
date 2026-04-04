@@ -4,6 +4,7 @@ import { actionClient } from "./client";
 import { ScheduleDeletionSchema } from "@/schemas/ScheduleDeletionSchema";
 import { getCurrentDbUser } from "@/utils/user";
 import { revalidatePath } from "next/cache";
+import { createClient } from "@/utils/supabase/server";
 
 export const schedulePatientDeletion = actionClient
   .inputSchema(ScheduleDeletionSchema)
@@ -23,7 +24,6 @@ export const schedulePatientDeletion = actionClient
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:10000";
-      const { createClient } = await import("@/utils/supabase/server");
       const supabase = await createClient();
       const { data: { session } } = await supabase.auth.getSession();
 
