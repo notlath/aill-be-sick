@@ -23,8 +23,8 @@ The Outbreak Alert System provides automated, real-time detection of collective 
 
 This section provides a high-level summary of how the system identifies and communicates potential outbreaks.
 
-1. **The Trigger (Clinician Verification)**
-   Whenever a clinician verifies a PENDING diagnosis (or applies a clinical override that auto-verifies), the Next.js server updates the status to `VERIFIED` and silently triggers the Outbreak Detection process in the background.
+1. **The Trigger (Supabase Cron — Every 15 Minutes)**
+   A Supabase Edge Function runs on a 15-minute cron schedule. It calls the Flask backend's unified surveillance endpoint (`/api/surveillance/cron`), which runs both anomaly detection and outbreak detection in a single pass.
 
 2. **Data Gathering (37-Day Window)**
    The Flask backend pulls the last **37 days** of VERIFIED diagnosis records from the database. It splits this data into two groups:
@@ -49,7 +49,7 @@ This section provides a high-level summary of how the system identifies and comm
    > **Why this matters:** Imagine 10 new Dengue cases across a whole district — that might be normal. But if 8 of those 10 cases are all within two blocks of each other, that strongly suggests a localized source (a stagnant water site, a school, etc.) and warrants an alert regardless of volume. The threshold check catches *volume-based* outbreaks; clustering catches *geographically concentrated* ones.
 
 6. **Spam Prevention (24-Hour Rule)**
-   Before sounding the alarm, the Next.js server checks the database to see if an active `OUTBREAK` alert for that specific disease and district was already created in the last 24 hours. If so, it skips the alert to avoid spamming the dashboard.
+   The Supabase Edge Function checks the database to see if an active `OUTBREAK` alert for that specific disease and district was already created in the last 24 hours. If so, it skips the alert to avoid spamming the dashboard.
 
 7. **Real-Time Notification (Zero Latency)**
    The new alert is saved to the database. Because of Supabase Realtime, the database instantly broadcasts this change to all connected clinicians. The clinician sees a **Toast Notification** and the alert table updates instantly—no page refresh required.
@@ -59,55 +59,60 @@ This section provides a high-level summary of how the system identifies and comm
 ## How It Works
 
 ### High-Level Architecture
-The diagram below shows how a single diagnosis triggers a system-wide search for outbreaks, bridging the patient and clinician experiences.
+The diagram below shows how the Supabase cron job triggers a system-wide search for outbreaks, bridging the patient and clinician experiences.
 
 ```text
+┌─────────────────────────────────────────────────────────────────┐
+│  Supabase Cron (every 15 minutes)                               │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Edge Function: /surveillance-cron                        │  │
+│  │  1. GET /api/surveillance/cron                            │  │
+│  │  2. Process anomalies[] + outbreaks[]                     │  │
+│  │  3. Upsert Alert records with 24h dedup                   │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────┬──────────────────────────┘
+                                       │
+                                       ▼
 ┌──────────────────────┐      ┌──────────────────────┐      ┌──────────────────────┐
-│   Patient Interface  │      │ Next.js Server Action│      │   Flask Backend      │
+│   Flask Backend      │      │  Supabase Realtime   │      │   PostgreSQL (DB)    │
 │                      │      │                      │      │                      │
-│ 1. Submit Symptoms   │─────▶│ 3. Diagnosis Saved   │─────▶│ 5. Threshold Analysis│
-│ 2. Receive Diagnosis │      │ 4. Run Alert Checks  │      │ 6. Cluster Detection │
-└──────────────────────┘      └──────────┬───────────┘      └──────────┬───────────┘
-                                         │                             │
-                                         ▼                             ▼
-┌──────────────────────┐      ┌──────────────────────┐      ┌──────────────────────┐
-│  Clinician Dashboard │      │  Supabase Realtime   │      │   PostgreSQL (DB)    │
-│                      │      │                      │      │                      │
-│ 9. Toast Notification│◀─────│ 8. Broadcast Event   │◀─────│ 7. Create Alert      │
-│ 10. Table Updates    │      │    (WAL / Change)    │      │    (OUTBREAK Type)   │
-└──────────────────────┘      └──────────────────────┘      └──────────────────────┘
+│ 4. Threshold Analysis│─────▶│ 6. Broadcast Event   │◀─────│ 5. Create Alert      │
+│ 5. Cluster Detection │      │    (WAL / Change)    │      │    (OUTBREAK Type)   │
+└──────────────────────┘      └──────────┬───────────┘      └──────────────────────┘
+                                         │
+                                         ▼
+                          ┌──────────────────────────────┐
+                          │  Clinician Dashboard         │
+                          │                              │
+                          │ 7. Toast Notification        │
+                          │ 8. Table Updates             │
+                          └──────────────────────────────┘
 ```
 
 #### Technical Mermaid Flow
 ```mermaid
 graph TD
-    subgraph Patient_Interface [Patient Interface]
-        A[Submit Symptom Chat] --> B[Receive Diagnosis]
-    end
-
-    subgraph NextJS_Server [Next.js Server Actions]
-        B --> C{Trigger Background Task}
-        C --> D[checkAndCreateAlert Anomaly]
-        C --> E[checkAndCreateOutbreakAlert Outbreak]
+    subgraph Supabase_Cron [Supabase Cron (every 15 min)]
+        A[Cron Trigger] --> B[Edge Function: /surveillance-cron]
     end
 
     subgraph Flask_Analytics [Flask Backend Service]
-        E --> F[Statistical Threshold Analysis]
-        E --> G[K-Means Cluster Detection]
+        B --> C[GET /api/surveillance/cron]
+        C --> D[Statistical Threshold Analysis]
+        C --> E[K-Means Cluster Detection]
     end
 
     subgraph Data_Layer [Data & Realtime Layer]
-        F & G --> H[(PostgreSQL Database)]
-        H --> I[Supabase Realtime Broadcast]
+        D & E --> F[(PostgreSQL Database)]
+        F --> G[Supabase Realtime Broadcast]
     end
 
     subgraph Clinician_Interface [Clinician Interface]
-        I --> J[Toast Notification]
-        I --> K[Live Alerts Table Update]
+        G --> H[Toast Notification]
+        G --> I[Live Alerts Table Update]
     end
 
-    style Patient_Interface fill:#f9f,stroke:#333,stroke-width:2px
-    style NextJS_Server fill:#bbf,stroke:#333,stroke-width:2px
+    style Supabase_Cron fill:#bbf,stroke:#333,stroke-width:2px
     style Flask_Analytics fill:#dfd,stroke:#333,stroke-width:2px
     style Data_Layer fill:#fdd,stroke:#333,stroke-width:2px
     style Clinician_Interface fill:#dff,stroke:#333,stroke-width:2px
@@ -371,38 +376,28 @@ graph LR
 
 ```mermaid
 sequenceDiagram
-    participant P as Patient
-    participant N as Next.js Server
-    participant C as Clinician
+    participant Cron as Supabase Cron
+    participant EF as Edge Function
     participant F as Flask Backend
     participant DB as PostgreSQL (Prisma)
     participant D as Clinician Dashboard
 
-    P->>N: Submits Symptoms (autoRecordDiagnosis)
-    N->>DB: Saves Diagnosis (status: PENDING)
-    N-->>P: Returns Success Response
-    
-    Note over C: Later: Clinician Reviews
-    C->>N: Verifies Diagnosis (approveDiagnosis)
-    N->>DB: Updates Diagnosis to VERIFIED
-    N-->>C: Returns Success Response
-    
-    Note over N: Background Task Starts
-    
-    N->>F: GET /api/surveillance/outbreaks/detect
+    Note over Cron: Every 15 minutes
+    Cron->>EF: Trigger /surveillance-cron
+    EF->>F: GET /api/surveillance/cron
     F->>DB: Fetch 37-day VERIFIED diagnosis data
     F->>F: Calculate Thresholds (Baseline 30d)
     F->>F: Run K-Means (Recent 7d)
-    F-->>N: Returns detected outbreaks JSON
+    F-->>EF: Returns anomalies[] + outbreaks[]
     
     loop For each detected outbreak
-        N->>DB: Check for duplicate alert (last 24h)
+        EF->>DB: Check for duplicate alert (last 24h)
         alt No Duplicate Exists
-            N->>DB: Create Alert (type: OUTBREAK)
+            EF->>DB: Create Alert (type: OUTBREAK)
             DB-->>D: Supabase Realtime Broadcast
             D->>D: Show Toast + Update Table
         else Duplicate Exists
-            N->>N: Log & Skip
+            EF->>EF: Log & Skip
         end
     end
 ```
@@ -420,28 +415,16 @@ The core logic resides in the Flask backend. It fetches data through the `illnes
 - `CLUSTER:DENSE`: K-Means identified a high-density geographic cluster.
 - `OUTBREAK:VOL_SPIKE`: Sudden increase in volume where no historical baseline exists.
 
-### Frontend: Alert Pipeline
-The system is triggered via Server Actions when a clinician verifies a diagnosis.
+### Supabase Cron: Edge Function
+The system is triggered by a Supabase Edge Function running on a 5-minute cron schedule. The Edge Function calls the unified `/api/surveillance/cron` endpoint, processes the results, and creates Alert records directly via the Supabase client.
 
-```typescript
-// Triggered in the background after every diagnosis verification
-// (approveDiagnosis, batchApproveDiagnoses, overrideDiagnosis)
-checkAndCreateAlert({ diagnosisId, disease, confidence, ... })
-  .catch((err) => console.error("Anomaly alert failed", err));
+**Trigger:** Supabase Cron (`*/5 * * * *`) → Edge Function (`/surveillance-cron`)
 
-checkAndCreateOutbreakAlert({
-  disease,
-  district: diagnosis.district,
-}).catch((err) => console.error("Outbreak alert failed", err));
+**Manual Trigger:**
+```bash
+# Contacts backend cron endpoint, detects outbreaks, and saves to DB
+npx tsx scripts/trigger-outbreak.ts
 ```
-
-**Trigger Points:**
-
-| Action | File | When |
-|--------|------|------|
-| `approveDiagnosis` | `verify-diagnosis.ts` | After single diagnosis verified |
-| `batchApproveDiagnoses` | `verify-diagnosis.ts` | After batch verification, runs for each verified diagnosis |
-| `overrideDiagnosis` | `override-diagnosis.ts` | Only when PENDING → VERIFIED via auto-verify |
 
 ### Database Schema
 The `Alert` model in Prisma was extended to support the `OUTBREAK` type.
@@ -506,21 +489,33 @@ npx tsx scripts/trigger-outbreak.ts
 | Scenario | Behavior |
 |----------|----------|
 | **Insufficient Data** | If $< 5$ cases exist in the system, detection returns empty to avoid false positives. |
-| **Backend Offline** | The Next.js action logs a warning and fails gracefully; the patient's diagnosis is **never** blocked. |
+| **Backend Offline** | The Edge Function logs the error and returns a 500 response. Next cron run (15 min) will retry — no alerts are permanently lost. |
 | **Missing District** | The system falls back to `"UNKNOWN"` as the district label to ensure alerts are still generated even if geographic data is incomplete. |
 | **Missing Coordinates** | Cases without valid lat/lng are excluded from K-Means clustering but still counted in threshold-based detection. |
 | **All Same Location** | If all cases are at identical coordinates, K=1 and no false cluster alert is triggered. |
 | **Spam Prevention** | Alerts are throttled to once every 24 hours per unique disease/district combination. |
+| **Partial Backend Failure** | If one detection engine (anomaly or outbreak) fails, the cron endpoint returns partial results with an `errors` field. The Edge Function processes what succeeded and logs failures. |
 
 ---
 
-**Version**: 3.0 (Pure Geographic Clustering)
+**Version**: 4.0 (Supabase Cron Migration)
 **Last Updated**: April 5, 2026
 **Maintainer**: AI'll Be Sick Research & Development Team
 
 ---
 
 ## Changelog
+
+### Version 4.0 - April 5, 2026
+- **Migrated from event-driven (fire-and-forget) to Supabase Cron-based surveillance**
+  - Outbreak and anomaly detection now run on a 5-minute cron schedule via Supabase Edge Functions
+  - Added unified `/api/surveillance/cron` endpoint in Flask backend (runs both anomaly + outbreak detection)
+  - Created `supabase/functions/surveillance-cron/index.ts` Edge Function
+  - Removed fire-and-forget alert calls from `verify-diagnosis.ts` and `override-diagnosis.ts`
+  - Deleted `frontend/utils/alert-pipeline.ts` (no longer needed)
+  - Updated `scripts/trigger-outbreak.ts` to use new cron endpoint
+- **Rationale**: Eliminate silent alert losses from serverless cold starts, redundant detection runs, and non-recoverable failures
+- **Impact**: All verified diagnoses are analyzed within 15 minutes regardless of when they were verified; transient failures self-heal on next cron tick
 
 ### Version 3.0 - April 5, 2026
 - **Migrated K-Means clustering from demographic to pure geographic features**
