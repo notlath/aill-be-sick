@@ -151,10 +151,21 @@ The system maintains a rolling **30-day historical baseline** for every (Disease
 
 These thresholds follow the DOH PIDSR methodology, which is more sensitive than CDC EARS C1, enabling earlier outbreak detection.
 
-#### 2. K-Means Clustering (Spatial Density)
-The system uses **unsupervised K-Means clustering** to find geographic "hotspots."
+#### 2. K-Means Clustering (Geographic Hotspot Detection)
+The system uses **unsupervised K-Means clustering on GPS coordinates** to find geographic "hotspots."
+
+**Features Used for Clustering:**
+
+| Feature | Type | Encoding | Purpose |
+|---------|------|----------|---------|
+| **Latitude** | Numeric | Min-max normalized to [0, 1] | Geographic Y-axis |
+| **Longitude** | Numeric | Min-max normalized to [0, 1] | Geographic X-axis |
+
+**What This Means:** K-Means groups cases by **physical proximity on a map**, not by demographics. Two cases end up in the same cluster if they are geographically close to each other — regardless of patient age, gender, or even disease type. This detects **point-source outbreaks** (contaminated water, mosquito breeding sites) where location is the primary risk factor.
+
 - **Optimal K Selection**: The system automatically calculates the best number of clusters ($k=2$ to $10$) using the **Calinski-Harabasz Index**, which measures cluster density and separation.
 - **Density Check**: If a cluster contains $\ge 5$ cases within a 7-day window, it triggers a **MEDIUM** severity alert (`CLUSTER:DENSE`).
+- **Missing Coordinates**: Cases without valid GPS coordinates are excluded from clustering (but still counted in threshold-based detection).
 
 ---
 
@@ -235,24 +246,26 @@ When no historical baseline exists (new disease or district), the system uses ab
 
 This ensures detection even in data-sparse scenarios.
 
-### Cluster Density Detection (Spatial)
+### Cluster Density Detection (Geographic)
 
-K-Means clustering operates independently of disease type:
+K-Means clustering uses **only latitude and longitude** as features — it groups cases by physical proximity, not demographics:
 
 | Condition | Threshold | Severity | Reason Code |
 | :--- | :--- | :--- | :--- |
 | **Dense Cluster** | ≥ 5 cases in tight geographic cluster | MEDIUM | `CLUSTER:DENSE` |
 
 **Cluster Detection Logic:**
-- Runs on **all diseases simultaneously**
+- Runs on **GPS coordinates only** (latitude + longitude, min-max normalized)
 - Uses Calinski-Harabasz Index to find optimal k (2-10 clusters)
 - Flags clusters with ≥ 5 cases in 7-day window
+- Excludes cases without valid GPS coordinates
 - Can trigger **even if volume thresholds are not met**
 
 **Why Cluster Detection Matters:**
 - Detects **localized transmission** before volume explodes
 - Example: 8 Dengue cases in 2 blocks vs. 10 cases scattered across district
 - Early warning for **point-source outbreaks** (contaminated water, mosquito breeding sites)
+- **Not influenced by demographics**: age, gender, and disease type do not affect cluster grouping — only physical location matters
 
 ---
 
@@ -269,6 +282,9 @@ K-Means clustering operates independently of disease type:
 | **Volume Spike** | 5 cases | ✓ (code) | `outbreak_service.py:148` |
 | **Cluster Min Count** | 5 cases | ✓ (code) | `outbreak_service.py:167` |
 | **Cluster K Range** | 2-10 | ✓ (code) | `outbreak_service.py:75` |
+| **Cluster Features** | Latitude, Longitude | N/A | `illness_cluster_service.py` |
+| **Coordinate Normalization** | Min-max [0, 1] | N/A | `illness_cluster_service.py` |
+| **Missing Coordinates** | Excluded from clustering | N/A | `outbreak_service.py` |
 | **Duplicate Window** | 24 hours | ✓ (code) | Frontend action |
 
 **Environment Variables (Future Enhancement):**
@@ -287,24 +303,28 @@ The following diagram details the internal logic of the Outbreak Service during 
 ```text
 ┌─────────────────┐      ┌──────────────────┐      ┌──────────────────┐
 │ Start Detection │─────▶│ Fetch 37d Data   │─────▶│ Split Analysis   │
+│                 │      │ (lat/lng only)   │      │                  │
 └─────────────────┘      └──────────────────┘      └─────────┬────────┘
                                                              │
                               ┌──────────────────────────────┴──────────────┐
                               ▼                                             ▼
                     [ Threshold Engine ]                          [ K-Means Cluster Engine ]
                     ┌──────────────────┐                          ┌──────────────────┐
-                    │ 1. Calc Baselines│                          │ 1. Calc CH Index │
-                    │ 2. Set Alert (1σ)│                          │ 2. Optimal K     │
-                    │ 3. Set Epid (2σ) │                          │ 3. Run K-Means   │
-                    └──────────┬───────┘                          └──────────┬───────┘
-                              │                                             │
-                              ▼                                             ▼
-                   ┌──────────────────┐                          ┌──────────────────┐
-                   │ Compare Volumes  │                          │ Check Density    │
-                   │ (Count vs Stats) │                          │ (Count >= 5)     │
-                   └──────────┬───────┘                          └──────────┬───────┘
-                              │                                             │
-                              └───────────────┬─────────────────────────────┘
+                    │ 1. Calc Baselines│                          │ 1. Filter valid  │
+                    │ 2. Set Alert (1σ)│                          │    coordinates   │
+                    │ 3. Set Epid (2σ) │                          │ 2. Calc CH Index │
+                    │                  │                          │ 3. Optimal K     │
+                    │                  │                          │ 4. Run K-Means   │
+                    └──────────┬───────┘                          │    (lat/lng)     │
+                              │                                   └────────┬─────────┘
+                              ▼                                             │
+                   ┌──────────────────┐                                     ▼
+                   │ Compare Volumes  │                          ┌──────────────────┐
+                   │ (Count vs Stats) │                          │ Check Density    │
+                   │                  │                          │ (Count >= 5)     │
+                   └──────────┬───────┘                          └────────┬─────────┘
+                              │                                          │
+                              └───────────────┬──────────────────────────┘
                                               ▼
                                      ┌──────────────────┐          ┌──────────────────┐
                                      │ Duplicate Check  │─────────▶│ Save to Database │
@@ -330,10 +350,12 @@ graph LR
         Compare -- Volume > Mean+1σ --> High[High Alert - Alert Threshold]
     end
 
-    subgraph Cluster_Engine [K-Means Engine]
-        Recent --> CHIndex[Calinski-Harabasz Index]
+    subgraph Cluster_Engine [K-Means Engine - Geographic]
+        Recent --> FilterCoords[Filter Valid Coordinates]
+        FilterCoords --> Normalize[Normalize lat/lng to 0-1]
+        Normalize --> CHIndex[Calinski-Harabasz Index]
         CHIndex --> OptimalK[Determine Optimal K]
-        OptimalK --> RunKMeans[Run K-Means Clustering]
+        OptimalK --> RunKMeans[Run K-Means on lat/lng]
         RunKMeans --> Density{Check Cluster Density}
         Density -- Count >= 5 --> Med[Medium Alert]
     end
@@ -486,17 +508,29 @@ npx tsx scripts/trigger-outbreak.ts
 | **Insufficient Data** | If $< 5$ cases exist in the system, detection returns empty to avoid false positives. |
 | **Backend Offline** | The Next.js action logs a warning and fails gracefully; the patient's diagnosis is **never** blocked. |
 | **Missing District** | The system falls back to `"UNKNOWN"` as the district label to ensure alerts are still generated even if geographic data is incomplete. |
+| **Missing Coordinates** | Cases without valid lat/lng are excluded from K-Means clustering but still counted in threshold-based detection. |
+| **All Same Location** | If all cases are at identical coordinates, K=1 and no false cluster alert is triggered. |
 | **Spam Prevention** | Alerts are throttled to once every 24 hours per unique disease/district combination. |
 
 ---
 
-**Version**: 2.0 (DOH PIDSR Migration)
-**Last Updated**: March 22, 2026
+**Version**: 3.0 (Pure Geographic Clustering)
+**Last Updated**: April 5, 2026
 **Maintainer**: AI'll Be Sick Research & Development Team
 
 ---
 
 ## Changelog
+
+### Version 3.0 - April 5, 2026
+- **Migrated K-Means clustering from demographic to pure geographic features**
+  - K-Means now uses **only latitude and longitude** as features (min-max normalized to [0, 1])
+  - Disabled age, gender, and district features for outbreak clustering
+  - Added `include_coordinates` parameter to `fetch_diagnosis_data()` in `illness_cluster_service.py`
+  - Cases without valid GPS coordinates are excluded from clustering
+  - Added 12 comprehensive pytest tests for geographic clustering behavior
+- **Rationale**: Outbreak detection should identify geographic hotspots (point-source transmission), not demographic groupings
+- **Impact**: K-Means now correctly detects cases that are physically close together on a map, enabling early detection of localized outbreaks (contaminated water, mosquito breeding sites) regardless of patient demographics
 
 ### Version 2.0 - March 22, 2026
 - **Migrated from CDC EARS C1 to DOH PIDSR methodology**
