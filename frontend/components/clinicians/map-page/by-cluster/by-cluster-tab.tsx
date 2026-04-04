@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import useMapStore from "@/stores/use-map-store";
 import { getClusterBaseColor } from "@/utils/cluster-colors";
@@ -16,6 +17,7 @@ import StatisticsCards from "./statistics-cards";
 import { getSurveillanceExportData, type SurveillanceExportData } from "@/utils/report-export";
 import { ExportReportButton } from "@/components/ui/export-report-button";
 import { PdfImage } from "@/utils/pdf-export";
+import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   MapSkeleton,
   StatsSkeletonCards,
@@ -32,6 +34,7 @@ const HeatmapMap = dynamic(() => import("../map/heatmap-map"), { ssr: false });
 
 const ByClusterTab = () => {
   const { activeTab } = useMapStore();
+  const generatedBy = useCurrentUser();
 
   const {
     geoData,
@@ -56,6 +59,7 @@ const ByClusterTab = () => {
         view,
         appliedVariables,
         k,
+        exportButtonTarget,
       }) => {
         // Map-specific data calculations.
         // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -187,19 +191,19 @@ const ByClusterTab = () => {
 
         return (
           <div className="space-y-4">
-            <div className="flex justify-end">
-              {exportInfo && (
-                <ExportReportButton
-                  data={exportInfo.data}
-                  columns={exportInfo.columns}
-                  filenameSlug={exportInfo.filenameSlug}
-                  title={exportInfo.title}
-                  subtitle={exportInfo.subtitle}
-                  disabled={loading}
-                  images={captureImages}
-                />
-              )}
-            </div>
+            {exportButtonTarget && exportInfo && createPortal(
+              <ExportReportButton
+                data={exportInfo.data}
+                columns={exportInfo.columns}
+                filenameSlug={exportInfo.filenameSlug}
+                title={exportInfo.title}
+                subtitle={exportInfo.subtitle}
+                disabled={loading}
+                images={captureImages}
+                generatedBy={generatedBy}
+              />,
+              exportButtonTarget,
+            )}
 
             {!loading && (error || geoError) ? (
               <Card className="col-span-2 border-red-200/50 bg-red-50/50">

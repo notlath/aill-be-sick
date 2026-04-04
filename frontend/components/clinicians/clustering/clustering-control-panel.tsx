@@ -280,6 +280,7 @@ export interface ClusteringControlPanelRenderProps {
   recommendedK?: number;
   appliedStartDate: string;
   appliedEndDate: string;
+  exportButtonTarget: HTMLDivElement | null;
 }
 
 const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
@@ -431,6 +432,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   const hasCompletedInitialUrlHydrationRef = useRef<boolean>(
     !hasExplicitClusterQuery,
   );
+  const [exportButtonTarget, setExportButtonTarget] = useState<HTMLDivElement | null>(null);
 
   const syncCachedRecommendation = useCallback(
     (params: {
@@ -1111,6 +1113,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     recommendedK: recommendedKForAppliedState,
     appliedStartDate: startDateString,
     appliedEndDate: endDateString,
+    exportButtonTarget,
   };
 
   return (
@@ -1283,6 +1286,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
               ))}
             </SelectContent>
           </Select>
+          <div ref={setExportButtonTarget} className="ml-auto" />
         </div>
       ) : null}
 
