@@ -128,6 +128,7 @@ model Diagnosis {
   weightKg        Float?
   rejectedAt      DateTime?
   rejectedBy      Int?
+  originalStatus  DiagnosisStatus?
   status          DiagnosisStatus    @default(PENDING)
   verifiedAt      DateTime?
   verifiedBy      Int?

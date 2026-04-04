@@ -33,6 +33,7 @@ const diagnosisWithUserSelect = {
   verifiedBy: true,
   rejectedAt: true,
   rejectedBy: true,
+  originalStatus: true,
   user: {
     select: {
       id: true,
@@ -123,7 +124,7 @@ export const getAllDiagnoses = async ({
 }: {
   skip?: number;
   take?: number;
-  includeStatus?: "VERIFIED" | "PENDING" | "REJECTED";
+  includeStatus?: "VERIFIED" | "PENDING" | "REJECTED" | "INCONCLUSIVE";
 }) => {
   try {
     const includeRelations = {
@@ -614,5 +615,95 @@ export const getInconclusiveDiagnosesCount = async () => {
   } catch (error) {
     console.error(`Error fetching inconclusive diagnoses count: ${error}`);
     return { error: `Error fetching inconclusive diagnoses count: ${error}` };
+  }
+};
+
+/**
+ * Get all rejected diagnoses.
+ * These are cases that clinicians have rejected.
+ */
+export const getRejectedDiagnoses = async ({
+  skip,
+  take,
+}: {
+  skip?: number;
+  take?: number;
+} = {}) => {
+  try {
+    const includeRelations = {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          age: true,
+          gender: true,
+          email: true,
+          city: true,
+          province: true,
+          district: true,
+          barangay: true,
+        },
+      },
+      notes: {
+        include: {
+          clinician: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc" as const,
+        },
+      },
+      rejectedByUser: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    };
+
+    const whereClause = { status: "REJECTED" } as any;
+
+    if (skip !== undefined || take !== undefined) {
+      const diagnoses = await prisma.diagnosis.findMany({
+        skip,
+        take,
+        where: whereClause,
+        include: includeRelations,
+        orderBy: { createdAt: "desc" },
+      });
+
+      return { success: diagnoses };
+    }
+
+    const diagnoses = await prisma.diagnosis.findMany({
+      where: whereClause,
+      include: includeRelations,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: diagnoses };
+  } catch (error) {
+    console.error(`Error fetching rejected diagnoses:`, error);
+    return { error: `Could not fetch rejected diagnoses` };
+  }
+};
+
+/**
+ * Get the count of rejected diagnoses.
+ */
+export const getRejectedDiagnosesCount = async () => {
+  try {
+    const count = await prisma.diagnosis.count({
+      where: { status: "REJECTED" } as any,
+    });
+
+    return { success: count };
+  } catch (error) {
+    console.error(`Error fetching rejected diagnoses count: ${error}`);
+    return { error: `Error fetching rejected diagnoses count: ${error}` };
   }
 };
