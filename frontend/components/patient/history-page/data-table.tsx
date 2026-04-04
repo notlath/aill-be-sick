@@ -41,6 +41,8 @@ const sortOptions: SortOption[] = [
   { value: "createdAt", label: "Date (Oldest)", desc: false },
   { value: "diagnosis", label: "Condition (A-Z)", desc: false },
   { value: "diagnosis", label: "Condition (Z-A)", desc: true },
+  { value: "diagnosisStatus", label: "Status (A-Z)", desc: false },
+  { value: "diagnosisStatus", label: "Status (Z-A)", desc: true },
   { value: "reliabilityRank", label: "Reliability (High-Low)", desc: true },
   { value: "reliabilityRank", label: "Reliability (Low-High)", desc: false },
 ];
@@ -174,9 +176,12 @@ export function DataTable<TData, TValue>({
           table.getRowModel().rows.map((row) => {
             const original = row.original as any;
             const diagnosis = original.diagnosis as string;
+            const diagnosisStatus = original.diagnosisStatus as string | null;
             const reliabilityLabel = original.reliabilityLabel as string | null;
             const reliabilityBadgeClass = original.reliabilityBadgeClass as string | null;
             const createdAt = original.createdAt as Date;
+
+            const statusBadge = diagnosisStatus ? getStatusBadge(diagnosisStatus) : null;
 
             return (
               <div
@@ -204,6 +209,11 @@ export function DataTable<TData, TValue>({
                     </p>
                   </div>
                   <div className="flex items-center flex-wrap gap-2">
+                    {statusBadge && (
+                      <span className={`badge badge-sm shrink-0 w-fit ${statusBadge.badgeClass}`}>
+                        {statusBadge.label}
+                      </span>
+                    )}
                     {reliabilityLabel && reliabilityBadgeClass && (
                       <span className={`badge badge-sm shrink-0 w-fit ${reliabilityBadgeClass}`}>
                         {reliabilityLabel}
@@ -352,4 +362,34 @@ export function DataTable<TData, TValue>({
       </div>
     </div>
   );
+}
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case "PENDING":
+      return {
+        label: "Pending Review",
+        badgeClass: "badge-warning",
+      };
+    case "VERIFIED":
+      return {
+        label: "Verified",
+        badgeClass: "badge-success",
+      };
+    case "REJECTED":
+      return {
+        label: "Reviewed",
+        badgeClass: "badge-error",
+      };
+    case "INCONCLUSIVE":
+      return {
+        label: "Pending Review",
+        badgeClass: "badge-warning",
+      };
+    default:
+      return {
+        label: status,
+        badgeClass: "badge-ghost",
+      };
+  }
 }
