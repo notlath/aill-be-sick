@@ -49,7 +49,7 @@ model User {
   chats                                               Chat[]
   DeletionSchedule_DeletionSchedule_restoredByToUser  DeletionSchedule[]  @relation("DeletionSchedule_restoredByToUser")
   DeletionSchedule_DeletionSchedule_scheduledByToUser DeletionSchedule[]  @relation("DeletionSchedule_scheduledByToUser")
-  DeletionSchedule_DeletionSchedule_userIdToUser      DeletionSchedule?   @relation("DeletionSchedule_userIdToUser")
+  DeletionSchedule_DeletionSchedule_userIdToUser      DeletionSchedule[]  @relation("DeletionSchedule_userIdToUser")
   rejectedDiagnoses                                   Diagnosis[]         @relation("DiagnosisRejector")
   diagnoses                                           Diagnosis[]
   verifiedDiagnoses                                   Diagnosis[]         @relation("DiagnosisVerifier")
@@ -128,10 +128,10 @@ model Diagnosis {
   weightKg        Float?
   rejectedAt      DateTime?
   rejectedBy      Int?
-  originalStatus  DiagnosisStatus?
   status          DiagnosisStatus    @default(PENDING)
   verifiedAt      DateTime?
   verifiedBy      Int?
+  originalStatus  DiagnosisStatus?
   alerts          Alert[]
   chat            Chat               @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   rejectedByUser  User?              @relation("DiagnosisRejector", fields: [rejectedBy], references: [id])
@@ -266,7 +266,7 @@ model AuditLog {
 
 model DeletionSchedule {
   id                                      Int                    @id @default(autoincrement())
-  userId                                  Int                    @unique
+  userId                                  Int
   scheduledBy                             Int
   scheduledAt                             DateTime               @default(now())
   scheduledDeletionAt                     DateTime
@@ -279,6 +279,7 @@ model DeletionSchedule {
   User_DeletionSchedule_scheduledByToUser User                   @relation("DeletionSchedule_scheduledByToUser", fields: [scheduledBy], references: [id])
   User_DeletionSchedule_userIdToUser      User                   @relation("DeletionSchedule_userIdToUser", fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, status])
   @@index([scheduledDeletionAt])
   @@index([status])
 }
@@ -327,8 +328,6 @@ enum Model {
 
 enum AlertType {
   ANOMALY
-  LOW_CONFIDENCE
-  HIGH_UNCERTAINTY
   OUTBREAK
 }
 

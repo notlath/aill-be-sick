@@ -44,8 +44,8 @@ def surveillance_outbreaks():
       GEOGRAPHIC:RARE     – disease is geographically uncommon in this location
       TEMPORAL:RARE       – disease is uncommon during this time of year
       CLUSTER:SPATIAL     – unusual spatial concentration (lat & lng both outliers)
-      CONFIDENCE:LOW      – model confidence is unusually low for this diagnosis
-      UNCERTAINTY:HIGH    – model uncertainty is unusually high for this diagnosis
+      AGE:RARE            – patient age is outside the typical demographic range
+      GENDER:RARE         – patient gender is uncommon for this disease
       COMBINED:MULTI      – two or more independent factors contributed
     """
     try:

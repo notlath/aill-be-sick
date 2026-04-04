@@ -17,8 +17,6 @@ from app.utils.database import get_db_engine
 REASON_GEOGRAPHIC_RARE = "GEOGRAPHIC:RARE"
 REASON_TEMPORAL_RARE = "TEMPORAL:RARE"
 REASON_CLUSTER_SPATIAL = "CLUSTER:SPATIAL"
-REASON_CONFIDENCE_LOW = "CONFIDENCE:LOW"
-REASON_UNCERTAINTY_HIGH = "UNCERTAINTY:HIGH"
 REASON_COMBINED_MULTI = "COMBINED:MULTI"
 REASON_AGE_RARE = "AGE:RARE"
 REASON_GENDER_RARE = "GENDER:RARE"
@@ -331,17 +329,6 @@ def _compute_reason_codes(
                 reasons.add(REASON_GENDER_RARE)
     except Exception:
         pass
-
-    # ── Confidence / uncertainty (global baseline) ────────────────────────────
-    # These reflect model certainty and are not disease-specific.
-    global_mean = X_all.mean(axis=0)
-    global_std = X_all.std(axis=0) + 1e-8
-
-    if X_row[IDX_CONF] < global_mean[IDX_CONF] - THRESHOLD * global_std[IDX_CONF]:
-        reasons.add(REASON_CONFIDENCE_LOW)
-
-    if X_row[IDX_UNC] > global_mean[IDX_UNC] + THRESHOLD * global_std[IDX_UNC]:
-        reasons.add(REASON_UNCERTAINTY_HIGH)
 
     # ── COMBINED:MULTI ────────────────────────────────────────────────────────
     # Exclude CLUSTER:SPATIAL from count since it is a subset of GEOGRAPHIC:RARE

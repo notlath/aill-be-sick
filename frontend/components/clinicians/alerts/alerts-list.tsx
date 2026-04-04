@@ -48,8 +48,6 @@ const SEVERITY_ORDER: Record<AlertSeverity, number> = {
 const TYPE_LABELS: Record<AlertType, string> = {
   ANOMALY: "Anomaly",
   OUTBREAK: "Outbreak",
-  LOW_CONFIDENCE: "Low Confidence",
-  HIGH_UNCERTAINTY: "High Uncertainty",
 };
 
 const SORT_OPTIONS: SortOption[] = [
@@ -87,8 +85,6 @@ const TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "all", label: "All types" },
   { value: "ANOMALY", label: "Anomaly" },
   { value: "OUTBREAK", label: "Outbreak" },
-  { value: "LOW_CONFIDENCE", label: "Low Confidence" },
-  { value: "HIGH_UNCERTAINTY", label: "High Uncertainty" },
 ];
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
