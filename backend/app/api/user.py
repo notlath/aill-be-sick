@@ -13,25 +13,48 @@ from flask import Blueprint, request, jsonify, current_app, g
 from sqlalchemy import text
 from app.utils.database import get_db_engine
 import requests
+import logging
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from the backend/ directory regardless of working directory
+_backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(_backend_dir, ".env"), override=True)
 
 user_bp = Blueprint("user", __name__, url_prefix="/api/user")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://pncxsombhfdryzkqdmff.supabase.co")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
 
+logger = logging.getLogger(__name__)
+
+# Log config status at startup (mask key for security)
+_key_preview = SUPABASE_SERVICE_ROLE_KEY[:20] + "..." if len(SUPABASE_SERVICE_ROLE_KEY) > 20 else "(empty)"
+logger.info(f"[USER_BP] SUPABASE_URL: {SUPABASE_URL}")
+logger.info(f"[USER_BP] SUPABASE_SERVICE_ROLE_KEY: {_key_preview}")
+
+
+def _serialize_for_json(obj):
+    """Recursively convert datetime objects to ISO format strings for JSON serialization."""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    elif isinstance(obj, dict):
+        return {k: _serialize_for_json(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_serialize_for_json(item) for item in obj]
+    return obj
+
 
 def get_current_user():
     """Verify Supabase JWT token and return the corresponding Prisma user."""
     auth_header = request.headers.get("Authorization")
     if not auth_header or not auth_header.startswith("Bearer "):
+        logger.warning("[get_current_user] No Authorization header or invalid format")
         return None
 
     token = auth_header.split("Bearer ")[1]
 
     try:
+        logger.info(f"[get_current_user] Verifying token with Supabase: {SUPABASE_URL}/auth/v1/user")
         supabase_user_resp = requests.get(
             f"{SUPABASE_URL}/auth/v1/user",
             headers={
@@ -41,12 +64,18 @@ def get_current_user():
             timeout=10,
         )
         if supabase_user_resp.status_code != 200:
+            logger.warning(
+                f"[get_current_user] Supabase verification failed: {supabase_user_resp.status_code} - {supabase_user_resp.text[:200]}"
+            )
             return None
 
         supabase_user = supabase_user_resp.json()
         email = supabase_user.get("email")
         if not email:
+            logger.warning("[get_current_user] No email in Supabase user response")
             return None
+
+        logger.info(f"[get_current_user] Supabase user email: {email}")
 
         engine = get_db_engine()
         with engine.connect() as conn:
@@ -55,11 +84,14 @@ def get_current_user():
             """), {"email": email}).fetchone()
 
         if not result:
+            logger.warning(f"[get_current_user] No database user found with email: {email}")
             return None
 
+        logger.info(f"[get_current_user] Found database user: id={result[0]}")
         return {"id": result[0], "email": result[1]}
 
-    except Exception:
+    except Exception as e:
+        logger.error(f"[get_current_user] Unexpected error: {type(e).__name__}: {e}")
         return None
 
 
@@ -130,11 +162,11 @@ def data_export():
         "export_date": datetime.utcnow().isoformat(),
         "data_categories": ["profile", "chats", "messages", "diagnoses", "consent_history"],
         "retention_period_days": 30,
-        "user_profile": dict(user_result),
-        "chats": [dict(chat) for chat in chats_result],
-        "messages": [dict(msg) for msg in messages_result],
-        "diagnoses": [dict(diag) for diag in diagnoses_result],
-        "consent_history": [dict(history) for history in consent_history]
+        "user_profile": dict(user_result._mapping),
+        "chats": [dict(chat._mapping) for chat in chats_result],
+        "messages": [dict(msg._mapping) for msg in messages_result],
+        "diagnoses": [dict(diag._mapping) for diag in diagnoses_result],
+        "consent_history": [dict(history._mapping) for history in consent_history]
     }
 
     # Log the export
@@ -216,7 +248,7 @@ def data_export():
 
         return output.getvalue(), 200, {"Content-Type": "text/csv", "Content-Disposition": "attachment; filename=user_data.csv"}
     else:
-        return jsonify(export_data)
+        return jsonify(_serialize_for_json(export_data))
 
 
 @user_bp.route("/account", methods=["DELETE"])
