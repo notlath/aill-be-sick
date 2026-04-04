@@ -1,6 +1,7 @@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ReportsContent from "@/components/clinicians/healthcare-reports-page/reports-content";
 import VerificationsContent from "@/components/clinicians/healthcare-reports-page/verifications-content";
+import InconclusiveContent from "@/components/clinicians/healthcare-reports-page/inconclusive-content";
 
 export default function HealthcareReports() {
   return (
@@ -26,6 +27,7 @@ export default function HealthcareReports() {
             <TabsList>
               <TabsTrigger value="reports">Reports</TabsTrigger>
               <TabsTrigger value="verifications">Verifications</TabsTrigger>
+              <TabsTrigger value="inconclusive">Inconclusive</TabsTrigger>
             </TabsList>
             
             <TabsContent value="reports">
@@ -34,6 +36,10 @@ export default function HealthcareReports() {
             
             <TabsContent value="verifications">
               <VerificationsContent />
+            </TabsContent>
+            
+            <TabsContent value="inconclusive">
+              <InconclusiveContent />
             </TabsContent>
           </Tabs>
         </div>

@@ -60,6 +60,12 @@ export const approveDiagnosis = actionClient
         return { error: "Cannot verify a rejected diagnosis" };
       }
 
+      // Allow verifying both PENDING and INCONCLUSIVE diagnoses
+      // INCONCLUSIVE: AI could not reach confident prediction, clinician confirms
+      if (!["PENDING", "INCONCLUSIVE"].includes(diagnosisData.status)) {
+        return { error: "Diagnosis cannot be verified in its current state" };
+      }
+
       // Update diagnosis status to VERIFIED
       const updatedDiagnosis = await prisma.diagnosis.update({
         where: { id: diagnosisId },
@@ -122,6 +128,11 @@ export const rejectDiagnosis = actionClient
 
       if (diagnosisData.status === "VERIFIED") {
         return { error: "Cannot reject a verified diagnosis" };
+      }
+
+      // Allow rejecting both PENDING and INCONCLUSIVE diagnoses
+      if (!["PENDING", "INCONCLUSIVE"].includes(diagnosisData.status)) {
+        return { error: "Diagnosis cannot be rejected in its current state" };
       }
 
       // Update diagnosis status to REJECTED
@@ -187,10 +198,11 @@ export const batchApproveDiagnoses = actionClient
       const now = new Date();
       
       // Update all diagnoses to VERIFIED in a single transaction
+      // Handles both PENDING and INCONCLUSIVE diagnoses
       const result = await prisma.diagnosis.updateMany({
         where: {
           id: { in: diagnosisIds },
-          status: "PENDING",
+          status: { in: ["PENDING", "INCONCLUSIVE"] },
         } as any,
         data: {
           status: "VERIFIED",
@@ -241,10 +253,11 @@ export const batchRejectDiagnoses = actionClient
       const now = new Date();
       
       // Update all diagnoses to REJECTED
+      // Handles both PENDING and INCONCLUSIVE diagnoses
       const result = await prisma.diagnosis.updateMany({
         where: {
           id: { in: diagnosisIds },
-          status: "PENDING",
+          status: { in: ["PENDING", "INCONCLUSIVE"] },
         } as any,
         data: {
           status: "REJECTED",

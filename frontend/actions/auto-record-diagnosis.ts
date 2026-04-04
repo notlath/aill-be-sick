@@ -7,6 +7,7 @@ import { getBackendUrl } from "@/utils/backend-url";
 import { mapReasonCodesToSeverity } from "@/utils/alert-severity";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { actionClient } from "./client";
+import { DiagnosisStatus } from "@/lib/generated/prisma";
 
 const BACKEND_URL = getBackendUrl();
 
@@ -20,12 +21,16 @@ const BACKEND_URL = getBackendUrl();
  * region, barangay, district) are always sourced from the authenticated user.
  * The full alert pipeline (anomaly + outbreak) runs identically to the manual
  * recording path.
+ *
+ * For inconclusive diagnoses (isInconclusive=true), the diagnosis is recorded
+ * with status INCONCLUSIVE and anomaly/outbreak checks are skipped. These cases
+ * represent diagnoses where the AI model could not reach a confident prediction.
  */
 
 export const autoRecordDiagnosis = actionClient
   .inputSchema(AutoRecordDiagnosisSchema)
   .action(async ({ parsedInput }) => {
-    const { messageId, chatId } = parsedInput;
+    const { messageId, chatId, isInconclusive } = parsedInput;
 
     const { success: dbUser, error } = await getCurrentDbUser();
     if (!dbUser) {
@@ -78,6 +83,10 @@ export const autoRecordDiagnosis = actionClient
           region: dbUser.region,
           barangay: dbUser.barangay,
           district: dbUser.district,
+          // Inconclusive diagnoses get INCONCLUSIVE status; others remain PENDING
+          status: isInconclusive
+            ? DiagnosisStatus.INCONCLUSIVE
+            : DiagnosisStatus.PENDING,
           ...(explanation
             ? { explanation: { connect: { id: explanation.id } } }
             : {}),
@@ -100,42 +109,50 @@ export const autoRecordDiagnosis = actionClient
       revalidatePath("/history", "page");
 
       console.log(
-        `[autoRecordDiagnosis] Recorded diagnosis ${diagnosis.id} for chat ${chatId}`,
+        `[autoRecordDiagnosis] Recorded diagnosis ${diagnosis.id} for chat ${chatId}${isInconclusive ? " (inconclusive)" : ""}`,
       );
 
-      // Run anomaly and outbreak checks in the background — non-blocking.
-      checkAndCreateAlert({
-        diagnosisId: diagnosis.id,
-        disease: String(tempDiagnosis.disease),
-        confidence: tempDiagnosis.confidence,
-        uncertainty: tempDiagnosis.uncertainty,
-        city: dbUser.city,
-        province: dbUser.province,
-        region: dbUser.region,
-        barangay: dbUser.barangay,
-        district: dbUser.district,
-        latitude: dbUser.latitude ?? null,
-        longitude: dbUser.longitude ?? null,
-        patientAge: dbUser.age ?? undefined,
-        patientGender: dbUser.gender ?? undefined,
-      }).catch((err) =>
-        console.error(
-          `[autoRecordDiagnosis] Anomaly alert failed for diagnosis ${diagnosis.id}:`,
-          err,
-        ),
-      );
+      // Skip anomaly and outbreak checks for inconclusive diagnoses.
+      // These cases don't have confident predictions to flag as anomalies.
+      if (!isInconclusive) {
+        // Run anomaly and outbreak checks in the background — non-blocking.
+        checkAndCreateAlert({
+          diagnosisId: diagnosis.id,
+          disease: String(tempDiagnosis.disease),
+          confidence: tempDiagnosis.confidence,
+          uncertainty: tempDiagnosis.uncertainty,
+          city: dbUser.city,
+          province: dbUser.province,
+          region: dbUser.region,
+          barangay: dbUser.barangay,
+          district: dbUser.district,
+          latitude: dbUser.latitude ?? null,
+          longitude: dbUser.longitude ?? null,
+          patientAge: dbUser.age ?? undefined,
+          patientGender: dbUser.gender ?? undefined,
+        }).catch((err) =>
+          console.error(
+            `[autoRecordDiagnosis] Anomaly alert failed for diagnosis ${diagnosis.id}:`,
+            err,
+          ),
+        );
 
-      checkAndCreateOutbreakAlert({
-        disease: String(tempDiagnosis.disease),
-        district: dbUser.district,
-      }).catch((err) =>
-        console.error(
-          `[autoRecordDiagnosis] Outbreak alert failed for diagnosis ${diagnosis.id}:`,
-          err,
-        ),
-      );
+        checkAndCreateOutbreakAlert({
+          disease: String(tempDiagnosis.disease),
+          district: dbUser.district,
+        }).catch((err) =>
+          console.error(
+            `[autoRecordDiagnosis] Outbreak alert failed for diagnosis ${diagnosis.id}:`,
+            err,
+          ),
+        );
+      }
 
-      return { success: "Diagnosis automatically recorded." };
+      return {
+        success: isInconclusive
+          ? "Inconclusive diagnosis recorded."
+          : "Diagnosis automatically recorded.",
+      };
     } catch (error) {
       console.error(`[autoRecordDiagnosis] Error: ${error}`);
       return { error: `Error auto-recording diagnosis: ${error}` };

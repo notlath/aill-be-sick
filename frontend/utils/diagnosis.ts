@@ -531,3 +531,88 @@ export const getLowReliabilityPendingCount = async () => {
     return { error: `Error fetching low reliability count: ${error}` };
   }
 };
+
+/**
+ * Get all inconclusive diagnoses.
+ * These are cases where the AI model could not reach a confident prediction
+ * (is_valid=false from backend). Clinicians can verify or override them.
+ */
+export const getInconclusiveDiagnoses = async ({
+  skip,
+  take,
+}: {
+  skip?: number;
+  take?: number;
+} = {}) => {
+  try {
+    const includeRelations = {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          age: true,
+          gender: true,
+          email: true,
+          city: true,
+          province: true,
+          district: true,
+          barangay: true,
+        },
+      },
+      notes: {
+        include: {
+          clinician: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc" as const,
+        },
+      },
+    };
+
+    const whereClause = { status: "INCONCLUSIVE" } as any;
+
+    if (skip !== undefined || take !== undefined) {
+      const diagnoses = await prisma.diagnosis.findMany({
+        skip,
+        take,
+        where: whereClause,
+        include: includeRelations,
+        orderBy: { createdAt: "desc" },
+      });
+
+      return { success: diagnoses };
+    }
+
+    const diagnoses = await prisma.diagnosis.findMany({
+      where: whereClause,
+      include: includeRelations,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return { success: diagnoses };
+  } catch (error) {
+    console.error(`Error fetching inconclusive diagnoses:`, error);
+    return { error: `Could not fetch inconclusive diagnoses` };
+  }
+};
+
+/**
+ * Get the count of inconclusive diagnoses.
+ */
+export const getInconclusiveDiagnosesCount = async () => {
+  try {
+    const count = await prisma.diagnosis.count({
+      where: { status: "INCONCLUSIVE" } as any,
+    });
+
+    return { success: count };
+  } catch (error) {
+    console.error(`Error fetching inconclusive diagnoses count: ${error}`);
+    return { error: `Error fetching inconclusive diagnoses count: ${error}` };
+  }
+};
