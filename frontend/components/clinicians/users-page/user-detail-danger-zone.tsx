@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAction } from "next-safe-action/hooks";
 import { Trash2, RotateCcw } from "lucide-react";
 import { schedulePatientDeletion } from "@/actions/schedule-patient-deletion";
 import { restorePatientDeletion } from "@/actions/restore-patient-deletion";
+import { createPortal } from "react-dom";
 
 interface UserDetailDangerZoneProps {
   patientId: number;
@@ -23,20 +24,31 @@ export function UserDetailDangerZone({
 }: UserDetailDangerZoneProps) {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [reason, setReason] = useState("");
+  const [mounted, setMounted] = useState(false);
 
-  const { execute: scheduleDeletion, status: scheduleStatus } = useAction(schedulePatientDeletion, {
-    onSuccess: () => {
-      setShowScheduleModal(false);
-      setReason("");
-      window.location.reload();
-    },
-  });
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const { execute: restoreDeletion, status: restoreStatus } = useAction(restorePatientDeletion, {
-    onSuccess: () => {
-      window.location.reload();
+  const { execute: scheduleDeletion, status: scheduleStatus } = useAction(
+    schedulePatientDeletion,
+    {
+      onSuccess: () => {
+        setShowScheduleModal(false);
+        setReason("");
+        window.location.reload();
+      },
     },
-  });
+  );
+
+  const { execute: restoreDeletion, status: restoreStatus } = useAction(
+    restorePatientDeletion,
+    {
+      onSuccess: () => {
+        window.location.reload();
+      },
+    },
+  );
 
   const handleSchedule = () => {
     if (!reason.trim()) return;
@@ -73,44 +85,52 @@ export function UserDetailDangerZone({
         </button>
       )}
 
-      {showScheduleModal && (
-        <dialog className="modal modal-open">
-          <div className="modal-box max-w-md">
-            <h3 className="text-lg font-bold text-error">Schedule Patient Deletion</h3>
-            <p className="py-4 text-sm text-muted-foreground">
-              This will schedule the patient&apos;s account for anonymization in 30 days.
-              The patient will be notified and can reclaim their account during this period.
-            </p>
-            <textarea
-              className="textarea textarea-bordered w-full min-h-[120px]"
-              placeholder="Enter reason for deletion..."
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-            <div className="modal-action">
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setShowScheduleModal(false)}
-                disabled={scheduleStatus === "executing"}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn btn-error"
-                onClick={handleSchedule}
-                disabled={scheduleStatus === "executing" || !reason.trim()}
-              >
-                {scheduleStatus === "executing" ? "Scheduling..." : "Schedule Deletion"}
-              </button>
+      {showScheduleModal &&
+        mounted &&
+        createPortal(
+          <dialog className="modal modal-open">
+            <div className="modal-box max-w-md overflow-y-auto max-h-[90vh]">
+              <h3 className="text-lg font-bold text-error">
+                Schedule Patient Deletion
+              </h3>
+              <p className="py-4 text-sm text-muted-foreground">
+                This will schedule the patient&apos;s account for anonymization in
+                30 days. The patient will be notified and can reclaim their
+                account during this period.
+              </p>
+              <textarea
+                className="textarea textarea-bordered w-full min-h-[120px]"
+                placeholder="Enter reason for deletion..."
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+              <div className="modal-action">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => setShowScheduleModal(false)}
+                  disabled={scheduleStatus === "executing"}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-error"
+                  onClick={handleSchedule}
+                  disabled={scheduleStatus === "executing" || !reason.trim()}
+                >
+                  {scheduleStatus === "executing"
+                    ? "Scheduling..."
+                    : "Schedule Deletion"}
+                </button>
+              </div>
             </div>
-          </div>
-          <form method="dialog" className="modal-backdrop">
-            <button type="submit">close</button>
-          </form>
-        </dialog>
-      )}
+            <form method="dialog" className="modal-backdrop">
+              <button type="submit">close</button>
+            </form>
+          </dialog>,
+          document.body,
+        )}
     </>
   );
 }
