@@ -38,6 +38,7 @@ async function ChatHistoryList() {
 
   const rows: HistoryRow[] = chats.map((chat) => {
     let diagnosis = "";
+    let diagnosisStatus: string | null = null;
     let uncertainty: number | null = null;
     let confidence: number | null = null;
     let reliabilityLabel: string | null = null;
@@ -52,6 +53,7 @@ async function ChatHistoryList() {
         .join(" ");
       uncertainty = chat.diagnosis.uncertainty;
       confidence = chat.diagnosis.confidence;
+      diagnosisStatus = chat.diagnosis.status;
 
       // Handle INCONCLUSIVE diagnoses — AI could not reach a confident prediction
       if (chat.diagnosis.status === "INCONCLUSIVE") {
@@ -99,6 +101,7 @@ async function ChatHistoryList() {
     return {
       id: chat.chatId,
       diagnosis: diagnosis || "No details available",
+      diagnosisStatus,
       reliabilityLabel,
       reliabilityBadgeClass,
       reliabilityRank,
@@ -108,12 +111,14 @@ async function ChatHistoryList() {
 
   const pdfColumns: PdfColumn[] = [
     { header: "Suggested Condition", dataKey: "diagnosis" },
+    { header: "Status", dataKey: "status" },
     { header: "Reliability", dataKey: "reliability" },
     { header: "Date", dataKey: "createdAt" },
   ];
 
   const exportData = rows.map((row) => ({
     diagnosis: row.diagnosis,
+    status: row.diagnosisStatus || "N/A",
     reliability: row.reliabilityLabel || "-",
     createdAt: new Date(row.createdAt),
   }));
@@ -165,7 +170,10 @@ function ChatHistorySkeleton() {
                 <div className="skeleton h-5 w-40" />
                 <div className="skeleton h-3 w-28" />
               </div>
-              <div className="skeleton h-5 w-14 rounded" />
+              <div className="flex gap-1">
+                <div className="skeleton h-5 w-20 rounded" />
+                <div className="skeleton h-5 w-14 rounded" />
+              </div>
             </div>
             <div className="flex gap-3">
               <div className="flex-1 space-y-1">
@@ -189,7 +197,8 @@ function ChatHistorySkeleton() {
             className="h-16 border-b border-border/50 px-6 py-4 flex items-center justify-between"
           >
             <div className="skeleton h-5 w-1/3" />
-            <div className="skeleton h-5 w-24" />
+            <div className="skeleton h-5 w-20" />
+            <div className="skeleton h-5 w-20" />
             <div className="skeleton h-5 w-24" />
             <div className="skeleton h-8 w-24 rounded" />
           </div>
