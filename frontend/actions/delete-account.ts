@@ -4,14 +4,15 @@ import { actionClient } from "./client";
 import { DeleteAccountSchema } from "@/schemas/DeleteAccountSchema";
 import { getBackendUrl } from "@/utils/backend-url";
 import { getCurrentDbUser } from "@/utils/user";
+import { createClient } from "@/utils/supabase/server";
 import axios, { AxiosError } from "axios";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 const BACKEND_URL = getBackendUrl();
 
 export const deleteAccount = actionClient
   .inputSchema(DeleteAccountSchema)
   .action(async ({ parsedInput }) => {
-    const { password } = parsedInput;
     const { success: dbUser, error } = await getCurrentDbUser();
 
     if (!dbUser) {
@@ -19,17 +20,28 @@ export const deleteAccount = actionClient
       return { error: `Authentication required: ${error}` };
     }
 
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      return { error: "Authentication required: No active session" };
+    }
+
     try {
       const response = await axios.delete(
         `${BACKEND_URL}/api/user/account`,
         {
-          withCredentials: true,
           headers: {
-            "X-User-ID": dbUser.id.toString(),
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
           },
-          data: { password },
         }
       );
+
+      revalidateTag(`user-${dbUser.authId}`, { expire: 0 });
+      revalidatePath("/");
+      revalidatePath("/diagnosis");
+      revalidatePath("/profile");
 
       return {
         success: {

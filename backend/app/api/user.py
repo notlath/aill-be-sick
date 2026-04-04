@@ -7,21 +7,60 @@ Handles user data export, account deletion, and consent withdrawal for privacy c
 import json
 import csv
 import io
+import os
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify, current_app, g
 from sqlalchemy import text
 from app.utils.database import get_db_engine
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 user_bp = Blueprint("user", __name__, url_prefix="/api/user")
 
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://pncxsombhfdryzkqdmff.supabase.co")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+
 
 def get_current_user():
-    """Placeholder for user authentication. In real implementation, verify JWT token."""
-    # TODO: Implement proper authentication
-    user_id = request.headers.get('X-User-ID')
-    if not user_id:
+    """Verify Supabase JWT token and return the corresponding Prisma user."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
         return None
-    return int(user_id)
+
+    token = auth_header.split("Bearer ")[1]
+
+    try:
+        supabase_user_resp = requests.get(
+            f"{SUPABASE_URL}/auth/v1/user",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {token}",
+            },
+            timeout=10,
+        )
+        if supabase_user_resp.status_code != 200:
+            return None
+
+        supabase_user = supabase_user_resp.json()
+        email = supabase_user.get("email")
+        if not email:
+            return None
+
+        engine = get_db_engine()
+        with engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT id, email FROM "User" WHERE email = :email
+            """), {"email": email}).fetchone()
+
+        if not result:
+            return None
+
+        return {"id": result[0], "email": result[1]}
+
+    except Exception:
+        return None
 
 
 def log_audit_action(user_id, action, details=None):
@@ -38,10 +77,11 @@ def log_audit_action(user_id, action, details=None):
 @user_bp.route("/data-export", methods=["POST"])
 def data_export():
     """Export user data as JSON or CSV."""
-    user_id = get_current_user()
-    if not user_id:
+    user = get_current_user()
+    if not user:
         return jsonify({"error": "Authentication required"}), 401
 
+    user_id = user["id"]
     format_type = request.json.get("format", "json") if request.is_json else request.form.get("format", "json")
 
     engine = get_db_engine()
@@ -63,9 +103,9 @@ def data_export():
             FROM "Chat" WHERE "userId" = :user_id
         """), {"user_id": user_id}).fetchall()
 
-        # Get messages
+        # Get messages (with chatId for correlation)
         messages_result = conn.execute(text("""
-            SELECT m.content, m.role, m."createdAt", m.type
+            SELECT m.content, m.role, m."createdAt", m.type, m."chatId"
             FROM "Message" m
             JOIN "Chat" c ON m."chatId" = c."chatId"
             WHERE c."userId" = :user_id
@@ -101,14 +141,79 @@ def data_export():
     log_audit_action(user_id, "data_export", {"format": format_type})
 
     if format_type == "csv":
-        # For CSV, create a simple summary
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["Category", "Count"])
-        writer.writerow(["Chats", len(chats_result)])
-        writer.writerow(["Messages", len(messages_result)])
-        writer.writerow(["Diagnoses", len(diagnoses_result)])
-        writer.writerow(["Consent Events", len(consent_history)])
+
+        # Section 1: PROFILE
+        writer.writerow(["SECTION", "PROFILE"])
+        profile_keys = ["id", "email", "name", "createdAt", "updatedAt", "role", "city", "latitude", "longitude",
+                        "region", "age", "gender", "province", "barangay", "birthday", "district", "address",
+                        "privacyAcceptedAt", "privacyVersion", "termsAcceptedAt", "termsVersion"]
+        writer.writerow(profile_keys)
+        profile_row = []
+        for key in profile_keys:
+            val = export_data["user_profile"].get(key, "")
+            if isinstance(val, datetime):
+                val = val.isoformat()
+            profile_row.append(val if val is not None else "")
+        writer.writerow(profile_row)
+
+        # Section 2: DIAGNOSES
+        writer.writerow([])
+        writer.writerow(["SECTION", "DIAGNOSES"])
+        diag_keys = ["disease", "confidence", "uncertainty", "modelUsed", "createdAt"]
+        writer.writerow(diag_keys)
+        for diag in export_data["diagnoses"]:
+            row = []
+            for key in diag_keys:
+                val = diag.get(key, "")
+                if isinstance(val, datetime):
+                    val = val.isoformat()
+                row.append(val if val is not None else "")
+            writer.writerow(row)
+
+        # Section 3: CHATS
+        writer.writerow([])
+        writer.writerow(["SECTION", "CHATS"])
+        chat_keys = ["chatId", "createdAt", "hasDiagnosis"]
+        writer.writerow(chat_keys)
+        for chat in export_data["chats"]:
+            row = []
+            for key in chat_keys:
+                val = chat.get(key, "")
+                if isinstance(val, datetime):
+                    val = val.isoformat()
+                row.append(val if val is not None else "")
+            writer.writerow(row)
+
+        # Section 4: MESSAGES
+        writer.writerow([])
+        writer.writerow(["SECTION", "MESSAGES"])
+        msg_keys = ["chatId", "role", "type", "createdAt"]
+        writer.writerow(msg_keys)
+        for msg in export_data["messages"]:
+            row = []
+            for key in msg_keys:
+                val = msg.get(key, "")
+                if isinstance(val, datetime):
+                    val = val.isoformat()
+                row.append(val if val is not None else "")
+            writer.writerow(row)
+
+        # Section 5: CONSENT_HISTORY
+        writer.writerow([])
+        writer.writerow(["SECTION", "CONSENT_HISTORY"])
+        consent_keys = ["action", "createdAt"]
+        writer.writerow(consent_keys)
+        for entry in export_data["consent_history"]:
+            row = []
+            for key in consent_keys:
+                val = entry.get(key, "")
+                if isinstance(val, datetime):
+                    val = val.isoformat()
+                row.append(val if val is not None else "")
+            writer.writerow(row)
+
         return output.getvalue(), 200, {"Content-Type": "text/csv", "Content-Disposition": "attachment; filename=user_data.csv"}
     else:
         return jsonify(export_data)
@@ -117,15 +222,11 @@ def data_export():
 @user_bp.route("/account", methods=["DELETE"])
 def delete_account():
     """Delete user account with anonymization."""
-    user_id = get_current_user()
-    if not user_id:
+    user = get_current_user()
+    if not user:
         return jsonify({"error": "Authentication required"}), 401
 
-    password = request.json.get("password") if request.is_json else request.form.get("password")
-    if not password:
-        return jsonify({"error": "Password required for account deletion"}), 400
-
-    # TODO: Verify password (placeholder)
+    user_id = user["id"]
 
     engine = get_db_engine()
     with engine.connect() as conn:
@@ -144,7 +245,7 @@ def delete_account():
                     "privacyAcceptedAt" = NULL, "privacyVersion" = NULL,
                     "termsAcceptedAt" = NULL, "termsVersion" = NULL
                 WHERE id = :user_id
-            """), {"user_id": user_id}, trans)
+            """), {"user_id": user_id})
 
             # Anonymize diagnoses (remove location data)
             conn.execute(text("""
@@ -152,12 +253,12 @@ def delete_account():
                 SET city = NULL, latitude = NULL, longitude = NULL, region = NULL,
                     province = NULL, barangay = NULL, district = NULL
                 WHERE "userId" = :user_id
-            """), {"user_id": user_id}, trans)
+            """), {"user_id": user_id})
 
             # Delete chats and related data (cascade)
             conn.execute(text("""
                 DELETE FROM "Chat" WHERE "userId" = :user_id
-            """), {"user_id": user_id}, trans)
+            """), {"user_id": user_id})
 
             # Log the deletion
             log_audit_action(user_id, "account_deletion", {"anonymized": True})
@@ -175,9 +276,11 @@ def delete_account():
 @user_bp.route("/withdraw-consent", methods=["POST"])
 def withdraw_consent():
     """Withdraw user consent and anonymize data."""
-    user_id = get_current_user()
-    if not user_id:
+    user = get_current_user()
+    if not user:
         return jsonify({"error": "Authentication required"}), 401
+
+    user_id = user["id"]
 
     engine = get_db_engine()
     with engine.connect() as conn:

@@ -11,11 +11,9 @@ import {
   AlertTriangle,
   Loader2,
 } from "lucide-react";
-import {
-  exportUserData,
-  withdrawConsent,
-  deleteAccount,
-} from "@/actions/privacy-actions";
+import { dataExport } from "@/actions/data-export";
+import { withdrawConsent } from "@/actions/withdraw-consent";
+import { deleteAccount } from "@/actions/delete-account";
 import type { User, AuditLog } from "@/lib/generated/prisma";
 import Link from "next/link";
 
@@ -29,7 +27,22 @@ export default function PrivacyRightsContent({
   consentLogs,
 }: PrivacyRightsContentProps) {
   const { execute: executeExport, status: exportStatus } =
-    useAction(exportUserData);
+    useAction(dataExport, {
+      onSuccess: ({ data }) => {
+        if (data?.success && data.data) {
+          const jsonString = JSON.stringify(data.data, null, 2);
+          const blob = new Blob([jsonString], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "user-data.json";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      },
+    });
   const { execute: executeWithdraw, status: withdrawStatus } =
     useAction(withdrawConsent, {
       onSuccess: ({ data }) => {
@@ -50,9 +63,10 @@ export default function PrivacyRightsContent({
 
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
 
   const handleExport = () => {
-    executeExport();
+    executeExport({ format: "json" });
   };
 
   const handleWithdraw = () => {
@@ -308,18 +322,37 @@ export default function PrivacyRightsContent({
               deleted and all data will be anonymized. Medical records will be
               retained for legal compliance but anonymized.
             </p>
+            <div className="space-y-4 mb-4">
+              <div>
+                <label className="label">
+                  <span className="label-text">
+                    Enter your password to confirm
+                  </span>
+                </label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Password"
+                  className="input input-bordered w-full"
+                />
+              </div>
+            </div>
             <div className="modal-action">
               <button
                 className="btn btn-ghost"
-                onClick={() => setShowDeleteModal(false)}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletePassword("");
+                }}
               >
                 Cancel
               </button>
               <button
                 className="btn btn-error"
-                disabled={deleteStatus === "executing"}
+                disabled={!deletePassword || deleteStatus === "executing"}
                 onClick={() => {
-                  executeDelete();
+                  executeDelete({ password: deletePassword });
                 }}
               >
                 {deleteStatus === "executing" ? (

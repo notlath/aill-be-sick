@@ -3,6 +3,7 @@
 import { DataExportSchema } from "@/schemas/DataExportSchema";
 import { getBackendUrl } from "@/utils/backend-url";
 import { getCurrentDbUser } from "@/utils/user";
+import { createClient } from "@/utils/supabase/server";
 import axios, { AxiosError } from "axios";
 import { actionClient } from "./client";
 
@@ -19,19 +20,36 @@ export const dataExport = actionClient
       return { error: `Error fetching user: ${error}` };
     }
 
+    const supabase = await createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      return { error: "Authentication required: No active session" };
+    }
+
     try {
       const response = await axios.post(
         `${BACKEND_URL}/api/user/data-export`,
         { format },
         {
           headers: {
-            "X-User-ID": dbUser.id.toString(),
+            Authorization: `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
           },
         },
       );
 
       const data = response.data;
+
+      const payloadSize = JSON.stringify(data).length;
+      const MAX_PAYLOAD_SIZE = 5 * 1024 * 1024;
+
+      if (payloadSize > MAX_PAYLOAD_SIZE) {
+        return {
+          error: "EXPORT_TOO_LARGE",
+          message: "Your data export is too large for direct download. Please contact support.",
+        };
+      }
 
       return {
         success: true,
