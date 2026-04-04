@@ -293,9 +293,6 @@ def delete_account():
                 DELETE FROM "Chat" WHERE "userId" = :user_id
             """), {"user_id": user_id})
 
-            # Log the deletion
-            log_audit_action(user_id, "account_deletion", {"anonymized": True})
-
             trans.commit()
 
             return jsonify({"message": "Account deleted successfully. Data has been anonymized."})
@@ -488,13 +485,13 @@ def restore_deletion():
                 return jsonify({"error": "Only the scheduling clinician or an admin can restore"}), 403
 
             conn.execute(text("""
-                UPDATE "DeletionSchedule"
-                SET status = 'RESTORED', "restoredAt" = NOW(), "restoredBy" = :restored_by
+                DELETE FROM "DeletionSchedule"
                 WHERE "userId" = :patient_id AND status = 'SCHEDULED'
-            """), {"restored_by": clinician["id"], "patient_id": patient_id})
+            """), {"patient_id": patient_id})
 
             log_audit_action(clinician["id"], "RESTORE_DELETION", {
                 "patientId": patient_id,
+                "scheduledBy": scheduled_by,
             })
 
             trans.commit()
