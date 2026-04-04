@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import prisma from "@/prisma/prisma";
 import { getCurrentDbUser } from "@/utils/user";
+import { isAnonymizedUser } from "@/utils/is-anonymized";
 import {
   Card,
   CardHeader,
@@ -224,7 +225,7 @@ const UserDetailPage = async ({
             </Card>
           </div>
 
-          {!isScheduled && isAdmin && (
+          {!isScheduled && isAdmin && !isAnonymizedUser(user.email) && (
             <Card className="border-error/50">
               <CardHeader>
                 <div className="flex items-center gap-3">
