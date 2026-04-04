@@ -2,9 +2,10 @@
  * Maps anomaly reason codes from the surveillance service to an alert severity.
  *
  * Severity rules (evaluated in priority order):
- *  - CRITICAL : CLUSTER:SPATIAL and COMBINED:MULTI both present (spatial cluster
+ *  - CRITICAL : GEOGRAPHIC:RARE and COMBINED:MULTI both present (geographic anomaly
  *               with multiple contributing factors — strongest outbreak signal)
- *  - HIGH     : CLUSTER:SPATIAL alone, or COMBINED:MULTI with ≥ 3 codes
+ *  - HIGH     : GEOGRAPHIC:RARE alone, or COMBINED:MULTI with ≥ 3 codes
+ *  - MEDIUM   : CLUSTER:DENSE or OUTBREAK:VOL_SPIKE
  *  - LOW      : any other single reason code
  */
 
@@ -13,8 +14,8 @@ export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export function mapReasonCodesToSeverity(reasonCodes: string[]): AlertSeverity {
   const has = (code: string) => reasonCodes.includes(code);
 
-  if (has("OUTBREAK:EPIDEMIC_THRESHOLD") || (has("CLUSTER:SPATIAL") && has("COMBINED:MULTI"))) return "CRITICAL";
-  if (has("OUTBREAK:ALERT_THRESHOLD") || has("CLUSTER:SPATIAL") || (has("COMBINED:MULTI") && reasonCodes.length >= 3))
+  if (has("OUTBREAK:EPIDEMIC_THRESHOLD") || (has("GEOGRAPHIC:RARE") && has("COMBINED:MULTI"))) return "CRITICAL";
+  if (has("OUTBREAK:ALERT_THRESHOLD") || has("GEOGRAPHIC:RARE") || (has("COMBINED:MULTI") && reasonCodes.length >= 3))
     return "HIGH";
   if (has("CLUSTER:DENSE") || has("OUTBREAK:VOL_SPIKE")) return "MEDIUM";
 

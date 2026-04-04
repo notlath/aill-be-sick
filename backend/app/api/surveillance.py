@@ -41,12 +41,11 @@ def surveillance_outbreaks():
       }
 
     Reason codes on anomalies (pipe-separated when multiple apply):
-      GEOGRAPHIC:RARE     – disease is geographically uncommon in this location
-      TEMPORAL:RARE       – disease is uncommon during this time of year
-      CLUSTER:SPATIAL     – unusual spatial concentration (lat & lng both outliers)
-      AGE:RARE            – patient age is outside the typical demographic range
-      GENDER:RARE         – patient gender is uncommon for this disease
-      COMBINED:MULTI      – two or more independent factors contributed
+      GEOGRAPHIC:RARE       – disease is geographically uncommon in this location
+      TEMPORAL:RARE         – disease is uncommon during this time of year
+      AGE:RARE              – patient age is outside the typical demographic range
+      GENDER:RARE           – patient gender is uncommon for this disease
+      COMBINED:MULTI        – two or more independent factors contributed
     """
     try:
         # --- contamination ---

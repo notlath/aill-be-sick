@@ -229,7 +229,6 @@ Determines why a record was flagged as anomalous.
 |------|-----------|----------|
 | `GEOGRAPHIC:RARE` | lat > 2σ OR lng > 2σ | Per-disease |
 | `TEMPORAL:RARE` | month > 2σ from disease mean | Per-disease |
-| `CLUSTER:SPATIAL` | lat > 2σ AND lng > 2σ | Per-disease |
 | `CONFIDENCE:LOW` | confidence < mean − 2σ | Global |
 | `UNCERTAINTY:HIGH` | uncertainty > mean + 2σ | Global |
 | `COMBINED:MULTI` | ≥2 primary reasons | — |
@@ -261,7 +260,6 @@ Defined at top of `surveillance_service.py`:
 ```python
 REASON_GEOGRAPHIC_RARE = "GEOGRAPHIC:RARE"
 REASON_TEMPORAL_RARE = "TEMPORAL:RARE"
-REASON_CLUSTER_SPATIAL = "CLUSTER:SPATIAL"
 REASON_CONFIDENCE_LOW = "CONFIDENCE:LOW"
 REASON_UNCERTAINTY_HIGH = "UNCERTAINTY:HIGH"
 REASON_COMBINED_MULTI = "COMBINED:MULTI"

@@ -39,7 +39,6 @@ function buildAlertMessage(
   const codeLabels: Record<string, string> = {
     "GEOGRAPHIC:RARE": "an occurrence in an unusual location",
     "TEMPORAL:RARE": "a presentation during an off-season period",
-    "CLUSTER:SPATIAL": "a sudden geographic group of similar cases",
     "COMBINED:MULTI": "multiple overlapping anomalies",
     "AGE:RARE": "a patient age outside the typical demographic range",
     "GENDER:RARE": "a patient demographic that is uncommon for this disease",

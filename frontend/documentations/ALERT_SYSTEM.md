@@ -178,11 +178,11 @@ When a clinician verifies a diagnosis:
                              └──────────┬───────────┘
                                         ▼
                     ┌───────────────────────────────┐
-                    │  mapReasonCodesToSeverity()    │
-                    │  CLUSTER:SPATIAL + COMBINED    │
-                    │  → CRITICAL                   │
-                    │  CLUSTER:SPATIAL alone → HIGH  │
-                    │  other → LOW                  │
+                     │  mapReasonCodesToSeverity()    │
+                     │  GEOGRAPHIC:RARE + COMBINED    │
+                     │  → CRITICAL                   │
+                     │  GEOGRAPHIC:RARE alone → HIGH  │
+                     │  other → LOW                  │
                     └──────────┬────────────────────┘
                                ▼
                     ┌──────────────────────┐
@@ -361,8 +361,8 @@ enum AlertType {
 }
 
 enum AlertSeverity {
-  CRITICAL  // CLUSTER:SPATIAL + COMBINED:MULTI both present
-  HIGH      // CLUSTER:SPATIAL alone, or COMBINED:MULTI with ≥3 codes
+  CRITICAL  // GEOGRAPHIC:RARE + COMBINED:MULTI both present
+  HIGH      // GEOGRAPHIC:RARE alone, or COMBINED:MULTI with ≥3 codes
   MEDIUM    // CLUSTER:DENSE or OUTBREAK:VOL_SPIKE
   LOW       // Any other single reason
 }
@@ -790,8 +790,8 @@ Evaluated in priority order:
 
 | Condition | Severity |
 |-----------|----------|
-| `CLUSTER:SPATIAL` AND `COMBINED:MULTI` both present | `CRITICAL` |
-| `CLUSTER:SPATIAL` alone | `HIGH` |
+| `GEOGRAPHIC:RARE` AND `COMBINED:MULTI` both present | `CRITICAL` |
+| `GEOGRAPHIC:RARE` alone | `HIGH` |
 | `COMBINED:MULTI` with ≥ 3 codes | `HIGH` |
 | `CLUSTER:DENSE` or `OUTBREAK:VOL_SPIKE` | `MEDIUM` |
 | Any other single code | `LOW` |
@@ -861,7 +861,6 @@ Reason codes are sourced from the Flask surveillance service's `reason` field (p
 |------|-------|-------------|
 | `GEOGRAPHIC:RARE` | Unusual location | Disease rarely reported in this area |
 | `TEMPORAL:RARE` | Unusual timing | Case recorded at an atypical time of year |
-| `CLUSTER:SPATIAL` | Spatial group | Unusual concentration of cases in this location |
 | `COMBINED:MULTI` | Multiple factors | Two or more independent factors contributed |
 | `AGE:RARE` | Unusual age | Patient age outside typical range for this disease |
 | `GENDER:RARE` | Unusual gender | Patient gender uncommon for this disease |
