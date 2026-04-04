@@ -114,7 +114,8 @@ def data_export():
         return jsonify({"error": "Authentication required"}), 401
 
     user_id = user["id"]
-    format_type = request.json.get("format", "json") if request.is_json else request.form.get("format", "json")
+    body = request.get_json(silent=True) if request.is_json else None
+    format_type = (body or {}).get("format", "json")
 
     engine = get_db_engine()
     with engine.connect() as conn:
