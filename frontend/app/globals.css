@@ -235,3 +235,10 @@ h6 {
 [data-theme="dark"] .leaflet-container {
   background: #0B1326;
 }
+
+/* Override badge-ghost to use secondary color scheme for consistency */
+.badge.badge-ghost {
+  background-color: var(--color-secondary);
+  color: var(--color-secondary-content);
+  border-color: var(--color-secondary);
+}
