@@ -302,9 +302,8 @@ const ReasonBadge = ({ code }: { code: string }) => {
 
 | Code | Meaning | Baseline |
 |------|---------|----------|
-| `GEOGRAPHIC:RARE` | Lat/lng > 2σ from disease mean | Per-disease |
+| `GEOGRAPHIC:RARE` | Lat or lng > 2σ from disease mean | Per-disease |
 | `TEMPORAL:RARE` | Month > 2σ from disease mean | Per-disease |
-| `CLUSTER:SPATIAL` | Both lat AND lng > 2σ | Per-disease |
 | `COMBINED:MULTI` | ≥2 primary reasons triggered | — |
 | `AGE:RARE` | Patient age > 2σ from disease mean | Per-disease |
 | `GENDER:RARE` | Patient gender represents <20% of cases for this disease | Per-disease |

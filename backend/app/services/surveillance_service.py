@@ -16,7 +16,6 @@ from app.utils.database import get_db_engine
 # ---------------------------------------------------------------------------
 REASON_GEOGRAPHIC_RARE = "GEOGRAPHIC:RARE"
 REASON_TEMPORAL_RARE = "TEMPORAL:RARE"
-REASON_CLUSTER_SPATIAL = "CLUSTER:SPATIAL"
 REASON_COMBINED_MULTI = "COMBINED:MULTI"
 REASON_AGE_RARE = "AGE:RARE"
 REASON_GENDER_RARE = "GENDER:RARE"
@@ -287,10 +286,6 @@ def _compute_reason_codes(
     if lat_outlier or lng_outlier:
         reasons.add(REASON_GEOGRAPHIC_RARE)
 
-    # Spatial cluster: both lat AND lng are outliers simultaneously
-    if lat_outlier and lng_outlier:
-        reasons.add(REASON_CLUSTER_SPATIAL)
-
     # ── Temporal rarity (per-disease baseline) ────────────────────────────────
     if n_same > 1:
         disease_months = same_disease_rows[:, IDX_MONTH]
@@ -331,8 +326,7 @@ def _compute_reason_codes(
         pass
 
     # ── COMBINED:MULTI ────────────────────────────────────────────────────────
-    # Exclude CLUSTER:SPATIAL from count since it is a subset of GEOGRAPHIC:RARE
-    primary_reasons = reasons - {REASON_CLUSTER_SPATIAL, REASON_COMBINED_MULTI}
+    primary_reasons = reasons - {REASON_COMBINED_MULTI}
     if len(primary_reasons) >= 2:
         reasons.add(REASON_COMBINED_MULTI)
 
