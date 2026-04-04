@@ -13,7 +13,8 @@
     "seed:realistic": "node --env-file=.env.local scripts/seed-realistic.js",
     "db:backup": "node --env-file=.env.local scripts/backup-db.js",
     "db:backup:list": "node --env-file=.env.local scripts/backup-db.js --list",
-    "db:backup:restore": "node --env-file=.env.local scripts/backup-db.js --restore"
+    "db:backup:restore": "node --env-file=.env.local scripts/backup-db.js --restore",
+    "db:backfill-consent": "node --env-file=.env.local scripts/backfill-consent.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
