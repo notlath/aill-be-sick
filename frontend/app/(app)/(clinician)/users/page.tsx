@@ -2,7 +2,9 @@ import { Suspense } from "react";
 import { columns } from "@/components/clinicians/users-page/columns";
 import { DataTable } from "@/components/clinicians/users-page/data-table";
 import { getAllUsers, getCurrentDbUser } from "@/utils/user";
+import { getPendingDeletionSchedules } from "@/utils/deletion-schedule";
 import { ExportReportButton } from "@/components/ui/export-report-button";
+import PendingDeletionsTab from "@/components/clinicians/users-page/pending-deletions-tab";
 import type { PdfColumn } from "@/utils/pdf-export";
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
@@ -99,6 +101,9 @@ const UsersPage = async () => {
   const { success: dbUser } = await getCurrentDbUser();
   const currentUserRole = dbUser?.role || "";
 
+  const pendingDeletions = await getPendingDeletionSchedules();
+  const pendingCount = pendingDeletions.length;
+
   return (
     <main className="from-base-100 via-base-200/30 to-base-100 min-h-screen bg-gradient-to-br">
       {/* Hero Header Section */}
@@ -129,7 +134,17 @@ const UsersPage = async () => {
       {/* Main Content */}
       <div className="px-8 pb-16 md:px-16 lg:px-24">
         <div className="mx-auto max-w-[1600px] space-y-8">
-          <div className="animate-slide-up" style={{ animationDelay: "200ms" }}>
+          <div className="tabs tabs-boxed bg-base-200">
+            <a className="tab tab-lg flex-1" href="#all-users">All Users</a>
+            <a className="tab tab-lg flex-1" href="#pending-deletion">
+              Pending Deletion
+              {pendingCount > 0 && (
+                <span className="badge badge-sm badge-warning ml-1">{pendingCount}</span>
+              )}
+            </a>
+          </div>
+
+          <div id="all-users" className="animate-slide-up" style={{ animationDelay: "200ms" }}>
             <Suspense fallback={<UsersTableSkeleton />}>
               <UsersTable
                 currentUserRole={currentUserRole}
@@ -143,6 +158,10 @@ const UsersPage = async () => {
                 }
               />
             </Suspense>
+          </div>
+
+          <div id="pending-deletion" className="animate-slide-up" style={{ animationDelay: "300ms" }}>
+            <PendingDeletionsTab />
           </div>
         </div>
       </div>

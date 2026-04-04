@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -45,13 +45,16 @@ model User {
   acknowledgedAlerts Alert[]             @relation("AlertAcknowledger")
   resolvedAlerts     Alert[]             @relation("AlertResolver")
   alertNotes         AlertNote[]         @relation("AlertNoteAuthor")
-  chats              Chat[]
-  diagnoses          Diagnosis[]
-  diagnosisOverrides DiagnosisOverride[] @relation("OverrideClinicianRelation")
-  diagnosisNotes     DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
-  verifiedDiagnoses  Diagnosis[]         @relation("DiagnosisVerifier")
-  rejectedDiagnoses  Diagnosis[]         @relation("DiagnosisRejector")
   auditLogs          AuditLog[]
+  chats              Chat[]
+  restoredDeletions  DeletionSchedule[]  @relation("DeletionRestoredBy")
+  scheduledDeletions DeletionSchedule[]  @relation("DeletionScheduledBy")
+  scheduledDeletion  DeletionSchedule?   @relation("PatientDeletionSchedule")
+  rejectedDiagnoses  Diagnosis[]         @relation("DiagnosisRejector")
+  diagnoses          Diagnosis[]
+  verifiedDiagnoses  Diagnosis[]         @relation("DiagnosisVerifier")
+  diagnosisNotes     DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
+  diagnosisOverrides DiagnosisOverride[] @relation("OverrideClinicianRelation")
 
   @@index([latitude, longitude])
   @@index([region])
@@ -95,6 +98,7 @@ model TempDiagnosis {
   chatId      String
   symptoms    String
   cdss        Json?
+  isValid     Boolean  @default(true)
   chat        Chat     @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
   message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
@@ -122,19 +126,19 @@ model Diagnosis {
   temperature     Float?
   temperatureUnit String?
   weightKg        Float?
+  rejectedAt      DateTime?
+  rejectedBy      Int?
   status          DiagnosisStatus    @default(PENDING)
   verifiedAt      DateTime?
   verifiedBy      Int?
-  rejectedAt      DateTime?
-  rejectedBy      Int?
   alerts          Alert[]
   chat            Chat               @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+  rejectedByUser  User?              @relation("DiagnosisRejector", fields: [rejectedBy], references: [id])
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   verifiedByUser  User?              @relation("DiagnosisVerifier", fields: [verifiedBy], references: [id])
-  rejectedByUser  User?              @relation("DiagnosisRejector", fields: [rejectedBy], references: [id])
+  notes           DiagnosisNote[]
   override        DiagnosisOverride?
   explanation     Explanation?
-  notes           DiagnosisNote[]
 
   @@index([createdAt])
   @@index([disease])
@@ -216,8 +220,8 @@ model DiagnosisNote {
   content     String
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
   clinician   User      @relation("DiagnosisNoteAuthor", fields: [clinicianId], references: [id], onDelete: Cascade)
+  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
 
   @@index([diagnosisId])
   @@index([clinicianId])
@@ -229,7 +233,7 @@ model AuditLog {
   action    String
   details   Json?
   createdAt DateTime @default(now())
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user      User?    @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([action])
@@ -257,6 +261,25 @@ model diagnosis_sessions {
 
   @@index([chat_id], map: "idx_diagnosis_sessions_chat_id")
   @@index([created_at], map: "idx_diagnosis_sessions_created_at")
+}
+
+model DeletionSchedule {
+  id                  Int                    @id @default(autoincrement())
+  userId              Int                    @unique
+  scheduledBy         Int
+  scheduledAt         DateTime               @default(now())
+  scheduledDeletionAt DateTime
+  reason              String?
+  status              DeletionScheduleStatus @default(SCHEDULED)
+  restoredAt          DateTime?
+  restoredBy          Int?
+  anonymizedAt        DateTime?
+  restoredByUser      User?                  @relation("DeletionRestoredBy", fields: [restoredBy], references: [id])
+  scheduledByUser     User                   @relation("DeletionScheduledBy", fields: [scheduledBy], references: [id])
+  user                User                   @relation("PatientDeletionSchedule", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([scheduledDeletionAt])
 }
 
 enum Role {
@@ -332,4 +355,11 @@ enum DiagnosisStatus {
   PENDING
   VERIFIED
   REJECTED
+  INCONCLUSIVE
+}
+
+enum DeletionScheduleStatus {
+  SCHEDULED
+  RESTORED
+  ANONYMIZED
 }
