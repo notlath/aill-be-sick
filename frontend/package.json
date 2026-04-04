@@ -10,7 +10,10 @@
     "postinstall": "prisma generate",
     "seed:diagnoses": "node scripts/seed-diagnoses.js",
     "seed:users": "node scripts/seed-users.js",
-    "seed:realistic": "node --env-file=.env.local scripts/seed-realistic.js"
+    "seed:realistic": "node --env-file=.env.local scripts/seed-realistic.js",
+    "db:backup": "node --env-file=.env.local scripts/backup-db.js",
+    "db:backup:list": "node --env-file=.env.local scripts/backup-db.js --list",
+    "db:backup:restore": "node --env-file=.env.local scripts/backup-db.js --restore"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

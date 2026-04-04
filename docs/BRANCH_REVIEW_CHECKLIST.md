@@ -28,6 +28,7 @@ Run these commands for every PR — they are fast and catch critical issues.
 - [ ] No hardcoded threshold literals in Flask endpoints (search `backend/app/api/` for numeric literals > 0.5 in conditionals)
 - [ ] No forbidden word "cluster" in user-facing strings (search `frontend/app/` for "cluster")
 - [ ] No custom CSS gradients or shadows added (check `frontend/app/globals.css` for non-DaisyUI classes)
+- [ ] No duplicated code blocks — search for repeated logic that should be extracted into shared utilities or helper functions
 
 ---
 
@@ -61,6 +62,12 @@ Only complete these sections if you modified relevant files. Skip if not applica
 - [ ] Database: Prisma schema updated with ApprovalStatus enum if needed
 - [ ] Role validation: Only CLINICIAN/ADMIN/DEVELOPER can create patients; clinicians require ACTIVE status
 
+### If Prisma schema changed
+
+- [ ] Review `frontend/scripts/backup-db.js` and assess if schema modifications affect backup/restore logic
+- [ ] Update backup script if new tables or renamed fields require changes to the export/import process
+- [ ] Verify backup and restore still work end-to-end after schema changes
+
 ---
 
 ## Tier 3: Optional (For Major Changes Only)
@@ -82,13 +89,13 @@ Only complete for significant features or breaking changes.
 
 ## Quick Reference: Commands by File Type
 
-| If you changed...                            | Run these extra checks...               |
-| -------------------------------------------- | --------------------------------------- |
-| `frontend/app/` pages                        | Tier 1 + navigation flowchart update    |
-| `frontend/actions/`                          | Tier 1 + revalidation check             |
-| `backend/app/api/`                           | Tier 1 + config docs + backend tests    |
-| `frontend/prisma/schema.prisma`              | Tier 1 + prisma generate                |
-| Workflow files (approvals, patient creation) | Tier 2 clinician/patient workflow items |
+| If you changed...                            | Run these extra checks...                       |
+| -------------------------------------------- | ----------------------------------------------- |
+| `frontend/app/` pages                        | Tier 1 + navigation flowchart update            |
+| `frontend/actions/`                          | Tier 1 + revalidation check                     |
+| `backend/app/api/`                           | Tier 1 + config docs + backend tests            |
+| `frontend/prisma/schema.prisma`              | Tier 1 + prisma generate + backup script review |
+| Workflow files (approvals, patient creation) | Tier 2 clinician/patient workflow items         |
 
 ---
 

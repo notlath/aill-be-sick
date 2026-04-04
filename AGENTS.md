@@ -24,6 +24,7 @@ This file is the single source of truth for AI-assisted development on this proj
 - [ ] No hardcoded threshold literals in Flask endpoints (use `config.py`)
 - [ ] Frontend mutations follow schema + server-action pattern
 - [ ] `revalidatePath`/`revalidateTag` applied after mutations
+- [ ] No duplicated code blocks — search for repeated logic that should be extracted into shared utilities
 
 ### User-Facing Content
 
@@ -378,6 +379,33 @@ The agent should **never**:
 - Introduce custom CSS gradients/shadows that bypass DaisyUI
 - Use the word "cluster" in any user-facing string
 - Make absolute medical claims in UI copy
+
+### Database Operations & Backup Reminders
+
+When asked to perform **destructive database operations** (seeding, clearing, schema migrations, running `seed-realistic.js`, `clear-patients.js`, or Prisma migrations), the agent **MUST**:
+
+- **Remind the developer** to create a backup first using `npm run db:backup`
+- **Reference the backup documentation**: `docs/SEEDING_AND_BACKUP.md`
+- **NOT automatically run backup commands** (avoids redundant files and unexpected behavior)
+
+This gives developers control over when backups are created and prevents redundant backup files from multiple developers.
+
+### Schema Change & Backup Sync
+
+When the **Prisma schema** (`frontend/prisma/schema.prisma`) is modified, the agent **MUST**:
+
+- Review `frontend/scripts/backup-db.js` and assess if the schema modifications affect backup/restore logic
+- Update the backup script if new tables, renamed fields, or removed columns require changes to the export/import process
+- Verify that backup and restore still work end-to-end after schema changes
+
+### Code Duplication Guard
+
+The agent **MUST** actively check for and eliminate duplicated code. Before writing new code:
+
+- Search existing files for similar logic that could be reused
+- Extract repeated patterns into shared utility functions or helpers
+- Never copy-paste blocks of code that already exist elsewhere
+- Prefer DRY (Don't Repeat Yourself) principles across all layers
 
 ---
 
