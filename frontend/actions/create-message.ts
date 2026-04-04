@@ -28,6 +28,7 @@ export const createMessage = actionClient
                 disease: tempDiagnosis.disease,
                 symptoms: tempDiagnosis.symptoms,
                 cdss: tempDiagnosis.cdss ?? undefined,
+                isValid: tempDiagnosis.is_valid ?? true,
                 chatId,
               },
             },

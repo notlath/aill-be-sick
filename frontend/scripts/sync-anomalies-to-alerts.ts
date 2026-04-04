@@ -23,6 +23,8 @@ interface SurveillanceAnomaly {
   is_anomaly: boolean;
   anomaly_score: number;
   reason: string | null;
+  patientAge: number | null;
+  patientGender: string | null;
 }
 
 interface OutbreakFullResult {
@@ -87,7 +89,32 @@ async function fetchAnomalies(): Promise<SurveillanceAnomaly[]> {
 
   const data: OutbreakFullResult = await res.json();
   console.log(`Fetched ${data.anomalies.length} anomalies`);
-  return data.anomalies;
+
+  // Enrich anomalies with patient age and gender from User model
+  const enrichedAnomalies = await Promise.all(
+    data.anomalies.map(async (anomaly) => {
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: anomaly.userId },
+          select: { age: true, gender: true },
+        });
+        return {
+          ...anomaly,
+          patientAge: user?.age ?? null,
+          patientGender: user?.gender ?? null,
+        };
+      } catch (error) {
+        console.error(`Error fetching user data for anomaly ${anomaly.id}:`, error);
+        return {
+          ...anomaly,
+          patientAge: null,
+          patientGender: null,
+        };
+      }
+    }),
+  );
+
+  return enrichedAnomalies;
 }
 
 async function syncAnomaliesToAlerts() {
@@ -143,8 +170,8 @@ async function syncAnomaliesToAlerts() {
             district: anomaly.district,
             latitude: anomaly.latitude,
             longitude: anomaly.longitude,
-            patientAge: null,
-            patientGender: null,
+            patientAge: anomaly.patientAge,
+            patientGender: anomaly.patientGender,
             anomalyScore: anomaly.anomaly_score,
             confidence: anomaly.confidence,
             uncertainty: anomaly.uncertainty,
