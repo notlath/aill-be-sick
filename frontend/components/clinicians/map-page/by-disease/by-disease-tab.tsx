@@ -26,6 +26,7 @@ import { getSurveillanceExportData, type SurveillanceExportData } from "@/utils/
 import { format } from "date-fns";
 import { ExportReportButton } from "@/components/ui/export-report-button";
 import { PdfImage } from "@/utils/pdf-export";
+import { useCurrentUser } from "@/hooks/use-current-user";
 
 const ChoroplethMap = dynamic(() => import("../map/choropleth-map"), {
   ssr: false,
@@ -40,6 +41,7 @@ const ByDiseaseTab = () => {
   const [view, setView] = useState<"coordinates" | "district">("coordinates");
   const { selectedDisease, setSelectedDisease } = useSelectedDiseaseStore();
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
+  const generatedBy = useCurrentUser();
 
   const handleDiseaseChange = (disease: any) => {
     setSelectedDisease(disease);
@@ -399,24 +401,24 @@ const ByDiseaseTab = () => {
           />
           <ViewSelect value={view} onValueChange={setView} />
         </div>
-        <DateRangeFilter
-          startDate={startDate}
-          endDate={endDate}
-          onStartDateChange={handleStartDateChange}
-          onEndDateChange={handleEndDateChange}
-        />
-      </div>
-
-      <div className="flex justify-end">
-        <ExportReportButton
-          data={exportInfo.data}
-          columns={exportInfo.columns}
-          filenameSlug={exportInfo.filenameSlug}
-          title={exportInfo.title}
-          subtitle={exportInfo.subtitle}
-          disabled={isLoading}
-          images={captureImages}
-        />
+        <div className="flex gap-2">
+          <DateRangeFilter
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={handleStartDateChange}
+            onEndDateChange={handleEndDateChange}
+          />
+          <ExportReportButton
+            data={exportInfo.data}
+            columns={exportInfo.columns}
+            filenameSlug={exportInfo.filenameSlug}
+            title={exportInfo.title}
+            subtitle={exportInfo.subtitle}
+            disabled={isLoading}
+            images={captureImages}
+            generatedBy={generatedBy}
+          />
+        </div>
       </div>
 
       <div data-surveillance-map suppressHydrationWarning>
