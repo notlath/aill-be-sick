@@ -4,7 +4,12 @@ export const UpdatePatientSchema = z.object({
   patientId: z.number(),
   name: z.string().min(1, { message: "Name is required" }).max(100),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional().nullable(),
-  birthday: z.string().min(1, { message: "Birthday is required" }),
+  birthday: z
+    .string()
+    .min(1, { message: "Birthday is required" })
+    .refine((val) => !isNaN(Date.parse(val)), {
+      message: "Invalid date format",
+    }),
   address: z.string().optional().nullable(),
   district: z.string().optional().nullable(),
   city: z.string().optional().nullable(),

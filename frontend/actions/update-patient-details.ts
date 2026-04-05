@@ -48,12 +48,17 @@ export const updatePatientDetails = actionClient
         return { error: "Can only update patient accounts" };
       }
 
+      const birthdayDate = new Date(birthday);
+      if (isNaN(birthdayDate.getTime())) {
+        return { error: "Invalid birthday date" };
+      }
+
       await prisma.user.update({
         where: { id: patientId },
         data: {
           name,
           gender: gender || null,
-          birthday: new Date(birthday),
+          birthday: birthdayDate,
           address: address || null,
           district: district || null,
           city: city || null,

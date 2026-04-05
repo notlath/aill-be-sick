@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAction } from "next-safe-action/hooks";
 import { Edit2, X, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +17,14 @@ import { BAGONG_SILANGAN_DISTRICTS } from "@/constants/bagong-silangan-districts
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
 import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
+import {
+  ACCESS_TOKEN,
+  FIXED_CITY,
+  FIXED_BARANGAY,
+  FIXED_REGION,
+  FIXED_PROVINCE,
+  parseMapboxResponse,
+} from "@/utils/mapbox";
 
 const SearchBox = dynamic(
   () => import("@mapbox/search-js-react").then((mod) => mod.SearchBox),
@@ -27,13 +35,6 @@ const AddressMinimap = dynamic(
   () => import("@mapbox/search-js-react").then((mod) => mod.AddressMinimap),
   { ssr: false },
 );
-
-const ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
-
-const FIXED_CITY = "Quezon City";
-const FIXED_BARANGAY = "Bagong Silangan";
-const FIXED_REGION = "National Capital Region (NCR)";
-const FIXED_PROVINCE = "NCR, Second District";
 
 interface EditPatientModalProps {
   patient: {
@@ -56,6 +57,7 @@ interface EditPatientModalProps {
 export function EditPatientModal({ patient }: EditPatientModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   const [name, setName] = useState(patient.name || "");
   const [gender, setGender] = useState<"MALE" | "FEMALE" | "OTHER" | "">(
@@ -90,46 +92,41 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
   }, []);
 
   useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const handleClose = () => setIsOpen(false);
+    dialog.addEventListener("close", handleClose);
+    return () => dialog.removeEventListener("close", handleClose);
+  }, []);
+
+  useEffect(() => {
     import("@mapbox/search-js-react").then(({ config }) => {
       config.accessToken = ACCESS_TOKEN;
     });
   }, []);
 
-  const handleAutofillRetrieve = (response: SearchBoxRetrieveResponse) => {
-    const feature = response?.features?.[0];
-    if (!feature) return;
+  const handleAutofillRetrieve = useCallback((response: SearchBoxRetrieveResponse) => {
+    const result = parseMapboxResponse(response);
+    if (!result) return;
 
-    const addressStr: string =
-      feature.properties.full_address ||
-      feature.properties.place_formatted ||
-      feature.properties.name ||
-      "";
-    const lng: number = feature.geometry.coordinates[0];
-    const lat: number = feature.geometry.coordinates[1];
+    setAddress(result.address);
+    setLatitude(result.lat);
+    setLongitude(result.lng);
+    setMinimapFeature(result.feature);
+  }, []);
 
-    setAddress(addressStr);
-    setLatitude(lat);
-    setLongitude(lng);
-    setMinimapFeature({
-      type: "Feature",
-      geometry: {
-        type: "Point",
-        coordinates: [lng, lat],
-      },
-      properties: {},
-    });
-  };
-
-  const handleSaveMarkerLocation = (coordinate: [number, number]) => {
+  const handleSaveMarkerLocation = useCallback((coordinate: [number, number]) => {
     const [lng, lat] = coordinate;
     setLatitude(lat);
     setLongitude(lng);
-  };
+  }, []);
 
   const { execute, isExecuting } = useAction(updatePatientDetails, {
     onSuccess: ({ data }) => {
       if (data?.success) {
         toast.success("Patient details updated successfully");
+        dialogRef.current?.close();
         setIsOpen(false);
       } else if (data?.error) {
         toast.error(data.error);
@@ -139,6 +136,16 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
       toast.error("Failed to update patient details");
     },
   });
+
+  const handleOpen = useCallback(() => {
+    setIsOpen(true);
+    dialogRef.current?.showModal();
+  }, []);
+
+  const handleClose = useCallback(() => {
+    dialogRef.current?.close();
+    setIsOpen(false);
+  }, []);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -160,14 +167,14 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
         longitude,
       });
     },
-    [execute, patient, name, gender, birthday, address, district, latitude, longitude]
+    [execute, patient.id, name, gender, birthday, address, district, latitude, longitude]
   );
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
         className="btn btn-outline btn-sm gap-2"
       >
         <Edit2 className="w-4 h-4" />
@@ -177,13 +184,13 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
       {isOpen &&
         mounted &&
         createPortal(
-          <dialog className="modal modal-open">
+          <dialog ref={dialogRef} className="modal">
             <div className="modal-box max-w-2xl">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold">Edit Patient Details</h3>
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleClose}
                   className="btn btn-ghost btn-sm btn-circle"
                   disabled={isExecuting}
                 >
@@ -304,7 +311,7 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
                   <button
                     type="button"
                     className="btn btn-ghost"
-                    onClick={() => setIsOpen(false)}
+                    onClick={handleClose}
                     disabled={isExecuting}
                   >
                     Cancel
