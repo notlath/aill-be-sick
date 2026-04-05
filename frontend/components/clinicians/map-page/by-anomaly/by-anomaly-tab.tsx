@@ -455,6 +455,7 @@ const ByAnomalyTab = () => {
               <HeatmapMap
                 diagnoses={pinnedAnomalies}
                 topAnomalies={topCriticalAnomalies}
+                showReasons
               />
             )}
           </CardContent>
