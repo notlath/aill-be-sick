@@ -24,6 +24,7 @@ def surveillance_outbreaks():
       - end_date       : Include records on or before this date, e.g. 2025-12-31 (optional).
       - n_estimators   : Number of trees in the Isolation Forest (default: 100).
       - max_samples    : Samples per tree; use 'auto' or an integer (default: 'auto').
+      - force_refresh  : If "1", "true", or "yes", clear cache and re-run detection (default: 0).
 
     Returns JSON:
       {
@@ -99,6 +100,7 @@ def surveillance_outbreaks():
         disease = request.args.get("disease", None)
         start_date = request.args.get("start_date", None)
         end_date = request.args.get("end_date", None)
+        force_refresh = request.args.get("force_refresh", "0") in ("1", "true", "yes")
 
         # --- run analysis ---
         result = analyze_surveillance(
@@ -108,6 +110,7 @@ def surveillance_outbreaks():
             contamination=contamination,
             n_estimators=n_estimators,
             max_samples=max_samples,
+            force_refresh=force_refresh,
         )
 
         summary = result["summary"]

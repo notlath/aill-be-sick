@@ -70,11 +70,11 @@ export default function ClinicianProfileForm({
   const { execute: executeUpdateEmail, isExecuting: isUpdatingEmail } =
     useAction(updateEmailAction, {
       onSuccess: ({ data }) => {
-        if (data?.success)
+        if (data && "success" in data)
           toast.success(
             "Email updated successfully - check your inbox to confirm.",
           );
-        else if (data?.error) toast.error(data.error);
+        else if (data && "error" in data) toast.error(data.error);
       },
       onError: () => toast.error("Failed to update email"),
     });
