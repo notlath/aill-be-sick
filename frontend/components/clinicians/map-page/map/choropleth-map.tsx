@@ -10,9 +10,9 @@ import ChoroplethLegend from "./choropleth-legend";
 import L from "leaflet";
 import { type FeatureCollection } from "geojson";
 import { centerOfMass } from "@turf/turf";
-import { Diagnosis } from "@/lib/generated/prisma";
 import type { SurveillanceAnomaly } from "@/types";
 import { BAGONG_SILANGAN_DISTRICTS } from "@/constants/bagong-silangan-districts";
+import { parseReasonCodes, getReasonLabel } from "@/utils/anomaly-reasons";
 
 // Hoist static primitives outside the component so they are never recreated on re-renders
 const MAP_CENTER: [number, number] = [14.71, 121.113]; // Brgy. Bagong Silangan
@@ -148,26 +148,46 @@ const ChoroplethMap = ({ casesData, geoData, diagnoses, topAnomalies = [], onFea
              if (hasTarget && Math.abs(lat - targetLat) < 0.0001 && Math.abs(lng - targetLng) < 0.0001) return null;
 
              return (
-                <Marker 
-                  key={`district-anomaly-group-${district}`} 
-                  position={[lat, lng]}
-                  icon={criticalIcon}
-                >
-                  <Tooltip className="bg-base-100 border-none shadow-xl rounded-lg text-base-content p-3" opacity={1} direction="top" offset={[0, -10]}>
-                    <div className="font-semibold border-b pb-1 mb-2">{district} ({districtAnomalies.length} Critical Case{districtAnomalies.length !== 1 ? 's' : ''})</div>
-                    <div className="max-h-[200px] overflow-y-auto space-y-2 pr-2">
-                       {districtAnomalies.map((anomaly, idx) => (
-                           <div key={idx} className="text-sm">
-                               <div className="font-medium text-base-content/90">{anomaly.user?.name || `Patient ID: ${anomaly.userId?.toString().slice(-6).toUpperCase()}`}</div>
-                               <div className="flex justify-between items-center gap-4 mt-0.5">
-                                   <span className="text-xs opacity-70 truncate max-w-[120px]" title={anomaly.disease}>{anomaly.disease}</span>
-                                   <span className="text-xs text-error font-medium">Score: {anomaly.anomaly_score.toFixed(3)}</span>
+                 <Marker 
+                   key={`district-anomaly-group-${district}`} 
+                   position={[lat, lng]}
+                   icon={criticalIcon}
+                 >
+                   <Tooltip className="bg-base-100 border-none shadow-xl rounded-lg text-base-content p-3" opacity={1} direction="top" offset={[0, -10]}>
+                     {(() => {
+                       const diseaseCounts: Record<string, number> = {};
+                       const allReasons = new Set<string>();
+                       for (const a of districtAnomalies) {
+                         diseaseCounts[a.disease] = (diseaseCounts[a.disease] || 0) + 1;
+                         if (a.reason) {
+                           parseReasonCodes(a.reason).forEach(r => allReasons.add(r));
+                         }
+                       }
+
+                       return (
+                         <div className="space-y-1">
+                           {Object.entries(diseaseCounts).map(([disease, count]) => (
+                             <div key={disease} className="text-sm">
+                               {count} case{count !== 1 ? 's' : ''} of {disease}
+                             </div>
+                           ))}
+                           {allReasons.size > 0 && (
+                             <div className="text-sm pt-1">
+                               <span className="opacity-70">Reason flags:</span>
+                               <div className="flex flex-wrap gap-1 mt-1">
+                                  {Array.from(allReasons).map((reason) => (
+                                    <span key={reason} className="text-xs bg-error/10 text-error px-2 py-0.5 rounded">
+                                      {getReasonLabel(reason)}
+                                    </span>
+                                  ))}
                                </div>
-                           </div>
-                       ))}
-                    </div>
-                  </Tooltip>
-                </Marker>
+                             </div>
+                           )}
+                         </div>
+                       );
+                     })()}
+                   </Tooltip>
+                 </Marker>
              );
           } catch (e) {
              // In case geometry is invalid for turf
