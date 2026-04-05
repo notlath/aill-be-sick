@@ -169,8 +169,8 @@ async function processOutbreaks(supabase: any, outbreaks: any[]): Promise<number
       .select("id")
       .eq("type", "OUTBREAK")
       .in("status", ["NEW", "ACKNOWLEDGED"])
-      .eq("metadata->disease", disease)
-      .eq("metadata->district", district ?? "")
+      .eq("metadata->>disease", disease)
+      .eq("metadata->>district", district ?? "")
       .gte("createdAt", oneDayAgo)
       .maybeSingle();
 
