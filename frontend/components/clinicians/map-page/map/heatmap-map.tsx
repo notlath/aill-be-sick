@@ -1,17 +1,23 @@
 "use client";
 
-import { useId, useRef, useEffect } from "react";
+import { useId, useRef, useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
 import HeatmapLayer from "./heatmap-layer";
+import InteractivePointsLayer from "./interactive-points-layer";
+import PointDetailModal from "./point-detail-modal";
 import L from "leaflet";
 import type { SurveillanceAnomaly } from "@/types";
 import { getReasonLabel } from "@/utils/anomaly-reasons";
+import "leaflet/dist/leaflet.css";
 
 type GeoPoint = {
   latitude: number | null;
   longitude: number | null;
+  disease?: string;
+  district?: string | null;
+  barangay?: string | null;
+  createdAt?: Date | string | null;
 };
 
 const MAP_CENTER: [number, number] = [14.71, 121.113]; // Brgy. Bagong Silangan
@@ -38,16 +44,69 @@ function MapCenterUpdater() {
 }
 
 type HeatmapMapProps = {
-  diagnoses: GeoPoint[];
+  diagnoses: (GeoPoint | SurveillanceAnomaly)[];
   topAnomalies?: SurveillanceAnomaly[];
+  showReasons?: boolean;
 };
 
-const HeatmapMap = ({ diagnoses, topAnomalies = [] }: HeatmapMapProps) => {
+const HeatmapMap = ({ diagnoses, topAnomalies = [], showReasons = false }: HeatmapMapProps) => {
   const id = useId();
   const mountRef = useRef(0);
   mountRef.current += 1;
   const mapKey = `${id}-${mountRef.current}`;
   const searchParams = useSearchParams();
+  const [selectedPoint, setSelectedPoint] = useState<GeoPoint | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  const formatDate = (dateStr: string | Date | null | undefined): string => {
+    if (!dateStr) return "";
+    const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+    if (isNaN(date.getTime())) return "";
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  };
+
+  const renderAnomalyTooltip = (anomaly: SurveillanceAnomaly) => (
+    <>
+      <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "4px" }}>{anomaly.disease}</div>
+      <div style={{ fontSize: "10px", marginBottom: "2px", opacity: 0.7 }}>
+        {[anomaly.district, anomaly.barangay].filter(Boolean).join(", ") || "No location info"}
+      </div>
+      {anomaly.createdAt && (
+        <div style={{ fontSize: "10px", marginBottom: "4px", opacity: 0.7 }}>
+          Date: {formatDate(anomaly.createdAt)}
+        </div>
+      )}
+      {anomaly.reason && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          {anomaly.reason.split("|").map((r, i) => (
+            <div key={i} style={{ fontSize: "10px", background: "rgba(128,128,128,0.15)", padding: "2px 6px", borderRadius: "4px" }}>
+              {getReasonLabel(r)}
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+
+  const excludedCoords = useMemo(() => {
+    const coords = new Set<string>();
+    for (const anomaly of topAnomalies) {
+      if (anomaly.latitude != null && anomaly.longitude != null) {
+        coords.add(`${anomaly.latitude.toFixed(6)},${anomaly.longitude.toFixed(6)}`);
+      }
+    }
+    return coords;
+  }, [topAnomalies]);
+
+  const handlePointClick = (point: GeoPoint) => {
+    setSelectedPoint(point);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedPoint(null);
+  };
 
   // Custom icon for critical anomalies
   const criticalIcon = L.divIcon({
@@ -116,6 +175,13 @@ const HeatmapMap = ({ diagnoses, topAnomalies = [] }: HeatmapMapProps) => {
         />
         <MapCenterUpdater />
         <HeatmapLayer diagnoses={diagnoses} />
+        <InteractivePointsLayer
+          points={diagnoses}
+          excludedCoords={excludedCoords}
+          onPointClick={handlePointClick}
+          showDate={!showReasons}
+          showReasons={showReasons}
+        />
         
         {/* Render Critical Anomalies as pulsating markers */}
         {topAnomalies.map((anomaly) => {
@@ -129,19 +195,8 @@ const HeatmapMap = ({ diagnoses, topAnomalies = [] }: HeatmapMapProps) => {
               position={[anomaly.latitude, anomaly.longitude]}
               icon={criticalIcon}
             >
-              <Tooltip className="bg-base-100 border-none shadow-xl rounded-lg text-base-content p-3" opacity={1}>
-                <div className="font-semibold">{anomaly.user?.name || `Patient ID: ${anomaly.userId?.toString().slice(-6).toUpperCase()}`}</div>
-                <div className="text-xs text-error font-medium mb-1">Score: {anomaly.anomaly_score.toFixed(3)}</div>
-                <div className="text-xs opacity-80 mb-2">{anomaly.disease}</div>
-                {anomaly.reason && (
-                  <div className="flex flex-col gap-1">
-                    {anomaly.reason.split("|").map((r, i) => (
-                      <div key={i} className="text-[10px] bg-base-200 px-1.5 py-0.5 rounded text-base-content/80">
-                        {getReasonLabel(r)}
-                      </div>
-                    ))}
-                  </div>
-                )}
+              <Tooltip className="leaflet-point-tooltip" opacity={1}>
+                {renderAnomalyTooltip(anomaly)}
               </Tooltip>
             </Marker>
           );
@@ -150,33 +205,25 @@ const HeatmapMap = ({ diagnoses, topAnomalies = [] }: HeatmapMapProps) => {
         {/* Render the targeted anomaly from URL if present */}
         {hasTarget && (
           <Marker position={[targetLat, targetLng]} icon={targetIcon}>
-            <Tooltip className="bg-base-100 border-none shadow-xl rounded-lg text-base-content p-3" opacity={1}>
+            <Tooltip className="leaflet-point-tooltip" opacity={1}>
               {targetAnomaly ? (
-                <>
-                  <div className="font-semibold">{targetAnomaly.user?.name || `Patient ID: ${targetAnomaly.userId?.toString().slice(-6).toUpperCase()}`}</div>
-                  <div className="text-xs text-error font-medium mb-1">Target Anomaly (Score: {targetAnomaly.anomaly_score?.toFixed(3) || "N/A"})</div>
-                  <div className="text-xs opacity-80 mb-2">{targetAnomaly.disease}</div>
-                  {targetAnomaly.reason && (
-                    <div className="flex flex-col gap-1">
-                      {targetAnomaly.reason.split("|").map((r, i) => (
-                        <div key={i} className="text-[10px] bg-base-200 px-1.5 py-0.5 rounded text-base-content/80">
-                          {getReasonLabel(r)}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
+                renderAnomalyTooltip(targetAnomaly)
               ) : (
                 <>
-                  <div className="font-semibold">Target Anomaly</div>
-                  {targetDisease && <div className="text-xs opacity-80 mb-1">{targetDisease}</div>}
-                  <div className="text-[10px] text-base-content/60">View details in alerts</div>
+                  <div style={{ fontWeight: 600 }}>Target Anomaly</div>
+                  {targetDisease && <div style={{ fontSize: "11px", opacity: 0.7, marginBottom: "4px" }}>{targetDisease}</div>}
+                  <div style={{ fontSize: "10px", opacity: 0.5 }}>View details in alerts</div>
                 </>
               )}
             </Tooltip>
           </Marker>
         )}
       </MapContainer>
+      <PointDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetailModal}
+        point={selectedPoint}
+      />
     </div>
   );
 };
