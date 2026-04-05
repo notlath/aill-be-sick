@@ -31,7 +31,7 @@ const AddressMinimap = dynamic(
 const FIXED_CITY = "Quezon City";
 const FIXED_BARANGAY = "Bagong Silangan";
 const FIXED_REGION = "National Capital Region (NCR)";
-const FIXED_PROVINCE = "NCR, Second District (Not a Province)";
+const FIXED_PROVINCE = "NCR, Second District";
 
 const ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 

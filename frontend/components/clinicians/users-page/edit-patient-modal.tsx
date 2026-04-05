@@ -19,7 +19,7 @@ import { createPortal } from "react-dom";
 const FIXED_CITY = "Quezon City";
 const FIXED_BARANGAY = "Bagong Silangan";
 const FIXED_REGION = "National Capital Region (NCR)";
-const FIXED_PROVINCE = "NCR, Second District (Not a Province)";
+const FIXED_PROVINCE = "NCR, Second District";
 
 interface EditPatientModalProps {
   patient: {
