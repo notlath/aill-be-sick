@@ -14,11 +14,26 @@ The Real-Time Alert System automatically notifies clinicians when a newly submit
 
 ### Key Benefits
 
-- **Zero-latency notification**: Clinicians see new alerts within seconds of a diagnosis being created
+- **Reliable detection**: Supabase Cron runs every 15 minutes — no alerts lost to serverless cold starts or transient failures
 - **Persistent record**: Every alert is stored in PostgreSQL and survives page refreshes
 - **Actionable**: Each alert can be acknowledged or dismissed directly from the alerts page
 - **Explainable**: Reason codes describe exactly why a diagnosis was flagged, in plain language
 - **Single shared subscription**: All UI consumers share one Zustand store and one Supabase Realtime channel — no duplicate connections
+- **Batched toast notifications**: Exactly 1 summary toast per cron run (not 1 per alert) — prevents toast spam when many anomalies are detected
+
+---
+
+## Version History
+
+| Version | Date | Description |
+|---------|------|-------------|
+| **7.0** | 2026-04-05 | Migrated from per-alert toasts to batched summary toasts (1 toast per cron run) |
+| **6.0** | 2026-04-05 | Migrated from event-driven fire-and-forget to Supabase Cron-based surveillance |
+| **5.0** | 2026-03-22 | Migrated from CDC EARS C1 to DOH PIDSR methodology |
+| **4.0** | 2026-03-14 | Added K-Means spatial clustering + real-time toast notifications |
+| **3.0** | 2026-03-09 | Added Supabase Realtime subscription + Zustand store |
+| **2.0** | 2026-03-05 | Added alert acknowledgment/dismissal workflow |
+| **1.0** | 2026-03-01 | Initial alert system with PostgreSQL storage |
 
 ---
 
@@ -26,19 +41,63 @@ The Real-Time Alert System automatically notifies clinicians when a newly submit
 
 ### Core Functionality
 
-When a clinician verifies a diagnosis:
+Alerts are created by a Supabase Edge Function running on a 15-minute cron schedule:
 
-1. The diagnosis status is updated to `VERIFIED` in PostgreSQL
-2. A non-blocking background function calls the Flask surveillance endpoint
-3. The response is scanned to see if the newly verified diagnosis appears in the anomalies list
-4. If it does, an `Alert` record is created in PostgreSQL
-5. Supabase Realtime broadcasts the INSERT event to all subscribed clinician browsers
-6. Every connected clinician sees the alert appear in the table, the sidebar badge update, and a toast notification fire — all without refreshing
+1. Supabase Cron triggers the `/surveillance-cron` Edge Function
+2. The Edge Function calls the Flask backend's unified `/api/surveillance/cron` endpoint
+3. The backend runs Isolation Forest anomaly detection on all VERIFIED diagnoses
+4. The Edge Function matches anomalies and creates `Alert` records in PostgreSQL (with dedup)
+5. After all alerts are created, the Edge Function **broadcasts a single summary event** to all connected clinicians
+6. Every connected clinician sees:
+   - **Exactly 1 toast notification** summarizing all alerts from that cron run (e.g., "5 new alerts detected: 3 anomalies, 2 outbreaks")
+   - The alerts table updates incrementally as each `Alert` row is inserted
+   - The sidebar badge increments
+   - All without refreshing
 
-> **Note:** Anomaly and outbreak alert checks are triggered at verification time, not at diagnosis creation. This ensures only clinician-confirmed cases enter the surveillance pipeline. See `verify-diagnosis.ts` and `override-diagnosis.ts` for the trigger points.
+> **Note:** Surveillance runs on a 15-minute cron schedule, not at verification time. This ensures all VERIFIED diagnoses are analyzed within 15 minutes, with self-healing on transient failures. The cron endpoint only queries diagnoses with `status = 'VERIFIED'`, so PENDING diagnoses are not analyzed until a clinician verifies them.
+
+> **Batched toast design:** Instead of firing 1 toast per `Alert` INSERT (which would spam clinicians when many anomalies are detected), the Edge Function broadcasts a single `cron-run-complete` event after all alerts are created. The frontend listens to this broadcast and shows exactly 1 summary toast per cron run.
 
 ### End-to-End Data Flow
 
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Supabase Cron (every 15 minutes)                               │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Edge Function: /surveillance-cron                        │  │
+│  │  1. GET /api/surveillance/cron                            │  │
+│  │  2. Process anomalies[] + outbreaks[]                     │  │
+│  │  3. Upsert Alert records with dedup                       │  │
+│  │  4. Broadcast cron-run-complete summary                   │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└──────────────────────┬───────────────────────────┬──────────────┘
+                       │                           │
+                       │ Alert INSERTs             │ broadcast event
+                       ▼                           ▼
+┌──────────────────────┐      ┌───────────────────────────────────────┐
+│  Flask Backend       │      │  PostgreSQL + Supabase Realtime       │
+│  /api/surveillance/  │─────▶│  Alert table    │  broadcast channel  │
+│  cron                │      │  (INSERT events)│  (cron-run-complete)│
+│  IsolationForest     │      └──────────┬────────┴─────────┬─────────┘
+│  (VERIFIED-only)     │                 │                  │
+└──────────────────────┘                 │                  │
+                                         ▼                  ▼
+                         ┌───────────────────────────────────────┐
+                         │  Clinician Browser(s)                 │
+                         │                                       │
+                         │  useAlertsStore ("alerts-store")      │
+                         │  ← single shared Zustand store        │
+                         │    + single Supabase channel          │
+                         │                                       │
+                         │  postgres_changes INSERT listener     │
+                         │  → AlertsList table updated           │
+                         │  → AlertsNavBadge updated             │
+                         │                                       │
+                         │  broadcast cron-run-complete listener │
+                         │  → AlertsToastListener fires 1 toast  │
+                         │    with summary: "X anomalies,        │
+                         │     Y outbreaks detected"             │
+                         └───────────────────────────────────────┘
 ```
 ┌──────────────────────┐
 │  Clinician Browser    │
@@ -164,47 +223,21 @@ When a clinician verifies a diagnosis:
 ### Alert Creation Pipeline (Detail)
 
 ```
-┌──────────────────────┐
-│  Surveillance API    │     ┌──────────────────────┐
-│  response.anomalies  │────▶│  find match by       │
-│  [{id, reason, ...}] │     │  diagnosisId         │
-└──────────────────────┘     └──────────┬───────────┘
-                                        │ match found?
-                                  Yes   │      No → return (no alert)
-                                        ▼
-                             ┌──────────────────────┐
-                             │  parse reason codes  │
-                             │  "A|B|C" → ["A","B"] │
-                             └──────────┬───────────┘
-                                        ▼
-                    ┌───────────────────────────────┐
-                     │  mapReasonCodesToSeverity()    │
-                     │  GEOGRAPHIC:RARE + COMBINED    │
-                     │  → CRITICAL                   │
-                     │  GEOGRAPHIC:RARE alone → HIGH  │
-                     │  other → LOW                  │
-                    └──────────┬────────────────────┘
-                               ▼
-                    ┌──────────────────────┐
-                    │  resolveAlertType()  │
-                    │  Always returns      │
-                    │   → ANOMALY          │
-                    └──────────┬───────────┘
-                               ▼
-                    ┌──────────────────────┐
-                    │  buildAlertMessage() │
-                    │  human-readable text │
-                    │  for clinicians      │
-                    └──────────┬───────────┘
-                               ▼
-                    ┌──────────────────────┐
-                    │  prisma.alert.create │
-                    │  { type, severity,   │
-                    │    reasonCodes,      │
-                    │    message,          │
-                    │    diagnosisId,      │
-                    │    metadata }        │
-                    └──────────────────────┘
+┌──────────────────────┐     ┌──────────────────────┐     ┌──────────────────────┐
+│  Supabase Cron       │     │  Flask Backend       │     │  Edge Function       │
+│  (every 15 min)      │────▶│  /api/surveillance/  │────▶│  /surveillance-cron  │
+│                      │     │  cron                │     │                      │
+│  Trigger             │     │  IsolationForest     │     │  Process anomalies[] │
+└──────────────────────┘     │  + Outbreak Detect   │     │  + outbreaks[]       │
+                             └──────────────────────┘     └──────────┬───────────┘
+                                                                      │
+                                                                      ▼
+                                                       ┌──────────────────────┐
+                                                       │  PostgreSQL           │
+                                                       │  Alert table          │
+                                                       │  (Supabase INSERT)    │
+                                                       │  with dedup           │
+                                                       └──────────────────────┘
 ```
 
 ### User Flow — Clinician
@@ -213,8 +246,8 @@ When a clinician verifies a diagnosis:
 2. Clinician opens `/pending-diagnoses` or any page under `/dashboard`
 3. Clinician reviews the diagnosis and clicks "Verify"
 4. `approveDiagnosis` action updates the diagnosis status to `VERIFIED`
-5. Fire-and-forget alert pipeline calls `checkAndCreateAlert()` and `checkAndCreateOutbreakAlert()`
-6. Flask surveillance endpoint analyzes all VERIFIED diagnoses via Isolation Forest
+5. Supabase Cron (every 15 minutes) triggers the surveillance Edge Function
+6. Edge Function calls Flask `/api/surveillance/cron` — runs Isolation Forest on all VERIFIED diagnoses
 7. If the new diagnosis is anomalous: an `Alert` row is inserted into PostgreSQL
 8. Supabase Realtime broadcasts the INSERT via WebSocket to all connected clinician browsers
 9. The store's single channel callback fires, updating `alerts` and `latestAlert` in one place
@@ -226,7 +259,7 @@ When a clinician verifies a diagnosis:
 12. Clinician reviews the alert detail modal (reason codes, metadata, diagnosis link)
 13. Clinician acknowledges or dismisses the alert; status change propagates back via Realtime UPDATE event to all connected clinicians
 
-> **Clinical Override Path:** When a clinician applies a clinical override (`override-diagnosis.ts`), the diagnosis is auto-verified and the alert pipeline runs identically to the approve path.
+> **Clinical Override Path:** When a clinician applies a clinical override (`override-diagnosis.ts`), the diagnosis is auto-verified. The next cron run (within 15 minutes) will analyze it alongside all other VERIFIED diagnoses.
 
 ---
 
@@ -282,6 +315,11 @@ Migration file: `frontend/supabase/migrations/20260309143938_alert_rls_realtime.
 ### File Structure
 
 ```
+supabase/
+├── functions/
+│   └── surveillance-cron/
+│       ├── index.ts                          # Edge Function: calls backend, creates alerts
+│       └── deno.json                         # Deno config
 frontend/
 ├── prisma/
 │   └── schema.prisma                         # Alert model, enums, User relation
@@ -296,8 +334,8 @@ frontend/
 │   ├── AlertNoteSchema.ts                    # Zod schema for creating a note
 │   └── UpdateAlertNoteSchema.ts              # Zod schema for editing a note
 ├── actions/
-│   ├── verify-diagnosis.ts                   # Modified: fires alert pipeline on approve/batch
-│   ├── override-diagnosis.ts                 # Modified: fires alert pipeline on auto-verify
+│   ├── verify-diagnosis.ts                   # No alert calls — cron handles surveillance
+│   ├── override-diagnosis.ts                 # No alert calls — cron handles surveillance
 │   ├── create-alert.ts                       # next-safe-action: creates an Alert
 │   ├── acknowledge-alert.ts                  # next-safe-action: sets ACKNOWLEDGED
 │   ├── dismiss-alert.ts                      # next-safe-action: sets DISMISSED
@@ -305,8 +343,7 @@ frontend/
 │   ├── create-alert-note.ts                  # next-safe-action: adds a note to an alert
 │   └── update-alert-note.ts                  # next-safe-action: edits an existing note (author only)
 ├── utils/
-│   ├── alert-severity.ts                     # Severity mapping + badge helpers
-│   └── alert-pipeline.ts                     # Shared checkAndCreateAlert + checkAndCreateOutbreakAlert
+│   └── alert-severity.ts                     # Severity mapping + badge helpers
 ├── stores/
 │   └── use-alerts-store.ts                   # Zustand store: single channel + all alert state
 ├── components/clinicians/alerts/
@@ -401,61 +438,52 @@ export type AlertMetadata = {
 
 ## Component Architecture
 
-### 1. `alert-pipeline.ts` — Shared Alert Utilities
+### 1. `supabase/functions/surveillance-cron/index.ts` — Supabase Edge Function
 
-**Location**: `frontend/utils/alert-pipeline.ts`
+**Location**: `supabase/functions/surveillance-cron/index.ts`
 
-Contains the shared `checkAndCreateAlert()` and `checkAndCreateOutbreakAlert()` functions used by verification actions. These functions are called as fire-and-forget operations after a diagnosis is verified:
+The Edge Function is triggered by Supabase Cron every 15 minutes. It:
 
-```typescript
-// Non-blocking — verification success is never conditional on alert creation
-checkAndCreateAlert({ diagnosisId, disease, confidence, ... })
-  .catch((err) => console.error(`Anomaly alert failed:`, err));
-```
-
-#### Trigger Points
-
-| Action | File | When Alerts Run |
-|--------|------|-----------------|
-| `approveDiagnosis` | `verify-diagnosis.ts` | After status updated to VERIFIED |
-| `batchApproveDiagnoses` | `verify-diagnosis.ts` | After batch update, queries each verified diagnosis |
-| `overrideDiagnosis` | `override-diagnosis.ts` | Only when `isPending` was true (auto-verify path) |
-
-#### `checkAndCreateAlert()`
-
-This async function performs the full anomaly-to-alert pipeline:
+1. Calls the Flask backend's unified `/api/surveillance/cron` endpoint
+2. Processes anomaly results — creates `ANOMALY` alerts with dedup by `diagnosisId`
+3. Processes outbreak results — creates `OUTBREAK` alerts with 24h dedup by disease+district
+4. **Broadcasts a single `cron-run-complete` summary event** to all connected clinicians
+5. Returns `{ success, results: { anomalies, outbreaks, errors } }` for cron logging
 
 ```typescript
-async function checkAndCreateAlert(params: AlertCheckParams): Promise<void> {
-  // 1. Call Flask surveillance endpoint (no-cache)
-  const res = await fetch(`${BACKEND_URL}/api/surveillance/outbreaks?contamination=0.05`);
+// Called by Supabase Cron every 15 minutes
+serve(async (req) => {
+  const backendRes = await fetch(`${BACKEND_URL}/api/surveillance/cron`);
+  const data = await backendRes.json();
 
-  // 2. Parse anomaly list from response
-  const { anomalies } = await res.json();
+  // Process anomalies — skip if alert already exists for diagnosisId
+  results.anomalies = await processAnomalies(supabase, data.anomalies);
 
-  // 3. Find the new diagnosis in the anomaly list by ID
-  const match = anomalies.find(a => String(a.id) === String(diagnosisId));
+  // Process outbreaks — skip if active alert exists within 24h
+  results.outbreaks = await processOutbreaks(supabase, data.outbreaks);
 
-  if (!match || !match.reason) return; // Not anomalous — no alert needed
-
-  // 4. Parse pipe-separated reason codes into array
-  const reasonCodes = match.reason.split("|").filter(Boolean);
-
-  // 5. Compute severity, type, and human-readable message
-  const severity = mapReasonCodesToSeverity(reasonCodes);
-  const type = resolveAlertType(reasonCodes);
-  const message = buildAlertMessage(disease, reasonCodes, severity);
-
-  // 6. Persist alert directly via Prisma (already in server context)
-  await prisma.alert.create({ data: { type, severity, reasonCodes, message, ... } });
-}
+  // Broadcast single summary event → triggers exactly 1 toast per cron run
+  await supabase.channel("surveillance-cron-run").send({
+    type: "broadcast",
+    event: "cron-run-complete",
+    payload: {
+      anomalyCount: results.anomalies,
+      outbreakCount: results.outbreaks,
+      timestamp: new Date().toISOString(),
+    },
+  });
+});
 ```
+
+**Batched toast design:**
+- Individual `Alert` INSERTs fire `postgres_changes` events → update table + badge
+- After all alerts are created, a single `broadcast` event fires → triggers 1 summary toast
+- This prevents toast spam when many anomalies are detected in one cron run
 
 Key design decisions:
-- **Fire-and-forget**: Alert functions are called without `await`, so a slow or unavailable Flask service never blocks the verification action
-- **Direct Prisma**: Since we are already in a Next.js Server Action (server context), the alert is created via Prisma directly rather than calling `createAlert` as a nested server action
-- **ID matching**: The Flask service may return IDs as strings or integers; the match uses `String(a.id) === String(diagnosisId)` to handle both
-- **VERIFIED-only data**: The Flask surveillance endpoint only queries diagnoses with `status = 'VERIFIED'`, so alerts are only created for confirmed cases
+- **Idempotent**: Upsert logic + 24h dedup means double-fires are no-ops
+- **Partial failure tolerant**: If one detection engine fails, the other still processes
+- **Self-healing**: If the cron run fails entirely, the next 5-minute tick catches all VERIFIED diagnoses
 
 ---
 
@@ -474,18 +502,28 @@ const useAlertsStore = create<AlertsState>()((set, get) => ({ ... }))
 | Field | Type | Description |
 |-------|------|-------------|
 | `alerts` | `Alert[]` | All alerts, all statuses, newest-first |
-| `latestAlert` | `Alert \| null` | Most recent INSERT event (used to trigger toasts) |
+| `latestCronRun` | `CronRunSummary \| null` | Summary of the most recent cron run (triggers batched toast) |
 | `isLoading` | `boolean` | True until initial fetch resolves |
 | `error` | `string \| null` | Fetch error message if initial load fails |
 | `isInitialized` | `boolean` | Guards against double-initialization |
+
+#### CronRunSummary Shape
+
+```typescript
+interface CronRunSummary {
+  anomalyCount: number;
+  outbreakCount: number;
+  timestamp: string;
+}
+```
 
 #### Actions
 
 | Action | Description |
 |--------|-------------|
-| `initialize()` | Fetches all alerts (with notes) + opens the single Realtime channel. Guarded by `isInitialized`. |
-| `teardown()` | Removes the Realtime channel, resets `isInitialized`. |
-| `clearLatestAlert()` | Sets `latestAlert` to null after a toast has been shown. |
+| `initialize()` | Fetches all alerts (with notes) + opens the Realtime channels. Guarded by `isInitialized`. |
+| `teardown()` | Removes both Realtime channels, resets `isInitialized`. |
+| `clearLatestCronRun()` | Sets `latestCronRun` to null after a batched toast has been shown. |
 | `acknowledge(id)` | Calls the `acknowledgeAlert` server action. |
 | `dismiss(id)` | Calls the `dismissAlert` server action. |
 | `resolve(id)` | Calls the `resolveAlert` server action; records `resolvedAt`/`resolvedBy`. |
@@ -509,16 +547,16 @@ All statuses are fetched in one query. Consumers derive their own views client-s
 
 ```typescript
 _channel = supabase
-  .channel("alerts-store")           // single channel, shared by all consumers
+  .channel("alerts-store")           // unique suffix per mount
   .on(
     "postgres_changes",
     { event: "INSERT", schema: "public", table: "Alert" },
     (payload) => {
       const incoming = { ...(payload.new as Alert), notes: [] };
-      set((state) => ({
-        alerts: [incoming, ...state.alerts],
-        latestAlert: incoming,         // triggers toast in AlertsToastListener
-      }));
+      set((state) => {
+        const exists = state.alerts.some((a) => a.id === incoming.id);
+        if (!exists) state.alerts.unshift(incoming);
+      });
     },
   )
   .on(
@@ -529,15 +567,32 @@ _channel = supabase
       set((state) => {
         const exists = state.alerts.some((a) => a.id === updated.id);
         if (exists) {
-          // Preserve the notes array — the Realtime payload does not include it.
-          return { alerts: state.alerts.map((a) => a.id === updated.id ? { ...updated, notes: a.notes ?? [] } : a) };
+          const existingNotes = state.alerts.find((a) => a.id === updated.id)?.notes ?? [];
+          state.alerts[state.alerts.findIndex((a) => a.id === updated.id)] = { ...updated, notes: existingNotes };
+        } else {
+          state.alerts.unshift({ ...updated, notes: [] });
         }
-        return { alerts: [{ ...updated, notes: [] }, ...state.alerts] };
       });
     },
   )
   .subscribe();
+
+// Separate channel for cron-run broadcast events
+_broadcastChannel = supabase.channel("surveillance-cron-run");
+_broadcastChannel
+  .on("broadcast", { event: "cron-run-complete" }, (payload) => {
+    set((state) => {
+      state.latestCronRun = payload.payload as CronRunSummary;
+    });
+  })
+  .subscribe();
 ```
+
+**Two-channel design:**
+1. **`alerts-store-{random}`** (`postgres_changes`) — Fires for every `Alert` INSERT/UPDATE. Updates the table and sidebar badge incrementally. Does **not** trigger toasts.
+2. **`surveillance-cron-run`** (`broadcast`) — Subscribed to by the frontend, broadcast to by the Edge Function. Fires once per cron run after all alerts are created. Triggers exactly 1 summary toast in `AlertsToastListener`.
+
+> **Why two channels?** The Edge Function broadcasts to a fixed channel name (`surveillance-cron-run`) so all clinician browsers receive the same event. The `postgres_changes` channel uses a random suffix to avoid React Strict Mode double-mount collisions — these can't be the same channel.
 
 > **Note:** The `AlertNote` table is **not** added to the Supabase Realtime publication. Note mutations (`addNote`, `editNote`) are reflected in the UI immediately by consuming the server action's return value directly in the store, then applying it to local state. No Realtime round-trip is needed for notes.
 
@@ -608,48 +663,70 @@ This is the only place `initialize()` is called. All other components read from 
 
 ---
 
-### 4. `AlertsToastListener` — Background Toast Notifier
+### 4. `AlertsToastListener` — Batched Summary Toast Notifier
 
 **Location**: `frontend/components/clinicians/alerts/alerts-toast-listener.tsx`
 
-Mounted once in `app/(app)/(clinician)/layout.tsx` so it runs on every clinician page. It reads `latestAlert` from the store and fires a `sonner` toast whenever a new INSERT arrives:
+Mounted once in `app/(app)/(clinician)/layout.tsx` so it runs on every clinician page. It reads `latestCronRun` from the store and fires a single `sonner` toast summarizing all alerts from that cron run:
 
 ```typescript
 const AlertsToastListener = () => {
-  const { latestAlert, clearLatestAlert } = useAlertsStore(
-    useShallow((s) => ({ latestAlert: s.latestAlert, clearLatestAlert: s.clearLatestAlert }))
+  const { latestCronRun, clearLatestCronRun } = useAlertsStore(
+    useShallow((s) => ({
+      latestCronRun: s.latestCronRun,
+      clearLatestCronRun: s.clearLatestCronRun,
+    }))
   );
 
   useEffect(() => {
-    if (!latestAlert) return;
+    if (!latestCronRun) return;
 
+    const { anomalyCount, outbreakCount, timestamp } = latestCronRun;
+    const totalAlerts = anomalyCount + outbreakCount;
+
+    if (totalAlerts === 0) {
+      clearLatestCronRun();
+      return;
+    }
+
+    // Build summary: "3 anomalies, 2 outbreaks"
+    const parts: string[] = [];
+    if (anomalyCount > 0) parts.push(`${anomalyCount} anomal${anomalyCount === 1 ? "y" : "ies"}`);
+    if (outbreakCount > 0) parts.push(`${outbreakCount} outbreak${outbreakCount === 1 ? "" : "s"}`);
+    const summary = parts.join(", ");
+
+    // Severity colour based on what was detected
     const toastFn =
-      latestAlert.severity === "CRITICAL" || latestAlert.severity === "HIGH"
+      anomalyCount > 0 || outbreakCount > 2
         ? toast.error
-        : latestAlert.severity === "MEDIUM"
-        ? toast.warning
-        : toast.info;
+        : outbreakCount > 0
+          ? toast.warning
+          : toast.info;
 
-    toastFn(`${severityLabel}: ${latestAlert.message}`, {
+    toastFn(`${totalAlerts} new alert${totalAlerts === 1 ? "" : "s"} detected`, {
+      description: `${summary} · ${new Date(timestamp).toLocaleTimeString()}`,
       duration: 8000,
       action: { label: "View Alerts", onClick: () => window.location.href = "/alerts" },
     });
 
-    clearLatestAlert(); // prevent re-firing on re-render
-  }, [latestAlert, clearLatestAlert]);
+    clearLatestCronRun(); // prevent re-firing on re-render
+  }, [latestCronRun, clearLatestCronRun]);
 
   return null; // renders nothing
 };
 ```
 
-Toast severity mapping:
+Toast severity mapping (batched):
 
-| Alert Severity | Sonner Function | Visual |
-|----------------|----------------|--------|
-| CRITICAL | `toast.error` | Red |
-| HIGH | `toast.error` | Red |
-| MEDIUM | `toast.warning` | Yellow |
-| LOW | `toast.info` | Blue |
+| Condition | Sonner Function | Visual |
+|-----------|----------------|--------|
+| Any anomalies detected | `toast.error` | Red |
+| 3+ outbreaks detected | `toast.error` | Red |
+| 1-2 outbreaks detected | `toast.warning` | Yellow |
+| Only anomalies (low priority) | `toast.info` | Blue |
+
+**Why batched toasts?**
+Before this change, each `Alert` INSERT fired a separate toast. With cron runs detecting 10+ anomalies at once, clinicians would see 10+ consecutive toasts — a poor UX. The batched approach shows exactly 1 summary toast per 15-minute cycle.
 
 ---
 
@@ -855,7 +932,7 @@ Used by both `acknowledge-alert.ts` and `dismiss-alert.ts`.
 
 ## Reason Codes
 
-Reason codes are sourced from the Flask surveillance service's `reason` field (pipe-separated string, e.g. `"GEOGRAPHIC:RARE|CLUSTER:SPATIAL|COMBINED:MULTI"`). They are split into a `String[]` array when the `Alert` is created.
+Reason codes are sourced from the Flask surveillance service's `reason` field (pipe-separated string, e.g. `"GEOGRAPHIC:RARE|COMBINED:MULTI"`). They are split into a `String[]` array when the `Alert` is created.
 
 | Code | Label | Description |
 |------|-------|-------------|
@@ -905,13 +982,14 @@ Action buttons per row:
 
 | Scenario | Behavior |
 |----------|----------|
-| Flask surveillance unavailable | `checkAndCreateAlert` catches the error, logs a warning, returns early — verification is always successful |
-| Flask responds non-200 | Warning logged, no alert created |
+| Flask surveillance unavailable | Edge Function logs the error, returns 500. Next cron run (15 min) retries — no alerts permanently lost |
+| Flask responds non-200 | Edge Function logs the error, returns partial results with `errors` field |
 | Diagnosis not in anomaly list | No alert created (diagnosis is normal) |
-| Prisma alert creation fails | Error logged; does not affect verification record |
+| Supabase alert creation fails | Error logged by Edge Function; next cron run will retry (idempotent) |
 | Supabase initial fetch fails | `error` state set in store; `AlertsList` renders an error alert banner |
 | RLS permission denied (42501) | Caused by missing `GRANT USAGE ON SCHEMA public` — fixed by migration `20260309143938_alert_rls_realtime.sql` |
 | Realtime events not firing | Caused by `Alert` table missing from `supabase_realtime` publication — fixed by `ALTER PUBLICATION supabase_realtime ADD TABLE public."Alert"` |
+| Edge Function timeout | 400s timeout is more than enough for ML inference. If hit, next cron run catches up |
 
 ---
 
@@ -919,10 +997,10 @@ Action buttons per row:
 
 ### Surveillance Contamination Rate
 
-The anomaly check in `checkAndCreateAlert` uses a fixed contamination rate of `0.05` (5%):
+The unified cron endpoint uses a fixed contamination rate of `0.05` (5%):
 
-```typescript
-fetch(`${BACKEND_URL}/api/surveillance/outbreaks?contamination=0.05`)
+```python
+contamination = float(request.args.get("contamination", 0.05))
 ```
 
 This can be made configurable via an environment variable if different sensitivity is needed.
@@ -933,26 +1011,29 @@ This can be made configurable via an environment variable if different sensitivi
 |----------|---------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | `createClient()` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `createClient()` | Supabase anon key for browser client |
-| `NEXT_PUBLIC_BACKEND_URL` | `checkAndCreateAlert()` | Flask surveillance endpoint base URL |
+| `BACKEND_URL` | Edge Function | Flask surveillance endpoint base URL (Supabase secret) |
+| `SUPABASE_URL` | Edge Function | Supabase project URL (Supabase secret) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Edge Function | Supabase service role key for direct DB writes (Supabase secret) |
 | `DATABASE_URL` | Prisma | PostgreSQL connection string |
 
 ---
 
 ## Performance Considerations
 
-- **Non-blocking alert creation**: The anomaly check never delays the clinician's verification response. The `checkAndCreateAlert` call is fire-and-forget
-- **Single Supabase channel**: All three consumers (`AlertsList`, `AlertsNavBadge`, `AlertsToastListener`) share one WebSocket channel via the Zustand store. Previously, each opened its own channel
+- **Single cron run per interval**: One detection run every 15 minutes instead of N redundant runs per verification
+- **Single Supabase channel**: All three consumers (`AlertsList`, `AlertsNavBadge`, `AlertsToastListener`) share one WebSocket channel via the Zustand store
 - **Single fetch**: The store fetches all alerts once on `initialize()`. All consumers filter or derive what they need client-side via selectors — no duplicate Supabase queries
 - **Selector optimization**: `useShallow` is used for multi-value selectors to prevent unnecessary re-renders when unrelated store fields change
 - **`isInitialized` guard**: Prevents double-initialization in React Strict Mode (which mounts components twice in development)
 - **Pagination**: TanStack Table handles large alert sets client-side; no server-side pagination needed at current scale
 - **VERIFIED-only analysis**: The Flask surveillance endpoint only queries diagnoses with `status = 'VERIFIED'`, so alerts are only created for confirmed cases. This means newly PENDING diagnoses won't trigger alerts until a clinician verifies them
+- **Idempotent cron**: Double-fires or retry runs are no-ops due to upsert logic + 24h dedup
 
 ---
 
 ## Testing Checklist
 
-- [ ] Verify a diagnosis on the pending diagnoses page — verify alert appears in `/alerts` without page refresh
+- [ ] Verify a diagnosis on the pending diagnoses page — alert appears in `/alerts` within 15 minutes
 - [ ] Verify toast notification fires on any clinician page when alert is created
 - [ ] Verify sidebar badge increments on new alert
 - [ ] Acknowledge an alert — verify status changes to ACKNOWLEDGED on all open browser tabs
@@ -965,8 +1046,8 @@ This can be made configurable via an environment variable if different sensitivi
 - [ ] Verify only one channel is opened (no duplicate `"alerts-store"` entries in console)
 - [ ] Verify `/alerts` page loads without `42501 permission denied` error
 - [ ] Verify that a PENDING diagnosis does NOT trigger an alert (alert only fires after verification)
-- [ ] Batch verify multiple diagnoses — verify alert pipeline runs for each verified diagnosis
-- [ ] Apply clinical override on a PENDING diagnosis — verify alert pipeline runs after auto-verification
+- [ ] Run `npx tsx scripts/trigger-outbreak.ts` — verify manual trigger works with new cron endpoint
+- [ ] Apply clinical override on a PENDING diagnosis — verify alert appears on next cron run
 
 ---
 
@@ -978,6 +1059,7 @@ This can be made configurable via an environment variable if different sensitivi
 - [ ] **Per-clinician assignment**: Assign alerts to specific clinicians for follow-up
 - [ ] **Configurable contamination**: Allow admins to tune the anomaly sensitivity per disease
 - [ ] **Push notifications**: Browser push notifications for clinicians who are not on the dashboard
+- [ ] **Cron dashboard**: Admin UI to view cron execution logs and last-run status
 
 ---
 
@@ -988,8 +1070,8 @@ This can be made configurable via an environment variable if different sensitivi
 | **Anomaly Detection & Surveillance** | Source of anomaly classifications that trigger alerts. See `ANOMALY_DETECTION_SURVEILLANCE.md` |
 | **Disease Map** | Visualizes the same anomalous diagnoses geographically |
 | **Healthcare Reports** | Full table of all diagnoses, including those that generated alerts |
-| **Diagnosis Verification** | The entry point that triggers `checkAndCreateAlert()` — see `verify-diagnosis.ts` |
-| **Clinical Override** | Auto-verifies PENDING diagnoses and triggers alert pipeline — see `override-diagnosis.ts` |
+| **Diagnosis Verification** | Updates status to VERIFIED — cron picks up on next run |
+| **Clinical Override** | Auto-verifies PENDING diagnoses — cron picks up on next run |
 
 ---
 
@@ -999,6 +1081,8 @@ This can be made configurable via an environment variable if different sensitivi
 
 - [Supabase Realtime — Postgres Changes](https://supabase.com/docs/guides/realtime/postgres-changes)
 - [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
+- [Supabase Edge Functions](https://supabase.com/docs/guides/functions)
+- [Supabase Cron](https://supabase.com/docs/guides/functions/cron-jobs)
 - [Zustand](https://zustand.docs.pmnd.rs/)
 - [TanStack Table](https://tanstack.com/table/)
 - [next-safe-action](https://next-safe-action.dev/)
@@ -1006,7 +1090,7 @@ This can be made configurable via an environment variable if different sensitivi
 
 ---
 
-**Version**: 5.0
-**Last Updated**: April 04, 2026
+**Version**: 6.0 (Supabase Cron Migration)
+**Last Updated**: April 05, 2026
 **Maintainer**: AI'll Be Sick Development Team
 

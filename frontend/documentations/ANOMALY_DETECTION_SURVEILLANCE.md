@@ -72,20 +72,20 @@ The system uses **scikit-learn's Isolation Forest** algorithm to detect anomalie
 7. **Visualization**: Map shows filtered anomalies; timeline shows temporal distribution
 8. **Drill-Down**: User clicks stats cards to open modal tables with full details
 
-> **Important:** Both the anomaly detection (`surveillance_service.py`) and outbreak detection (`outbreak_service.py`) only analyze diagnoses with `status = 'VERIFIED'`. This means newly created diagnoses (status: PENDING) will not appear in anomaly results until a clinician verifies them. Alert creation is triggered at verification time, not at diagnosis creation.
+> **Important:** Both the anomaly detection (`surveillance_service.py`) and outbreak detection (`outbreak_service.py`) only analyze diagnoses with `status = 'VERIFIED'`. This means newly created diagnoses (status: PENDING) will not appear in anomaly results until a clinician verifies them. Alerts are created by the Supabase Cron job (every 15 minutes), not at verification time.
 
 ### System Integration
 
 | Component | Integration Point |
 |-----------|------------------|
 | **Backend API** | `GET /api/surveillance/outbreaks` — Flask endpoint (VERIFIED diagnoses only) |
+| **Cron API** | `GET /api/surveillance/cron` — Unified endpoint for scheduled runs (anomaly + outbreak) |
 | **Surveillance Service** | `analyze_surveillance()` — Main entry point (filters `status = 'VERIFIED'`) |
 | **Isolation Forest** | `sklearn.ensemble.IsolationForest` — Anomaly detection |
 | **State Management** | Zustand stores for disease/date selection |
 | **UI Components** | TanStack Table, DaisyUI Cards/Modals |
 | **Timeline Chart** | Recharts AreaChart for temporal view |
-| **Alert Trigger** | `verify-diagnosis.ts` — Fires `checkAndCreateAlert()` on VERIFIED status |
-| **Outbreak Trigger** | `verify-diagnosis.ts` — Fires `checkAndCreateOutbreakAlert()` on VERIFIED status |
+| **Alert Creation** | Supabase Edge Function (`/surveillance-cron`) — runs every 15 minutes |
 
 ---
 
@@ -509,6 +509,24 @@ return "|".join(sorted(reasons))
 
 ---
 
-**Version**: 1.0
-**Last Updated**: March 9, 2026
+**Version**: 2.0 (Supabase Cron Migration)
+**Last Updated**: April 5, 2026
 **Maintainer**: AI'll Be Sick Development Team
+
+---
+
+## Changelog
+
+### Version 2.0 - April 5, 2026
+- **Migrated alert creation from event-driven to Supabase Cron-based**
+  - Alerts are now created by the Supabase Edge Function (`/surveillance-cron`) running every 15 minutes
+  - Added unified `/api/surveillance/cron` endpoint in Flask backend
+  - Removed fire-and-forget alert calls from `verify-diagnosis.ts` and `override-diagnosis.ts`
+  - Deleted `frontend/utils/alert-pipeline.ts`
+- **Rationale**: Eliminate silent alert losses from serverless cold starts and non-recoverable failures
+- **Impact**: All VERIFIED diagnoses are analyzed within 15 minutes; transient failures self-heal
+
+### Version 1.0 - March 9, 2026
+- Initial implementation with Isolation Forest anomaly detection
+- Per-disease baseline reason codes
+- Real-time Supabase notifications

@@ -5,7 +5,6 @@ import { getCurrentDbUser } from "@/utils/user";
 import { actionClient } from "./client";
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
-import { checkAndCreateAlert, checkAndCreateOutbreakAlert } from "@/utils/alert-pipeline";
 
 /**
  * Schema for approving a diagnosis
@@ -78,41 +77,9 @@ export const approveDiagnosis = actionClient
         } as any,
       });
 
-      // Revalidate paths for diagnosis data
       revalidatePath("/healthcare-reports");
       revalidatePath("/pending-diagnoses");
       revalidatePath(`/diagnosis/${diagnosis.chatId}`);
-
-      // Run anomaly and outbreak checks in the background — non-blocking.
-      // Only verified diagnoses enter the surveillance pipeline.
-      const patient = diagnosis.user;
-      checkAndCreateAlert({
-        diagnosisId,
-        disease: diagnosis.disease,
-        confidence: diagnosis.confidence,
-        uncertainty: diagnosis.uncertainty,
-        city: diagnosis.city,
-        province: diagnosis.province,
-        region: diagnosis.region,
-        barangay: diagnosis.barangay,
-        district: diagnosis.district,
-        latitude: diagnosis.latitude ?? null,
-        longitude: diagnosis.longitude ?? null,
-        patientAge: patient?.age ?? undefined,
-        patientGender: patient?.gender ?? undefined,
-      }).catch((err) =>
-        console.error(
-          `[approveDiagnosis] Anomaly alert failed for diagnosis ${diagnosisId}:`,
-          err,
-        ),
-      );
-
-      checkAndCreateOutbreakAlert().catch((err) =>
-        console.error(
-          `[approveDiagnosis] Outbreak alert failed for diagnosis ${diagnosisId}:`,
-          err,
-        ),
-      );
 
       return { 
         success: "Diagnosis verified successfully",
@@ -254,40 +221,6 @@ export const batchApproveDiagnoses = actionClient
           verifiedBy: dbUser.id,
         } as any,
       });
-
-      // Run anomaly and outbreak checks for each newly verified diagnosis — non-blocking.
-      // Only verified diagnoses enter the surveillance pipeline.
-      for (const dx of eligibleDiagnoses) {
-        const patient = dx.user;
-        checkAndCreateAlert({
-          diagnosisId: dx.id,
-          disease: dx.disease,
-          confidence: dx.confidence,
-          uncertainty: dx.uncertainty,
-          city: dx.city,
-          province: dx.province,
-          region: dx.region,
-          barangay: dx.barangay,
-          district: dx.district,
-          latitude: dx.latitude ?? null,
-          longitude: dx.longitude ?? null,
-          patientAge: patient?.age ?? undefined,
-          patientGender: patient?.gender ?? undefined,
-        }).catch((err) =>
-          console.error(
-            `[batchApproveDiagnoses] Anomaly alert failed for diagnosis ${dx.id}:`,
-            err,
-          ),
-        );
-      }
-
-      // Run outbreak detection once for the full dataset — it scans all VERIFIED diagnoses globally.
-      checkAndCreateOutbreakAlert().catch((err) =>
-        console.error(
-          `[batchApproveDiagnoses] Outbreak alert failed:`,
-          err,
-        ),
-      );
 
       // Revalidate paths
       revalidatePath("/healthcare-reports");

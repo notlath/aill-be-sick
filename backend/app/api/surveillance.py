@@ -6,6 +6,7 @@ import traceback
 from flask import Blueprint, request, jsonify, current_app
 
 from app.services.surveillance_service import analyze_surveillance
+from app.services.outbreak_service import detect_outbreaks
 
 surveillance_bp = Blueprint("surveillance", __name__)
 
@@ -149,3 +150,70 @@ def surveillance_outbreaks():
         if current_app.debug:
             payload["details"] = error_details
         return jsonify(payload), 500
+
+
+@surveillance_bp.route("/api/surveillance/cron", methods=["GET"])
+def surveillance_cron():
+    """
+    Unified endpoint for scheduled surveillance runs (Supabase Cron / Edge Functions).
+
+    Runs both anomaly detection (Isolation Forest) and outbreak detection
+    (DOH PIDSR + K-Means) in a single call. Designed for cron execution —
+    partial failures return results with an errors field so the caller
+    can still process what succeeded.
+
+    Returns JSON:
+      {
+        "anomalies": [ { "id": ..., "reason": "...", "disease": "..." } ],
+        "outbreaks": [ { "disease": "...", "district": "...", "severity": "...", ... } ],
+        "errors": [ "description of any failed detection engine" ]
+      }
+    """
+    errors = []
+    anomalies = []
+    outbreaks = []
+
+    # --- Anomaly Detection ---
+    try:
+        contamination = float(request.args.get("contamination", 0.05))
+        if not (0.0 < contamination < 0.5):
+            contamination = 0.05
+
+        result = analyze_surveillance(
+            start_date=None,
+            end_date=None,
+            disease=None,
+            contamination=contamination,
+            n_estimators=100,
+            max_samples="auto",
+        )
+
+        anomalies = result.get("anomalies", [])
+        print(
+            f"[CRON] Anomaly detection: {result['summary']['total_records']} records, "
+            f"{result['summary']['anomaly_count']} anomalies"
+        )
+    except Exception as e:
+        error_details = traceback.format_exc()
+        print(f"ERROR in surveillance_cron (anomaly): {str(e)}")
+        print(error_details)
+        errors.append(f"Anomaly detection failed: {str(e)}")
+
+    # --- Outbreak Detection ---
+    try:
+        outbreaks = detect_outbreaks()
+        print(f"[CRON] Outbreak detection: {len(outbreaks)} outbreaks found")
+    except Exception as e:
+        error_details = traceback.format_exc()
+        print(f"ERROR in surveillance_cron (outbreak): {str(e)}")
+        print(error_details)
+        errors.append(f"Outbreak detection failed: {str(e)}")
+
+    response = {
+        "anomalies": anomalies,
+        "outbreaks": outbreaks,
+        "errors": errors,
+    }
+
+    status_code = 500 if len(errors) == 2 else 200
+    return jsonify(response), status_code

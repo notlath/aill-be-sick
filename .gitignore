@@ -85,3 +85,8 @@ frontend/app/generated
 .kilocode
 skills-lock.json
 .aider*
+
+# Supabase temp
+supabase/.temp/
+supabase/.branches
+frontend/supabase/.temp/
