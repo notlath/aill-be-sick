@@ -157,7 +157,7 @@ const LoginContent = () => {
             <p className="text-muted text-base">
               {isSignupMode
                 ? "Fill in your details to get started."
-                : "Sign in to access your health dashboard."}
+                : "Sign in to continue."}
             </p>
           </div>
 
@@ -274,8 +274,7 @@ const LoginContent = () => {
                 className="animate-slide-up text-center text-sm text-muted mt-5"
                 style={{ animationDelay: "0.3s" }}
               >
-                Need an account? Please contact your clinician to create one for
-                you.
+                Need an account? Visit Bagong Silangan Health Center to have a clinician create one for you.
               </p>
             </>
           )}
