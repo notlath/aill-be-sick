@@ -49,11 +49,11 @@ EVIDENCE_STOP_MAX_UNCERTAINTY = float(
 # Multi-metric uncertainty thresholds (data-driven, adjust based on validation)
 
 # Confidence thresholds
-VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.70"))  # Thesis: 70%
+VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.75"))  # Thesis: 70%
 
 # Mutual Information (epistemic uncertainty)
-VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.05"))  # Thesis: 5%
-TRIAGE_LOW_UNCERTAINTY = float(os.getenv("TRIAGE_LOW_UNCERTAINTY", "0.03"))
+VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.04"))  # Thesis: 5%
+TRIAGE_LOW_UNCERTAINTY = float(os.getenv("TRIAGE_LOW_UNCERTAINTY", "0.02"))
 
 # Variance threshold (prediction stability)
 VALID_MAX_VARIANCE = float(os.getenv("VALID_MAX_VARIANCE", "0.02"))
@@ -114,12 +114,12 @@ NOVELTY_PENALTY_WEIGHT = float(os.getenv("NOVELTY_PENALTY_WEIGHT", "0.12"))
 
 # HIGH PRIORITY (Green/Low Priority): Automated diagnosis
 # Requires: High confidence AND low uncertainty
-TRIAGE_HIGH_CONFIDENCE = float(os.getenv("TRIAGE_HIGH_CONFIDENCE", "0.90"))
-TRIAGE_LOW_UNCERTAINTY = float(os.getenv("TRIAGE_LOW_UNCERTAINTY", "0.03"))
+TRIAGE_HIGH_CONFIDENCE = float(os.getenv("TRIAGE_HIGH_CONFIDENCE", "0.92"))
+TRIAGE_LOW_UNCERTAINTY = float(os.getenv("TRIAGE_LOW_UNCERTAINTY", "0.02"))
 
 # MEDIUM PRIORITY (Yellow/Moderate Priority): Nurse review required
 # Confidence between 70-90% OR moderate uncertainty (0.03-0.08)
-TRIAGE_MEDIUM_CONFIDENCE_MIN = float(os.getenv("TRIAGE_MEDIUM_CONFIDENCE_MIN", "0.70"))
+TRIAGE_MEDIUM_CONFIDENCE_MIN = float(os.getenv("TRIAGE_MEDIUM_CONFIDENCE_MIN", "0.75"))
 TRIAGE_MEDIUM_UNCERTAINTY_MAX = float(
     os.getenv("TRIAGE_MEDIUM_UNCERTAINTY_MAX", "0.08")
 )
