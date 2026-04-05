@@ -55,7 +55,7 @@ export default function NeedAccountPage() {
             <Info className="w-5 h-5 shrink-0" />
             <p className="text-sm">
               If you already have an account, you can{" "}
-              <Link href="/login" className="link link-primary font-medium">
+              <Link href="/login" className="link font-medium underline">
                 sign in here
               </Link>
               .
@@ -70,15 +70,6 @@ export default function NeedAccountPage() {
             Back to Sign In
           </Link>
 
-          <p className="text-center text-sm text-muted">
-            I already have an account but can&apos;t log in —{" "}
-            <Link
-              href="/support"
-              className="text-primary font-medium hover:underline transition-all cursor-pointer"
-            >
-              get help
-            </Link>
-          </p>
         </div>
       </section>
 

@@ -73,13 +73,20 @@ function AuthCallbackContent() {
           } = await supabase.auth.getUser();
 
           if (user) {
+            // Determine role from user_metadata (set during account creation)
+            const metadataRole = user.user_metadata?.role as
+              | "PATIENT"
+              | "CLINICIAN"
+              | "ADMIN"
+              | "DEVELOPER"
+              | undefined;
+
+            // Default to PATIENT if no role in metadata (safe fallback)
+            const role = metadataRole || "PATIENT";
+
             // Small delay to show success state before redirecting
             setTimeout(() => {
-              router.replace(
-                getDefaultLandingPath(
-                  user.email?.includes("clinician") ? "CLINICIAN" : "PATIENT",
-                ),
-              );
+              router.replace(getDefaultLandingPath(role));
             }, 1500);
             return;
           }
@@ -259,8 +266,8 @@ function AuthCallbackContent() {
           {/* Help text */}
           <p className="text-center text-sm text-muted">
             Need help?{" "}
-            <Link href="/support" className="text-primary hover:underline">
-              Contact Support
+            <Link href="/need-account" className="text-primary hover:underline">
+              Get an account
             </Link>
           </p>
         </div>

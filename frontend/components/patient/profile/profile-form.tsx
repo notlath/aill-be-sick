@@ -294,7 +294,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
     dataExport,
     {
       onSuccess: ({ data }) => {
-        if (data?.success && data.data) {
+        if (data && "success" in data && data.success && data.data) {
           // Trigger download
           const blob = new Blob([JSON.stringify(data.data, null, 2)], {
             type: "application/json",
@@ -308,7 +308,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
           document.body.removeChild(a);
           URL.revokeObjectURL(url);
           toast.success("Data exported successfully");
-        } else if (data?.error) {
+        } else if (data && "error" in data) {
           toast.error(data.error);
         }
       },
@@ -321,11 +321,11 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
   const { execute: executeWithdrawConsent, isExecuting: isWithdrawing } =
     useAction(withdrawConsent, {
       onSuccess: ({ data }) => {
-        if (data?.success) {
+        if (data && "success" in data) {
           toast.success("Consent withdrawn successfully");
           setShowWithdrawModal(false);
           window.location.href = "/privacy";
-        } else if (data?.error) {
+        } else if (data && "error" in data) {
           toast.error(data.error);
         }
       },
