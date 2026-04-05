@@ -44,6 +44,13 @@ const LoginContent = () => {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error === "session_expired") {
+      toast.info("Your session expired. Please sign in again.");
+    }
+  }, [searchParams]);
+
   // Login form (simple, no consent needed)
   const loginForm = useForm<EmailAuthSchemaType>({
     defaultValues: {

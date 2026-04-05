@@ -168,9 +168,24 @@ export async function GET(request: NextRequest) {
     }
 
     if (error) {
+      // Log the real error for debugging (server-side only)
       console.error("[Auth Callback] SUPABASE AUTH ERROR:", error.message);
+
+      // Map internal errors to user-friendly codes
+      const AUTH_ERROR_CODES: Record<string, string> = {
+        invalid_grant: "session_expired",
+        expired_token: "session_expired",
+        auth_error: "session_expired",
+        invalid_credentials: "session_expired",
+        session_not_found: "session_expired",
+        weak_password: "session_expired",
+        email_not_confirmed: "session_expired",
+      };
+
+      const errorCode = AUTH_ERROR_CODES[error.message] || "session_expired";
+
       return NextResponse.redirect(
-        `${origin}/login?error=${encodeURIComponent(error.message)}`,
+        `${origin}/login?error=${encodeURIComponent(errorCode)}`,
       );
     }
 
