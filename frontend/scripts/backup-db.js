@@ -168,27 +168,27 @@ async function restoreBackup(filename) {
   
   // Restore data in order
   let totalRestored = 0;
-  
+
   for (const model of MODELS) {
     const records = backupData[model];
     if (!records || records.length === 0) {
       console.log(`  ${model}: no records to restore`);
       continue;
     }
-    
+
     try {
-      for (const record of records) {
-        await prisma[model].create({
-          data: record,
-        });
-      }
-      console.log(`  ${model}: ${records.length} records restored`);
-      totalRestored += records.length;
+      // Use createMany to preserve explicit IDs from backup
+      const result = await prisma[model].createMany({
+        data: records,
+        skipDuplicates: true,
+      });
+      console.log(`  ${model}: ${result.count} records restored`);
+      totalRestored += result.count;
     } catch (e) {
       console.error(`  ${model}: restore failed (${e.message})`);
     }
   }
-  
+
   console.log("");
   console.log(`Restore complete! ${totalRestored} records restored.`);
 }
