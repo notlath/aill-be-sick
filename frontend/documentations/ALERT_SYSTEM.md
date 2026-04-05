@@ -19,6 +19,21 @@ The Real-Time Alert System automatically notifies clinicians when a newly submit
 - **Actionable**: Each alert can be acknowledged or dismissed directly from the alerts page
 - **Explainable**: Reason codes describe exactly why a diagnosis was flagged, in plain language
 - **Single shared subscription**: All UI consumers share one Zustand store and one Supabase Realtime channel — no duplicate connections
+- **Batched toast notifications**: Exactly 1 summary toast per cron run (not 1 per alert) — prevents toast spam when many anomalies are detected
+
+---
+
+## Version History
+
+| Version | Date | Description |
+|---------|------|-------------|
+| **7.0** | 2026-04-05 | Migrated from per-alert toasts to batched summary toasts (1 toast per cron run) |
+| **6.0** | 2026-04-05 | Migrated from event-driven fire-and-forget to Supabase Cron-based surveillance |
+| **5.0** | 2026-03-22 | Migrated from CDC EARS C1 to DOH PIDSR methodology |
+| **4.0** | 2026-03-14 | Added K-Means spatial clustering + real-time toast notifications |
+| **3.0** | 2026-03-09 | Added Supabase Realtime subscription + Zustand store |
+| **2.0** | 2026-03-05 | Added alert acknowledgment/dismissal workflow |
+| **1.0** | 2026-03-01 | Initial alert system with PostgreSQL storage |
 
 ---
 
@@ -26,16 +41,22 @@ The Real-Time Alert System automatically notifies clinicians when a newly submit
 
 ### Core Functionality
 
-Alerts are created by a Supabase Edge Function running on a 5-minute cron schedule:
+Alerts are created by a Supabase Edge Function running on a 15-minute cron schedule:
 
 1. Supabase Cron triggers the `/surveillance-cron` Edge Function
 2. The Edge Function calls the Flask backend's unified `/api/surveillance/cron` endpoint
 3. The backend runs Isolation Forest anomaly detection on all VERIFIED diagnoses
 4. The Edge Function matches anomalies and creates `Alert` records in PostgreSQL (with dedup)
-5. Supabase Realtime broadcasts the INSERT event to all subscribed clinician browsers
-6. Every connected clinician sees the alert appear in the table, the sidebar badge update, and a toast notification fire — all without refreshing
+5. After all alerts are created, the Edge Function **broadcasts a single summary event** to all connected clinicians
+6. Every connected clinician sees:
+   - **Exactly 1 toast notification** summarizing all alerts from that cron run (e.g., "5 new alerts detected: 3 anomalies, 2 outbreaks")
+   - The alerts table updates incrementally as each `Alert` row is inserted
+   - The sidebar badge increments
+   - All without refreshing
 
 > **Note:** Surveillance runs on a 15-minute cron schedule, not at verification time. This ensures all VERIFIED diagnoses are analyzed within 15 minutes, with self-healing on transient failures. The cron endpoint only queries diagnoses with `status = 'VERIFIED'`, so PENDING diagnoses are not analyzed until a clinician verifies them.
+
+> **Batched toast design:** Instead of firing 1 toast per `Alert` INSERT (which would spam clinicians when many anomalies are detected), the Edge Function broadcasts a single `cron-run-complete` event after all alerts are created. The frontend listens to this broadcast and shows exactly 1 summary toast per cron run.
 
 ### End-to-End Data Flow
 
@@ -47,17 +68,20 @@ Alerts are created by a Supabase Edge Function running on a 5-minute cron schedu
 │  │  1. GET /api/surveillance/cron                            │  │
 │  │  2. Process anomalies[] + outbreaks[]                     │  │
 │  │  3. Upsert Alert records with dedup                       │  │
+│  │  4. Broadcast cron-run-complete summary                   │  │
 │  └───────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────┬──────────────────────────┘
-                                       │
-                                       ▼
-┌──────────────────────┐      ┌──────────────────────┐
-│  Flask Backend       │      │  PostgreSQL           │
-│  /api/surveillance/  │─────▶│  Alert table          │
-│  cron                │      │  (Supabase INSERT)    │
-│  IsolationForest     │      └──────────┬────────────┘
-│  (VERIFIED-only)     │                 │ WAL → Supabase Realtime
-└──────────────────────┘                 ▼
+└──────────────────────┬───────────────────────────┬──────────────┘
+                       │                           │
+                       │ Alert INSERTs             │ broadcast event
+                       ▼                           ▼
+┌──────────────────────┐      ┌───────────────────────────────────────┐
+│  Flask Backend       │      │  PostgreSQL + Supabase Realtime       │
+│  /api/surveillance/  │─────▶│  Alert table    │  broadcast channel  │
+│  cron                │      │  (INSERT events)│  (cron-run-complete)│
+│  IsolationForest     │      └──────────┬────────┴─────────┬─────────┘
+│  (VERIFIED-only)     │                 │                  │
+└──────────────────────┘                 │                  │
+                                         ▼                  ▼
                          ┌───────────────────────────────────────┐
                          │  Clinician Browser(s)                 │
                          │                                       │
@@ -65,14 +89,14 @@ Alerts are created by a Supabase Edge Function running on a 5-minute cron schedu
                          │  ← single shared Zustand store        │
                          │    + single Supabase channel          │
                          │                                       │
-                         │  AlertsList        reads store        │
-                         │  → table updated                      │
+                         │  postgres_changes INSERT listener     │
+                         │  → AlertsList table updated           │
+                         │  → AlertsNavBadge updated             │
                          │                                       │
-                         │  AlertsNavBadge    reads store        │
-                         │  → sidebar badge updated              │
-                         │                                       │
-                         │  AlertsToastListener reads store      │
-                         │  → toast notification fired           │
+                         │  broadcast cron-run-complete listener │
+                         │  → AlertsToastListener fires 1 toast  │
+                         │    with summary: "X anomalies,        │
+                         │     Y outbreaks detected"             │
                          └───────────────────────────────────────┘
 ```
 ┌──────────────────────┐
@@ -423,21 +447,38 @@ The Edge Function is triggered by Supabase Cron every 15 minutes. It:
 1. Calls the Flask backend's unified `/api/surveillance/cron` endpoint
 2. Processes anomaly results — creates `ANOMALY` alerts with dedup by `diagnosisId`
 3. Processes outbreak results — creates `OUTBREAK` alerts with 24h dedup by disease+district
-4. Returns `{ success, results: { anomalies, outbreaks, errors } }` for cron logging
+4. **Broadcasts a single `cron-run-complete` summary event** to all connected clinicians
+5. Returns `{ success, results: { anomalies, outbreaks, errors } }` for cron logging
 
 ```typescript
 // Called by Supabase Cron every 15 minutes
 serve(async (req) => {
   const backendRes = await fetch(`${BACKEND_URL}/api/surveillance/cron`);
   const data = await backendRes.json();
-  
+
   // Process anomalies — skip if alert already exists for diagnosisId
   results.anomalies = await processAnomalies(supabase, data.anomalies);
-  
+
   // Process outbreaks — skip if active alert exists within 24h
   results.outbreaks = await processOutbreaks(supabase, data.outbreaks);
+
+  // Broadcast single summary event → triggers exactly 1 toast per cron run
+  await supabase.channel("surveillance-cron-run").send({
+    type: "broadcast",
+    event: "cron-run-complete",
+    payload: {
+      anomalyCount: results.anomalies,
+      outbreakCount: results.outbreaks,
+      timestamp: new Date().toISOString(),
+    },
+  });
 });
 ```
+
+**Batched toast design:**
+- Individual `Alert` INSERTs fire `postgres_changes` events → update table + badge
+- After all alerts are created, a single `broadcast` event fires → triggers 1 summary toast
+- This prevents toast spam when many anomalies are detected in one cron run
 
 Key design decisions:
 - **Idempotent**: Upsert logic + 24h dedup means double-fires are no-ops
@@ -461,18 +502,28 @@ const useAlertsStore = create<AlertsState>()((set, get) => ({ ... }))
 | Field | Type | Description |
 |-------|------|-------------|
 | `alerts` | `Alert[]` | All alerts, all statuses, newest-first |
-| `latestAlert` | `Alert \| null` | Most recent INSERT event (used to trigger toasts) |
+| `latestCronRun` | `CronRunSummary \| null` | Summary of the most recent cron run (triggers batched toast) |
 | `isLoading` | `boolean` | True until initial fetch resolves |
 | `error` | `string \| null` | Fetch error message if initial load fails |
 | `isInitialized` | `boolean` | Guards against double-initialization |
+
+#### CronRunSummary Shape
+
+```typescript
+interface CronRunSummary {
+  anomalyCount: number;
+  outbreakCount: number;
+  timestamp: string;
+}
+```
 
 #### Actions
 
 | Action | Description |
 |--------|-------------|
-| `initialize()` | Fetches all alerts (with notes) + opens the single Realtime channel. Guarded by `isInitialized`. |
-| `teardown()` | Removes the Realtime channel, resets `isInitialized`. |
-| `clearLatestAlert()` | Sets `latestAlert` to null after a toast has been shown. |
+| `initialize()` | Fetches all alerts (with notes) + opens the Realtime channels. Guarded by `isInitialized`. |
+| `teardown()` | Removes both Realtime channels, resets `isInitialized`. |
+| `clearLatestCronRun()` | Sets `latestCronRun` to null after a batched toast has been shown. |
 | `acknowledge(id)` | Calls the `acknowledgeAlert` server action. |
 | `dismiss(id)` | Calls the `dismissAlert` server action. |
 | `resolve(id)` | Calls the `resolveAlert` server action; records `resolvedAt`/`resolvedBy`. |
@@ -496,16 +547,16 @@ All statuses are fetched in one query. Consumers derive their own views client-s
 
 ```typescript
 _channel = supabase
-  .channel("alerts-store")           // single channel, shared by all consumers
+  .channel("alerts-store")           // unique suffix per mount
   .on(
     "postgres_changes",
     { event: "INSERT", schema: "public", table: "Alert" },
     (payload) => {
       const incoming = { ...(payload.new as Alert), notes: [] };
-      set((state) => ({
-        alerts: [incoming, ...state.alerts],
-        latestAlert: incoming,         // triggers toast in AlertsToastListener
-      }));
+      set((state) => {
+        const exists = state.alerts.some((a) => a.id === incoming.id);
+        if (!exists) state.alerts.unshift(incoming);
+      });
     },
   )
   .on(
@@ -516,15 +567,32 @@ _channel = supabase
       set((state) => {
         const exists = state.alerts.some((a) => a.id === updated.id);
         if (exists) {
-          // Preserve the notes array — the Realtime payload does not include it.
-          return { alerts: state.alerts.map((a) => a.id === updated.id ? { ...updated, notes: a.notes ?? [] } : a) };
+          const existingNotes = state.alerts.find((a) => a.id === updated.id)?.notes ?? [];
+          state.alerts[state.alerts.findIndex((a) => a.id === updated.id)] = { ...updated, notes: existingNotes };
+        } else {
+          state.alerts.unshift({ ...updated, notes: [] });
         }
-        return { alerts: [{ ...updated, notes: [] }, ...state.alerts] };
       });
     },
   )
   .subscribe();
+
+// Separate channel for cron-run broadcast events
+_broadcastChannel = supabase.channel("surveillance-cron-run");
+_broadcastChannel
+  .on("broadcast", { event: "cron-run-complete" }, (payload) => {
+    set((state) => {
+      state.latestCronRun = payload.payload as CronRunSummary;
+    });
+  })
+  .subscribe();
 ```
+
+**Two-channel design:**
+1. **`alerts-store-{random}`** (`postgres_changes`) — Fires for every `Alert` INSERT/UPDATE. Updates the table and sidebar badge incrementally. Does **not** trigger toasts.
+2. **`surveillance-cron-run`** (`broadcast`) — Subscribed to by the frontend, broadcast to by the Edge Function. Fires once per cron run after all alerts are created. Triggers exactly 1 summary toast in `AlertsToastListener`.
+
+> **Why two channels?** The Edge Function broadcasts to a fixed channel name (`surveillance-cron-run`) so all clinician browsers receive the same event. The `postgres_changes` channel uses a random suffix to avoid React Strict Mode double-mount collisions — these can't be the same channel.
 
 > **Note:** The `AlertNote` table is **not** added to the Supabase Realtime publication. Note mutations (`addNote`, `editNote`) are reflected in the UI immediately by consuming the server action's return value directly in the store, then applying it to local state. No Realtime round-trip is needed for notes.
 
@@ -595,48 +663,70 @@ This is the only place `initialize()` is called. All other components read from 
 
 ---
 
-### 4. `AlertsToastListener` — Background Toast Notifier
+### 4. `AlertsToastListener` — Batched Summary Toast Notifier
 
 **Location**: `frontend/components/clinicians/alerts/alerts-toast-listener.tsx`
 
-Mounted once in `app/(app)/(clinician)/layout.tsx` so it runs on every clinician page. It reads `latestAlert` from the store and fires a `sonner` toast whenever a new INSERT arrives:
+Mounted once in `app/(app)/(clinician)/layout.tsx` so it runs on every clinician page. It reads `latestCronRun` from the store and fires a single `sonner` toast summarizing all alerts from that cron run:
 
 ```typescript
 const AlertsToastListener = () => {
-  const { latestAlert, clearLatestAlert } = useAlertsStore(
-    useShallow((s) => ({ latestAlert: s.latestAlert, clearLatestAlert: s.clearLatestAlert }))
+  const { latestCronRun, clearLatestCronRun } = useAlertsStore(
+    useShallow((s) => ({
+      latestCronRun: s.latestCronRun,
+      clearLatestCronRun: s.clearLatestCronRun,
+    }))
   );
 
   useEffect(() => {
-    if (!latestAlert) return;
+    if (!latestCronRun) return;
 
+    const { anomalyCount, outbreakCount, timestamp } = latestCronRun;
+    const totalAlerts = anomalyCount + outbreakCount;
+
+    if (totalAlerts === 0) {
+      clearLatestCronRun();
+      return;
+    }
+
+    // Build summary: "3 anomalies, 2 outbreaks"
+    const parts: string[] = [];
+    if (anomalyCount > 0) parts.push(`${anomalyCount} anomal${anomalyCount === 1 ? "y" : "ies"}`);
+    if (outbreakCount > 0) parts.push(`${outbreakCount} outbreak${outbreakCount === 1 ? "" : "s"}`);
+    const summary = parts.join(", ");
+
+    // Severity colour based on what was detected
     const toastFn =
-      latestAlert.severity === "CRITICAL" || latestAlert.severity === "HIGH"
+      anomalyCount > 0 || outbreakCount > 2
         ? toast.error
-        : latestAlert.severity === "MEDIUM"
-        ? toast.warning
-        : toast.info;
+        : outbreakCount > 0
+          ? toast.warning
+          : toast.info;
 
-    toastFn(`${severityLabel}: ${latestAlert.message}`, {
+    toastFn(`${totalAlerts} new alert${totalAlerts === 1 ? "" : "s"} detected`, {
+      description: `${summary} · ${new Date(timestamp).toLocaleTimeString()}`,
       duration: 8000,
       action: { label: "View Alerts", onClick: () => window.location.href = "/alerts" },
     });
 
-    clearLatestAlert(); // prevent re-firing on re-render
-  }, [latestAlert, clearLatestAlert]);
+    clearLatestCronRun(); // prevent re-firing on re-render
+  }, [latestCronRun, clearLatestCronRun]);
 
   return null; // renders nothing
 };
 ```
 
-Toast severity mapping:
+Toast severity mapping (batched):
 
-| Alert Severity | Sonner Function | Visual |
-|----------------|----------------|--------|
-| CRITICAL | `toast.error` | Red |
-| HIGH | `toast.error` | Red |
-| MEDIUM | `toast.warning` | Yellow |
-| LOW | `toast.info` | Blue |
+| Condition | Sonner Function | Visual |
+|-----------|----------------|--------|
+| Any anomalies detected | `toast.error` | Red |
+| 3+ outbreaks detected | `toast.error` | Red |
+| 1-2 outbreaks detected | `toast.warning` | Yellow |
+| Only anomalies (low priority) | `toast.info` | Blue |
+
+**Why batched toasts?**
+Before this change, each `Alert` INSERT fired a separate toast. With cron runs detecting 10+ anomalies at once, clinicians would see 10+ consecutive toasts — a poor UX. The batched approach shows exactly 1 summary toast per 15-minute cycle.
 
 ---
 

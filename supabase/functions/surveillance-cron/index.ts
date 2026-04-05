@@ -53,6 +53,33 @@ serve(async (req) => {
       `[surveillance-cron] Processed ${results.anomalies} anomaly alerts, ${results.outbreaks} outbreak alerts`,
     );
 
+    // Broadcast a single summary event to all connected clinicians
+    // This triggers exactly 1 toast per cron run, regardless of alert count
+    const broadcastChannel = supabase.channel("surveillance-cron-run");
+    await new Promise<void>((resolve) => {
+      broadcastChannel
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            resolve();
+          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            console.error(
+              `[surveillance-cron] Broadcast channel ${status}`,
+            );
+            resolve(); // resolve anyway — don't block the response
+          }
+        });
+    });
+
+    broadcastChannel.send({
+      type: "broadcast",
+      event: "cron-run-complete",
+      payload: {
+        anomalyCount: results.anomalies,
+        outbreakCount: results.outbreaks,
+        timestamp: new Date().toISOString(),
+      },
+    });
+
     return new Response(JSON.stringify({ success: true, results }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

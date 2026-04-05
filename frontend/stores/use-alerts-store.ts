@@ -9,21 +9,28 @@ import { updateAlertNote } from "@/actions/update-alert-note";
 import type { Alert, AlertNote } from "@/types";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
+/** Summary payload broadcast by the Edge Function after each cron run completes. */
+interface CronRunSummary {
+  anomalyCount: number;
+  outbreakCount: number;
+  timestamp: string;
+}
+
 interface AlertsState {
   alerts: Alert[];
-  /** The most recently received alert from the real-time channel (null until first INSERT). */
-  latestAlert: Alert | null;
+  /** Summary of the most recent cron run (triggers batched toast). */
+  latestCronRun: CronRunSummary | null;
   isLoading: boolean;
   error: string | null;
   /** Prevents double-initialization if the provider mounts more than once. */
   isInitialized: boolean;
 
-  /** Fetch existing alerts (with notes) and open the single Supabase Realtime channel. */
+  /** Fetch existing alerts (with notes) and open the Supabase Realtime channels. */
   initialize: () => Promise<void>;
-  /** Remove the Realtime channel and reset initialization state. */
+  /** Remove the Realtime channels and reset initialization state. */
   teardown: () => void;
-  /** Clear latestAlert after a toast has been shown. */
-  clearLatestAlert: () => void;
+  /** Clear latestCronRun after a batched toast has been shown. */
+  clearLatestCronRun: () => void;
   /** Call the acknowledgeAlert server action. The Realtime UPDATE event propagates the change. */
   acknowledge: (alertId: number) => Promise<void>;
   /** Call the dismissAlert server action. The Realtime UPDATE event propagates the change. */
@@ -38,13 +45,15 @@ interface AlertsState {
 
 // Channel reference lives outside the store so it's not reactive state.
 let _channel: RealtimeChannel | null = null;
+// Separate channel for cron-run broadcast events (Edge Function → frontend).
+let _broadcastChannel: RealtimeChannel | null = null;
 // Supabase client reference kept for teardown so the same instance is used.
 let _supabase: ReturnType<typeof createClient> | null = null;
 
 const useAlertsStore = create<AlertsState>()(
   immer((set, get) => ({
     alerts: [],
-    latestAlert: null,
+    latestCronRun: null,
     isLoading: true,
     error: null,
     isInitialized: false,
@@ -122,10 +131,13 @@ const useAlertsStore = create<AlertsState>()(
         { event: "INSERT", schema: "public", table: "Alert" },
         (payload) => {
           const incoming = { ...(payload.new as Alert), notes: [] };
-          console.log("[useAlertsStore] Alert INSERT", incoming);
           set((state) => {
-            state.alerts.unshift(incoming);
-            state.latestAlert = incoming;
+            // Guard against duplicates — the alert may already be in state from
+            // the initial fetch or a previous INSERT event (race condition).
+            const exists = state.alerts.some((a) => a.id === incoming.id);
+            if (!exists) {
+              state.alerts.unshift(incoming);
+            }
           });
         },
       )
@@ -134,7 +146,6 @@ const useAlertsStore = create<AlertsState>()(
         { event: "UPDATE", schema: "public", table: "Alert" },
         (payload) => {
           const updated = payload.new as Alert;
-          console.log("[useAlertsStore] Alert UPDATE", updated);
           set((state) => {
             const alertIndex = state.alerts.findIndex((a) => a.id === updated.id);
             if (alertIndex !== -1) {
@@ -147,25 +158,41 @@ const useAlertsStore = create<AlertsState>()(
           });
         },
       )
-      .subscribe((status, err) => {
-        if (err) console.error("[useAlertsStore] channel error:", err);
-        else console.log("[useAlertsStore] channel status:", status);
-      });
+      .subscribe();
+
+    // Separate channel for cron-run broadcast events from the Edge Function.
+    // The Edge Function broadcasts to "surveillance-cron-run", so we subscribe here.
+    _broadcastChannel = supabase.channel("surveillance-cron-run");
+    _broadcastChannel
+      .on(
+        "broadcast",
+        { event: "cron-run-complete" },
+        (payload) => {
+          set((state) => {
+            state.latestCronRun = payload.payload as CronRunSummary;
+          });
+        },
+      )
+      .subscribe();
   },
 
   teardown: () => {
     if (_channel && _supabase) {
       _supabase.removeChannel(_channel);
       _channel = null;
-      _supabase = null;
     }
+    if (_broadcastChannel && _supabase) {
+      _supabase.removeChannel(_broadcastChannel);
+      _broadcastChannel = null;
+    }
+    _supabase = null;
     set((state) => {
       state.isInitialized = false;
     });
   },
 
-  clearLatestAlert: () => set((state) => {
-    state.latestAlert = null;
+  clearLatestCronRun: () => set((state) => {
+    state.latestCronRun = null;
   }),
 
   acknowledge: async (alertId: number) => {
