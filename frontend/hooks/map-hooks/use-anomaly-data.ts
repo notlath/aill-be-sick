@@ -5,7 +5,6 @@ import type { OutbreakFullResult } from "@/types";
 
 type UseAnomalyDataParams = {
   contamination: number;
-  disease: string;
   startDate: string;
   endDate: string;
 };
@@ -21,7 +20,6 @@ const BACKEND_URL =
 
 export const useAnomalyData = ({
   contamination,
-  disease,
   startDate,
   endDate,
 }: UseAnomalyDataParams): UseAnomalyDataResult => {
@@ -43,7 +41,6 @@ export const useAnomalyData = ({
         contamination: String(contamination),
       });
 
-      if (disease && disease !== "all") params.set("disease", disease);
       if (startDate) params.set("start_date", startDate);
       if (endDate) params.set("end_date", endDate);
 
@@ -81,7 +78,7 @@ export const useAnomalyData = ({
       isMounted = false;
       controller.abort();
     };
-  }, [contamination, disease, startDate, endDate]);
+  }, [contamination, startDate, endDate]);
 
   return { anomalyData, loading, error };
 };

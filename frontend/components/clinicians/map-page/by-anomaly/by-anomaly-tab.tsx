@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
@@ -68,13 +68,11 @@ const ByAnomalyTab = () => {
     error: geoError,
   } = useGeoJsonData("/geojson/bagong_silangan.geojson");
 
-  // Always fetch all diseases from the backend so Isolation Forest trains on
-  // the full dataset and per-disease reason-code baselines are accurate.
-  // Disease filtering is applied client-side after receiving the full result.
+  // The backend runs per-disease Isolation Forest models and returns all
+  // results. Disease filtering is applied client-side via useMemo below.
   // Contamination is fixed at 0.05 (5%) - see documentation for rationale.
   const { anomalyData, loading, error } = useAnomalyData({
     contamination: 0.05,
-    disease: "all",
     startDate,
     endDate,
   });

@@ -22,7 +22,7 @@ The Anomaly Detection system identifies unusual diagnosis records using machine 
 
 ### Core Functionality
 
-The system uses **scikit-learn's Isolation Forest** algorithm to detect anomalies based on 9 features: latitude, longitude, disease, district, month, confidence, uncertainty, age, and gender. Each flagged anomaly receives reason codes explaining the deviation.
+The system uses **scikit-learn's Isolation Forest** algorithm with a **per-disease detection strategy**: a separate model is trained for each disease using 6 features — latitude, longitude, district, month, age, and gender. Each flagged anomaly receives reason codes explaining the deviation.
 
 #### Data Flow
 ```
@@ -30,6 +30,7 @@ The system uses **scikit-learn's Isolation Forest** algorithm to detect anomalie
 │  Diagnosis DB      │────▶│  Flask Backend       │────▶│  Next.js Frontend   │
 │  (PostgreSQL)      │     │  surveillance_service│     │  useAnomalyData    │
 │                    │     │  + IsolationForest   │     │  (React hook)      │
+│                    │     │    (per-disease)     │     │                     │
 └─────────────────────┘     └──────────────────────┘     └─────────────────────┘
                                                                     │
                                                                     ▼
@@ -43,30 +44,42 @@ The system uses **scikit-learn's Isolation Forest** algorithm to detect anomalie
 #### Detailed Pipeline
 ```
 ┌─────────────────────┐
-│  fetch_diagnosis_   │     ┌──────────────────────┐     ┌─────────────────────┐
-│  data()             │────▶│  _build_feature_    │────▶│  StandardScaler     │
-│  (SQL query)        │     │  matrix()           │     │  (normalization)    │
-└─────────────────────┘     │  (9 features)       │     └─────────────────────┘
-                            └──────────────────────┘               │
-                                                                 ▼
-                            ┌──────────────────────┐     ┌─────────────────────┐
-                            │  IsolationForest     │────▶│  _compute_reason_   │
-                            │  (anomaly detection)│     │  codes()            │
-                            └──────────────────────┘     └─────────────────────┘
-                                                                 │
-                                                                 ▼
-                            ┌──────────────────────┐     ┌─────────────────────┐
-                            │  anomalies[]         │     │  normal_diagnoses[] │
-                            │  + reason codes     │     │                     │
-                            └──────────────────────┘     └─────────────────────┘
+│  fetch_diagnosis_   │
+│  data()             │────▶  All VERIFIED diagnoses
+│  (SQL query)        │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────┐
+│  Group by disease   │
+│  (per-disease loop) │
+└──────────┬──────────┘
+           │  For each disease group:
+           ▼
+┌──────────────────────┐     ┌─────────────────────┐
+│  _build_feature_    │────▶│  StandardScaler     │
+│  matrix()           │     │  (normalization)    │
+│  (6 features)       │     └─────────────────────┘
+└──────────────────────┘               │
+                                       ▼
+                        ┌──────────────────────┐     ┌─────────────────────┐
+                        │  IsolationForest     │────▶│  _compute_reason_   │
+                        │  (per-disease model)│     │  codes()            │
+                        └──────────────────────┘     └─────────────────────┘
+                                                              │
+                                                              ▼
+                        ┌──────────────────────┐     ┌─────────────────────┐
+                        │  anomalies[]         │     │  normal_diagnoses[] │
+                        │  + reason codes     │     │                     │
+                        └──────────────────────┘     └─────────────────────┘
 ```
 
 ### User Flow
 
 1. **Page Load**: User navigates to Map page, selects "By Anomaly" tab
 2. **Initial Fetch**: Frontend requests all diagnosis data (no disease filter)
-3. **Anomaly Detection**: Backend runs Isolation Forest on full dataset of VERIFIED diagnoses
-4. **Reason Computation**: Per-disease baselines computed for geographic/temporal reasons
+3. **Anomaly Detection**: Backend groups VERIFIED diagnoses by disease, trains a separate Isolation Forest per disease (6 features each), and merges results
+4. **Reason Computation**: Each anomaly's reason codes are computed against its own disease's feature distribution
 5. **Data Return**: Backend returns both anomalies and normal diagnoses with reason codes
 6. **Client Filtering**: Frontend filters displayed data by selected disease
 7. **Visualization**: Map shows filtered anomalies; timeline shows temporal distribution
@@ -161,11 +174,10 @@ frontend/
 
 ```typescript
 const ByAnomalyTab = () => {
-  // Always fetch ALL data (disease: "all") so Isolation Forest
-  // trains on full dataset for accurate per-disease baselines
+  // Backend returns all diseases (per-disease models run server-side).
+  // Disease filtering is applied client-side via useMemo.
   const { anomalyData, loading, error } = useAnomalyData({
     contamination,
-    disease: "all",  // <-- Critical: always fetch full dataset
     startDate,
     endDate,
   });
@@ -194,12 +206,11 @@ const ByAnomalyTab = () => {
 ```typescript
 export const useAnomalyData = ({
   contamination,
-  disease,
   startDate,
   endDate,
 }: UseAnomalyDataParams) => {
-  // Always passes disease="all" from by-anomaly-tab
-  // Query params: contamination, (optional) disease, start_date, end_date
+  // No disease parameter — backend always returns all diseases
+  // Query params: contamination, start_date, end_date
 }
 ```
 
@@ -275,24 +286,33 @@ const ReasonBadge = ({ code }: { code: string }) => {
 | Function | Purpose |
 |----------|---------|
 | `fetch_diagnosis_data()` | SQL query fetching diagnosis + user JOIN |
-| `_build_feature_matrix()` | Converts DB rows to 9-feature numpy array |
-| `detect_anomalies()` | Runs Isolation Forest, computes reason codes |
-| `_compute_reason_codes()` | Per-disease baseline comparisons |
+| `_build_feature_matrix()` | Converts DB rows to 6-feature numpy array |
+| `detect_anomalies()` | Groups records by disease, trains per-disease Isolation Forest, merges results |
+| `_compute_reason_codes()` | Reason code computation (all rows share same disease) |
 | `_row_to_dict()` | Serializes DB rows to JSON-serializable dict |
 | `analyze_surveillance()` | End-to-end entry point |
 
-#### Feature Matrix (9 features)
+#### Feature Matrix (6 features)
 | Index | Feature | Encoding |
 |-------|---------|----------|
 | 0 | latitude | raw float |
 | 1 | longitude | raw float |
-| 2 | disease | LabelEncoder |
-| 3 | district | LabelEncoder |
-| 4 | month (from createdAt) | raw float (1-12) |
-| 5 | confidence | raw float |
-| 6 | uncertainty | raw float |
-| 7 | age (from user) | raw float, median-imputed |
-| 8 | gender (from user) | LabelEncoder |
+| 2 | district | LabelEncoder |
+| 3 | month (from createdAt) | raw float (1-12) |
+| 4 | age (from user) | raw float, median-imputed |
+| 5 | gender (from user) | LabelEncoder |
+
+> **Removed features:** `disease`, `confidence`, and `uncertainty` were removed. The disease feature was removed because per-disease models make it constant. Confidence and uncertainty are model outputs, not patient/disease characteristics, and don't belong in epidemiological anomaly detection.
+
+#### Per-Disease Detection Strategy
+
+The `detect_anomalies()` function groups records by disease and trains a separate Isolation Forest for each disease group. Diseases with fewer than 10 records are skipped (all marked normal) because the model cannot learn a meaningful distribution from too few samples.
+
+**Why per-disease models?**
+- Each disease gets its own 5% contamination budget — common diseases don't dominate rare ones
+- Anomaly scores are computed within each disease's feature distribution, not a global mixed-disease distribution
+- Reason codes and anomaly scores now share the same context — no more misleading explanations
+- Label encoding distortion (arbitrary ordinal distances between disease labels) is eliminated
 
 ---
 
@@ -308,24 +328,46 @@ const ReasonBadge = ({ code }: { code: string }) => {
 | `AGE:RARE` | Patient age > 2σ from disease mean | Per-disease |
 | `GENDER:RARE` | Patient gender represents <20% of cases for this disease | Per-disease |
 
-### Per-Disease vs Global Baselines
+### Per-Disease Detection
 
-**Why per-disease?**
+**Why per-disease models?**
 - Prevents false positives where a record is normal for its disease but unusual globally
 - Example: Dengue typically in district A, Typhoid in district B
 - A Typhoid case in district B should NOT be flagged as "Unusual location"
+- Each disease gets its own contamination budget (5% per disease, not 5% globally)
+- Anomaly scores and reason codes share the same per-disease context
 
-**Implementation** (`_compute_reason_codes`):
+**Implementation** (`detect_anomalies`):
 ```python
-# Filter to same-disease peers
-same_disease_mask = X_all[:, IDX_DIS] == disease_code
-same_disease_rows = X_all[same_disease_mask]
+# Group records by disease
+disease_groups = {}
+for record in data:
+    disease = record.disease or "Unknown"
+    disease_groups.setdefault(disease, []).append(record)
 
-# Compute per-disease stats
-dis_mean = same_disease_rows.mean(axis=0)
-dis_std = same_disease_rows.std(axis=0) + 1e-8
+# Train separate model per disease
+for disease, disease_records in disease_groups.items():
+    if len(disease_records) < 10:
+        # Too few records — mark all as normal
+        for r in disease_records:
+            all_normal.append(_row_to_dict(r, False, 0.0))
+        continue
 
-# Compare against per-disease baseline
+    X_raw, district_enc, gender_enc, medians = _build_feature_matrix(disease_records)
+    X_scaled = scaler.fit_transform(X_raw)
+    model = IsolationForest(contamination=contamination, ...)
+    model.fit(X_scaled)
+    # ... predictions, scores, reason codes
+```
+
+**Reason code computation** (`_compute_reason_codes`):
+Since all rows in `X_all` share the same disease (per-disease model), no disease mask is needed. All statistics are computed directly from `X_all`:
+```python
+# All rows are same-disease — no mask needed
+dis_mean = X_all.mean(axis=0)
+dis_std = X_all.std(axis=0) + 1e-8
+
+# Compare directly
 lat_outlier = abs(X_row[IDX_LAT] - dis_mean[IDX_LAT]) > THRESHOLD * dis_std[IDX_LAT]
 ```
 
@@ -417,9 +459,11 @@ interface OutbreakFullResult {
 ## Performance Considerations
 
 ### Backend
-- **Vectorized ops**: NumPy for all feature computations
-- **Label encoding**: Fitted once per request
-- **Isolation Forest**: `n_jobs=-1` for parallel tree building
+- **Per-disease models**: Each disease gets its own Isolation Forest — more models but each trains on a smaller subset
+- **Vectorized ops**: NumPy for all feature computations within each disease group
+- **Label encoding**: Fitted once per disease group (district, gender only — no disease encoding)
+- **Isolation Forest**: `n_jobs=-1` for parallel tree building per model
+- **Minimum threshold**: Diseases with < 10 records skip detection entirely (no wasted compute)
 
 ### Frontend
 - **Client-side filtering**: `useMemo` prevents recalc on render
@@ -427,8 +471,9 @@ interface OutbreakFullResult {
 - **Lazy loading**: Skeleton loaders during fetch
 
 ### Limitations
-- Large date ranges return more records → slower detection
+- Large date ranges return more records → slower detection (more diseases, more models)
 - Per-disease filtering on client requires full dataset in memory
+- Diseases with very few records (10-20) may produce noisy anomaly scores
 
 ---
 
@@ -509,13 +554,23 @@ return "|".join(sorted(reasons))
 
 ---
 
-**Version**: 2.0 (Supabase Cron Migration)
+**Version**: 3.0 (Per-Disease Detection)
 **Last Updated**: April 5, 2026
 **Maintainer**: AI'll Be Sick Development Team
 
 ---
 
 ## Changelog
+
+### Version 3.0 - April 5, 2026
+- **Migrated from global to per-disease Isolation Forest models**
+  - Each disease now gets its own separate Isolation Forest model
+  - Removed `disease`, `confidence`, and `uncertainty` from feature matrix (6 features → lat, lng, district, month, age, gender)
+  - Diseases with fewer than 10 records are skipped (marked normal) — too few samples for meaningful detection
+  - Each disease gets its own 5% contamination budget instead of competing globally
+  - Reason codes and anomaly scores now share the same per-disease context
+- **Rationale**: Global model caused rare diseases to be mass-flagged, within-disease outliers to be missed, and misleading reason codes (scores computed globally but explanations computed per-disease)
+- **Impact**: More accurate anomaly detection per disease; no false positives from cross-disease feature contamination; confidence/uncertainty no longer influence anomaly scores
 
 ### Version 2.0 - April 5, 2026
 - **Migrated alert creation from event-driven to Supabase Cron-based**
