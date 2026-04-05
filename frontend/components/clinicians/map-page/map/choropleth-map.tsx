@@ -13,6 +13,7 @@ import { centerOfMass } from "@turf/turf";
 import type { SurveillanceAnomaly } from "@/types";
 import { BAGONG_SILANGAN_DISTRICTS } from "@/constants/bagong-silangan-districts";
 import { parseReasonCodes, getReasonLabel } from "@/utils/anomaly-reasons";
+import type { Diagnosis } from "@/lib/generated/prisma";
 
 // Hoist static primitives outside the component so they are never recreated on re-renders
 const MAP_CENTER: [number, number] = [14.71, 121.113]; // Brgy. Bagong Silangan
