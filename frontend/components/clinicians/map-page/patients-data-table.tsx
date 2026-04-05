@@ -101,6 +101,11 @@ export function PatientsDataTable<TData, TValue>({
       globalFilter,
       pagination,
     },
+    meta: {
+      openPatientDetail: (row: any) => {
+        onRowClick?.(row);
+      },
+    },
   });
 
   const pageSizeOptions = useMemo(() => [10, 25, 50, 100], []);

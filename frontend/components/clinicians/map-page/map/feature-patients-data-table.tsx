@@ -27,6 +27,7 @@ import {
 interface FeaturePatientsDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  onRowClick?: (row: TData) => void;
 }
 
 type SortOption = {
@@ -53,6 +54,7 @@ const sortOptions: SortOption[] = [
 export function FeaturePatientsDataTable<TData, TValue>({
   columns,
   data,
+  onRowClick,
 }: FeaturePatientsDataTableProps<TData, TValue>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -98,6 +100,11 @@ export function FeaturePatientsDataTable<TData, TValue>({
       columnFilters,
       globalFilter,
       pagination,
+    },
+    meta: {
+      openFeaturePatientDetail: (row: any) => {
+        onRowClick?.(row);
+      },
     },
   });
 

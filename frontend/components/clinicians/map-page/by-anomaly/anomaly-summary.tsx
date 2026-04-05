@@ -8,8 +8,6 @@ import {
   MapPin,
   HeartPulse,
   Activity,
-  TrendingDown,
-  Gauge
 } from "lucide-react";
 import type { SurveillanceAnomaly } from "@/types";
 import {
@@ -176,31 +174,9 @@ const AnomalySummary: React.FC<AnomalySummaryProps> = ({
           </div>
         )}
 
-        {/* Anomaly Characteristics */}
-        <div>
-          <div className="mb-4 flex items-center gap-2">
-            <Gauge className="size-4 text-info" />
-            <span className="text-base-content font-semibold tracking-tight">
-              Characteristics
-            </span>
-          </div>
-          <div className="bg-base-200/50 p-3 rounded-xl">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="size-3.5 text-muted" />
-              <div className="text-muted text-xs">Avg. Anomaly Score</div>
-            </div>
-            <div className="text-base-content text-lg font-semibold tabular-nums">
-              {stats.avg_anomaly_score.toFixed(2)}
-            </div>
-            <div className="text-muted text-xs font-normal">
-              Lower = more anomalous
-            </div>
-          </div>
-        </div>
-
         {/* Affected Districts */}
         {stats.district_distribution.length > 0 && (
-          <div className="md:col-span-3">
+          <div>
             <div className="mb-4 flex items-center gap-2">
               <MapPin className="size-4 text-warning" />
               <span className="text-base-content font-semibold tracking-tight">

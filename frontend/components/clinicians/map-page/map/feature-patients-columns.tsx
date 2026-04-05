@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, ExternalLink } from "lucide-react";
 import { Diagnosis, User } from "@/lib/generated/prisma";
 import { format } from "date-fns";
 
@@ -139,5 +139,22 @@ export const featurePatientsColumns: ColumnDef<DiagnosisWithUser>[] = [
       if (!dateStr) return <span>—</span>;
       return <span className="whitespace-nowrap">{format(new Date(dateStr), "M/d/yyyy")}</span>;
     },
+  },
+  {
+    id: "actions",
+    cell: ({ row, table }) => (
+      <div className="flex items-center justify-end z-10 relative">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            (table.options.meta as any)?.openFeaturePatientDetail?.(row.original);
+          }}
+          className="btn btn-ghost btn-sm tooltip"
+          data-tip="View Details"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </button>
+      </div>
+    ),
   },
 ];

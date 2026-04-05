@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -13,7 +13,8 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, Search, X } from "lucide-react";
+import { ArrowUpDown, Search, X, ExternalLink } from "lucide-react";
+import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -27,9 +28,8 @@ import {
   parseReasonCodes,
   getReasonLabel,
   getReasonDescription,
-  getAnomalyLevelLabel,
-  getAnomalyLevelBadgeClass,
 } from "@/utils/anomaly-reasons";
+import { AnomalyDetailModal } from "./anomaly-detail-modal";
 
 // ─── Reason badge ─────────────────────────────────────────────────────────────
 
@@ -90,31 +90,6 @@ export const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
       </button>
     ),
     cell: ({ row }) => <span>{row.getValue("disease")}</span>,
-  },
-  {
-    accessorKey: "anomaly_score",
-    header: ({ column }) => (
-      <button
-        className="flex items-center gap-1 hover:text-primary whitespace-nowrap"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Anomaly Level
-        <ArrowUpDown className="w-4 h-4" />
-      </button>
-    ),
-    cell: ({ row }) => {
-      const score = row.getValue("anomaly_score") as number;
-      const label = getAnomalyLevelLabel(score);
-      const badgeClass = getAnomalyLevelBadgeClass(score);
-      return (
-        <span
-          className={`badge ${badgeClass} badge-md cursor-help`}
-          title={`Score: ${score.toFixed(4)}`}
-        >
-          {label}
-        </span>
-      );
-    },
   },
   {
     accessorKey: "reason",
@@ -199,6 +174,20 @@ export const anomalyColumns: ColumnDef<SurveillanceAnomaly>[] = [
       if (!dateStr) return <span>—</span>;
       return <span>{new Date(dateStr).toLocaleDateString()}</span>;
     },
+  },
+  {
+    id: "actions",
+    cell: ({ row, table }) => (
+      <div className="flex items-center justify-end z-10 relative">
+        <button
+          onClick={() => (table.options.meta as any)?.openAnomalyModal?.(row.original)}
+          className="btn btn-ghost btn-sm tooltip"
+          data-tip="View Details"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </button>
+      </div>
+    ),
   },
 ];
 
@@ -301,6 +290,20 @@ export const normalColumns: ColumnDef<SurveillanceAnomaly>[] = [
       return <span>{new Date(dateStr).toLocaleDateString()}</span>;
     },
   },
+  {
+    id: "actions",
+    cell: ({ row, table }) => (
+      <div className="flex items-center justify-end z-10 relative">
+        <button
+          onClick={() => (table.options.meta as any)?.openAnomalyModal?.(row.original)}
+          className="btn btn-ghost btn-sm tooltip"
+          data-tip="View Details"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </button>
+      </div>
+    ),
+  },
 ];
 
 // ─── Data table ───────────────────────────────────────────────────────────────
@@ -310,8 +313,6 @@ type SortOption = { value: string; label: string; desc: boolean };
 const sortOptions: SortOption[] = [
   { value: "user_name",      label: "Name (A-Z)",                    desc: false },
   { value: "user_name",      label: "Name (Z-A)",                    desc: true  },
-  { value: "anomaly_score",  label: "Anomaly Level (Low-High)",      desc: false },
-  { value: "anomaly_score",  label: "Anomaly Level (High-Low)",      desc: true  },
   { value: "disease",        label: "Diagnosis (A-Z)",               desc: false },
   { value: "disease",        label: "Diagnosis (Z-A)",               desc: true  },
   { value: "createdAt",      label: "Date (Oldest)",                 desc: false },
@@ -337,6 +338,14 @@ export const AnomalyDataTable = ({
     pageSize: 10,
   });
 
+  const [selectedAnomaly, setSelectedAnomaly] = useState<SurveillanceAnomaly | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const columns = isAnomaly ? anomalyColumns : normalColumns;
 
   const table = useReactTable({
@@ -359,6 +368,12 @@ export const AnomalyDataTable = ({
     onGlobalFilterChange: setGlobalFilter,
     onPaginationChange: setPagination,
     state: { sorting, columnFilters, globalFilter, pagination },
+    meta: {
+      openAnomalyModal: (anomaly: SurveillanceAnomaly) => {
+        setSelectedAnomaly(anomaly);
+        setIsModalOpen(true);
+      },
+    },
   });
 
   const pageSizeOptions = useMemo(() => [10, 25, 50, 100], []);
@@ -381,7 +396,8 @@ export const AnomalyDataTable = ({
   }, [sorting]);
 
   return (
-    <div className="space-y-4">
+    <>
+      <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between py-2">
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted z-10" />
@@ -541,5 +557,18 @@ export const AnomalyDataTable = ({
         </div>
       </div>
     </div>
+
+    {isMounted && selectedAnomaly ? createPortal(
+      <AnomalyDetailModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setTimeout(() => setSelectedAnomaly(null), 300);
+        }}
+        anomaly={selectedAnomaly}
+      />,
+      document.body
+    ) : null}
+    </>
   );
 };
