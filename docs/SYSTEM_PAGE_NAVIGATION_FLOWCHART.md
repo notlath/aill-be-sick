@@ -190,7 +190,6 @@ flowchart TD
 - `/auth/confirm` — Auth confirmation handler
 - `/auth/sync-error` — Auth sync error page
 - `/auth/expired-invite` — Expired invite error page
-- `/auth/support` — Support page
 - `/auth/onboarding` — Onboarding page
 - `/patient/set-password` — Patient password setting page (from invite link)
 
