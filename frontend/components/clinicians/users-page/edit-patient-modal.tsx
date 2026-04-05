@@ -15,6 +15,15 @@ import {
 } from "@/components/ui/select";
 import { BAGONG_SILANGAN_DISTRICTS } from "@/constants/bagong-silangan-districts";
 import { createPortal } from "react-dom";
+import dynamic from "next/dynamic";
+import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
+
+const SearchBox = dynamic(
+  () => import("@mapbox/search-js-react").then((mod) => mod.SearchBox),
+  { ssr: false },
+);
+
+const ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
 const FIXED_CITY = "Quezon City";
 const FIXED_BARANGAY = "Bagong Silangan";
@@ -54,10 +63,35 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
   );
   const [address, setAddress] = useState(patient.address || "");
   const [district, setDistrict] = useState(patient.district || "");
+  const [latitude, setLatitude] = useState<number | null>(patient.latitude);
+  const [longitude, setLongitude] = useState<number | null>(patient.longitude);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    import("@mapbox/search-js-react").then(({ config }) => {
+      config.accessToken = ACCESS_TOKEN;
+    });
+  }, []);
+
+  const handleAutofillRetrieve = (response: SearchBoxRetrieveResponse) => {
+    const feature = response?.features?.[0];
+    if (!feature) return;
+
+    const addressStr: string =
+      feature.properties.full_address ||
+      feature.properties.place_formatted ||
+      feature.properties.name ||
+      "";
+    const lng: number = feature.geometry.coordinates[0];
+    const lat: number = feature.geometry.coordinates[1];
+
+    setAddress(addressStr);
+    setLatitude(lat);
+    setLongitude(lng);
+  };
 
   const { execute, isExecuting } = useAction(updatePatientDetails, {
     onSuccess: ({ data }) => {
@@ -89,11 +123,11 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
         barangay: FIXED_BARANGAY,
         region: FIXED_REGION,
         province: FIXED_PROVINCE,
-        latitude: patient.latitude,
-        longitude: patient.longitude,
+        latitude,
+        longitude,
       });
     },
-    [execute, patient, name, gender, birthday, address, district]
+    [execute, patient, name, gender, birthday, address, district, latitude, longitude]
   );
 
   return (
@@ -165,10 +199,27 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
                       <MapPin className="w-4 h-4" />
                       Address
                     </label>
-                    <Input
+                    <SearchBox
+                      accessToken={ACCESS_TOKEN}
+                      onRetrieve={handleAutofillRetrieve}
+                      onChange={(value) => setAddress(value)}
                       value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Street address"
+                      options={{ language: "en", country: "PH" }}
+                      placeholder="Start typing your street address…"
+                      theme={{
+                        variables: {
+                          fontFamily: "inherit",
+                          unit: "14px",
+                          padding: "0.5em",
+                          borderRadius: "0.5rem",
+                          colorBackground: "#ffffff",
+                          colorBackgroundHover: "#f5f5f7",
+                          colorText: "#1d1d1f",
+                          colorPrimary: "oklch(59% 0.145 163.225)",
+                          border: "1px solid #e8e8ed",
+                          boxShadow: "none",
+                        },
+                      }}
                     />
                   </div>
 
