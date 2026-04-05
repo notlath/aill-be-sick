@@ -23,6 +23,11 @@ const SearchBox = dynamic(
   { ssr: false },
 );
 
+const AddressMinimap = dynamic(
+  () => import("@mapbox/search-js-react").then((mod) => mod.AddressMinimap),
+  { ssr: false },
+);
+
 const ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
 const FIXED_CITY = "Quezon City";
@@ -65,6 +70,20 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
   const [district, setDistrict] = useState(patient.district || "");
   const [latitude, setLatitude] = useState<number | null>(patient.latitude);
   const [longitude, setLongitude] = useState<number | null>(patient.longitude);
+  const [minimapFeature, setMinimapFeature] = useState<
+    GeoJSON.Feature<GeoJSON.Point> | undefined
+  >(
+    patient.latitude && patient.longitude
+      ? {
+          type: "Feature",
+          geometry: {
+            type: "Point",
+            coordinates: [patient.longitude, patient.latitude],
+          },
+          properties: {},
+        }
+      : undefined
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -89,6 +108,20 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
     const lat: number = feature.geometry.coordinates[1];
 
     setAddress(addressStr);
+    setLatitude(lat);
+    setLongitude(lng);
+    setMinimapFeature({
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: [lng, lat],
+      },
+      properties: {},
+    });
+  };
+
+  const handleSaveMarkerLocation = (coordinate: [number, number]) => {
+    const [lng, lat] = coordinate;
     setLatitude(lat);
     setLongitude(lng);
   };
@@ -221,6 +254,19 @@ export function EditPatientModal({ patient }: EditPatientModalProps) {
                         },
                       }}
                     />
+                    {minimapFeature && (
+                      <div className="rounded-xl overflow-hidden mt-4 h-48 w-full border border-base-300">
+                        <AddressMinimap
+                          accessToken={ACCESS_TOKEN}
+                          feature={minimapFeature}
+                          show={true}
+                          satelliteToggle
+                          canAdjustMarker
+                          footer
+                          onSaveMarkerLocation={handleSaveMarkerLocation}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
