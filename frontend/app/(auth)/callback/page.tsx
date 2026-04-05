@@ -259,8 +259,8 @@ function AuthCallbackContent() {
           {/* Help text */}
           <p className="text-center text-sm text-muted">
             Need help?{" "}
-            <Link href="/support" className="text-primary hover:underline">
-              Contact Support
+            <Link href="/need-account" className="text-primary hover:underline">
+              Get an account
             </Link>
           </p>
         </div>
