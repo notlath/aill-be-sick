@@ -27,6 +27,7 @@ The Real-Time Alert System automatically notifies clinicians when a newly submit
 
 | Version | Date | Description |
 |---------|------|-------------|
+| **8.0** | 2026-04-05 | Migrated anomaly detection from global to per-disease Isolation Forest models; removed confidence/uncertainty from detection features |
 | **7.0** | 2026-04-05 | Migrated from per-alert toasts to batched summary toasts (1 toast per cron run) |
 | **6.0** | 2026-04-05 | Migrated from event-driven fire-and-forget to Supabase Cron-based surveillance |
 | **5.0** | 2026-03-22 | Migrated from CDC EARS C1 to DOH PIDSR methodology |
@@ -45,7 +46,7 @@ Alerts are created by a Supabase Edge Function running on a 15-minute cron sched
 
 1. Supabase Cron triggers the `/surveillance-cron` Edge Function
 2. The Edge Function calls the Flask backend's unified `/api/surveillance/cron` endpoint
-3. The backend runs Isolation Forest anomaly detection on all VERIFIED diagnoses
+3. The backend groups VERIFIED diagnoses by disease, trains a separate Isolation Forest per disease (6 features: lat, lng, district, month, age, gender), and returns anomalies
 4. The Edge Function matches anomalies and creates `Alert` records in PostgreSQL (with dedup)
 5. After all alerts are created, the Edge Function **broadcasts a single summary event** to all connected clinicians
 6. Every connected clinician sees:
@@ -247,7 +248,7 @@ Alerts are created by a Supabase Edge Function running on a 15-minute cron sched
 3. Clinician reviews the diagnosis and clicks "Verify"
 4. `approveDiagnosis` action updates the diagnosis status to `VERIFIED`
 5. Supabase Cron (every 15 minutes) triggers the surveillance Edge Function
-6. Edge Function calls Flask `/api/surveillance/cron` — runs Isolation Forest on all VERIFIED diagnoses
+6. Edge Function calls Flask `/api/surveillance/cron` — runs per-disease Isolation Forest on all VERIFIED diagnoses (6 features each)
 7. If the new diagnosis is anomalous: an `Alert` row is inserted into PostgreSQL
 8. Supabase Realtime broadcasts the INSERT via WebSocket to all connected clinician browsers
 9. The store's single channel callback fires, updating `alerts` and `latestAlert` in one place

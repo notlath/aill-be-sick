@@ -125,28 +125,23 @@ def _build_feature_matrix(records):
     """
     Convert raw DB rows into a numeric feature matrix.
 
-    Features (9):
+    Features (6):
         0 - latitude
         1 - longitude
-        2 - disease (label-encoded)
-        3 - district (label-encoded)
-        4 - month (1-12)
-        5 - confidence
-        6 - uncertainty
-        7 - age (raw float, median-imputed)
-        8 - gender (label-encoded)
+        2 - district (label-encoded)
+        3 - month (1-12)
+        4 - age (raw float, median-imputed)
+        5 - gender (label-encoded)
 
     Returns:
-        X           (np.ndarray, shape [n, 9])
-        disease_enc (LabelEncoder fitted on disease column)
-        district_enc(LabelEncoder fitted on district column)
-        gender_enc  (LabelEncoder fitted on gender column)
-        medians     (dict of per-feature median for imputation reference)
+        X            (np.ndarray, shape [n, 6])
+        district_enc (LabelEncoder fitted on district column)
+        gender_enc   (LabelEncoder fitted on gender column)
+        medians      (dict of per-feature median for imputation reference)
     """
     # Extract raw columns
     latitudes = np.array([r.latitude for r in records], dtype=float)
     longitudes = np.array([r.longitude for r in records], dtype=float)
-    diseases = np.array([r.disease if r.disease else "Unknown" for r in records])
     districts = np.array([r.district if r.district else "Unknown" for r in records])
     months = np.array(
         [
@@ -157,14 +152,6 @@ def _build_feature_matrix(records):
             )
             for r in records
         ],
-        dtype=float,
-    )
-    confidences = np.array(
-        [r.confidence if r.confidence is not None else np.nan for r in records],
-        dtype=float,
-    )
-    uncertainties = np.array(
-        [r.uncertainty if r.uncertainty is not None else np.nan for r in records],
         dtype=float,
     )
     ages = np.array(
@@ -179,15 +166,11 @@ def _build_feature_matrix(records):
         arr[np.isnan(arr)] = med
         return arr, float(med)
 
-    confidences, conf_med = _fill_median(confidences)
-    uncertainties, unc_med = _fill_median(uncertainties)
     ages, age_med = _fill_median(ages)
 
     # Label-encode categorical columns
-    disease_enc = LabelEncoder()
     district_enc = LabelEncoder()
     gender_enc = LabelEncoder()
-    disease_nums = disease_enc.fit_transform(diseases).astype(float)
     district_nums = district_enc.fit_transform(districts).astype(float)
     gender_nums = gender_enc.fit_transform(genders).astype(float)
 
@@ -195,46 +178,33 @@ def _build_feature_matrix(records):
         [
             latitudes,
             longitudes,
-            disease_nums,
             district_nums,
             months,
-            confidences,
-            uncertainties,
             ages,
             gender_nums,
         ]
     )
 
-    medians = {"confidence": conf_med, "uncertainty": unc_med, "age": age_med}
-    return X, disease_enc, district_enc, gender_enc, medians
+    medians = {"age": age_med}
+    return X, district_enc, gender_enc, medians
 
 
-def _compute_reason_codes(
-    record, X_row, X_all, scaler, disease_enc, district_enc, gender_enc
-):
+def _compute_reason_codes(record, X_row, X_all, scaler, district_enc, gender_enc):
     """
     Determine which reason codes apply to an anomalous record.
 
-    Strategy:
-        - Geographic / spatial checks use same-disease peers so that a location
-          that is normal for *that* disease is not wrongly flagged just because
-          other diseases cluster elsewhere.
-        - Temporal rarity: month is an outlier for that disease's distribution.
-        - Age rarity: patient age is an outlier for that disease's typical age range.
-        - Gender rarity: patient gender is a minority for that disease (proportion
-          below 20% for this disease) — uses per-disease proportion, not 2σ, to
-          avoid over-firing on small datasets with only 2-3 gender values.
-        - Confidence/uncertainty: compared against the global population because
-          these metrics are disease-agnostic (they reflect model certainty, not
-          disease geography).
-        - COMBINED:MULTI when ≥2 distinct reason families triggered.
+    Strategy (per-disease model — all rows in X_all share the same disease):
+        - Geographic rarity: lat or lng is > 2σ from the disease's mean location.
+        - Temporal rarity: month is > 2σ from the disease's mean month.
+        - Age rarity: patient age is > 2σ from the disease's mean age.
+        - Gender rarity: patient gender represents < 20% of cases for this disease.
+        - COMBINED:MULTI when ≥ 2 distinct reason families triggered.
 
     Args:
         record:      Raw DB row for this anomaly
-        X_row:       Scaled feature vector (shape [9])
-        X_all:       All scaled feature vectors (shape [n, 9])
+        X_row:       Scaled feature vector (shape [6])
+        X_all:       All scaled feature vectors for this disease (shape [n, 6])
         scaler:      Fitted StandardScaler
-        disease_enc: Fitted LabelEncoder for disease
         district_enc:Fitted LabelEncoder for district
         gender_enc:  Fitted LabelEncoder for gender
 
@@ -243,82 +213,61 @@ def _compute_reason_codes(
     """
     reasons = set()
 
-    # Feature indices
+    # Feature indices (6 features)
     IDX_LAT = 0
     IDX_LNG = 1
-    IDX_DIS = 2
-    IDX_DIST = 3
-    IDX_MONTH = 4
-    IDX_CONF = 5
-    IDX_UNC = 6
-    IDX_AGE = 7
-    IDX_GENDER = 8
+    IDX_DIST = 2
+    IDX_MONTH = 3
+    IDX_AGE = 4
+    IDX_GENDER = 5
 
     THRESHOLD = 2.0  # standard deviations
+    GENDER_MINORITY_THRESHOLD = 0.20
 
-    disease_label = record.disease if record.disease else "Unknown"
+    n_all = X_all.shape[0]
 
-    # ── Per-disease population ────────────────────────────────────────────────
-    # All geographic / temporal / demographic checks are relative to same-disease
-    # peers so that records are only flagged when they deviate from *their own
-    # disease's* normal distribution, not the global mix of all diseases.
-    try:
-        disease_code = disease_enc.transform([disease_label])[0]
-        same_disease_mask = X_all[:, IDX_DIS] == disease_code
-    except Exception:
-        same_disease_mask = np.ones(len(X_all), dtype=bool)
-
-    same_disease_rows = X_all[same_disease_mask]
-    n_same = same_disease_rows.shape[0]
-
-    if n_same > 1:
-        dis_mean = same_disease_rows.mean(axis=0)
-        dis_std = same_disease_rows.std(axis=0) + 1e-8
+    if n_all > 1:
+        dis_mean = X_all.mean(axis=0)
+        dis_std = X_all.std(axis=0) + 1e-8
     else:
         # Only one record for this disease — use global stats as fallback
         dis_mean = X_all.mean(axis=0)
         dis_std = X_all.std(axis=0) + 1e-8
 
-    # ── Geographic rarity (per-disease baseline) ──────────────────────────────
+    # ── Geographic rarity ─────────────────────────────────────────────────────
     lat_outlier = abs(X_row[IDX_LAT] - dis_mean[IDX_LAT]) > THRESHOLD * dis_std[IDX_LAT]
     lng_outlier = abs(X_row[IDX_LNG] - dis_mean[IDX_LNG]) > THRESHOLD * dis_std[IDX_LNG]
 
     if lat_outlier or lng_outlier:
         reasons.add(REASON_GEOGRAPHIC_RARE)
 
-    # ── Temporal rarity (per-disease baseline) ────────────────────────────────
-    if n_same > 1:
-        disease_months = same_disease_rows[:, IDX_MONTH]
-        month_mean = disease_months.mean()
-        month_std = disease_months.std() + 1e-8
+    # ── Temporal rarity ───────────────────────────────────────────────────────
+    if n_all > 1:
+        month_mean = X_all[:, IDX_MONTH].mean()
+        month_std = X_all[:, IDX_MONTH].std() + 1e-8
         if abs(X_row[IDX_MONTH] - month_mean) > THRESHOLD * month_std:
             reasons.add(REASON_TEMPORAL_RARE)
     else:
         # Only one record for this disease — inherently rare in time
         reasons.add(REASON_TEMPORAL_RARE)
 
-    # ── Age rarity (per-disease baseline) ─────────────────────────────────────
-    if n_same > 1:
-        disease_ages = same_disease_rows[:, IDX_AGE]
-        age_mean = disease_ages.mean()
-        age_std = disease_ages.std() + 1e-8
+    # ── Age rarity ────────────────────────────────────────────────────────────
+    if n_all > 1:
+        age_mean = X_all[:, IDX_AGE].mean()
+        age_std = X_all[:, IDX_AGE].std() + 1e-8
         if abs(X_row[IDX_AGE] - age_mean) > THRESHOLD * age_std:
             reasons.add(REASON_AGE_RARE)
     # If only one same-disease record, skip — single-record age is not meaningful
 
     # ── Gender rarity (per-disease proportion check) ──────────────────────────
-    # With only 2-3 distinct gender values, a 2σ threshold is very easy to
-    # trigger. Instead, flag when the record's gender represents fewer than 20%
-    # of patients with the same disease (i.e. it is a clear minority gender for
-    # that disease's population).
-    GENDER_MINORITY_THRESHOLD = 0.20
-    patient_gender = record.user_gender if record.user_gender else "Unknown"
+    # X_all is the SCALED feature matrix, so we compare the patient's scaled
+    # gender value against all scaled gender values (not the raw 0/1 encoding).
     try:
-        patient_gender_code = gender_enc.transform([patient_gender])[0]
-        if n_same > 1:
-            disease_gender_codes = same_disease_rows[:, IDX_GENDER]
+        if n_all > 1:
+            patient_gender_scaled = X_row[IDX_GENDER]
+            gender_codes = X_all[:, IDX_GENDER]
             gender_proportion = (
-                np.sum(disease_gender_codes == patient_gender_code) / n_same
+                np.sum(np.isclose(gender_codes, patient_gender_scaled)) / n_all
             )
             if gender_proportion < GENDER_MINORITY_THRESHOLD:
                 reasons.add(REASON_GENDER_RARE)
@@ -393,9 +342,14 @@ def detect_anomalies(
     """
     Detect anomalies in a list of diagnosis records using Isolation Forest.
 
+    Runs a separate Isolation Forest per disease so that each disease gets its
+    own contamination budget and feature distribution.  Diseases with fewer
+    than MIN_DISEASE_RECORDS records are skipped (all marked normal) because
+    the model cannot learn a meaningful distribution from too few samples.
+
     Args:
         data:          List of DB rows from fetch_diagnosis_data()
-        contamination: Expected proportion of outliers (default 0.05 = 5%)
+        contamination: Expected proportion of outliers per disease (default 0.05)
         n_estimators:  Number of trees in the forest (default 100)
         max_samples:   Samples per tree; 'auto' = min(256, n_samples)
         random_state:  RNG seed for reproducibility (default 42)
@@ -406,6 +360,8 @@ def detect_anomalies(
             normal_diagnoses  – list of normal diagnosis dicts
             summary           – aggregate statistics
     """
+    MIN_DISEASE_RECORDS = 10
+
     if len(data) < 2:
         return {
             "anomalies": [],
@@ -418,60 +374,74 @@ def detect_anomalies(
             },
         }
 
-    # Build feature matrix
-    X_raw, disease_enc, district_enc, gender_enc, medians = _build_feature_matrix(data)
+    # Group records by disease
+    disease_groups: dict[str, list] = {}
+    for record in data:
+        disease = record.disease if record.disease else "Unknown"
+        if disease not in disease_groups:
+            disease_groups[disease] = []
+        disease_groups[disease].append(record)
 
-    # Scale features
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X_raw)
+    all_anomalies = []
+    all_normal = []
 
-    # Train Isolation Forest
-    model = IsolationForest(
-        n_estimators=n_estimators,
-        max_samples=max_samples,
-        contamination=contamination,
-        random_state=random_state,
-        n_jobs=-1,
-    )
-    model.fit(X_scaled)
+    for disease, disease_records in disease_groups.items():
+        # Skip diseases with too few records
+        if len(disease_records) < MIN_DISEASE_RECORDS:
+            for r in disease_records:
+                all_normal.append(_row_to_dict(r, False, 0.0))
+            continue
 
-    # Predictions: -1 = anomaly, +1 = normal
-    predictions = model.predict(X_scaled)
-    # Anomaly scores: lower (more negative) = more anomalous
-    scores = model.decision_function(X_scaled)
+        # Build 6-feature matrix (no disease column — constant within group)
+        X_raw, district_enc, gender_enc, medians = _build_feature_matrix(disease_records)
 
-    anomalies = []
-    normal_diagnoses = []
+        # Scale features
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X_raw)
 
-    for i, (record, pred, score) in enumerate(zip(data, predictions, scores)):
-        is_anomaly = bool(pred == -1)
-        reason = None
+        # Train Isolation Forest on this disease only
+        model = IsolationForest(
+            n_estimators=n_estimators,
+            max_samples=max_samples,
+            contamination=contamination,
+            random_state=random_state,
+            n_jobs=-1,
+        )
+        model.fit(X_scaled)
 
-        if is_anomaly:
-            reason = _compute_reason_codes(
-                record,
-                X_scaled[i],
-                X_scaled,
-                scaler,
-                disease_enc,
-                district_enc,
-                gender_enc,
-            )
+        # Predictions: -1 = anomaly, +1 = normal
+        predictions = model.predict(X_scaled)
+        # Anomaly scores: lower (more negative) = more anomalous
+        scores = model.decision_function(X_scaled)
 
-        entry = _row_to_dict(record, is_anomaly, score, reason)
+        for i, (record, pred, score) in enumerate(zip(disease_records, predictions, scores)):
+            is_anomaly = bool(pred == -1)
+            reason = None
 
-        if is_anomaly:
-            anomalies.append(entry)
-        else:
-            normal_diagnoses.append(entry)
+            if is_anomaly:
+                reason = _compute_reason_codes(
+                    record,
+                    X_scaled[i],
+                    X_scaled,
+                    scaler,
+                    district_enc,
+                    gender_enc,
+                )
+
+            entry = _row_to_dict(record, is_anomaly, score, reason)
+
+            if is_anomaly:
+                all_anomalies.append(entry)
+            else:
+                all_normal.append(entry)
 
     return {
-        "anomalies": anomalies,
-        "normal_diagnoses": normal_diagnoses,
+        "anomalies": all_anomalies,
+        "normal_diagnoses": all_normal,
         "summary": {
             "total_records": len(data),
-            "anomaly_count": len(anomalies),
-            "normal_count": len(normal_diagnoses),
+            "anomaly_count": len(all_anomalies),
+            "normal_count": len(all_normal),
             "contamination_used": contamination,
         },
     }
