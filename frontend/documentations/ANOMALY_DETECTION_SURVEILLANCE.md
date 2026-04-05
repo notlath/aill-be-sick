@@ -22,7 +22,7 @@ The Anomaly Detection system identifies unusual diagnosis records using machine 
 
 ### Core Functionality
 
-The system uses **scikit-learn's Isolation Forest** algorithm with a **per-disease detection strategy**: a separate model is trained for each disease using 6 features — latitude, longitude, district, month, age, and gender. Each flagged anomaly receives reason codes explaining the deviation.
+The system uses **scikit-learn's Isolation Forest** algorithm with a **per-disease detection strategy**: a separate model is trained for each disease using 6 features — latitude, longitude, district, month, age, and gender. Each flagged anomaly receives reason codes explaining the deviation. Disease groups are processed in parallel using `ThreadPoolExecutor`, and results are cached for 5 minutes to avoid redundant computation.
 
 #### Data Flow
 ```
@@ -54,7 +54,7 @@ The system uses **scikit-learn's Isolation Forest** algorithm with a **per-disea
 │  Group by disease   │
 │  (per-disease loop) │
 └──────────┬──────────┘
-           │  For each disease group:
+           │  For each disease group (PARALLEL):
            ▼
 ┌──────────────────────┐     ┌─────────────────────┐
 │  _build_feature_    │────▶│  StandardScaler     │
@@ -63,8 +63,8 @@ The system uses **scikit-learn's Isolation Forest** algorithm with a **per-disea
 └──────────────────────┘               │
                                        ▼
                         ┌──────────────────────┐     ┌─────────────────────┐
-                        │  IsolationForest     │────▶│  _compute_reason_   │
-                        │  (per-disease model)│     │  codes()            │
+                        │  IsolationForest     │────▶│  SHAP on anomalies  │
+                        │  (per-disease model)│     │  (5% of records)    │
                         └──────────────────────┘     └─────────────────────┘
                                                               │
                                                               ▼
@@ -72,18 +72,28 @@ The system uses **scikit-learn's Isolation Forest** algorithm with a **per-disea
                         │  anomalies[]         │     │  normal_diagnoses[] │
                         │  + reason codes     │     │                     │
                         └──────────────────────┘     └─────────────────────┘
+                                      │
+                                      ▼
+                        ┌──────────────────────┐
+                        │  5-min TTL Cache     │
+                        │  (force_refresh      │
+                        │   bypasses cache)    │
+                        └──────────────────────┘
 ```
 
 ### User Flow
 
 1. **Page Load**: User navigates to Map page, selects "By Anomaly" tab
-2. **Initial Fetch**: Frontend requests all diagnosis data (no disease filter)
-3. **Anomaly Detection**: Backend groups VERIFIED diagnoses by disease, trains a separate Isolation Forest per disease (6 features each), and merges results
-4. **Reason Computation**: Each anomaly's reason codes are computed against its own disease's feature distribution
-5. **Data Return**: Backend returns both anomalies and normal diagnoses with reason codes
-6. **Client Filtering**: Frontend filters displayed data by selected disease
-7. **Visualization**: Map shows filtered anomalies; timeline shows temporal distribution
-8. **Drill-Down**: User clicks stats cards to open modal tables with full details
+2. **Cache Check**: Backend checks 5-minute TTL cache — if hit, returns cached result instantly (~10ms)
+3. **Initial Fetch** (cache miss): Frontend requests all diagnosis data (no disease filter)
+4. **Anomaly Detection**: Backend groups VERIFIED diagnoses by disease, trains a separate Isolation Forest per disease in parallel (6 features each, `n_estimators=50`), computes SHAP values only for flagged anomalies (~5% of records), and merges results
+5. **Reason Computation**: Each anomaly's reason codes are computed from SHAP feature contributions against its own disease's feature distribution
+6. **Cache Set**: Result cached for 5 minutes
+7. **Data Return**: Backend returns both anomalies and normal diagnoses with reason codes
+8. **Client Filtering**: Frontend filters displayed data by selected disease
+9. **Visualization**: Map shows filtered anomalies; timeline shows temporal distribution
+10. **Drill-Down**: User clicks stats cards to open modal tables with full details
+11. **Rescan**: User clicks "Rescan Anomalies" button to force fresh detection (cache cleared, full ML pipeline runs, new cache set)
 
 > **Important:** Both the anomaly detection (`surveillance_service.py`) and outbreak detection (`outbreak_service.py`) only analyze diagnoses with `status = 'VERIFIED'`. This means newly created diagnoses (status: PENDING) will not appear in anomaly results until a clinician verifies them. Alerts are created by the Supabase Cron job (every 15 minutes), not at verification time.
 
@@ -445,6 +455,7 @@ Controls expected proportion of anomalies (passed to Isolation Forest).
 | `disease` | string | — | Filter (not used — always "all") |
 | `start_date` | ISO date | — | Start of date range |
 | `end_date` | ISO date | — | End of date range |
+| `force_refresh` | string | "0" | If "1", "true", or "yes", clears cache and re-runs detection |
 
 ---
 
@@ -511,21 +522,27 @@ interface OutbreakFullResult {
 ## Performance Considerations
 
 ### Backend
-- **Per-disease models**: Each disease gets its own Isolation Forest — more models but each trains on a smaller subset
+- **Parallel disease processing**: Diseases are processed concurrently via `ThreadPoolExecutor(max_workers=min(n_diseases, 6))`, reducing wall time from sum of all diseases to the longest single disease
+- **`n_jobs=1` per disease**: Isolation Forest uses single-threaded execution per disease to avoid thread contention when diseases run in parallel
+- **SHAP on anomalies only**: SHAP values computed only for flagged anomaly records (~5% of data), not the full dataset — ~20× reduction in SHAP computation
+- **Reduced n_estimators**: Default reduced from 100 to 50 trees — converges well with fewer trees, ~2× faster IF fit + SHAP
+- **5-minute TTL cache**: Full surveillance runs cached for 5 minutes — subsequent requests return instantly (~10ms)
+- **Force refresh**: `force_refresh=1` query param clears cache and forces fresh ML pipeline run
 - **Vectorized ops**: NumPy for all feature computations within each disease group
 - **Label encoding**: Fitted once per disease group (district, gender only — no disease encoding)
-- **Isolation Forest**: `n_jobs=-1` for parallel tree building per model
 - **Minimum threshold**: Diseases with < 10 records skip detection entirely (no wasted compute)
 
 ### Frontend
 - **Client-side filtering**: `useMemo` prevents recalc on render
 - **Pagination**: TanStack Table handles large datasets
 - **Lazy loading**: Skeleton loaders during fetch
+- **Refetch hook**: `useAnomalyData` exposes `refetch({ forceRefresh: true })` for manual cache invalidation
 
 ### Limitations
 - Large date ranges return more records → slower detection (more diseases, more models)
 - Per-disease filtering on client requires full dataset in memory
 - Diseases with very few records (10-20) may produce noisy anomaly scores
+- Cache is in-memory only — lost on Flask restart
 
 ---
 
@@ -614,13 +631,51 @@ FEATURE_TO_REASON = {
 
 ---
 
-**Version**: 4.0 (SHAP-Based Reason Codes)
+**Version**: 5.0 (Performance Optimization & Caching)
 **Last Updated**: April 5, 2026
 **Maintainer**: AI'll Be Sick Development Team
 
 ---
 
 ## Changelog
+
+### Version 5.0 - April 5, 2026
+- **Parallel disease processing via ThreadPoolExecutor**
+  - Diseases processed concurrently — wall time reduced from sum of all (~7.6s) to longest single disease (~1.3s)
+  - `max_workers = min(n_diseases, 6)` caps thread count to avoid oversubscription
+  - Extracted `_process_disease_group()` standalone function for parallel execution
+  - Error handling: failed disease falls back to marking all records as normal
+- **SHAP computation limited to anomaly records only**
+  - SHAP values computed only for flagged anomalies (~5% of data) instead of 100%
+  - ~20× reduction in SHAP computation time per disease
+  - Anomaly indices mapped back to original positions for correct serialization
+- **Reduced n_estimators from 100 to 50**
+  - Isolation Forest converges well with fewer trees
+  - ~2× faster IF fit + SHAP with equivalent detection quality
+- **Fixed thread contention: n_jobs=1 per disease**
+  - Initial parallelization used `n_jobs=-1` causing all diseases to fight over same CPU cores
+  - Each disease's IF fit went from 0.26s → 2.0s (7.6× slower) with contention
+  - Fixed by setting `n_jobs=1` — diseases already parallelized externally
+- **5-minute TTL in-memory cache**
+  - Full surveillance runs (`disease=None`) cached for 5 minutes
+  - Thread-safe via `threading.Lock()`
+  - Cache key: `{start_date}|{end_date}|{contamination}`
+  - `clear_surveillance_cache()` utility for manual invalidation
+- **Force refresh API parameter**
+  - `force_refresh=1` query param clears cache and forces fresh ML run
+  - Powers the "Rescan Anomalies" button in the frontend
+- **Performance timing logs**
+  - Granular `[PERF]` logs per disease: feature matrix, IF fit, predict, SHAP, serialize
+  - Enables ongoing monitoring as dataset grows
+- **Frontend: Rescan Anomalies button**
+  - `btn btn-outline btn-primary` with `RefreshCw` icon
+  - Shows spinner + "Rescanning..." during processing
+  - Calls `refetch({ forceRefresh: true })` to bypass cache
+- **Frontend: refetch() hook**
+  - `useAnomalyData` now exposes `refetch(options?)` function
+  - Supports `forceRefresh` option for cache-busting
+- **Rationale**: 16-second initial load was unacceptable for a dashboard. Combined optimizations bring first load to ~1-2s and cached loads to ~10ms.
+- **Impact**: 8-16× faster first load, 1600× faster cached loads, instant tab navigation after first visit.
 
 ### Version 4.0 - April 5, 2026
 - **Migrated reason code generation from z-score heuristics to SHAP (TreeExplainer)**

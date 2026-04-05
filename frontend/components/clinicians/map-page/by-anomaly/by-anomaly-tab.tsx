@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useMemo, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { DiseaseSelect } from "../disease-select";
 import { DateRangeFilter } from "../date-range-filter";
 import ViewSelect from "../view-select";
@@ -71,11 +71,15 @@ const ByAnomalyTab = () => {
   // The backend runs per-disease Isolation Forest models and returns all
   // results. Disease filtering is applied client-side via useMemo below.
   // Contamination is fixed at 0.05 (5%) - see documentation for rationale.
-  const { anomalyData, loading, error } = useAnomalyData({
+  const { anomalyData, loading, error, refetch } = useAnomalyData({
     contamination: 0.05,
     startDate,
     endDate,
   });
+
+  const handleRescan = useCallback(() => {
+    refetch({ forceRefresh: true });
+  }, [refetch]);
 
   // Separate anomaly and normal lists, then filter client-side by disease
   const allAnomalies: SurveillanceAnomaly[] = anomalyData?.anomalies ?? [];
@@ -387,6 +391,24 @@ const ByAnomalyTab = () => {
             onStartDateChange={handleStartDateChange}
             onEndDateChange={handleEndDateChange}
           />
+          <button
+            type="button"
+            className="btn border-border"
+            onClick={handleRescan}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="size-4 animate-spin" />
+                Rescanning...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="size-4" />
+                Rescan Anomalies
+              </>
+            )}
+          </button>
           <ExportReportButton
             data={exportInfo.data}
             columns={exportInfo.columns}

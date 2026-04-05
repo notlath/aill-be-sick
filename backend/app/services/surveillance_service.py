@@ -1,7 +1,10 @@
 # surveillance_service.py
 # Isolation Forest for Outbreak Monitoring and Anomaly Detection
 import os
+import time
+import threading
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sqlalchemy import text
@@ -43,6 +46,47 @@ FEATURE_TO_REASON = {
 # Minimum fraction of total absolute SHAP magnitude for a feature to be
 # reported as a contributing reason. Filters out noise contributors.
 SHAP_MAGNITUDE_THRESHOLD = 0.10
+
+
+# ---------------------------------------------------------------------------
+# In-Memory Cache for Surveillance Results
+# Caches full surveillance runs (disease=None) for 5 minutes to avoid
+# re-running the expensive ML pipeline on repeated requests (cron + frontend).
+# ---------------------------------------------------------------------------
+_SURVEILLANCE_CACHE: dict[str, dict] = {}
+_CACHE_TTL_SECONDS = 300  # 5 minutes
+_CACHE_LOCK = threading.Lock()
+
+
+def _cache_key(start_date, end_date, contamination):
+    """Build a deterministic cache key from surveillance parameters."""
+    return f"{start_date}|{end_date}|{contamination}"
+
+
+def _get_cached(key: str):
+    """Return cached result if present and not expired, else None."""
+    with _CACHE_LOCK:
+        if key in _SURVEILLANCE_CACHE:
+            entry = _SURVEILLANCE_CACHE[key]
+            if time.time() - entry["timestamp"] < _CACHE_TTL_SECONDS:
+                return entry["data"]
+            del _SURVEILLANCE_CACHE[key]
+    return None
+
+
+def _set_cache(key: str, data):
+    """Store result in cache with current timestamp."""
+    with _CACHE_LOCK:
+        _SURVEILLANCE_CACHE[key] = {
+            "data": data,
+            "timestamp": time.time(),
+        }
+
+
+def clear_surveillance_cache():
+    """Public utility for tests and manual cache invalidation."""
+    with _CACHE_LOCK:
+        _SURVEILLANCE_CACHE.clear()
 
 
 def fetch_diagnosis_data(
@@ -444,7 +488,7 @@ def _row_to_dict(record, is_anomaly, anomaly_score, reason=None, shap_contributi
 
 
 def detect_anomalies(
-    data, contamination=0.05, n_estimators=100, max_samples="auto", random_state=42
+    data, contamination=0.05, n_estimators=50, max_samples="auto", random_state=42
 ):
     """
     Detect anomalies in a list of diagnosis records using Isolation Forest.
@@ -454,10 +498,14 @@ def detect_anomalies(
     than MIN_DISEASE_RECORDS records are skipped (all marked normal) because
     the model cannot learn a meaningful distribution from too few samples.
 
+    Disease groups are processed in parallel using ThreadPoolExecutor for
+    performance.  Each disease already uses n_jobs=-1 internally, so the
+    thread pool is capped at the number of disease groups to avoid oversubscription.
+
     Args:
         data:          List of DB rows from fetch_diagnosis_data()
         contamination: Expected proportion of outliers per disease (default 0.05)
-        n_estimators:  Number of trees in the forest (default 100)
+        n_estimators:  Number of trees in the forest (default 50)
         max_samples:   Samples per tree; 'auto' = min(256, n_samples)
         random_state:  RNG seed for reproducibility (default 42)
 
@@ -467,6 +515,7 @@ def detect_anomalies(
             normal_diagnoses  – list of normal diagnosis dicts
             summary           – aggregate statistics
     """
+    t0 = time.time()
     MIN_DISEASE_RECORDS = 10
 
     if len(data) < 2:
@@ -489,85 +538,55 @@ def detect_anomalies(
             disease_groups[disease] = []
         disease_groups[disease].append(record)
 
+    t_group = time.time()
+    print(f"[PERF] Grouping: {t_group - t0:.3f}s ({len(data)} records, {len(disease_groups)} diseases)")
+
     all_anomalies = []
     all_normal = []
 
-    for disease, disease_records in disease_groups.items():
-        # Skip diseases with too few records
-        if len(disease_records) < MIN_DISEASE_RECORDS:
-            for r in disease_records:
+    # Process diseases with enough records in parallel
+    eligible_diseases = {
+        d: records
+        for d, records in disease_groups.items()
+        if len(records) >= MIN_DISEASE_RECORDS
+    }
+
+    if eligible_diseases:
+        max_workers = min(len(eligible_diseases), 6)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(
+                    _process_disease_group,
+                    disease,
+                    records,
+                    contamination,
+                    n_estimators,
+                    max_samples,
+                    random_state,
+                ): disease
+                for disease, records in eligible_diseases.items()
+            }
+
+            for future in as_completed(futures):
+                disease = futures[future]
+                try:
+                    disease_anomalies, disease_normal_list = future.result()
+                    all_anomalies.extend(disease_anomalies)
+                    all_normal.extend(disease_normal_list)
+                except Exception:
+                    print(f"[ERROR] Failed to process disease: {disease}")
+                    # Fall back: mark all records as normal
+                    for r in disease_groups[disease]:
+                        all_normal.append(_row_to_dict(r, False, 0.0))
+
+    # Handle diseases with too few records (sequential, trivial)
+    for disease, records in disease_groups.items():
+        if len(records) < MIN_DISEASE_RECORDS:
+            for r in records:
                 all_normal.append(_row_to_dict(r, False, 0.0))
-            continue
 
-        # Build 6-feature matrix (no disease column — constant within group)
-        X_raw, district_enc, gender_enc, medians = _build_feature_matrix(disease_records)
-
-        # Scale features
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X_raw)
-
-        # Train Isolation Forest on this disease only
-        model = IsolationForest(
-            n_estimators=n_estimators,
-            max_samples=max_samples,
-            contamination=contamination,
-            random_state=random_state,
-            n_jobs=-1,
-        )
-        model.fit(X_scaled)
-
-        # Predictions: -1 = anomaly, +1 = normal
-        predictions = model.predict(X_scaled)
-        # Anomaly scores: lower (more negative) = more anomalous
-        scores = model.decision_function(X_scaled)
-
-        # Compute SHAP values once per disease group (batched, efficient)
-        shap_values = None
-        if SHAP_AVAILABLE:
-            try:
-                explainer = shap.TreeExplainer(model)
-                shap_values = explainer.shap_values(X_scaled)
-            except Exception:
-                shap_values = None  # Fall back to z-score heuristics
-
-        for i, (record, pred, score) in enumerate(zip(disease_records, predictions, scores)):
-            is_anomaly = bool(pred == -1)
-            reason = None
-            shap_contributions = None
-
-            if is_anomaly:
-                if shap_values is not None:
-                    reason, shap_contributions = _compute_shap_reason_codes(
-                        shap_values[i],
-                        FEATURE_TO_REASON,
-                        SHAP_MAGNITUDE_THRESHOLD,
-                    )
-                    # Fallback to z-score heuristics if SHAP returned nothing
-                    if not reason:
-                        reason = _compute_reason_codes_fallback(
-                            record,
-                            X_scaled[i],
-                            X_scaled,
-                            scaler,
-                            district_enc,
-                            gender_enc,
-                        )
-                else:
-                    reason = _compute_reason_codes_fallback(
-                        record,
-                        X_scaled[i],
-                        X_scaled,
-                        scaler,
-                        district_enc,
-                        gender_enc,
-                    )
-
-            entry = _row_to_dict(record, is_anomaly, score, reason, shap_contributions)
-
-            if is_anomaly:
-                all_anomalies.append(entry)
-            else:
-                all_normal.append(entry)
+    t_total = time.time()
+    print(f"[PERF] detect_anomalies total: {t_total - t0:.3f}s")
 
     return {
         "anomalies": all_anomalies,
@@ -581,6 +600,123 @@ def detect_anomalies(
     }
 
 
+def _process_disease_group(
+    disease: str,
+    disease_records: list,
+    contamination: float,
+    n_estimators: int,
+    max_samples,
+    random_state: int,
+) -> tuple[list, list]:
+    """
+    Process a single disease group: build features → train IF → SHAP → serialize.
+
+    Returns:
+        (anomalies, normal) — two lists of serialized record dicts
+    """
+    t_start = time.time()
+
+    # Build 6-feature matrix (no disease column — constant within group)
+    t_feat = time.time()
+    X_raw, district_enc, gender_enc, medians = _build_feature_matrix(disease_records)
+    t_feat_end = time.time()
+    print(f"[PERF]   {disease}: feature matrix {t_feat_end - t_feat:.3f}s ({len(disease_records)} records)")
+
+    # Scale features
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X_raw)
+
+    # Train Isolation Forest on this disease only
+    t_fit_start = time.time()
+    model = IsolationForest(
+        n_estimators=n_estimators,
+        max_samples=max_samples,
+        contamination=contamination,
+        random_state=random_state,
+        n_jobs=1,  # Single thread — diseases are already parallelized externally
+    )
+    model.fit(X_scaled)
+    t_fit_end = time.time()
+    print(f"[PERF]   {disease}: IF fit {t_fit_end - t_fit_start:.3f}s")
+
+    # Predictions: -1 = anomaly, +1 = normal
+    t_pred_start = time.time()
+    predictions = model.predict(X_scaled)
+    # Anomaly scores: lower (more negative) = more anomalous
+    scores = model.decision_function(X_scaled)
+    t_pred_end = time.time()
+    print(f"[PERF]   {disease}: predict+scores {t_pred_end - t_pred_start:.3f}s")
+
+    # Compute SHAP values ONLY for anomaly records (typically ~5% of data).
+    anomaly_indices = [i for i, p in enumerate(predictions) if p == -1]
+    anomaly_shap_map: dict[int, np.ndarray] = {}
+
+    t_shap_start = time.time()
+    if SHAP_AVAILABLE and anomaly_indices:
+        try:
+            X_anomalies = X_scaled[anomaly_indices]
+            explainer = shap.TreeExplainer(model)
+            shap_values_subset = explainer.shap_values(X_anomalies)
+
+            # Map SHAP values back to original indices
+            for j, idx in enumerate(anomaly_indices):
+                anomaly_shap_map[idx] = shap_values_subset[j]
+        except Exception:
+            pass  # Fall back to z-score heuristics for all anomalies
+    t_shap_end = time.time()
+    print(f"[PERF]   {disease}: SHAP on {len(anomaly_indices)} anomalies {t_shap_end - t_shap_start:.3f}s")
+
+    t_serialize_start = time.time()
+    disease_anomalies = []
+    disease_normal = []
+
+    for i, (record, pred, score) in enumerate(zip(disease_records, predictions, scores)):
+        is_anomaly = bool(pred == -1)
+        reason = None
+        shap_contributions = None
+
+        if is_anomaly:
+            shap_vals = anomaly_shap_map.get(i)
+            if shap_vals is not None:
+                reason, shap_contributions = _compute_shap_reason_codes(
+                    shap_vals,
+                    FEATURE_TO_REASON,
+                    SHAP_MAGNITUDE_THRESHOLD,
+                )
+                # Fallback to z-score heuristics if SHAP returned nothing
+                if not reason:
+                    reason = _compute_reason_codes_fallback(
+                        record,
+                        X_scaled[i],
+                        X_scaled,
+                        scaler,
+                        district_enc,
+                        gender_enc,
+                    )
+            else:
+                reason = _compute_reason_codes_fallback(
+                    record,
+                    X_scaled[i],
+                    X_scaled,
+                    scaler,
+                    district_enc,
+                    gender_enc,
+                )
+
+        entry = _row_to_dict(record, is_anomaly, score, reason, shap_contributions)
+
+        if is_anomaly:
+            disease_anomalies.append(entry)
+        else:
+            disease_normal.append(entry)
+
+    t_serialize_end = time.time()
+    t_total = time.time()
+    print(f"[PERF]   {disease}: serialize {t_serialize_end - t_serialize_start:.3f}s, total {t_total - t_start:.3f}s")
+
+    return disease_anomalies, disease_normal
+
+
 def analyze_surveillance(
     db_url=None,
     start_date=None,
@@ -589,9 +725,13 @@ def analyze_surveillance(
     contamination=0.05,
     n_estimators=100,
     max_samples="auto",  # str | int
+    force_refresh=False,
 ):
     """
     End-to-end surveillance analysis: fetch data and run anomaly detection.
+
+    Results are cached for 5 minutes when disease=None (full surveillance run)
+    to avoid re-running the expensive ML pipeline on repeated requests.
 
     Args:
         db_url:        Optional database URL (falls back to DATABASE_URL)
@@ -601,10 +741,24 @@ def analyze_surveillance(
         contamination: Expected proportion of outliers (0 < x < 0.5; default 0.05)
         n_estimators:  Number of Isolation Forest trees (default 100)
         max_samples:   Samples per tree (default 'auto')
+        force_refresh: If True, clear cache before running (default False)
 
     Returns:
         dict with anomalies, normal_diagnoses, and summary (see detect_anomalies)
     """
+    # Only cache full surveillance runs (disease=None).
+    if disease is None:
+        key = _cache_key(start_date, end_date, contamination)
+
+        if force_refresh:
+            clear_surveillance_cache()
+            print("[SURVEILLANCE] Force refresh — cache cleared")
+        else:
+            cached = _get_cached(key)
+            if cached:
+                print("[SURVEILLANCE] Cache hit — returning cached result")
+                return cached
+
     data = fetch_diagnosis_data(
         db_url=db_url,
         start_date=start_date,
@@ -613,12 +767,22 @@ def analyze_surveillance(
         limit=10000,  # Limit to prevent loading entire database history
     )
 
-    return detect_anomalies(
+    result = detect_anomalies(
         data,
         contamination=contamination,
         n_estimators=n_estimators,
         max_samples=max_samples,
     )
+
+    # Cache the result
+    if disease is None:
+        _set_cache(key, result)
+        print(
+            f"[SURVEILLANCE] Cache set — {result['summary']['total_records']} records, "
+            f"{result['summary']['anomaly_count']} anomalies"
+        )
+
+    return result
 
 
 # ---------------------------------------------------------------------------
