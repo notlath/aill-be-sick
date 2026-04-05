@@ -109,6 +109,7 @@ const AlertsList = ({ currentUserId, generatedBy }: AlertsListProps) => {
   const [sortValue, setSortValue] = useState("newest");
   const [severityFilter, setSeverityFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [reasonCodeFilter, setReasonCodeFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
@@ -122,7 +123,7 @@ const AlertsList = ({ currentUserId, generatedBy }: AlertsListProps) => {
   // Reset to page 0 whenever any filter/sort/tab changes
   useEffect(() => {
     setCurrentPage(0);
-  }, [activeTab, searchQuery, sortValue, severityFilter, typeFilter, pageSize]);
+  }, [activeTab, searchQuery, sortValue, severityFilter, typeFilter, reasonCodeFilter, pageSize]);
 
   const selectedAlert = useMemo(() => {
     if (selectedAlertId === null) return null;
@@ -138,6 +139,7 @@ const AlertsList = ({ currentUserId, generatedBy }: AlertsListProps) => {
     setActiveTab(tab);
     setSeverityFilter("all");
     setTypeFilter("all");
+    setReasonCodeFilter("all");
     setSearchQuery("");
   }, []);
 
@@ -155,6 +157,7 @@ const AlertsList = ({ currentUserId, generatedBy }: AlertsListProps) => {
         if (alert.status !== activeTab) return false;
         if (severityFilter !== "all" && alert.severity !== severityFilter) return false;
         if (typeFilter !== "all" && alert.type !== typeFilter) return false;
+        if (reasonCodeFilter !== "all" && !alert.reasonCodes?.includes(reasonCodeFilter)) return false;
         if (query) {
           const matchesMessage = alert.message.toLowerCase().includes(query);
           const matchesType = alert.type.toLowerCase().includes(query);
@@ -165,7 +168,7 @@ const AlertsList = ({ currentUserId, generatedBy }: AlertsListProps) => {
         return true;
       })
       .sort(currentSortOption.compareFn);
-  }, [alerts, activeTab, searchQuery, severityFilter, typeFilter, currentSortOption]);
+  }, [alerts, activeTab, searchQuery, severityFilter, typeFilter, reasonCodeFilter, currentSortOption]);
 
   // Paginated slice
   const paginatedAlerts = useMemo(() => {
@@ -216,6 +219,29 @@ const AlertsList = ({ currentUserId, generatedBy }: AlertsListProps) => {
     return counts;
   }, [alerts]);
 
+  // Extract unique reason codes from all alerts
+  const uniqueReasonCodes = useMemo(() => {
+    const codes = new Set<string>();
+    for (const alert of alerts) {
+      if (alert.reasonCodes) {
+        for (const code of alert.reasonCodes) {
+          codes.add(code);
+        }
+      }
+    }
+    return Array.from(codes).sort();
+  }, [alerts]);
+
+  const reasonCodeOptions = useMemo(() => {
+    return [
+      { value: "all", label: "All reason codes" },
+      ...uniqueReasonCodes.map((code) => ({
+        value: code,
+        label: code,
+      })),
+    ];
+  }, [uniqueReasonCodes]);
+
   // Map for O(1) tab label lookups
   const tabLabelMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -225,11 +251,12 @@ const AlertsList = ({ currentUserId, generatedBy }: AlertsListProps) => {
     return map;
   }, []);
 
-  const hasActiveFilters = severityFilter !== "all" || typeFilter !== "all" || !!searchQuery;
+  const hasActiveFilters = severityFilter !== "all" || typeFilter !== "all" || reasonCodeFilter !== "all" || !!searchQuery;
 
   const handleClearFilters = () => {
     setSeverityFilter("all");
     setTypeFilter("all");
+    setReasonCodeFilter("all");
     setSearchQuery("");
   };
 
@@ -310,6 +337,22 @@ const AlertsList = ({ currentUserId, generatedBy }: AlertsListProps) => {
             ))}
           </SelectContent>
         </Select>
+
+        {/* Reason code filter */}
+        {uniqueReasonCodes.length > 0 && (
+          <Select value={reasonCodeFilter} onValueChange={setReasonCodeFilter} className="w-48 shrink-0">
+            <SelectTrigger className="h-10 text-sm">
+              <SelectValue placeholder="Reason code" />
+            </SelectTrigger>
+            <SelectContent>
+              {reasonCodeOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Search */}
         <div className="relative flex-1 min-w-48 shrink-0">
