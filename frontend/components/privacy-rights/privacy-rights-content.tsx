@@ -11,7 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { dataExport } from "@/actions/data-export";
-import { withdrawConsent } from "@/actions/withdraw-consent";
+// import { withdrawConsent } from "@/actions/withdraw-consent";
 import type { User, AuditLog } from "@/lib/generated/prisma";
 import Link from "next/link";
 
@@ -42,24 +42,24 @@ export default function PrivacyRightsContent({
       },
     });
 
-  const { execute: executeWithdraw, status: withdrawStatus } =
-    useAction(withdrawConsent, {
-      onSuccess: ({ data }) => {
-        if (data?.success) {
-          setShowWithdrawModal(false);
-        }
-      },
-    });
+  // const { execute: executeWithdraw, status: withdrawStatus } =
+  //   useAction(withdrawConsent, {
+  //     onSuccess: ({ data }) => {
+  //       if (data?.success) {
+  //         setShowWithdrawModal(false);
+  //       }
+  //     },
+  //   });
 
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  // const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   const handleExport = () => {
     executeExport({ format: "json" });
   };
 
-  const handleWithdraw = () => {
-    setShowWithdrawModal(true);
-  };
+  // const handleWithdraw = () => {
+  //   setShowWithdrawModal(true);
+  // };
 
   return (
     <div className="space-y-8">
@@ -227,7 +227,8 @@ export default function PrivacyRightsContent({
                 ? "Exporting..."
                 : "Download My Data"}
             </button>
-            <button
+            {/* Withdraw Consent button temporarily disabled */}
+            {/* <button
               onClick={handleWithdraw}
               disabled={withdrawStatus === "executing" || (!user.privacyAcceptedAt && !user.termsAcceptedAt)}
               className="btn btn-warning flex items-center gap-2"
@@ -238,13 +239,13 @@ export default function PrivacyRightsContent({
                 : !user.privacyAcceptedAt && !user.termsAcceptedAt
                   ? "Consent Withdrawn"
                   : "Withdraw Consent"}
-            </button>
+            </button> */}
           </div>
         </div>
       </div>
 
-      {/* Withdraw Consent Modal */}
-      {showWithdrawModal && (
+      {/* Withdraw Consent Modal temporarily disabled */}
+      {/* {showWithdrawModal && (
         <div className="modal modal-open">
           <div className="modal-box">
             <div className="flex items-center gap-3 mb-4">
@@ -279,7 +280,7 @@ export default function PrivacyRightsContent({
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }

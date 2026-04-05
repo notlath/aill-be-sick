@@ -14,12 +14,9 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  uploadAvatar,
-  removeAvatar,
-} from "@/actions/update-profile";
+import { uploadAvatar, removeAvatar } from "@/actions/update-profile";
 import { dataExport } from "@/actions/data-export";
-import { withdrawConsent } from "@/actions/withdraw-consent";
+// import { withdrawConsent } from "@/actions/withdraw-consent";
 import { Badge } from "@/components/ui/badge";
 import { useAction } from "next-safe-action/hooks";
 import Image from "next/image";
@@ -61,7 +58,7 @@ interface ProfileFormProps {
 export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatar, setAvatar] = useState<string | null>(initialUser.avatar);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  // const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   const { execute: executeUploadAvatar, isExecuting: isUploadingAvatar } =
     useAction(uploadAvatar, {
@@ -125,21 +122,21 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
     },
   );
 
-  const { execute: executeWithdrawConsent, isExecuting: isWithdrawing } =
-    useAction(withdrawConsent, {
-      onSuccess: ({ data }) => {
-        if (data && "success" in data) {
-          toast.success("Consent withdrawn successfully");
-          setShowWithdrawModal(false);
-          window.location.href = "/privacy";
-        } else if (data && "error" in data) {
-          toast.error(data.error);
-        }
-      },
-      onError: () => {
-        toast.error("Failed to withdraw consent");
-      },
-    });
+  // const { execute: executeWithdrawConsent, isExecuting: isWithdrawing } =
+  //   useAction(withdrawConsent, {
+  //     onSuccess: ({ data }) => {
+  //       if (data && "success" in data) {
+  //         toast.success("Consent withdrawn successfully");
+  //         setShowWithdrawModal(false);
+  //         window.location.href = "/privacy";
+  //       } else if (data && "error" in data) {
+  //         toast.error(data.error);
+  //       }
+  //     },
+  //     onError: () => {
+  //       toast.error("Failed to withdraw consent");
+  //     },
+  //   });
 
   const handleAvatarUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -191,9 +188,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
                 )}
               </div>
 
-              <label
-                className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center cursor-pointer shadow-md transition-all duration-200"
-              >
+              <label className="absolute bottom-1 right-1 w-10 h-10 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center cursor-pointer shadow-md transition-all duration-200">
                 {isUploadingAvatar ? (
                   <Loader2 className="w-5 h-5 text-primary-content animate-spin" />
                 ) : (
@@ -224,23 +219,35 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
           {/* Profile Information */}
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wider text-muted font-medium">Name</p>
+              <p className="text-xs uppercase tracking-wider text-muted font-medium">
+                Name
+              </p>
               <p className="text-base font-medium">{initialUser.name || "—"}</p>
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wider text-muted font-medium">Email</p>
+              <p className="text-xs uppercase tracking-wider text-muted font-medium">
+                Email
+              </p>
               <p className="text-base font-medium">{initialUser.email}</p>
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wider text-muted font-medium">Gender</p>
-              <p className="text-base font-medium">{initialUser.gender || "—"}</p>
+              <p className="text-xs uppercase tracking-wider text-muted font-medium">
+                Gender
+              </p>
+              <p className="text-base font-medium">
+                {initialUser.gender || "—"}
+              </p>
             </div>
 
             <div className="space-y-1">
-              <p className="text-xs uppercase tracking-wider text-muted font-medium">Birthday</p>
-              <p className="text-base font-medium">{formatBirthday(initialUser.birthday)}</p>
+              <p className="text-xs uppercase tracking-wider text-muted font-medium">
+                Birthday
+              </p>
+              <p className="text-base font-medium">
+                {formatBirthday(initialUser.birthday)}
+              </p>
             </div>
           </div>
         </div>
@@ -264,32 +271,48 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
 
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-1 md:col-span-2">
-            <p className="text-xs uppercase tracking-wider text-muted font-medium">Street Address</p>
-            <p className="text-base font-medium">{initialUser.address || "—"}</p>
+            <p className="text-xs uppercase tracking-wider text-muted font-medium">
+              Street Address
+            </p>
+            <p className="text-base font-medium">
+              {initialUser.address || "—"}
+            </p>
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wider text-muted font-medium">District / Zone</p>
-            <p className="text-base font-medium">{initialUser.district || "—"}</p>
+            <p className="text-xs uppercase tracking-wider text-muted font-medium">
+              District / Zone
+            </p>
+            <p className="text-base font-medium">
+              {initialUser.district || "—"}
+            </p>
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wider text-muted font-medium">Barangay</p>
+            <p className="text-xs uppercase tracking-wider text-muted font-medium">
+              Barangay
+            </p>
             <p className="text-base font-medium">{FIXED_BARANGAY}</p>
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wider text-muted font-medium">City / Municipality</p>
+            <p className="text-xs uppercase tracking-wider text-muted font-medium">
+              City / Municipality
+            </p>
             <p className="text-base font-medium">{FIXED_CITY}</p>
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wider text-muted font-medium">Province</p>
+            <p className="text-xs uppercase tracking-wider text-muted font-medium">
+              Province
+            </p>
             <p className="text-base font-medium">{FIXED_PROVINCE}</p>
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs uppercase tracking-wider text-muted font-medium">Region</p>
+            <p className="text-xs uppercase tracking-wider text-muted font-medium">
+              Region
+            </p>
             <p className="text-base font-medium">{FIXED_REGION}</p>
           </div>
         </div>
@@ -407,8 +430,8 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
         </div>
       </section>
 
-      {/* Withdraw Consent Modal */}
-      {showWithdrawModal && (
+      {/* Withdraw Consent Modal temporarily disabled */}
+      {/* {showWithdrawModal && (
         <div className="modal modal-open">
           <div className="modal-box">
             <div className="flex items-center gap-3 mb-4">
@@ -443,7 +466,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 }
