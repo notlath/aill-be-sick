@@ -17,6 +17,14 @@ import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 import type { SearchBoxRetrieveResponse } from "@mapbox/search-js-core";
 import { BAGONG_SILANGAN_DISTRICTS } from "@/constants/bagong-silangan-districts";
+import {
+  ACCESS_TOKEN,
+  FIXED_CITY,
+  FIXED_BARANGAY,
+  FIXED_REGION,
+  FIXED_PROVINCE,
+  parseMapboxResponse,
+} from "@/utils/mapbox";
 
 const SearchBox = dynamic(
   () => import("@mapbox/search-js-react").then((mod) => mod.SearchBox),
@@ -26,14 +34,6 @@ const AddressMinimap = dynamic(
   () => import("@mapbox/search-js-react").then((mod) => mod.AddressMinimap),
   { ssr: false },
 );
-
-// Fixed location constants for Bagong Silangan, Quezon City
-const FIXED_CITY = "Quezon City";
-const FIXED_BARANGAY = "Bagong Silangan";
-const FIXED_REGION = "National Capital Region (NCR)";
-const FIXED_PROVINCE = "NCR, Second District (Not a Province)";
-
-const ACCESS_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
 interface CreatePatientFormProps {
   onSuccess?: () => void;
@@ -108,27 +108,19 @@ export default function CreatePatientForm({
   // Handle Mapbox SearchBox selection — fires for any suggestion type (streets, addresses, POIs)
   const handleAutofillRetrieve = useCallback(
     (response: SearchBoxRetrieveResponse) => {
-      const feature = response?.features?.[0];
-      if (!feature) return;
-
-      const newAddress: string =
-        feature.properties.full_address ||
-        feature.properties.place_formatted ||
-        feature.properties.name ||
-        "";
-      const lng: number = feature.geometry.coordinates[0];
-      const lat: number = feature.geometry.coordinates[1];
+      const result = parseMapboxResponse(response);
+      if (!result) return;
 
       console.log("[create-patient] Autofill address selected —", {
-        lat,
-        lng,
-        address: newAddress,
+        lat: result.lat,
+        lng: result.lng,
+        address: result.address,
       });
 
-      setAddress(newAddress);
-      setLatitude(lat);
-      setLongitude(lng);
-      setMinimapFeature(feature as GeoJSON.Feature<GeoJSON.Point>);
+      setAddress(result.address);
+      setLatitude(result.lat);
+      setLongitude(result.lng);
+      setMinimapFeature(result.feature);
     },
     [],
   );
