@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { IllnessClusterTimelineChart } from "./illness-cluster-timeline-chart";
 import SelectedClusterSummary from "./selected-cluster-summary";
 import { PatientsDataTable } from "../patients-data-table";
-import { DiagnosisDetailModal } from "../diagnosis-detail-modal";
+import { PatientDetailModal } from "../patient-detail-modal";
 import { columns } from "../patients-columns";
 import type { ClusterVariableSelection } from "@/types/illness-cluster-settings";
 import type { IllnessClusterStatistics } from "@/types";
@@ -83,7 +83,7 @@ const SelectedClusterDetails = ({
           <PatientsDataTable columns={columns} data={illnesses} onRowClick={handleRowClick} />
         </CardContent>
       </Card>
-      <DiagnosisDetailModal
+      <PatientDetailModal
         isOpen={isDetailModalOpen}
         onClose={handleDetailModalClose}
         diagnosis={selectedDiagnosis}

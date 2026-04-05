@@ -45,6 +45,42 @@ const diagnosisWithUserSelect = {
   },
 } as const;
 
+export const getDiagnosisById = async (diagnosisId: number) => {
+  try {
+    const diagnosis = await prisma.diagnosis.findUnique({
+      where: { id: diagnosisId },
+      include: {
+        user: true,
+        override: {
+          select: {
+            clinicianDisease: true,
+            clinicianNotes: true,
+            createdAt: true,
+          },
+        },
+        notes: {
+          include: {
+            clinician: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: "desc" as const,
+          },
+        },
+      },
+    });
+
+    return { success: diagnosis };
+  } catch (error) {
+    console.error(`Error fetching diagnosis ${diagnosisId}:`, error);
+    return { error: `Could not fetch diagnosis ${diagnosisId}` };
+  }
+};
+
 export const getDiagnosisByChatId = async (chatId: string) => {
   "use cache";
   cacheLife("hours");

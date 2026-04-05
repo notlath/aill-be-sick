@@ -3,7 +3,7 @@
 import { IllnessRecord } from "@/types";
 import { columns } from "./patients-columns";
 import { PatientsDataTable } from "./patients-data-table";
-import { DiagnosisDetailModal } from "./diagnosis-detail-modal";
+import { PatientDetailModal } from "./patient-detail-modal";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -98,7 +98,7 @@ export default function PatientsModal({
           </div>
         </div>
       </dialog>
-      <DiagnosisDetailModal
+      <PatientDetailModal
         isOpen={isDetailModalOpen}
         onClose={handleDetailModalClose}
         diagnosis={selectedDiagnosis}

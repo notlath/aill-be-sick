@@ -3,10 +3,8 @@
 import {
   useState,
   useRef,
-  useEffect,
-  useMemo,
-  useCallback,
-  useTransition,
+  useEffect, useCallback,
+  useTransition
 } from "react";
 import {
   User,
@@ -226,7 +224,7 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
   const { execute: executeUpdateProfile, isExecuting: isUpdatingProfile } =
     useAction(updateProfile, {
       onSuccess: ({ data }) => {
-        if (data?.success) {
+        if (data && "success" in data) {
           toast.success("Profile updated successfully");
         } else if (data?.error) {
           toast.error(data.error);

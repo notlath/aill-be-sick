@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, ExternalLink } from "lucide-react";
 import { IllnessRecord } from "@/types";
 import { getReliability } from "@/utils/reliability";
 
@@ -151,5 +151,22 @@ export const columns: ColumnDef<IllnessRecord>[] = [
         </span>
       );
     },
+  },
+  {
+    id: "actions",
+    cell: ({ row, table }) => (
+      <div className="flex items-center justify-end z-10 relative">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            (table.options.meta as any)?.openPatientDetail?.(row.original);
+          }}
+          className="btn btn-ghost btn-sm tooltip"
+          data-tip="View Details"
+        >
+          <ExternalLink className="w-4 h-4" />
+        </button>
+      </div>
+    ),
   },
 ];

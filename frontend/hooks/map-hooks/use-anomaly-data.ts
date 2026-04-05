@@ -29,7 +29,7 @@ export const useAnomalyData = ({
   const [anomalyData, setAnomalyData] = useState<OutbreakFullResult | null>(
     null,
   );
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
