@@ -109,6 +109,7 @@ The system uses **scikit-learn's Isolation Forest** algorithm with a **per-disea
 #### Dependencies (Backend)
 ```python
 scikit-learn>=1.0
+shap>=0.44
 numpy>=1.20
 sqlalchemy>=2.0
 psycopg2-binary>=2.9
@@ -320,13 +321,53 @@ The `detect_anomalies()` function groups records by disease and trains a separat
 
 ### All Reason Codes
 
-| Code | Meaning | Baseline |
-|------|---------|----------|
-| `GEOGRAPHIC:RARE` | Lat or lng > 2σ from disease mean | Per-disease |
-| `TEMPORAL:RARE` | Month > 2σ from disease mean | Per-disease |
-| `COMBINED:MULTI` | ≥2 primary reasons triggered | — |
-| `AGE:RARE` | Patient age > 2σ from disease mean | Per-disease |
-| `GENDER:RARE` | Patient gender represents <20% of cases for this disease | Per-disease |
+| Code | Meaning | Derivation |
+|------|---------|------------|
+| `GEOGRAPHIC:RARE` | Patient location is unusual for this disease | SHAP feature contribution (latitude/longitude) |
+| `TEMPORAL:RARE` | Case recorded at an unusual time of year for this disease | SHAP feature contribution (month) |
+| `COMBINED:MULTI` | ≥2 primary reasons triggered | Derived (≥2 distinct reason families) |
+| `AGE:RARE` | Patient age is outside the typical demographic range | SHAP feature contribution (age) |
+| `GENDER:RARE` | Patient gender is uncommon for this disease | SHAP feature contribution (gender) |
+
+### SHAP-Based Explanation Generation
+
+Reason codes are derived from **SHAP (SHapley Additive exPlanations)** feature contributions computed by `shap.TreeExplainer` on the Isolation Forest model. This ensures explanations are grounded in the actual model's decision, not a parallel heuristic layer.
+
+**How it works:**
+
+1. After the Isolation Forest is fitted on a disease group, `TreeExplainer` computes SHAP values for all records (batched, efficient).
+2. For each flagged anomaly, SHAP values indicate how much each feature pushed the prediction toward "anomalous" (negative values) or "normal" (positive values).
+3. Only features with **negative SHAP values** (pushed toward anomaly) are considered.
+4. A **magnitude threshold** (10% of total absolute SHAP sum) filters out noise contributors.
+5. **Option B guarantee**: the top contributor is always included, even if it doesn't pass the threshold — ensuring every anomaly has at least one reason.
+6. Features are mapped to reason codes (latitude → `GEOGRAPHIC:RARE`, month → `TEMPORAL:RARE`, etc.).
+7. District (index 2) is **excluded** from explanations because LabelEncoder distortion makes its SHAP values meaningless.
+8. If SHAP is unavailable or returns empty, the system falls back to z-score heuristics.
+
+**Feature-to-reason mapping:**
+
+| Feature Index | Feature | Reason Code | Notes |
+|--------------|---------|-------------|-------|
+| 0 | latitude | `GEOGRAPHIC:RARE` | |
+| 1 | longitude | `GEOGRAPHIC:RARE` | Deduplicated with latitude |
+| 2 | district | *(skipped)* | LabelEncoder distortion |
+| 3 | month | `TEMPORAL:RARE` | |
+| 4 | age | `AGE:RARE` | |
+| 5 | gender | `GENDER:RARE` | |
+
+**Response format:**
+
+Each anomaly includes both the pipe-separated reason string and structured SHAP contributions:
+
+```json
+{
+  "reason": "GEOGRAPHIC:RARE|AGE:RARE|COMBINED:MULTI",
+  "shap_contributions": [
+    {"reason": "GEOGRAPHIC:RARE", "contribution": 0.152},
+    {"reason": "AGE:RARE", "contribution": 0.089}
+  ]
+}
+```
 
 ### Per-Disease Detection
 
@@ -360,15 +401,26 @@ for disease, disease_records in disease_groups.items():
     # ... predictions, scores, reason codes
 ```
 
-**Reason code computation** (`_compute_reason_codes`):
-Since all rows in `X_all` share the same disease (per-disease model), no disease mask is needed. All statistics are computed directly from `X_all`:
+**Reason code computation** (`_compute_shap_reason_codes`):
+After the Isolation Forest is fitted, SHAP values are computed for all records in the disease group:
 ```python
-# All rows are same-disease — no mask needed
-dis_mean = X_all.mean(axis=0)
-dis_std = X_all.std(axis=0) + 1e-8
+# Compute SHAP values once per disease group (batched)
+explainer = shap.TreeExplainer(model)
+shap_values = explainer.shap_values(X_scaled)
 
-# Compare directly
-lat_outlier = abs(X_row[IDX_LAT] - dis_mean[IDX_LAT]) > THRESHOLD * dis_std[IDX_LAT]
+# For each anomaly, derive reason codes from SHAP contributions
+for i, (record, pred, score) in enumerate(...):
+    if pred == -1:  # anomaly
+        reason, contributions = _compute_shap_reason_codes(shap_values[i])
+```
+
+**Fallback** (`_compute_reason_codes_fallback`):
+If SHAP is unavailable or returns empty, the system falls back to z-score heuristics (2σ threshold checks on each feature). This ensures zero-downtime operation even if the SHAP dependency fails.
+```python
+# Fallback: z-score checks (kept as safety net)
+lat_outlier = abs(X_row[IDX_LAT] - dis_mean[IDX_LAT]) > 2.0 * dis_std[IDX_LAT]
+if lat_outlier:
+    reasons.add(REASON_GEOGRAPHIC_RARE)
 ```
 
 ---
@@ -486,18 +538,22 @@ interface OutbreakFullResult {
 REASON_NEW_CODE = "NEW:REASON"
 ```
 
-2. Update `_compute_reason_codes()`:
+2. Add to `FEATURE_TO_REASON` mapping (assign to the correct feature index):
 ```python
-# Decide: per-disease or global baseline?
-# Add threshold check
-if condition:
-    reasons.add(REASON_NEW_CODE)
+FEATURE_TO_REASON = {
+    0: REASON_GEOGRAPHIC_RARE,
+    1: REASON_GEOGRAPHIC_RARE,
+    # 2 — district (skipped)
+    3: REASON_TEMPORAL_RARE,
+    4: REASON_AGE_RARE,
+    5: REASON_GENDER_RARE,
+    6: REASON_NEW_CODE,  # ← new feature index
+}
 ```
 
-3. Return pipe-separated string:
-```python
-return "|".join(sorted(reasons))
-```
+3. If the new feature requires a new column in the feature matrix, update `_build_feature_matrix()` to include it.
+
+4. Update the frontend `REASON_CODES` mapping (see below).
 
 ### Frontend (`utils/anomaly-reasons.ts`)
 
@@ -509,7 +565,7 @@ return "|".join(sorted(reasons))
 },
 ```
 
-2. Update badge colors in `anomaly-patients-modal.tsx` if needed.
+2. Update badge colors in `anomaly-data-table.tsx` if needed (the `ReasonBadge` component maps code prefixes to DaisyUI color classes).
 
 ---
 
@@ -522,6 +578,10 @@ return "|".join(sorted(reasons))
 - [ ] Contamination slider changes detection results
 - [ ] Date filters work correctly
 - [ ] Location column NOT present in either table
+- [ ] `shap_contributions` field present on anomaly records with valid structure
+- [ ] District never appears in reason codes (LabelEncoder distortion)
+- [ ] Every anomaly has at least one reason code (Option B guarantee)
+- [ ] COMBINED:MULTI appears when ≥2 distinct reasons are present
 
 ---
 
@@ -554,13 +614,26 @@ return "|".join(sorted(reasons))
 
 ---
 
-**Version**: 3.0 (Per-Disease Detection)
+**Version**: 4.0 (SHAP-Based Reason Codes)
 **Last Updated**: April 5, 2026
 **Maintainer**: AI'll Be Sick Development Team
 
 ---
 
 ## Changelog
+
+### Version 4.0 - April 5, 2026
+- **Migrated reason code generation from z-score heuristics to SHAP (TreeExplainer)**
+  - Reason codes are now derived from actual Isolation Forest feature contributions, not parallel heuristic checks
+  - Added `shap>=0.44` to backend dependencies
+  - New `_compute_shap_reason_codes()` function replaces `_compute_reason_codes()` as primary explanation engine
+  - Old z-score heuristics kept as `_compute_reason_codes_fallback()` for zero-downtime fallback
+  - District feature (index 2) excluded from explanations — LabelEncoder distortion makes SHAP values meaningless
+  - Magnitude threshold (10% of total |SHAP|) filters out noise contributors
+  - Top contributor always included (Option B) — guarantees every anomaly has at least one reason
+  - Added `shap_contributions` field to anomaly response: `[{"reason": "...", "contribution": 0.12}, ...]`
+- **Rationale**: Z-score heuristics were disconnected from the model's actual decision — explanations didn't always match why the Isolation Forest flagged the record. SHAP provides mathematically grounded feature attributions that sum to the anomaly score.
+- **Impact**: Explanations are now honest — they reflect what the model actually used. No more "GEOGRAPHIC:RARE" fallback when the real cause was a multi-feature interaction.
 
 ### Version 3.0 - April 5, 2026
 - **Migrated from global to per-disease Isolation Forest models**

@@ -11,7 +11,7 @@ import sys
 import os
 
 # Add backend to path
-backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "backend"))
+backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "backend"))
 if backend_path not in sys.path:
     sys.path.insert(0, backend_path)
 
@@ -20,12 +20,15 @@ from app.services.surveillance_service import (
     analyze_surveillance,
     fetch_diagnosis_data,
     _build_feature_matrix,
-    _compute_reason_codes,
+    _compute_reason_codes_fallback,
+    _compute_shap_reason_codes,
     REASON_GEOGRAPHIC_RARE,
     REASON_TEMPORAL_RARE,
     REASON_COMBINED_MULTI,
     REASON_AGE_RARE,
     REASON_GENDER_RARE,
+    FEATURE_TO_REASON,
+    SHAP_MAGNITUDE_THRESHOLD,
 )
 
 
@@ -588,6 +591,7 @@ class TestResponseFormat:
             assert anomaly["is_anomaly"] is True
             assert "anomaly_score" in anomaly
             assert "reason" in anomaly
+            assert "shap_contributions" in anomaly
             assert "user" in anomaly
             assert "age" in anomaly["user"]
             assert "gender" in anomaly["user"]
@@ -697,3 +701,133 @@ class TestFeatureMatrix:
         # age should vary (20, 21, ...)
         assert X[0, 4] == pytest.approx(20.0)
         assert X[1, 4] == pytest.approx(21.0)
+
+
+# =============================================================================
+# Test 11: SHAP-Based Reason Codes
+# =============================================================================
+
+class TestShapReasonCodes:
+    """Verify SHAP-based reason code generation."""
+
+    def test_shap_reason_codes_returns_reason_and_contributions(self):
+        """_compute_shap_reason_codes returns (reason_str, contributions) tuple."""
+        # Simulate SHAP values where latitude and age are the main contributors
+        shap_values = np.array([-0.15, -0.10, 0.01, -0.02, -0.12, 0.01])
+        reason, contributions = _compute_shap_reason_codes(shap_values)
+
+        assert reason is not None
+        assert isinstance(contributions, list)
+        assert len(contributions) > 0
+        # lat (-0.15) and age (-0.12) should be the top contributors
+        assert REASON_GEOGRAPHIC_RARE in reason
+        assert REASON_AGE_RARE in reason
+
+    def test_shap_reason_codes_skips_district(self):
+        """District (index 2) is never reported as a reason, even with large SHAP value."""
+        shap_values = np.array([-0.01, -0.01, -0.50, -0.01, -0.01, -0.01])
+        reason, contributions = _compute_shap_reason_codes(shap_values)
+
+        # District should not appear — it's skipped
+        assert reason is not None
+        for contrib in contributions:
+            assert contrib["reason"] != "DISTRICT:RARE"
+
+    def test_shap_reason_codes_only_negative_features(self):
+        """Only features with negative SHAP (toward anomaly) are reported."""
+        # Positive SHAP = pushed toward normal, should not be reported
+        shap_values = np.array([0.10, 0.05, 0.01, 0.08, -0.15, 0.02])
+        reason, contributions = _compute_shap_reason_codes(shap_values)
+
+        # Only age (index 4, -0.15) should be reported
+        assert reason == REASON_AGE_RARE
+        assert len(contributions) == 1
+        assert contributions[0]["reason"] == REASON_AGE_RARE
+
+    def test_shap_reason_codes_combined_multi(self):
+        """COMBINED:MULTI is added when ≥2 distinct reasons are present."""
+        shap_values = np.array([-0.12, -0.10, 0.01, -0.08, -0.09, -0.07])
+        reason, contributions = _compute_shap_reason_codes(shap_values)
+
+        reasons = reason.split("|")
+        assert REASON_COMBINED_MULTI in reasons
+        # Should have at least GEOGRAPHIC + TEMPORAL + AGE + GENDER
+        assert REASON_GEOGRAPHIC_RARE in reasons
+        assert REASON_TEMPORAL_RARE in reasons
+
+    def test_shap_reason_codes_deduplicates_geo(self):
+        """Latitude and longitude both map to GEOGRAPHIC:RARE — deduplicated."""
+        shap_values = np.array([-0.15, -0.14, 0.01, -0.01, -0.01, 0.01])
+        reason, contributions = _compute_shap_reason_codes(shap_values)
+
+        reasons = reason.split("|")
+        # GEOGRAPHIC:RARE should appear only once
+        geo_count = reasons.count(REASON_GEOGRAPHIC_RARE)
+        assert geo_count == 1
+
+    def test_shap_reason_codes_magnitude_threshold(self):
+        """Features below the magnitude threshold are not reported."""
+        # One dominant feature, rest are noise
+        shap_values = np.array([-0.50, -0.01, 0.01, -0.01, -0.01, 0.01])
+        reason, contributions = _compute_shap_reason_codes(shap_values)
+
+        # Only latitude should be reported (dominant contributor)
+        assert reason == REASON_GEOGRAPHIC_RARE
+        assert len(contributions) == 1
+
+    def test_shap_reason_codes_option_b_always_top_contributor(self):
+        """Even if no feature passes the threshold, the top contributor is always included."""
+        # All features have similar small SHAP values — none pass 10% threshold alone
+        shap_values = np.array([-0.05, -0.04, 0.01, -0.04, -0.04, -0.03])
+        reason, contributions = _compute_shap_reason_codes(shap_values)
+
+        # Should still have at least one reason (top contributor)
+        assert reason is not None
+        assert len(contributions) >= 1
+
+    def test_shap_contributions_structure(self):
+        """SHAP contributions have correct structure: list of {reason, contribution}."""
+        shap_values = np.array([-0.15, -0.10, 0.01, -0.02, -0.12, 0.01])
+        reason, contributions = _compute_shap_reason_codes(shap_values)
+
+        for contrib in contributions:
+            assert "reason" in contrib
+            assert "contribution" in contrib
+            assert isinstance(contrib["reason"], str)
+            assert isinstance(contrib["contribution"], float)
+            assert contrib["contribution"] > 0
+
+    def test_detect_anomalies_includes_shap_contributions(self):
+        """detect_anomalies() returns shap_contributions on anomaly records."""
+        rows = []
+        for i in range(50):
+            rows.append(_make_mock_row(
+                i, disease="Dengue", district="District A",
+                latitude=14.5995, longitude=120.9842,
+                days_ago=i, age=30, gender="MALE",
+            ))
+        # Add one outlier
+        rows.append(_make_mock_row(
+            99, disease="Dengue", district="District B",
+            latitude=16.0, longitude=122.0,
+            days_ago=0, age=30, gender="MALE",
+        ))
+
+        result = detect_anomalies(rows, contamination=0.05)
+
+        for anomaly in result["anomalies"]:
+            assert "shap_contributions" in anomaly
+            if anomaly["shap_contributions"] is not None:
+                assert isinstance(anomaly["shap_contributions"], list)
+                for contrib in anomaly["shap_contributions"]:
+                    assert "reason" in contrib
+                    assert "contribution" in contrib
+
+    def test_feature_to_reason_mapping_complete(self):
+        """FEATURE_TO_REASON covers all non-district features."""
+        assert FEATURE_TO_REASON[0] == REASON_GEOGRAPHIC_RARE
+        assert FEATURE_TO_REASON[1] == REASON_GEOGRAPHIC_RARE
+        assert 2 not in FEATURE_TO_REASON  # district skipped
+        assert FEATURE_TO_REASON[3] == REASON_TEMPORAL_RARE
+        assert FEATURE_TO_REASON[4] == REASON_AGE_RARE
+        assert FEATURE_TO_REASON[5] == REASON_GENDER_RARE

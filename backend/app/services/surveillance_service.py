@@ -8,6 +8,14 @@ from sqlalchemy import text
 from datetime import datetime
 from app.utils.database import get_db_engine
 
+# SHAP for explainable anomaly reason codes (optional — falls back to z-score heuristics)
+try:
+    import shap
+
+    SHAP_AVAILABLE = True
+except ImportError:
+    SHAP_AVAILABLE = False
+
 
 # ---------------------------------------------------------------------------
 # Reason Codes
@@ -19,6 +27,22 @@ REASON_TEMPORAL_RARE = "TEMPORAL:RARE"
 REASON_COMBINED_MULTI = "COMBINED:MULTI"
 REASON_AGE_RARE = "AGE:RARE"
 REASON_GENDER_RARE = "GENDER:RARE"
+
+# Feature index → reason code mapping for SHAP-based explanations.
+# Index 2 (district) is intentionally excluded — LabelEncoder distortion makes
+# its SHAP values meaningless for epidemiological interpretation.
+FEATURE_TO_REASON = {
+    0: REASON_GEOGRAPHIC_RARE,  # latitude
+    1: REASON_GEOGRAPHIC_RARE,  # longitude
+    # 2 — district (skipped — LabelEncoder distortion)
+    3: REASON_TEMPORAL_RARE,  # month
+    4: REASON_AGE_RARE,  # age
+    5: REASON_GENDER_RARE,  # gender
+}
+
+# Minimum fraction of total absolute SHAP magnitude for a feature to be
+# reported as a contributing reason. Filters out noise contributors.
+SHAP_MAGNITUDE_THRESHOLD = 0.10
 
 
 def fetch_diagnosis_data(
@@ -189,9 +213,91 @@ def _build_feature_matrix(records):
     return X, district_enc, gender_enc, medians
 
 
-def _compute_reason_codes(record, X_row, X_all, scaler, district_enc, gender_enc):
+def _compute_shap_reason_codes(shap_values, feature_to_reason=None, magnitude_threshold=None):
     """
-    Determine which reason codes apply to an anomalous record.
+    Derive reason codes from SHAP feature contributions to the Isolation Forest
+    anomaly score.
+
+    For Isolation Forest, negative SHAP values push the prediction toward
+    "anomalous" (score < 0), while positive values push toward "normal".
+    We only report features that pushed toward anomaly.
+
+    Args:
+        shap_values:        np.ndarray of shape (6,) — SHAP values for one record
+        feature_to_reason:  dict mapping feature index → reason code constant
+        magnitude_threshold: minimum fraction of total |SHAP| sum to report
+
+    Returns:
+        (reason_str, contributions) where:
+            reason_str     — pipe-separated reason codes, e.g. "GEOGRAPHIC:RARE|AGE:RARE"
+            contributions  — list of {"reason": str, "contribution": float} dicts
+    """
+    if feature_to_reason is None:
+        feature_to_reason = FEATURE_TO_REASON
+    if magnitude_threshold is None:
+        magnitude_threshold = SHAP_MAGNITUDE_THRESHOLD
+
+    # Feature indices to skip (LabelEncoder distortion)
+    SKIP_INDICES = {2}  # district
+
+    # Only features that pushed TOWARD anomaly (negative SHAP for IF)
+    # and are not in the skip set
+    candidates = []
+    for feat_idx in range(len(shap_values)):
+        if feat_idx in SKIP_INDICES:
+            continue
+        if shap_values[feat_idx] < 0:  # negative = toward anomaly
+            reason = feature_to_reason.get(feat_idx)
+            if reason:
+                candidates.append((reason, abs(shap_values[feat_idx])))
+
+    # Sort by contribution magnitude (largest first)
+    candidates.sort(key=lambda x: x[1], reverse=True)
+
+    # Apply magnitude threshold: only report features above the threshold
+    total_abs = sum(abs(sv) for sv in shap_values) + 1e-8
+    thresholded = [
+        (reason, mag)
+        for reason, mag in candidates
+        if mag >= magnitude_threshold * total_abs
+    ]
+
+    # Option B: always include the top contributor regardless of threshold
+    # This guarantees every anomaly gets at least one reason
+    if not thresholded and candidates:
+        thresholded = [candidates[0]]
+
+    # Deduplicate (lat + lng both map to GEOGRAPHIC:RARE)
+    seen = set()
+    reasons = []
+    contributions = []
+    for reason, mag in thresholded:
+        if reason not in seen:
+            reasons.append(reason)
+            contributions.append({"reason": reason, "contribution": round(float(mag), 6)})
+            seen.add(reason)
+
+    # COMBINED:MULTI if ≥2 distinct reasons
+    if len(reasons) >= 2:
+        reasons.append(REASON_COMBINED_MULTI)
+
+    # Safety net: if SHAP found nothing at all (shouldn't happen with Option B),
+    # fall back to the top contributor regardless of sign
+    if not reasons and candidates:
+        top_reason = candidates[0][0]
+        reasons.append(top_reason)
+        contributions.append(
+            {"reason": top_reason, "contribution": round(float(candidates[0][1]), 6)}
+        )
+
+    reason_str = "|".join(reasons) if reasons else None
+    return reason_str, contributions
+
+
+def _compute_reason_codes_fallback(record, X_row, X_all, scaler, district_enc, gender_enc):
+    """
+    Fallback reason code computation using z-score heuristics.
+    Used when SHAP is unavailable or returns empty results.
 
     Strategy (per-disease model — all rows in X_all share the same disease):
         - Geographic rarity: lat or lng is > 2σ from the disease's mean location.
@@ -286,7 +392,7 @@ def _compute_reason_codes(record, X_row, X_all, scaler, district_enc, gender_enc
     return "|".join(sorted(reasons))
 
 
-def _row_to_dict(record, is_anomaly, anomaly_score, reason=None):
+def _row_to_dict(record, is_anomaly, anomaly_score, reason=None, shap_contributions=None):
     """
     Serialize a DB row to a plain dict suitable for JSON serialisation.
     """
@@ -328,6 +434,7 @@ def _row_to_dict(record, is_anomaly, anomaly_score, reason=None):
         "is_anomaly": is_anomaly,
         "anomaly_score": round(float(anomaly_score), 4),
         "reason": reason,
+        "shap_contributions": shap_contributions,
     }
 
 
@@ -414,21 +521,48 @@ def detect_anomalies(
         # Anomaly scores: lower (more negative) = more anomalous
         scores = model.decision_function(X_scaled)
 
+        # Compute SHAP values once per disease group (batched, efficient)
+        shap_values = None
+        if SHAP_AVAILABLE:
+            try:
+                explainer = shap.TreeExplainer(model)
+                shap_values = explainer.shap_values(X_scaled)
+            except Exception:
+                shap_values = None  # Fall back to z-score heuristics
+
         for i, (record, pred, score) in enumerate(zip(disease_records, predictions, scores)):
             is_anomaly = bool(pred == -1)
             reason = None
+            shap_contributions = None
 
             if is_anomaly:
-                reason = _compute_reason_codes(
-                    record,
-                    X_scaled[i],
-                    X_scaled,
-                    scaler,
-                    district_enc,
-                    gender_enc,
-                )
+                if shap_values is not None:
+                    reason, shap_contributions = _compute_shap_reason_codes(
+                        shap_values[i],
+                        FEATURE_TO_REASON,
+                        SHAP_MAGNITUDE_THRESHOLD,
+                    )
+                    # Fallback to z-score heuristics if SHAP returned nothing
+                    if not reason:
+                        reason = _compute_reason_codes_fallback(
+                            record,
+                            X_scaled[i],
+                            X_scaled,
+                            scaler,
+                            district_enc,
+                            gender_enc,
+                        )
+                else:
+                    reason = _compute_reason_codes_fallback(
+                        record,
+                        X_scaled[i],
+                        X_scaled,
+                        scaler,
+                        district_enc,
+                        gender_enc,
+                    )
 
-            entry = _row_to_dict(record, is_anomaly, score, reason)
+            entry = _row_to_dict(record, is_anomaly, score, reason, shap_contributions)
 
             if is_anomaly:
                 all_anomalies.append(entry)
