@@ -35,7 +35,9 @@ QUESTION_GROUPS: dict[str, list[str]] = {
         "typhoid_q5",  # TL: pagduduwal o pagsusuka
         "diarrhea_q7",  # EN: nauseous, queasy, throwing up
         "diarrhea_q6",  # TL: pagduduwal o pagsusuka
-        "influenza_q10",  # TL: pagsusuka o pagtatae
+        # NOTE: influenza_q10 removed - EN version asks about breathing/chest
+        # pain (not GI symptoms). TL version asks about vomiting/diarrhea.
+        # EN/TL content divergence makes this grouping clinically unsafe for EN.
     ],
     # ==================== FATIGUE / EXHAUSTION ====================
     "fatigue_exhaustion": [
@@ -175,7 +177,9 @@ QUESTION_GROUPS: dict[str, list[str]] = {
         "typhoid_q6",  # TL: pagtatae o malambot na dumi
         "diarrhea_q1",  # EN: watery or loose stools / TL: matubig o malabnaw
         "measles_q10",  # EN: mild diarrhea or loose stools
-        "influenza_q10",  # TL: pagsusuka o pagtatae
+        # NOTE: influenza_q10 removed - EN version asks about chest pain/
+        # breathing (not diarrhea). TL version asks about vomiting/diarrhea.
+        # EN/TL content divergence makes this grouping unsafe.
     ],
     # ==================== CONSTIPATION ====================
     "constipation": [
@@ -194,10 +198,12 @@ QUESTION_GROUPS: dict[str, list[str]] = {
         "diarrhea_q10",  # TL: nawalan ng gana kumain
     ],
     # ==================== SHORTNESS OF BREATH ====================
+    # Note: pneumonia_q10 excluded - EN version asks about orthopnea (positional
+    # dyspnea when lying down), which is pathognomonic for CHF/pulmonary edema,
+    # not primary pneumonia. TL version asks about joint pain (separate concept).
     "shortness_of_breath": [
         "pneumonia_q3",  # EN: unusually short of breath
         "pneumonia_q9",  # TL: nahihirapan sa paghinga
-        "pneumonia_q10",  # EN: breathing worse when lying down
     ],
     # ==================== CHEST PAIN ====================
     "chest_pain": [
@@ -211,11 +217,17 @@ QUESTION_GROUPS: dict[str, list[str]] = {
         "pneumonia_q4",  # EN: shivering, sweating chills
         "influenza_q3",  # TL: panginginig o pagpapawis
     ],
-    # ==================== BLEEDING (MILD) ====================
+    # ==================== BLEEDING (WARNING SIGN - SEVERE DENGUE) ====================
+    # WARNING SIGN: Mucosal bleeding (gums, epistaxis) is a WHO Warning Sign
+    # of Severe Dengue (DHF/DSS) per WHO 2024 & PIDSP/PSMID CPG.
+    # Positive answer should trigger triage escalation. See WARNING_SIGN_GROUPS.
     "mild_bleeding": [
         "dengue_q4",  # EN: unusual mild bleeding (gums, nosebleed)
     ],
-    # ==================== BLOOD IN STOOL ====================
+    # ==================== BLOOD IN STOOL (RED FLAG - DYSENTERY) ====================
+    # WARNING SIGN: Blood in stool upgrades watery diarrhea -> Dysentery
+    # (bacterial/amebic per DOH/PSMID CPG 2019). Requires distinct clinical
+    # pathway with antibiotics, not just ORS. See WARNING_SIGN_GROUPS.
     "blood_in_stool": [
         "diarrhea_q4",  # EN: blood or red streaks in stool
         "diarrhea_q2",  # TL: dugo sa dumi
@@ -254,6 +266,53 @@ QUESTION_GROUPS: dict[str, list[str]] = {
         "measles_q7",  # EN: without unusual bleeding or severe bone pain
     ],
 }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# WARNING SIGN GROUPS (CLINICAL RED FLAGS)
+# ══════════════════════════════════════════════════════════════════════════════
+# Symptom groups that indicate a WARNING SIGN per WHO / DOH clinical guidelines.
+# When a patient answers "yes" to a question in one of these groups, downstream
+# routing should escalate triage priority regardless of probabilistic weighting.
+#
+# Clinical basis:
+#   - mild_bleeding: WHO Dengue Warning Signs (2024 update); PIDSP/PSMID CPG
+#     Mucosal bleeding (gums, epistaxis) signals potential progression to
+#     Severe Dengue (DHF/DSS). Requires immediate clinical evaluation.
+#   - blood_in_stool: DOH/PSMID CPG for Acute Infectious Diarrhea (2019)
+#     Blood in stool upgrades watery diarrhea -> Dysentery (bacterial/amebic),
+#     requiring antibiotics, not just ORS. Distinct clinical pathway.
+# ══════════════════════════════════════════════════════════════════════════════
+WARNING_SIGN_GROUPS: set[str] = {
+    "mild_bleeding",  # Dengue warning sign - mucosal hemorrhage
+    "blood_in_stool",  # Diarrhea red flag - dysentery
+}
+
+
+def is_warning_sign_detected(detected_groups: set[str]) -> bool:
+    """
+    Check if any detected symptom groups are clinical warning signs.
+
+    Args:
+        detected_groups: Set of symptom group names detected from patient input
+
+    Returns:
+        True if any warning sign group is present
+    """
+    return bool(detected_groups & WARNING_SIGN_GROUPS)
+
+
+def get_warning_sign_groups(detected_groups: set[str]) -> set[str]:
+    """
+    Return the subset of detected groups that are clinical warning signs.
+
+    Args:
+        detected_groups: Set of symptom group names detected from patient input
+
+    Returns:
+        Set of warning sign group names that were detected
+    """
+    return detected_groups & WARNING_SIGN_GROUPS
 
 
 # ══════════════════════════════════════════════════════════════════════════════

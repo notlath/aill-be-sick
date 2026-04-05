@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Backend Diagnostics — 2026-04-05
+
+### Added
+- **Backend**: Introduced clinical red flag tracking via `WARNING_SIGN_GROUPS` in `question_groups.py` to prioritize high-risk symptoms (e.g., mucosal bleeding, blood in stool) over standard conversational symptom pathways.
+- **Backend**: Added helper methods `is_warning_sign_detected` and `get_warning_sign_groups` to assist in routing emergency triage.
+- **Backend Tests**: Created rigorous tests for `OntologyBuilder` and `VerificationLayer` regarding multi-lingual extraction of retroorbital pain specific to Dengue.
+
+### Fixed
+- **Backend**: Resolved false-positive `OUT_OF_SCOPE` warnings for Dengue by adding direct English and Tagalog keyword synonyms for "pain behind the eyes" mapping to `SX_RETROORBITAL_PAIN` in `config.py`.
+- **Backend**: Excluded safely divergent questions (`influenza_q10`, `pneumonia_q10`) from shared conceptual question groups to prevent dangerous false-equivalences between English and Tagalog symptom banks.
+
 ## [Unreleased] — `feat/privacy-compliance` — 2026-04-05
+
 
 > Full details: [`CHANGELOG-feat-privacy-compliance.md`](./CHANGELOG-feat-privacy-compliance.md)
 
