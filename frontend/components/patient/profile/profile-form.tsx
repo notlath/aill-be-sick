@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import {
-  updateProfile,
   uploadAvatar,
   removeAvatar,
   updateProfileLocation,
@@ -220,21 +219,6 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
     form.setValue("longitude", lng);
   };
 
-  // Memoized profile update action with unified success handler
-  const { execute: executeUpdateProfile, isExecuting: isUpdatingProfile } =
-    useAction(updateProfile, {
-      onSuccess: ({ data }) => {
-        if (data && "success" in data) {
-          toast.success("Profile updated successfully");
-        } else if (data?.error) {
-          toast.error(data.error);
-        }
-      },
-      onError: () => {
-        toast.error("Failed to update profile");
-      },
-    });
-
   // Location update action
   const {
     execute: executeUpdateProfileLocation,
@@ -334,23 +318,6 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
       },
     });
 
-  const handleNameSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      const formData = new FormData(e.currentTarget);
-      executeUpdateProfile({
-        name: formData.get("name") as string,
-        region: initialUser.region || undefined,
-        province: initialUser.province || undefined,
-        city: initialUser.city || undefined,
-        barangay: initialUser.barangay || undefined,
-        gender: gender || undefined,
-        birthday: birthday || undefined,
-      });
-    },
-    [executeUpdateProfile, initialUser, gender, birthday],
-  );
-
   const handleAvatarUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -444,27 +411,25 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
             )}
           </div>
 
-          {/* Name and Email Section */}
-          <form
-            onSubmit={handleNameSubmit}
-            className="grid gap-6 md:grid-cols-2"
-          >
-            {/* Name Field */}
-            <div className="space-y-2">
-              <label className="text-sm block font-medium text-base-content">
-                Name
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  name="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
-                  className="flex-1 bg-base-100"
-                />
+          {/* Profile Information (All Read-only) */}
+          <div className="grid gap-6 md:grid-cols-2">
+          {/* Name Field (Read-only) */}
+          <div className="space-y-2">
+            <label className="text-sm block font-medium text-base-content">
+              Name
+            </label>
+            <div className="relative">
+              <Input
+                value={name}
+                disabled
+                className="pr-10 bg-base-100"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <LockIcon />
               </div>
             </div>
+            <p className="text-xs text-muted">Verified from government ID</p>
+          </div>
 
             {/* Email Field (Read-only) */}
             <div className="space-y-2">
@@ -485,66 +450,43 @@ export default function ProfileForm({ user: initialUser }: ProfileFormProps) {
               <p className="text-xs text-muted">Managed by Google account</p>
             </div>
 
-            {/* Gender Field */}
+            {/* Gender Field (Read-only) */}
             <div className="space-y-2">
               <label className="text-sm block font-medium text-base-content">
                 Gender
               </label>
-              <Select
-                className="w-full"
-                value={gender ?? ""}
-                onValueChange={(value) =>
-                  setGender(value as "MALE" | "FEMALE" | "OTHER" | null)
-                }
-              >
-                <SelectTrigger className="w-full bg-base-100">
-                  <SelectValue placeholder="Select gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="MALE">Male</SelectItem>
-                  <SelectItem value="FEMALE">Female</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="relative">
+                <Input
+                  value={gender ?? ""}
+                  disabled
+                  className="pr-10 bg-base-100"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <LockIcon />
+                </div>
+              </div>
+              <p className="text-xs text-muted">Verified from government ID</p>
             </div>
 
-            {/* Birthday Field */}
+            {/* Birthday Field (Read-only) */}
             <div className="space-y-2">
               <label className="text-sm block font-medium text-base-content">
                 Birthday
               </label>
-              <Controller
-                name="birthday"
-                control={form.control}
-                render={({ field }) => (
-                  <DatePicker
-                    value={field.value}
-                    onChange={field.onChange}
-                    className="bg-base-100 w-full"
-                  />
-                )}
-              />
-              {form.formState.errors.birthday && (
-                <span className="text-error text-xs font-medium">
-                  {form.formState.errors.birthday.message}
-                </span>
-              )}
+              <div className="relative">
+                <Input
+                  value={birthday ? new Date(birthday).toLocaleDateString() : ""}
+                  disabled
+                  className="pr-10 bg-base-100"
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <LockIcon />
+                </div>
+              </div>
+              <p className="text-xs text-muted">Verified from government ID</p>
             </div>
 
-            <div className="col-start-2 flex justify-end">
-              <button
-                type="submit"
-                disabled={isUpdatingProfile}
-                className="btn btn-primary rounded-[10px] px-6 min-w-[100px]"
-              >
-                {isUpdatingProfile ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  "Save"
-                )}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
       </section>
 

@@ -12,6 +12,7 @@ import {
 import { canCreatePatient, isAdminLike } from "@/utils/role-hierarchy";
 import { canRestoreDeletion } from "@/utils/deletion-schedule";
 import { UserDetailDangerZone } from "@/components/clinicians/users-page/user-detail-danger-zone";
+import { EditPatientModal } from "@/components/clinicians/users-page/edit-patient-modal";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle, Trash2 } from "lucide-react";
 
@@ -88,6 +89,25 @@ const UserDetailPage = async ({
                 </h1>
                 <p className="text-muted text-lg">{user.email}</p>
               </div>
+              {user.role === "PATIENT" && (
+                <EditPatientModal
+                  patient={{
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    gender: user.gender,
+                    birthday: user.birthday,
+                    address: user.address,
+                    district: user.district,
+                    city: user.city,
+                    barangay: user.barangay,
+                    region: user.region,
+                    province: user.province,
+                    latitude: user.latitude,
+                    longitude: user.longitude,
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -169,6 +189,18 @@ const UserDetailPage = async ({
                   <div>
                     <span className="text-muted text-sm">Gender</span>
                     <p>{user.gender}</p>
+                  </div>
+                )}
+                {user.birthday && (
+                  <div>
+                    <span className="text-muted text-sm">Birthday</span>
+                    <p>
+                      {new Date(user.birthday).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
                   </div>
                 )}
               </CardContent>
