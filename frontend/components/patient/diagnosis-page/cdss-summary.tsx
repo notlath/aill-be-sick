@@ -11,6 +11,7 @@ import {
   MapPin,
   Lightbulb,
 } from "lucide-react";
+import LazyMarkdown from "@/components/ui/lazy-markdown";
 
 type Differential = {
   code?: string | null;
@@ -174,9 +175,20 @@ const CDSSSummary = ({
                 Your results
               </h3>
               {diagnosisMessage && (
-                <p className="text-sm text-base-content/70 mt-1 leading-relaxed">
-                  {diagnosisMessage}
-                </p>
+                <div className="text-sm text-base-content/70 mt-1 leading-relaxed">
+                  <LazyMarkdown
+                    components={{
+                      p: ({ children }: any) => (
+                        <p className="my-0">{children}</p>
+                      ),
+                      strong: ({ children }: any) => (
+                        <strong className="font-bold">{children}</strong>
+                      ),
+                    }}
+                  >
+                    {diagnosisMessage}
+                  </LazyMarkdown>
+                </div>
               )}
             </div>
           </div>

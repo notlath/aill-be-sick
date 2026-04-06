@@ -288,9 +288,9 @@ const ChatWindow = ({
               const isHighConfidence = (confidence ?? 0) >= 0.95;
 
               const summary = isHighConfidence
-                ? `Based on the reported symptoms, **${disease}** is the closest match.`
+                ? `Based on what you've told us, it could be **${disease}**. A healthcare provider can help confirm this.`
                 : diagnosis.message ||
-                  `Based on the reported symptoms, **${disease}** may be a possible match. A healthcare provider should evaluate these findings.`;
+                  `Based on what you've told us, it could be **${disease}**. A healthcare provider can help confirm this.`;
 
               createMessageExecute({
                 chatId,
