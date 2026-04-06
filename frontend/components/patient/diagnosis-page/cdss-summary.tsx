@@ -242,18 +242,31 @@ const CDSSSummary = ({
                   </div>
                   {cdss.triage.reasons && cdss.triage.reasons.length > 0 && (
                     <ul className="mt-3 space-y-1.5 pl-1">
-                      {cdss.triage.reasons.map((r, idx) => (
-                        <li
-                          key={idx}
-                          className="flex items-start gap-2 text-sm text-base-content/70"
-                        >
-                          <span
-                            className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: triage.accentColor }}
-                          />
-                          {r}
-                        </li>
-                      ))}
+                      {cdss.triage.reasons
+                        .filter((r) => {
+                          // Skip technical/internal reasons that don't help patients
+                          const skipPatterns = [
+                            /high model confidence/i,
+                            /low uncertainty/i,
+                            /safe for automated/i,
+                            /without human review/i,
+                            /confidence.*\d+%/i,
+                            /uncertainty.*\d+%/i,
+                          ];
+                          return !skipPatterns.some((p) => p.test(r));
+                        })
+                        .map((r, idx) => (
+                          <li
+                            key={idx}
+                            className="flex items-start gap-2 text-sm text-base-content/70"
+                          >
+                            <span
+                              className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: triage.accentColor }}
+                            />
+                            {r}
+                          </li>
+                        ))}
                     </ul>
                   )}
                 </div>
