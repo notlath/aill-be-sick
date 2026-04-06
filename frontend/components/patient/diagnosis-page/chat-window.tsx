@@ -922,13 +922,15 @@ const ChatWindow = ({
             <ChatContainer
               ref={chatEndRef}
               messages={
-                optimisticMessages.map((msg) => ({
-                  ...msg,
-                  explanation:
-                    msg.explanation ||
-                    (msg.id && messageExplanations[msg.id]) ||
-                    null,
-                })) as any
+                optimisticMessages
+                  .filter((msg) => msg.type !== "DIAGNOSIS")
+                  .map((msg) => ({
+                    ...msg,
+                    explanation:
+                      msg.explanation ||
+                      (msg.id && messageExplanations[msg.id]) ||
+                      null,
+                  })) as any
               }
               isGettingQuestion={isGettingQuestion}
               isDiagnosing={isDiagnosing}
