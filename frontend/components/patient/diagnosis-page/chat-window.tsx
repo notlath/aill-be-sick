@@ -942,16 +942,19 @@ const ChatWindow = ({
               dbExplanation={dbExplanation as unknown as TempExplanation}
               userRole={userRole}
             />
-            {isFinalDiagnosis && currentDiagnosis?.cdss && (
-              <div className="mt-2 w-full">
-                <CDSSSummary
-                  cdss={currentDiagnosis.cdss}
-                  confidence={currentDiagnosis.confidence ?? undefined}
-                  uncertainty={currentDiagnosis.uncertainty ?? undefined}
-                  isValid={currentDiagnosis.is_valid}
-                />
-              </div>
-            )}
+            {isFinalDiagnosis &&
+              currentDiagnosis?.cdss &&
+              finalDiagnosisCreatedRef.current &&
+              !isGettingExplanations && (
+                <div className="mt-2 w-full">
+                  <CDSSSummary
+                    cdss={currentDiagnosis.cdss}
+                    confidence={currentDiagnosis.confidence ?? undefined}
+                    uncertainty={currentDiagnosis.uncertainty ?? undefined}
+                    isValid={currentDiagnosis.is_valid}
+                  />
+                </div>
+              )}
           </ThreadTransition>
         </div>
 
