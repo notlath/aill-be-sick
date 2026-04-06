@@ -25,6 +25,7 @@ import {
   FIXED_PROVINCE,
   parseMapboxResponse,
 } from "@/utils/mapbox";
+import { calculateAge } from "@/utils/lib";
 
 const SearchBox = dynamic(
   () => import("@mapbox/search-js-react").then((mod) => mod.SearchBox),
@@ -61,6 +62,16 @@ export default function CreatePatientForm({
     GeoJSON.Feature<GeoJSON.Point> | undefined
   >(undefined);
 
+  // Guardian information for minors
+  const [guardianName, setGuardianName] = useState("");
+  const [guardianEmail, setGuardianEmail] = useState("");
+  const [guardianPhone, setGuardianPhone] = useState("");
+  const [guardianRelation, setGuardianRelation] = useState("");
+  const [guardianConsent, setGuardianConsent] = useState(false);
+
+  // Age calculation state
+  const [age, setAge] = useState<number | null>(null);
+
   const [createdPatient, setCreatedPatient] = useState<{
     name: string;
     email: string;
@@ -71,13 +82,38 @@ export default function CreatePatientForm({
 
   // Configure Mapbox Search JS token once on mount
   useEffect(() => {
-    import("@mapbox/search-js-react").then(({ config }) => {
-      config.accessToken = ACCESS_TOKEN;
-    });
+    console.log("[create-patient-form] Configuring Mapbox token:", !!ACCESS_TOKEN);
+    if (ACCESS_TOKEN) {
+      import("@mapbox/search-js-react").then(({ config }) => {
+        config.accessToken = ACCESS_TOKEN;
+        console.log("[create-patient-form] Mapbox token configured successfully");
+      }).catch((error) => {
+        console.error("[create-patient-form] Failed to configure Mapbox:", error);
+      });
+    } else {
+      console.warn("[create-patient-form] No Mapbox token available");
+    }
   }, []);
+
+  // Calculate age when birthday changes
+  useEffect(() => {
+    if (birthday) {
+      try {
+        const calculatedAge = calculateAge(birthday);
+        console.log("[create-patient-form] Age calculation:", { birthday, calculatedAge });
+        setAge(calculatedAge);
+      } catch (error) {
+        console.error("Error calculating age:", error);
+        setAge(null);
+      }
+    } else {
+      setAge(null);
+    }
+  }, [birthday]);
 
   const { execute, isExecuting } = useAction(createPatient, {
     onSuccess: ({ data }) => {
+      console.log("[create-patient-form] Action success:", data);
       if (data?.success) {
         setCreatedPatient({
           name: data.success.name || "",
@@ -98,11 +134,23 @@ export default function CreatePatientForm({
         setLatitude(null);
         setLongitude(null);
         setMinimapFeature(undefined);
+        // Reset guardian fields
+        setGuardianName("");
+        setGuardianEmail("");
+        setGuardianPhone("");
+        setGuardianRelation("");
+        setGuardianConsent(false);
+        setAge(null);
       } else if (data?.error) {
+        console.error("[create-patient-form] Server returned error:", data.error);
         toast.error(data.error);
       }
     },
-    onError: () => toast.error("Failed to register patient account"),
+    onError: (error) => {
+      console.error("[create-patient-form] Action failed:", error);
+      console.error("[create-patient-form] Error details:", JSON.stringify(error, null, 2));
+      toast.error("Failed to register patient account");
+    },
   });
 
   // Handle Mapbox SearchBox selection — fires for any suggestion type (streets, addresses, POIs)
@@ -139,6 +187,50 @@ export default function CreatePatientForm({
   const handleSubmit = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+
+      // Client-side validation
+      if (!gender) {
+        toast.error("Please select a gender");
+        return;
+      }
+
+      const formData = {
+        firstName,
+        middleName: middleName || undefined,
+        lastName,
+        suffix: suffix || undefined,
+        email,
+        birthday,
+        gender: gender as "MALE" | "FEMALE" | "OTHER",
+        address,
+        district,
+        city: FIXED_CITY,
+        barangay: FIXED_BARANGAY,
+        region: FIXED_REGION,
+        province: FIXED_PROVINCE,
+        latitude: latitude ?? undefined,
+        longitude: longitude ?? undefined,
+        guardianName: guardianName || undefined,
+        guardianEmail: guardianEmail || undefined,
+        guardianPhone: guardianPhone || undefined,
+        guardianRelation: guardianRelation || undefined,
+        guardianConsent: guardianConsent || undefined,
+      };
+
+      console.log("[create-patient-form] Submitting form with data:", {
+        firstName,
+        lastName,
+        email,
+        birthday,
+        age,
+        gender,
+        hasGuardianData: age !== null && age < 18,
+        guardianName: guardianName || "none",
+        guardianEmail: guardianEmail || "none",
+        guardianRelation: guardianRelation || "none",
+        guardianConsent,
+      });
+      console.log("[create-patient-form] Full form data:", formData);
       execute({
         firstName,
         middleName: middleName || undefined,
@@ -155,6 +247,11 @@ export default function CreatePatientForm({
         province: FIXED_PROVINCE,
         latitude: latitude ?? undefined,
         longitude: longitude ?? undefined,
+        guardianName: guardianName || undefined,
+        guardianEmail: guardianEmail || undefined,
+        guardianPhone: guardianPhone || undefined,
+        guardianRelation: guardianRelation || undefined,
+        guardianConsent: guardianConsent || undefined,
       });
     },
     [
@@ -170,6 +267,11 @@ export default function CreatePatientForm({
       district,
       latitude,
       longitude,
+      guardianName,
+      guardianEmail,
+      guardianPhone,
+      guardianRelation,
+      guardianConsent,
     ],
   );
 
@@ -362,6 +464,111 @@ export default function CreatePatientForm({
         </div>
       </div>
 
+      {/* Guardian Information */}
+      {age !== null && age < 18 && (
+        <div className="border-t border-base-300 pt-6 mt-6">
+          <h3 className="text-lg font-semibold text-base-content mb-4">
+            Guardian Information
+          </h3>
+          <p className="text-sm text-muted mb-4">
+            Since the patient is under 18 years old, guardian information is required.
+          </p>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content">
+                Guardian Full Name *
+              </label>
+              <Input
+                name="guardianName"
+                value={guardianName}
+                onChange={(e) => {
+                  console.log("[create-patient-form] Guardian name changed:", e.target.value);
+                  setGuardianName(e.target.value);
+                }}
+                placeholder="Juan Dela Cruz"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content">
+                Guardian Email Address *
+              </label>
+              <Input
+                type="email"
+                name="guardianEmail"
+                value={guardianEmail}
+                onChange={(e) => {
+                  console.log("[create-patient-form] Guardian email changed:", e.target.value);
+                  setGuardianEmail(e.target.value);
+                }}
+                placeholder="guardian@example.com"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content">
+                Guardian Phone Number
+              </label>
+              <Input
+                type="tel"
+                name="guardianPhone"
+                value={guardianPhone}
+                onChange={(e) => setGuardianPhone(e.target.value)}
+                placeholder="+63 912 345 6789"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-base-content">
+                Relationship to Patient *
+              </label>
+          <Select
+            value={guardianRelation}
+            onValueChange={(value) => {
+              console.log("[create-patient-form] Guardian relation changed:", value);
+              setGuardianRelation(value);
+            }}
+          >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select relationship" className="text-muted" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Parent">Parent</SelectItem>
+                  <SelectItem value="Guardian">Guardian</SelectItem>
+                  <SelectItem value="Grandparent">Grandparent</SelectItem>
+                  <SelectItem value="Sibling">Sibling (18+)</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Guardian Consent Checkbox */}
+          <div className="mt-6">
+            <label className="cursor-pointer flex items-start gap-3 p-4 bg-base-200 rounded-lg hover:bg-base-300 transition-colors border border-base-300">
+              <input
+                type="checkbox"
+                className="checkbox checkbox-warning mt-0.5"
+                checked={guardianConsent}
+                onChange={(e) => {
+                  console.log("[create-patient-form] Guardian consent changed:", e.target.checked);
+                  setGuardianConsent(e.target.checked);
+                }}
+                required
+              />
+              <span className="text-sm leading-tight">
+                I confirm that the guardian has provided{" "}
+                <strong>permission and consent</strong> for this minor patient to use
+                the system, and that all provided guardian information is accurate.
+              </span>
+            </label>
+          </div>
+        </div>
+      )}
+
       {/* Patient's Home Address */}
       <div className="border-t border-base-300 pt-6 mt-6">
         <h3 className="text-lg font-semibold text-base-content mb-4">
@@ -443,7 +650,6 @@ export default function CreatePatientForm({
                     accessToken={ACCESS_TOKEN}
                     feature={minimapFeature}
                     show={true}
-                    satelliteToggle
                     canAdjustMarker
                     footer
                     onSaveMarkerLocation={handleSaveMarkerLocation}

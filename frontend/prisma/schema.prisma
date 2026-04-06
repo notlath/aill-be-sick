@@ -42,6 +42,11 @@ model User {
   mustChangePassword Boolean             @default(false)
   emailVerified      Boolean             @default(false)
   patientAccessCode  String?             @unique
+  // Guardian information for minors (under 18)
+  guardianName       String?
+  guardianEmail      String?
+  guardianPhone      String?
+  guardianRelation   String?
   acknowledgedAlerts Alert[]             @relation("AlertAcknowledger")
   resolvedAlerts     Alert[]             @relation("AlertResolver")
   alertNotes         AlertNote[]         @relation("AlertNoteAuthor")

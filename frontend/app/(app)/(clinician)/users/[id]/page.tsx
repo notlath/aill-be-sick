@@ -230,6 +230,43 @@ const UserDetailPage = async ({
               </CardContent>
             </Card>
 
+            {(user.guardianName || user.guardianEmail) && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Guardian Information</CardTitle>
+                  <CardDescription>
+                    Emergency contact and legal guardian details
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {user.guardianName && (
+                    <div>
+                      <span className="text-muted text-sm">Guardian Name</span>
+                      <p className="font-medium">{user.guardianName}</p>
+                    </div>
+                  )}
+                  {user.guardianEmail && (
+                    <div>
+                      <span className="text-muted text-sm">Guardian Email</span>
+                      <p className="font-medium">{user.guardianEmail}</p>
+                    </div>
+                  )}
+                  {user.guardianPhone && (
+                    <div>
+                      <span className="text-muted text-sm">Guardian Phone</span>
+                      <p className="font-medium">{user.guardianPhone}</p>
+                    </div>
+                  )}
+                  {user.guardianRelation && (
+                    <div>
+                      <span className="text-muted text-sm">Relationship</span>
+                      <p className="font-medium">{user.guardianRelation}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">Activity</CardTitle>

@@ -14,7 +14,8 @@
     "db:backup": "node --env-file=.env.local scripts/backup-db.js",
     "db:backup:list": "node --env-file=.env.local scripts/backup-db.js --list",
     "db:backup:restore": "node --env-file=.env.local scripts/backup-db.js --restore",
-    "db:backfill-consent": "node --env-file=.env.local scripts/backfill-consent.js"
+    "db:backfill-consent": "node --env-file=.env.local scripts/backfill-consent.js",
+    "db:backfill-ages": "npx tsx --env-file=.env.local scripts/backfill-user-ages.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

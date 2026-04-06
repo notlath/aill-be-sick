@@ -67,7 +67,14 @@ flowchart TD
     %% ========== PATIENT CREATION BY CLINICIAN ==========
     PatientDashboard --> ClickCreatePatient[Click Create Patient Account]
     ClickCreatePatient --> EnterPatientDetails[Enter Patient Details: Name, Contact, DOB]
-    EnterPatientDetails --> PatientFormValid{Patient form valid?}
+    EnterPatientDetails --> CalculateAge[Calculate patient age from DOB]
+    CalculateAge --> AgeCheck{Age < 18?}
+    AgeCheck -->|Yes| ShowGuardianFields[Show guardian information fields]
+    ShowGuardianFields --> GuardianValid{Guardian info + consent complete?}
+    GuardianValid -->|No| ShowGuardianErrors[Show guardian errors and retry]
+    ShowGuardianFields --> EnterPatientDetails
+    GuardianValid -->|Yes| PatientFormValid{Patient form valid?}
+    AgeCheck -->|No| PatientFormValid
     PatientFormValid -->|No| ShowPatientFormErrors[Show errors and retry]
     ShowPatientFormErrors --> EnterPatientDetails
     PatientFormValid -->|Yes| CreatePatientAccount[Create Patient Auth + Patient Profile]
@@ -104,9 +111,9 @@ flowchart TD
 
     %% Apply styles to nodes
     class AdminPredefined,AdminLogin,AdminDashboard,ViewPending,AdminAction,ApproveClinician,RejectClinician,SendNotification,MorePending adminNode
-    class ClinicianSignUp,EnterDetails,CreateAuth,SendVerification,CreateProfile,ShowPendingMessage,ClinicianLogin,ClinicianStatus,ShowPendingApproval,PatientDashboard,ClickCreatePatient,EnterPatientDetails,CreatePatientAccount,SendInviteEmail,PatientClicksLink,PatientSetsPassword clinicianNode
+    class ClinicianSignUp,EnterDetails,CreateAuth,SendVerification,CreateProfile,ShowPendingMessage,ClinicianLogin,ClinicianStatus,ShowPendingApproval,PatientDashboard,ClickCreatePatient,EnterPatientDetails,CalculateAge,AgeCheck,ShowGuardianFields,GuardianValid,CreatePatientAccount,SendInviteEmail,PatientClicksLink,PatientSetsPassword clinicianNode
     class PatientLogin,PatientDashboardView,ClickNeedAccount,NavigateNeedAccount,ShowVisitHealthCenter,ShowServiceArea,LinkBackLogin patientNode
-    class AdminLoginError,ShowFormErrors,ShowSignupError,ClinicianLoginError,ShowPatientFormErrors,ShowCreationError,PatientLoginError errorNode
+    class AdminLoginError,ShowFormErrors,ShowSignupError,ClinicianLoginError,ShowPatientFormErrors,ShowGuardianErrors,ShowCreationError,PatientLoginError errorNode
 ```
 
 ## Legend
@@ -206,13 +213,18 @@ flowchart TD
 
 1. Clinician clicks "Create Patient Account" from dashboard
 2. Clinician enters patient details (name, contact, date of birth)
-3. Form validation occurs
-4. Upon valid form submission, patient auth and profile are created
-5. System sends invite email to patient's email address
-6. Patient clicks the invite link in the email
-7. Patient is redirected to set-password page
-8. Patient sets their own password
-9. Patient can now log in with their email and password
+3. System calculates patient age from date of birth
+4. If patient is under 18, system displays guardian information fields
+5. Clinician enters guardian details (name, email, relationship)
+6. Clinician confirms guardian consent via checkbox
+7. Guardian information and consent validation occurs
+8. Form validation occurs for all patient details
+9. Upon valid form submission, patient auth and profile are created (including guardian info if applicable)
+10. System sends invite email to patient's email address
+11. Patient clicks the invite link in the email
+12. Patient is redirected to set-password page
+13. Patient sets their own password
+14. Patient can now log in with their email and password
 
 **Key Points**:
 
@@ -352,7 +364,10 @@ This section lists all routes referenced in the account creation flows.
 8. **Form Validation**: All forms include client-side and server-side validation for data integrity
 9. **Error Recovery**: All error states include clear messaging and retry options
 10. **Security**: Temporary credentials and password changes ensure patient account security
-11. **Resend Invite Feature**: Admins can resend invite emails from the Users page. Each resend generates a new token with full 24-hour validity
-12. **Invite Expiration**: Invite tokens expire after 24 hours. Expired invites redirect users to /auth/expired-invite page with clear instructions
-13. **Role-Based Access**: Resend Invite is only available to ADMIN and DEVELOPER roles (via role hierarchy)
-14. **Client-Side Token Extraction**: Invite links contain tokens in URL hash fragments (#access_token=...). Client-side JavaScript extracts these tokens after server-side processing
+11. **Age Validation**: Patient age is calculated from date of birth. Minors under 18 require guardian information to be provided during account creation
+12. **Guardian Information**: For patients under 18, guardian name, email, phone (optional), and relationship are stored and required for account creation
+13. **Guardian Consent**: For patients under 18, clinicians must confirm guardian consent via checkbox before account creation
+13. **Resend Invite Feature**: Admins can resend invite emails from the Users page. Each resend generates a new token with full 24-hour validity
+14. **Invite Expiration**: Invite tokens expire after 24 hours. Expired invites redirect users to /auth/expired-invite page with clear instructions
+15. **Role-Based Access**: Resend Invite is only available to ADMIN and DEVELOPER roles (via role hierarchy)
+16. **Client-Side Token Extraction**: Invite links contain tokens in URL hash fragments (#access_token=...). Client-side JavaScript extracts these tokens after server-side processing
