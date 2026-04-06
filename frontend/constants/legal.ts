@@ -7,6 +7,7 @@ export const LEGAL_CONSTANTS = {
   // Organization Information
   HOSPITAL_NAME: "Bagong Silangan Health Center",
   HOSPITAL_PHONE: "09778091108", // TODO: Update with real phone
+  HOSPITAL_EMAIL: "[Hospital Email]", // TODO: Update with actual email
   HOSPITAL_ADDRESS: " Bonifacio Street, Brgy. Bagong Silangan, District 2", // TODO: Update with real address
   BARANGAY_NAME: "Bagong Silangan, Quezon City",
 
