@@ -158,7 +158,7 @@ const CDSSSummary = ({
     <>
       <Card className="cdss-card border border-base-300 bg-base-100 shadow-sm rounded-2xl overflow-hidden">
         {/* ── Header ──────────────────────────────────────────────── */}
-        <div className="px-6 pt-5 pb-4 border-b border-base-300 flex items-center justify-between gap-4">
+        <div className="px-6 pt-5 pb-4 border-b border-base-300">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-base-200 flex items-center justify-center flex-shrink-0">
               <Activity
@@ -174,47 +174,21 @@ const CDSSSummary = ({
                 Your results
               </h3>
               {diagnosisMessage && (
-                <p className="text-sm text-base-content/70 mt-2 leading-relaxed">
+                <p className="text-sm text-base-content/70 mt-1 leading-relaxed">
                   {diagnosisMessage}
                 </p>
               )}
             </div>
           </div>
-          {timestamp && (
-            <time
-              dateTime={timestamp.toISOString()}
-              className="text-[11px] text-base-content/50 font-mono tabular-nums flex-shrink-0"
-            >
-              {formatTimestamp(timestamp)}
-            </time>
-          )}
         </div>
 
-        <div className="px-6 py-5 space-y-6">
-          {/* ── Health Center Callout ────────────────────────────── */}
-          <div className="flex gap-3 rounded-xl bg-base-200 border border-base-300 px-4 py-3">
-            <MapPin
-              className="w-4 h-4 text-base-content/50 flex-shrink-0 mt-0.5"
-              strokeWidth={2.5}
-            />
-            <div>
-              <p className="text-sm font-semibold text-base-content leading-snug">
-                Next step: get verified
-              </p>
-              <p className="text-xs text-base-content/70 mt-0.5 leading-relaxed">
-                Visit the Bagong Silangan Health Center to have a doctor review
-                your results. They can confirm this assessment and guide your
-                next steps.
-              </p>
-            </div>
-          </div>
-
+        <div className="px-6 py-5 space-y-5">
           {/* ── Triage — Urgency ─────────────────────────────────── */}
           {cdss.triage && triage && (
             <section aria-label="Triage level">
               <SectionLabel
-                icon={<ShieldAlert className="w-3.5 h-3.5" strokeWidth={2.5} />}
-                label="Urgency"
+                icon={<ShieldAlert className="w-4 h-4" strokeWidth={2.5} />}
+                label="How urgent is this?"
               />
               <div
                 className={`mt-2 rounded-xl border ${triage.borderColor} ${triage.bgColor} overflow-hidden`}
@@ -270,7 +244,7 @@ const CDSSSummary = ({
           {cdss.recommendation && (
             <section>
               <SectionLabel
-                icon={<ListChecks className="w-3.5 h-3.5" strokeWidth={2.5} />}
+                icon={<ListChecks className="w-4 h-4" strokeWidth={2.5} />}
                 label="What to do next"
               />
 
@@ -295,11 +269,28 @@ const CDSSSummary = ({
             </section>
           )}
 
+          {/* ── Health Center Callout ────────────────────────────── */}
+          <div className="flex gap-3 rounded-xl bg-base-200 border border-base-300 px-4 py-3">
+            <MapPin
+              className="w-4 h-4 text-base-content/50 flex-shrink-0 mt-0.5"
+              strokeWidth={2.5}
+            />
+            <div>
+              <p className="text-sm font-semibold text-base-content leading-snug">
+                Get your results verified
+              </p>
+              <p className="text-xs text-base-content/70 mt-0.5 leading-relaxed">
+                Visit the Bagong Silangan Health Center for a check-up. A doctor
+                can review your results and confirm the next steps.
+              </p>
+            </div>
+          </div>
+
           {/* ── Knowledge Links ──────────────────────────────────── */}
           {cdss.knowledge && cdss.knowledge.length > 0 && (
             <section>
               <SectionLabel
-                icon={<BookOpen className="w-3.5 h-3.5" strokeWidth={2.5} />}
+                icon={<BookOpen className="w-4 h-4" strokeWidth={2.5} />}
                 label="Learn more"
               />
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -363,7 +354,7 @@ const SectionLabel = ({
   labelClassName?: string;
 }) => (
   <div
-    className={`flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest ${labelClassName}`}
+    className={`flex items-center gap-2 text-sm font-semibold ${labelClassName}`}
   >
     <span className="text-inherit opacity-70">{icon}</span>
     {label}
