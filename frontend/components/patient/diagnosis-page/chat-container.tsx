@@ -104,6 +104,16 @@ const ChatContainer = memo(
       const symptomsMessage = messages.find((m) => m.type === "SYMPTOMS");
       const symptomsText = symptomsMessage?.content || "";
 
+      // Detect if the CURRENT question is already rendered in the message list.
+      // This prevents "Thinking" from persisting after the question is visible.
+      // We check for a matching QUESTION message (same content as currentQuestion).
+      const currentQuestionRendered =
+        currentQuestion &&
+        messages.some(
+          (m) =>
+            m.type === "QUESTION" && m.content === currentQuestion.question,
+        );
+
       return (
         <section className="flex flex-col flex-1 space-y-2 py-8 pb-0 px-4 w-full max-w-[768px]">
           {messages.map((message, idx) => {
@@ -139,34 +149,37 @@ const ChatContainer = memo(
               />
             );
           })}
-          {/* Mutual exclusion: "Thinking" hides when follow-up question is being fetched.
-              This prevents both loading states from showing simultaneously during the
-              transition from runDiagnosis → getFollowUpQuestion inside onSuccess. */}
-          {(isDiagnosing || isCreatingMessage) && !isGettingQuestion && (
-            <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[60%]">
-              <div className="flex items-center gap-1.5">
-                <LazyMarkdown components={MARKDOWN_COMPONENTS}>
-                  Thinking
-                </LazyMarkdown>
-                <span className="loading loading-dots loading-xs"></span>
-              </div>
-            </article>
-          )}
-          {/* Mutual exclusion: "Asking follow-up questions" hides while diagnosing/creating.
-              This ensures only one loading indicator is visible at a time. */}
-          {isGettingQuestion &&
-            !currentQuestion &&
-            !isDiagnosing &&
-            !isCreatingMessage && (
+          {/* "Thinking" shows only when:
+              - We are diagnosing or creating a message, AND
+              - We are NOT fetching a follow-up question, AND
+              - The current question is NOT already rendered on screen.
+              Once the question appears, "Thinking" disappears immediately. */}
+          {(isDiagnosing || isCreatingMessage) &&
+            !isGettingQuestion &&
+            !currentQuestionRendered && (
               <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[60%]">
                 <div className="flex items-center gap-1.5">
                   <LazyMarkdown components={MARKDOWN_COMPONENTS}>
-                    Asking you follow-up questions
+                    Thinking
                   </LazyMarkdown>
                   <span className="loading loading-dots loading-xs"></span>
                 </div>
               </article>
             )}
+          {/* "Asking follow-up questions" shows when:
+              - We are fetching a follow-up question, AND
+              - No currentQuestion is set yet (question hasn't arrived from backend).
+              This bridges the gap between answering a question and the next one arriving. */}
+          {isGettingQuestion && !currentQuestion && (
+            <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[60%]">
+              <div className="flex items-center gap-1.5">
+                <LazyMarkdown components={MARKDOWN_COMPONENTS}>
+                  Asking you follow-up questions
+                </LazyMarkdown>
+                <span className="loading loading-dots loading-xs"></span>
+              </div>
+            </article>
+          )}
           {isGettingExplanations && (
             <article className="self-start bg-base-200 text-base-content p-3 mt-4 px-4 rounded-xl max-w-[60%]">
               <div className="flex items-center gap-1.5">
