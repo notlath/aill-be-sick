@@ -139,7 +139,10 @@ const ChatContainer = memo(
               />
             );
           })}
-          {(isDiagnosing || isCreatingMessage) && (
+          {/* Mutual exclusion: "Thinking" hides when follow-up question is being fetched.
+              This prevents both loading states from showing simultaneously during the
+              transition from runDiagnosis → getFollowUpQuestion inside onSuccess. */}
+          {(isDiagnosing || isCreatingMessage) && !isGettingQuestion && (
             <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[60%]">
               <div className="flex items-center gap-1.5">
                 <LazyMarkdown components={MARKDOWN_COMPONENTS}>
@@ -149,16 +152,21 @@ const ChatContainer = memo(
               </div>
             </article>
           )}
-          {isGettingQuestion && !currentQuestion && (
-            <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[60%]">
-              <div className="flex items-center gap-1.5">
-                <LazyMarkdown components={MARKDOWN_COMPONENTS}>
-                  Asking you follow-up questions
-                </LazyMarkdown>
-                <span className="loading loading-dots loading-xs"></span>
-              </div>
-            </article>
-          )}
+          {/* Mutual exclusion: "Asking follow-up questions" hides while diagnosing/creating.
+              This ensures only one loading indicator is visible at a time. */}
+          {isGettingQuestion &&
+            !currentQuestion &&
+            !isDiagnosing &&
+            !isCreatingMessage && (
+              <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[60%]">
+                <div className="flex items-center gap-1.5">
+                  <LazyMarkdown components={MARKDOWN_COMPONENTS}>
+                    Asking you follow-up questions
+                  </LazyMarkdown>
+                  <span className="loading loading-dots loading-xs"></span>
+                </div>
+              </article>
+            )}
           {isGettingExplanations && (
             <article className="self-start bg-base-200 text-base-content p-3 mt-4 px-4 rounded-xl max-w-[60%]">
               <div className="flex items-center gap-1.5">
