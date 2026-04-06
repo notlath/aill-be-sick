@@ -171,11 +171,8 @@ const CDSSSummary = ({
                 className="cdss-heading text-base font-700 text-base-content leading-tight"
                 style={{ fontWeight: 700 }}
               >
-                Clinical Support Summary
+                Your results
               </h3>
-              <p className="text-[11px] text-base-content/50 font-medium tracking-wide uppercase mt-0.5">
-                AI-assisted decision support
-              </p>
               {diagnosisMessage && (
                 <p className="text-sm text-base-content/70 mt-2 leading-relaxed">
                   {diagnosisMessage}
@@ -230,12 +227,12 @@ const CDSSSummary = ({
                 <div className="p-4">
                   <div className="flex items-start gap-3">
                     <span
-                      className={`badge badge-lg ${triage.badgeClass} font-bold tracking-wide cdss-heading flex-shrink-0`}
+                      className={`badge badge-lg ${triage.badgeClass} font-semibold tracking-wide cdss-heading flex-shrink-0`}
                     >
                       {triage.label}
                     </span>
                     <p
-                      className={`text-sm font-semibold ${triage.textColor} leading-snug pt-1`}
+                      className={`text-sm ${triage.textColor} leading-snug pt-1`}
                     >
                       {getTriageDescription(cdss.triage.level)}
                     </p>
