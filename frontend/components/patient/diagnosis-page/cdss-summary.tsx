@@ -195,6 +195,25 @@ const CDSSSummary = ({
         </div>
 
         <div className="px-6 py-4 space-y-4">
+          {/* ── Verification Notice ──────────────────────────────── */}
+          <div className="flex gap-3 rounded-xl bg-info/10 border border-info/20 px-4 py-3">
+            <MapPin
+              className="w-5 h-5 text-info flex-shrink-0 mt-0.5"
+              strokeWidth={2.5}
+            />
+            <div>
+              <p className="text-sm font-semibold text-info leading-snug">
+                Next step: get your results verified
+              </p>
+              <p className="text-xs text-base-content/70 mt-1 leading-relaxed">
+                This assessment is a helpful starting point, but it's not a
+                substitute for a doctor's visit. Head to the Bagong Silangan
+                Health Center for a check-up so a healthcare provider can review
+                your results and guide your next steps.
+              </p>
+            </div>
+          </div>
+
           {/* ── Triage — Urgency ─────────────────────────────────── */}
           {cdss.triage && triage && (
             <section aria-label="Triage level">
@@ -280,23 +299,6 @@ const CDSSSummary = ({
               </div>
             </section>
           )}
-
-          {/* ── Health Center Callout ────────────────────────────── */}
-          <div className="flex gap-3 rounded-xl bg-base-200 border border-base-300 px-4 py-3">
-            <MapPin
-              className="w-4 h-4 text-base-content/50 flex-shrink-0 mt-0.5"
-              strokeWidth={2.5}
-            />
-            <div>
-              <p className="text-sm font-semibold text-base-content leading-snug">
-                Get your results verified
-              </p>
-              <p className="text-xs text-base-content/70 mt-0.5 leading-relaxed">
-                Visit the Bagong Silangan Health Center for a check-up. A doctor
-                can review your results and confirm the next steps.
-              </p>
-            </div>
-          </div>
 
           {/* ── Knowledge Links ──────────────────────────────────── */}
           {cdss.knowledge && cdss.knowledge.length > 0 && (
