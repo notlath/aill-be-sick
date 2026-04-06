@@ -156,13 +156,13 @@ const CDSSSummary = ({
 
   return (
     <>
-      <Card className="cdss-card border border-primary/20 bg-base-100 shadow-sm rounded-2xl overflow-hidden">
+      <Card className="cdss-card border border-base-300 bg-base-100 shadow-sm rounded-2xl overflow-hidden">
         {/* ── Header ──────────────────────────────────────────────── */}
         <div className="px-6 pt-5 pb-4 border-b border-base-300 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-base-200 flex items-center justify-center flex-shrink-0">
               <Activity
-                className="w-4.5 h-4.5 text-primary"
+                className="w-4.5 h-4.5 text-base-content/60"
                 strokeWidth={2.5}
               />
             </div>
@@ -195,13 +195,13 @@ const CDSSSummary = ({
 
         <div className="px-6 py-5 space-y-6">
           {/* ── Health Center Callout ────────────────────────────── */}
-          <div className="flex gap-3 rounded-xl bg-success/10 border border-success/20 px-4 py-3">
+          <div className="flex gap-3 rounded-xl bg-base-200 border border-base-300 px-4 py-3">
             <MapPin
-              className="w-4 h-4 text-success flex-shrink-0 mt-0.5"
+              className="w-4 h-4 text-base-content/50 flex-shrink-0 mt-0.5"
               strokeWidth={2.5}
             />
             <div>
-              <p className="text-sm font-semibold text-success leading-snug">
+              <p className="text-sm font-semibold text-base-content leading-snug">
                 Next step: get verified
               </p>
               <p className="text-xs text-base-content/70 mt-0.5 leading-relaxed">
@@ -272,11 +272,11 @@ const CDSSSummary = ({
               <div className="mt-2 space-y-3">
                 {/* Care setting callout */}
                 {cdss.recommendation.care_setting && (
-                  <div className="flex items-center gap-3 rounded-xl bg-primary/10 border border-primary/20 px-4 py-3">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/20 rounded-md px-2 py-1 flex-shrink-0">
+                  <div className="flex items-center gap-3 rounded-xl bg-base-200 border border-base-300 px-4 py-3">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-base-content/50 bg-base-content/10 rounded-md px-2 py-1 flex-shrink-0">
                       Care Setting
                     </span>
-                    <span className="text-sm font-semibold text-primary">
+                    <span className="text-sm font-semibold text-base-content">
                       {cdss.recommendation.care_setting}
                     </span>
                   </div>
@@ -288,7 +288,7 @@ const CDSSSummary = ({
                     <ol className="space-y-2.5">
                       {cdss.recommendation.actions.map((a, idx) => (
                         <li key={idx} className="flex items-start gap-3">
-                          <span className="w-6 h-6 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5 cdss-heading">
+                          <span className="w-6 h-6 rounded-full bg-base-200 border border-base-300 text-base-content/70 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5 cdss-heading">
                             {idx + 1}
                           </span>
                           <span className="text-sm text-base-content/80 leading-relaxed pt-0.5">
@@ -316,10 +316,10 @@ const CDSSSummary = ({
                     href={k.link ?? "#"}
                     target="_blank"
                     rel="noreferrer"
-                    className="group flex items-start justify-between gap-3 rounded-xl border-l-2 border border-primary/30 bg-base-100 px-4 py-3 hover:bg-primary/10 hover:border-l-primary hover:border-primary/30 transition-all duration-150 cursor-pointer"
+                    className="group flex items-start justify-between gap-3 rounded-xl border-l-2 border border-base-300 bg-base-100 px-4 py-3 hover:bg-base-200 hover:border-l-base-content/40 transition-all duration-150 cursor-pointer"
                   >
                     <div>
-                      <p className="text-sm font-semibold text-base-content/80 group-hover:text-primary transition-colors leading-snug">
+                      <p className="text-sm font-semibold text-base-content/80 group-hover:text-base-content transition-colors leading-snug">
                         {k.topic}
                       </p>
                       {k.source && (
@@ -332,7 +332,7 @@ const CDSSSummary = ({
                       )}
                     </div>
                     <ExternalLink
-                      className="w-3.5 h-3.5 text-base-content/40 group-hover:text-primary transition-colors flex-shrink-0 mt-0.5"
+                      className="w-3.5 h-3.5 text-base-content/40 group-hover:text-base-content/70 transition-colors flex-shrink-0 mt-0.5"
                       strokeWidth={2}
                     />
                   </a>
@@ -355,8 +355,8 @@ const CDSSSummary = ({
         </div>
 
         {/* ── Disclaimer Footer ─────────────────────────────────── */}
-        <footer className="px-6 py-3 bg-primary/5 border-t border-primary/20 text-center">
-          <p className="text-[11px] text-primary/70 leading-relaxed italic">
+        <footer className="px-6 py-3 bg-base-200 border-t border-base-300 text-center">
+          <p className="text-[11px] text-base-content/50 leading-relaxed italic">
             This summary supports clinical decision-making and does not replace
             professional medical judgment.
           </p>
