@@ -426,7 +426,13 @@ const ChatWindow = ({
   const { execute: runDiagnosisExecute, isExecuting: isDiagnosing } = useAction(
     runDiagnosis,
     {
+      onExecute: () => {
+        console.log("[ChatWindow] runDiagnosis EXECUTING START");
+      },
       onSuccess: ({ data }) => {
+        console.log(
+          "[ChatWindow] runDiagnosis SUCCESS, isDiagnosing will clear soon",
+        );
         // Guard: ignore callbacks after unmount to prevent stale state updates
         if (!isMountedRef.current) return;
         if (data?.error) {
@@ -554,6 +560,9 @@ const ChatWindow = ({
           } else if (!data.isConfident) {
             // ── Simplified: pass session_id instead of thick state ──
             setIsFinalDiagnosis(false);
+            console.log(
+              "[ChatWindow] About to call getFollowUpExecute while isDiagnosing may still be true",
+            );
             getFollowUpExecute({
               session_id: newSessionId || diagnosisSessionId || undefined,
               disease,
