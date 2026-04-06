@@ -182,7 +182,7 @@ const CDSSSummary = ({
           </div>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
+        <div className="px-6 py-4 space-y-4">
           {/* ── Triage — Urgency ─────────────────────────────────── */}
           {cdss.triage && triage && (
             <section aria-label="Triage level">
@@ -193,7 +193,7 @@ const CDSSSummary = ({
               <div
                 className={`mt-2 rounded-xl border ${triage.borderColor} ${triage.bgColor} overflow-hidden`}
               >
-                <div className="p-4">
+                <div className="px-4 py-3">
                   <div className="flex items-start gap-3">
                     <span
                       className={`badge badge-sm ${triage.badgeClass} font-semibold tracking-wide flex-shrink-0`}
@@ -207,7 +207,7 @@ const CDSSSummary = ({
                     </p>
                   </div>
                   {cdss.triage.reasons && cdss.triage.reasons.length > 0 && (
-                    <ul className="mt-3 space-y-1.5 pl-1">
+                    <ul className="mt-2 space-y-1.5 pl-1">
                       {cdss.triage.reasons
                         .filter((r) => {
                           // Skip technical/internal reasons that don't help patients
