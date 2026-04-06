@@ -130,8 +130,6 @@ const ChatWindow = ({
     question: string;
     positive_symptom: string;
     negative_symptom: string;
-    category?: string;
-    reasoning?: string;
   } | null>(null);
   const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
   const [confirmNeeded, setConfirmNeeded] = useState<boolean>(false);
@@ -229,10 +227,7 @@ const ChatWindow = ({
 
           // Handle cases where symptoms don't match or diagnosis is out of scope
           // These are hard failures - no CDSS should be shown
-          if (
-            reason === "SYMPTOMS_NOT_MATCHING" ||
-            reason === "OUT_OF_SCOPE"
-          ) {
+          if (reason === "SYMPTOMS_NOT_MATCHING" || reason === "OUT_OF_SCOPE") {
             setIsFinalDiagnosis(false);
             const outOfScopeMessage = getOutOfScopeMessage({
               reason,
@@ -254,11 +249,12 @@ const ChatWindow = ({
           if (diagnosis?.is_valid === false) {
             setIsFinalDiagnosis(true);
             const { disease, confidence, uncertainty, model_used } = diagnosis;
-            
+
             // Use the message from backend (already formatted for uncertain cases)
-            const summary = diagnosis.message ||
+            const summary =
+              diagnosis.message ||
               "Based on the information provided, we could not identify a specific condition with enough certainty. Please consult a healthcare provider for a proper evaluation.";
-            
+
             createMessageExecute({
               chatId,
               content: summary,
@@ -331,8 +327,6 @@ const ChatWindow = ({
               question: question.question,
               positive_symptom: question.positive_symptom,
               negative_symptom: question.negative_symptom,
-              category: question.category,
-              reasoning: question.reasoning,
             });
           } else {
             setCurrentQuestion(null);
@@ -649,10 +643,7 @@ const ChatWindow = ({
             explanationRequestedRef.current.add(created.id);
             lastExplanationMessageIdRef.current = created.id;
 
-            if (
-              meanProbs &&
-              Array.isArray(meanProbs)
-            ) {
+            if (meanProbs && Array.isArray(meanProbs)) {
               getExplanations({
                 symptoms: symptomsText,
                 meanProbs,
@@ -930,13 +921,15 @@ const ChatWindow = ({
           <ThreadTransition className="w-full max-w-[768px]">
             <ChatContainer
               ref={chatEndRef}
-              messages={optimisticMessages.map((msg) => ({
-                ...msg,
-                explanation:
-                  msg.explanation ||
-                  (msg.id && messageExplanations[msg.id]) ||
-                  null,
-              })) as any}
+              messages={
+                optimisticMessages.map((msg) => ({
+                  ...msg,
+                  explanation:
+                    msg.explanation ||
+                    (msg.id && messageExplanations[msg.id]) ||
+                    null,
+                })) as any
+              }
               isGettingQuestion={isGettingQuestion}
               isDiagnosing={isDiagnosing}
               isGettingExplanations={isGettingExplanations}
@@ -944,7 +937,6 @@ const ChatWindow = ({
               hasDiagnosis={chat.hasDiagnosis}
               currentQuestion={currentQuestion as any}
               onQuestionAnswer={handleQuestionAnswer}
-              onSkipToResults={handleSkipToResults}
               dbExplanation={dbExplanation as unknown as TempExplanation}
               userRole={userRole}
             />
@@ -967,7 +959,9 @@ const ChatWindow = ({
             <div className="w-full max-w-[768px] mx-auto">
               <DiagnosisForm
                 createMessageExecute={createMessageExecute}
-                isPending={isDiagnosing || isCreatingMessage || isGettingQuestion}
+                isPending={
+                  isDiagnosing || isCreatingMessage || isGettingQuestion
+                }
                 disabled={!!currentQuestion || isFinalDiagnosis}
               />
             </div>

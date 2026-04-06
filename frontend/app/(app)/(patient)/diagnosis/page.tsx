@@ -1,8 +1,14 @@
 "use client";
 
 import { createChat } from "@/actions/create-chat";
-import { CreateChatSchema, CreateChatSchemaType } from "@/schemas/CreateChatSchema";
-import { useSymptomChecklist, type Language } from "@/hooks/use-symptom-checklist";
+import {
+  CreateChatSchema,
+  CreateChatSchemaType,
+} from "@/schemas/CreateChatSchema";
+import {
+  useSymptomChecklist,
+  type Language,
+} from "@/hooks/use-symptom-checklist";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowUp, ClipboardList, Sparkles, Info } from "lucide-react";
 import { useAction } from "next-safe-action/hooks";
@@ -136,20 +142,26 @@ const PatientHomePage = () => {
         {/* Hero section */}
         <div className="text-center mb-8 sm:mb-10 max-w-2xl animate-fade-in">
           {/* AI Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
-            <Sparkles className="size-3.5" />
-            AI-Powered Symptom Analysis
-          </div>
-          
+
           <h1 className="font-semibold text-3xl sm:text-4xl md:text-5xl tracking-tight text-base-content mb-3 leading-tight">
-            How are you <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary italic pr-1">feeling</span> today?
+            How are you{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary italic pr-1">
+              feeling
+            </span>{" "}
+            today?
           </h1>
           <p className="text-base-content/60 text-base sm:text-lg mb-5">
             Describe your symptoms and get helpful insights
           </p>
           <button
             type="button"
-            onClick={() => (document.querySelector(".help-guide-dialog") as HTMLDialogElement)?.showModal()}
+            onClick={() =>
+              (
+                document.querySelector(
+                  ".help-guide-dialog",
+                ) as HTMLDialogElement
+              )?.showModal()
+            }
             className="btn btn-ghost btn-sm rounded-full gap-2 font-medium text-base-content/60 hover:text-base-content hover:bg-base-200/60 transition-colors duration-200"
           >
             <Info className="size-4" />
@@ -158,8 +170,14 @@ const PatientHomePage = () => {
         </div>
 
         {/* Input Form */}
-        <div className="w-full max-w-2xl animate-slide-up" style={{ animationDelay: "100ms" }}>
-          <form onSubmit={form.handleSubmit(handleTextSubmit)} className="w-full">
+        <div
+          className="w-full max-w-2xl animate-slide-up"
+          style={{ animationDelay: "100ms" }}
+        >
+          <form
+            onSubmit={form.handleSubmit(handleTextSubmit)}
+            className="w-full"
+          >
             <div className="card bg-base-100 shadow-lg border border-border overflow-hidden">
               <div className="card-body p-0">
                 <div className="flex items-center gap-2 px-3 py-3 sm:px-4 sm:py-4">
@@ -238,8 +256,6 @@ const PatientHomePage = () => {
         </div>
       </div>
 
-
-
       {/* Checklist Modal */}
       <ChecklistModal
         isOpen={isChecklistOpen}
@@ -258,7 +274,9 @@ const PatientHomePage = () => {
         temperature={checklist.temperature}
         onTemperatureChange={checklist.setTemperatureValue}
         onTemperatureUnitChange={checklist.setTemperatureUnit}
-        onTemperatureClassificationChange={checklist.handleTemperatureClassification}
+        onTemperatureClassificationChange={
+          checklist.handleTemperatureClassification
+        }
         isAutoChecked={checklist.isAutoChecked}
       />
 
