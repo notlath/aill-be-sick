@@ -5,7 +5,8 @@ import { Explanation as TempExplanation } from "@/types";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import ChatContainer from "./chat-container";
-import BmiAdviceSection from "./bmi-advice-section";
+// TODO: Commented out BMI Advice feature
+// import BmiAdviceSection from "./bmi-advice-section";
 import InsightsModal from "./insights-modal";
 
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
@@ -21,11 +22,12 @@ type ChatHistoryViewProps = {
   dbUncertainty?: number | null;
   dbIsValid?: boolean | null;
   diagnosisId?: number;
-  initialBmiData?: {
-    heightCm: number | null;
-    weightKg: number | null;
-    bmiAdvice: string | null;
-  };
+  // TODO: Commented out BMI Advice feature
+  // initialBmiData?: {
+  //   heightCm: number | null;
+  //   weightKg: number | null;
+  //   bmiAdvice: string | null;
+  // };
 };
 
 /**
@@ -47,7 +49,8 @@ const ChatHistoryView = ({
   dbUncertainty,
   dbIsValid,
   diagnosisId,
-  initialBmiData,
+  // TODO: Commented out BMI Advice feature
+  // initialBmiData,
 }: ChatHistoryViewProps) => {
   // Extract the diagnosis message content, symptoms text, disease name, and explanation data
   const {
@@ -107,6 +110,7 @@ const ChatHistoryView = ({
           />
         </div>
       )}
+      {/* TODO: Commented out BMI Advice feature
       {diagnosisId && (
         <div className="w-full max-w-[768px] mx-auto px-4 pb-8">
           <BmiAdviceSection
@@ -115,6 +119,7 @@ const ChatHistoryView = ({
           />
         </div>
       )}
+      */}
 
       {/* Insights modal — rendered here so the CDSS button can open it */}
       {insightData && (
