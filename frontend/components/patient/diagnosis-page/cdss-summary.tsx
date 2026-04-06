@@ -219,20 +219,15 @@ const CDSSSummary = ({
               <div
                 className={`mt-2 rounded-xl border ${triage.borderColor} ${triage.bgColor} overflow-hidden`}
               >
-                {/* Accent bar */}
-                <div
-                  className="h-1 w-full"
-                  style={{ backgroundColor: triage.accentColor }}
-                />
                 <div className="p-4">
                   <div className="flex items-start gap-3">
                     <span
-                      className={`badge badge-lg ${triage.badgeClass} font-semibold tracking-wide cdss-heading flex-shrink-0`}
+                      className={`badge badge-sm ${triage.badgeClass} font-semibold tracking-wide flex-shrink-0`}
                     >
                       {triage.label}
                     </span>
                     <p
-                      className={`text-sm ${triage.textColor} leading-snug pt-1`}
+                      className={`text-sm text-base-content/80 leading-snug pt-0.5`}
                     >
                       {getTriageDescription(cdss.triage.level)}
                     </p>
@@ -280,18 +275,6 @@ const CDSSSummary = ({
               />
 
               <div className="mt-2 space-y-3">
-                {/* Care setting callout */}
-                {cdss.recommendation.care_setting && (
-                  <div className="flex items-center gap-3 rounded-xl bg-base-200 border border-base-300 px-4 py-3">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-base-content/50 bg-base-content/10 rounded-md px-2 py-1 flex-shrink-0">
-                      Care Setting
-                    </span>
-                    <span className="text-sm font-semibold text-base-content">
-                      {cdss.recommendation.care_setting}
-                    </span>
-                  </div>
-                )}
-
                 {/* Numbered action steps */}
                 {cdss.recommendation.actions &&
                   cdss.recommendation.actions.length > 0 && (
@@ -363,14 +346,6 @@ const CDSSSummary = ({
             See what influenced this result
           </button>
         </div>
-
-        {/* ── Disclaimer Footer ─────────────────────────────────── */}
-        <footer className="px-6 py-3 bg-base-200 border-t border-base-300 text-center">
-          <p className="text-[11px] text-base-content/50 leading-relaxed italic">
-            This summary supports clinical decision-making and does not replace
-            professional medical judgment.
-          </p>
-        </footer>
       </Card>
     </>
   );
