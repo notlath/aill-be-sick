@@ -3,8 +3,14 @@ import ChatWindow from "@/components/patient/diagnosis-page/chat-window";
 import ThreadTransition from "@/components/patient/diagnosis-page/thread-transition";
 import { Chat } from "@/lib/generated/prisma";
 import { getChatById } from "@/utils/chat";
-import { getDiagnosisByChatId, getTempDiagnosisRecoveryState } from "@/utils/diagnosis";
-import { getExplanationByChatId, getExplanationByDiagnosisId } from "@/utils/explanation";
+import {
+  getDiagnosisByChatId,
+  getTempDiagnosisRecoveryState,
+} from "@/utils/diagnosis";
+import {
+  getExplanationByChatId,
+  getExplanationByDiagnosisId,
+} from "@/utils/explanation";
 import { getMessagesByChatId } from "@/utils/message";
 import { getCurrentDbUser } from "@/utils/user";
 import { notFound } from "next/navigation";
@@ -79,9 +85,8 @@ const ChatDataLoader = async ({
   } else {
     // Active chat: try to fetch explanation by chat ID
     // This handles the case where explanation exists but Diagnosis isn't recorded yet
-    const { success: exp, error: expError } = await getExplanationByChatId(
-      chatId,
-    );
+    const { success: exp, error: expError } =
+      await getExplanationByChatId(chatId);
     if (expError) {
       throw new Error(
         typeof expError === "string" ? expError : "Failed to load explanation",
@@ -102,6 +107,7 @@ const ChatDataLoader = async ({
   const isCompleted = chat.hasDiagnosis;
 
   if (isCompleted) {
+    // TODO: Commented out BMI Advice feature - initialBmiData prop removed
     return (
       <ChatHistoryView
         key={chatId}
@@ -115,11 +121,6 @@ const ChatDataLoader = async ({
         dbUncertainty={diagnosis?.uncertainty ?? null}
         dbIsValid={diagnosis?.isValid ?? null}
         diagnosisId={diagnosis?.id}
-        initialBmiData={{
-          heightCm: diagnosis?.heightCm ?? null,
-          weightKg: diagnosis?.weightKg ?? null,
-          bmiAdvice: diagnosis?.bmiAdvice ?? null,
-        }}
       />
     );
   }
