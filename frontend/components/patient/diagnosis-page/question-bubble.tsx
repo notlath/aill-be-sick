@@ -26,9 +26,7 @@ const QuestionBubble = ({
       aria-labelledby={`q-${questionId}`}
     >
       <div className="mb-4">
-        <p id={`q-${questionId}`} className="font-medium">
-          {question}
-        </p>
+        <p id={`q-${questionId}`}>{question}</p>
       </div>
       <div className="flex gap-3">
         <button
