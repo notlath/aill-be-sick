@@ -163,7 +163,7 @@ const ChatContainer = memo(
             <article className="self-start bg-base-200 text-base-content p-3 mt-4 px-4 rounded-xl max-w-[60%]">
               <div className="flex items-center gap-1.5">
                 <LazyMarkdown components={MARKDOWN_COMPONENTS}>
-                  Generating insights for your diagnosis
+                  Working on your results
                 </LazyMarkdown>
                 <span className="loading loading-dots loading-xs"></span>
               </div>
