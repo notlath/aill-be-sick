@@ -72,6 +72,7 @@ const ChatBubble = ({
   const isError = type === "ERROR";
   const isInfo = type === "INFO";
   const isDiagnosis = type === "DIAGNOSIS";
+  const isQuestion = type === "QUESTION";
 
   const canSeeDetails = userRole === "DEVELOPER" || userRole === "CLINICIAN";
   // Clinicians/devs can see raw details on any diagnosis, not only low-confidence ones
@@ -96,7 +97,9 @@ const ChatBubble = ({
 
         {/* Message content */}
         <div className="px-4 pt-3 pb-1">
-          <LazyMarkdown components={MARKDOWN_COMPONENTS}>{content}</LazyMarkdown>
+          <LazyMarkdown components={MARKDOWN_COMPONENTS}>
+            {content}
+          </LazyMarkdown>
         </div>
 
         {/* Confidence tier badge */}
@@ -184,6 +187,15 @@ const ChatBubble = ({
             symptoms={symptomsText}
           />
         )}
+      </article>
+    );
+  }
+
+  // ── QUESTION (read-only, past question in chat history) ────────────────────
+  if (isQuestion) {
+    return (
+      <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[85%] sm:max-w-[60%] break-words">
+        <LazyMarkdown components={MARKDOWN_COMPONENTS}>{content}</LazyMarkdown>
       </article>
     );
   }
