@@ -336,16 +336,15 @@ const PrivacyPolicyPage = () => {
                 <div>
                   <h3 className="font-semibold mb-1">Health Center</h3>
                   <p>{LEGAL_CONSTANTS.HOSPITAL_NAME}</p>
-                  <p>Email: {LEGAL_CONSTANTS.HOSPITAL_EMAIL}</p>
                   <p>Phone: {LEGAL_CONSTANTS.HOSPITAL_PHONE}</p>
                   <p>Address: {LEGAL_CONSTANTS.HOSPITAL_ADDRESS}</p>
                 </div>
-                <div>
+                {/* <div>
                   <h3 className="font-semibold mb-1">Research Team</h3>
                   <p>{LEGAL_CONSTANTS.RESEARCH_TEAM}</p>
                   <p>{LEGAL_CONSTANTS.UNIVERSITY}</p>
                   <p>Email: {LEGAL_CONSTANTS.RESEARCH_EMAIL}</p>
-                </div>
+                </div> */}
               </div>
             </div>
           </section>

@@ -9,7 +9,7 @@ import {
   getTermsUpdateInfo,
 } from "@/utils/check-terms-version";
 import { getActiveDeletionSchedule } from "@/utils/deletion-schedule";
-import { forbidden, redirect, unauthorized } from "next/navigation";
+import { forbidden, unauthorized } from "next/navigation";
 import { ReactNode, Suspense } from "react";
 
 const Layout = ({ children }: { children: ReactNode }) => {
@@ -67,12 +67,12 @@ function PatientLayoutSkeleton() {
   return (
     <LayoutWrapper>
       <aside
-        className="hidden md:block overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/60 backdrop-blur-xl border-r border-border/50 w-64 opacity-100"
+        className="h-full hidden md:block overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-[width] bg-base-100/60 backdrop-blur-xl border-r border-border/50 w-64 opacity-100"
         style={{
           boxShadow: "0 0 0 1px rgb(0 0 0 / 0.02)",
         }}
       >
-        <div className="p-4 pt-6 w-64">
+        <div className="p-4 pt-6 w-64 h-full flex flex-col">
           {/* Header with user avatar placeholder */}
           <header className="flex justify-between items-center gap-3 mb-6 bg-base-300/40 p-1 rounded-xl -mx-1">
             <div className="flex flex-1 items-center gap-3 p-2.5 rounded-2xl">
