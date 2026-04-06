@@ -14,7 +14,7 @@ const ViewInsightsBtn = ({ disabled }: ViewInsightsBtnProps) => {
         className="flex-1 border border-border btn"
         onClick={handleViewInsights}
       >
-        View insights
+        See what influenced this result
       </button>
     </div>
   );

@@ -151,7 +151,7 @@ const PatientHomePage = () => {
             today?
           </h1>
           <p className="text-base-content/60 text-base sm:text-lg mb-5">
-            Describe your symptoms and get helpful insights
+            Describe your symptoms and see what the AI finds
           </p>
           <button
             type="button"

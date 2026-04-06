@@ -85,18 +85,8 @@ const ChatBubble = ({
 
     return (
       <article className="self-start !mb-0 w-full max-w-[85%] sm:max-w-[60%] break-words rounded-xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
-        {/* Header strip */}
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-base-200 border-b border-base-300">
-          <span className="text-base-content/50">
-            <ActivityIcon />
-          </span>
-          <span className="text-xs font-semibold uppercase tracking-wide text-base-content/50">
-            Suggested condition
-          </span>
-        </div>
-
         {/* Message content */}
-        <div className="px-4 pt-3 pb-1">
+        <div className="px-4 pt-4 pb-1">
           <LazyMarkdown components={MARKDOWN_COMPONENTS}>
             {content}
           </LazyMarkdown>

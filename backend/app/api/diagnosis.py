@@ -934,7 +934,7 @@ def follow_up_question():
             )
             reason = "USER_SKIPPED" if is_valid else "USER_SKIPPED_LOW_CONFIDENCE"
             message = (
-                f"Based on the information so far, **{pred}** is the closest match."
+                f"Based on what you've told us, it could be **{pred}**. A healthcare provider can help confirm this."
                 if is_valid
                 else "We weren't able to gather enough information to identify a specific condition. For a clearer picture, please consult a healthcare provider."
             )
@@ -1012,7 +1012,7 @@ def follow_up_question():
             reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "OUT_OF_SCOPE"
             out_of_scope_message = _build_no_clear_match_message()
             message = (
-                f"Based on all the information gathered, **{pred}** is the closest match."
+                f"Based on what you've told us, it could be **{pred}**. A healthcare provider can help confirm this."
                 if is_valid
                 else out_of_scope_message
             )
@@ -1108,7 +1108,7 @@ def follow_up_question():
             )
             reason = "EIG_DIMINISHING_RETURNS" if is_valid else "EIG_LOW_CONFIDENCE"
             message = (
-                f"Based on your reported symptoms, **{pred}** is the closest match."
+                f"Based on what you've told us, it could be **{pred}**. A healthcare provider can help confirm this."
                 if is_valid
                 else "Based on the information provided, we could not identify a specific condition with enough certainty. Please consult a healthcare provider for a proper evaluation."
             )
@@ -1138,7 +1138,7 @@ def follow_up_question():
             reason = "HIGH_CONFIDENCE_FINAL" if is_valid else "LOW_CONFIDENCE_FINAL"
             out_of_scope_message = _build_no_clear_match_message()
             message = (
-                f"Based on all the information gathered, **{pred}** is the closest match."
+                f"Based on what you've told us, it could be **{pred}**. A healthcare provider can help confirm this."
                 if is_valid
                 else out_of_scope_message
             )

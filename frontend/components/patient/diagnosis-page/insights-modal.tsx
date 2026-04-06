@@ -5,7 +5,10 @@ import { useAction } from "next-safe-action/hooks";
 import { Lightbulb, Sparkles, Info, AlertCircle } from "lucide-react";
 import { useTheme } from "next-themes";
 import { generateInsightsExplanation } from "@/actions/generate-insights-explanation";
-import { processTokensForDisplay, type TokenWithImportance } from "@/utils/shap-tokens";
+import {
+  processTokensForDisplay,
+  type TokenWithImportance,
+} from "@/utils/shap-tokens";
 import { WordHeatmapToggle } from "@/components/shared/word-heatmap-toggle";
 
 type InsightsModalProps = {
@@ -34,14 +37,17 @@ const InsightsModal = ({
   }, [tokens, importances]);
 
   // Server action for generating plain-English explanation
-  const { execute, isPending, hasErrored } = useAction(generateInsightsExplanation, {
-    onSuccess: (result) => {
-      if (result.data?.success) {
-        setExplanation(result.data.explanation);
-        setTopWords(result.data.topTokens || []);
-      }
+  const { execute, isPending, hasErrored } = useAction(
+    generateInsightsExplanation,
+    {
+      onSuccess: (result) => {
+        if (result.data?.success) {
+          setExplanation(result.data.explanation);
+          setTopWords(result.data.topTokens || []);
+        }
+      },
     },
-  });
+  );
 
   // Generate explanation when modal opens (if we have data and haven't tried yet)
   const handleModalOpen = useCallback(() => {
@@ -59,7 +65,9 @@ const InsightsModal = ({
 
   // Listen for modal open event
   useEffect(() => {
-    const modal = document.getElementById("insights_modal") as HTMLDialogElement | null;
+    const modal = document.getElementById(
+      "insights_modal",
+    ) as HTMLDialogElement | null;
     if (modal) {
       const handleOpen = () => handleModalOpen();
       modal.addEventListener("open", handleOpen);
@@ -105,10 +113,10 @@ const InsightsModal = ({
             </div>
             <div>
               <h3 className="text-lg font-bold text-base-content">
-                How the AI reached this suggestion
+                What helped us reach this result
               </h3>
               <p className="text-sm text-base-content/60">
-                Understanding what influenced the result
+                See which words from your symptoms mattered most
               </p>
             </div>
           </div>
@@ -132,7 +140,9 @@ const InsightsModal = ({
                     </p>
                     {topWords.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5 items-center">
-                        <span className="text-xs text-base-content/60 mr-1">Key words:</span>
+                        <span className="text-xs text-base-content/60 mr-1">
+                          Key words:
+                        </span>
                         {topWords.map((word, i) => (
                           <span
                             key={`${word}-${i}`}
@@ -151,7 +161,8 @@ const InsightsModal = ({
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-warning mt-0.5 shrink-0" />
                   <p className="text-sm text-warning/90">
-                    We could not generate a simple explanation at this time. You can still view the technical details below.
+                    We could not generate a simple explanation at this time. You
+                    can still view the technical details below.
                   </p>
                 </div>
               </div>
@@ -160,7 +171,9 @@ const InsightsModal = ({
                 <div className="flex items-start gap-3">
                   <Info className="w-5 h-5 text-base-content/40 mt-0.5 shrink-0" />
                   <p className="text-sm text-base-content/70">
-                    The AI analyzed your symptoms to reach this suggestion. See the technical details below for a breakdown of which words were most influential.
+                    The AI analyzed your symptoms to reach this suggestion. See
+                    the technical details below for a breakdown of which words
+                    were most influential.
                   </p>
                 </div>
               </div>
@@ -170,8 +183,12 @@ const InsightsModal = ({
           {/* Educational Note */}
           <div className="mb-4 p-3 rounded-lg bg-base-200 border border-base-300">
             <p className="text-xs text-base-content/70 leading-relaxed">
-              <strong className="text-base-content">Why are some words highlighted?</strong>{" "}
-              AI models read text differently than humans. They may give weight to grammar, context words, or parts of words to understand your symptoms. The highlighted words below show what the AI focused on most.
+              <strong className="text-base-content">
+                Why are some words highlighted?
+              </strong>{" "}
+              The AI looks at every word you shared to find patterns. Words that
+              match common symptoms for this condition stand out more. The
+              highlights below show which words carried the most weight.
             </p>
           </div>
 
@@ -184,7 +201,8 @@ const InsightsModal = ({
           {/* Footer */}
           <div className="mt-6 pt-4 border-t border-base-300 shrink-0">
             <p className="text-xs text-base-content/50 text-center">
-              This explanation is for educational purposes only. Always consult a healthcare provider for medical advice.
+              This explanation is for educational purposes only. Always consult
+              a healthcare provider for medical advice.
             </p>
           </div>
         </div>
