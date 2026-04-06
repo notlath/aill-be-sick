@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Auth callback route for invite, recovery, and Google OAuth flows
+ * Auth callback route for invite and recovery flows
  * - Handles invite tokens (token + type in query params) with verifyOtp
  * - Handles recovery codes (code + type=recovery) with exchangeCodeForSession
- * - Handles Google OAuth (code without type) with pre-registration check
+ * - Google OAuth is currently disabled
  * - Returns HTML that processes auth client-side and redirects
  */
 export async function GET(request: NextRequest) {
@@ -66,13 +66,6 @@ export async function GET(request: NextRequest) {
     console.log(
       "[Auth Callback] Using server-side exchangeCodeForSession for recovery code",
     );
-  } else if (code) {
-    // Google OAuth flow - use exchangeCodeForSession with pre-registration check
-    authMethod = "googleOAuth";
-    useServerSideVerify = true;
-    console.log(
-      "[Auth Callback] Using server-side exchangeCodeForSession for Google OAuth",
-    );
   } else {
     console.error("[Auth Callback] No valid auth parameters found");
     return NextResponse.redirect(
@@ -123,48 +116,6 @@ export async function GET(request: NextRequest) {
       const { error: exchangeError } =
         await supabase.auth.exchangeCodeForSession(code);
       error = exchangeError;
-    } else if (code) {
-      // Google OAuth flow - use exchangeCodeForSession with pre-registration check
-      const { error: exchangeError } =
-        await supabase.auth.exchangeCodeForSession(code);
-      error = exchangeError;
-
-      if (!error) {
-        // Pre-registration check: only allow Google sign-in for users already in database
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (user && user.id) {
-          // Import Prisma client dynamically to avoid edge runtime issues
-          const { default: prisma } = await import("@/prisma/prisma");
-          const { revalidateTag } = await import("next/cache");
-
-          const existingUser = await prisma.user.findUnique({
-            where: { authId: user.id },
-          });
-
-          if (!existingUser) {
-            // User not pre-registered by clinician - block access
-            console.log(
-              "[Auth Callback] Google user not pre-registered, redirecting to /need-account",
-            );
-            return NextResponse.redirect(`${origin}/need-account`);
-          }
-
-          // User exists - update only avatar, preserve clinician-entered name and email
-          await prisma.user.update({
-            where: { authId: user.id },
-            data: {
-              ...(user.user_metadata?.avatar_url ? { avatar: user.user_metadata.avatar_url } : {}),
-            },
-          });
-
-          revalidateTag(`user-${user.id}`, { expire: 0 });
-        }
-
-        // Redirect to home (role-based middleware handles from there)
-        console.log("[Auth Callback] Google OAuth SUCCESS! Redirecting to /");
-        return NextResponse.redirect(`${origin}/`);
-      }
     }
 
     if (error) {

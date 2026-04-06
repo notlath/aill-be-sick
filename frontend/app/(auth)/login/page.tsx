@@ -35,14 +35,15 @@ const LoginContent = () => {
   const [isSignupMode] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const error = searchParams.get("oauth_error");
-    if (error) {
-      setOauthError(
-        "No account found for this Google address. Please visit Bagong Silangan Barangay Health Center to register.",
-      );
-    }
-  }, [searchParams]);
+  // COMMENTED OUT: Google OAuth error handling
+  // useEffect(() => {
+  //   const error = searchParams.get("oauth_error");
+  //   if (error) {
+  //     setOauthError(
+  //       "No account found for this Google address. Please visit Bagong Silangan Barangay Health Center to register.",
+  //     );
+  //   }
+  // }, [searchParams]);
 
   useEffect(() => {
     const error = searchParams.get("error");
@@ -111,27 +112,28 @@ const LoginContent = () => {
     execSignup(formData);
   });
 
-  const handleSignInGoogle = async () => {
-    try {
-      const appUrl =
-        process.env.NEXT_PUBLIC_APP_URL ??
-        process.env.NEXT_PUBLIC_VERCEL_URL ??
-        "http://localhost:3000";
-
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${appUrl}/auth/callback`,
-        },
-      });
-
-      if (error) {
-        console.error(`Error during Google sign-in: ${error.message}`);
-      }
-    } catch (error) {
-      console.error(`Error during Google sign-in: ${error}`);
-    }
-  };
+  // COMMENTED OUT: Google OAuth sign-in handler
+  // const handleSignInGoogle = async () => {
+  //   try {
+  //     const appUrl =
+  //       process.env.NEXT_PUBLIC_APP_URL ??
+  //       process.env.NEXT_PUBLIC_VERCEL_URL ??
+  //       "http://localhost:3000";
+  //
+  //     const { error } = await supabase.auth.signInWithOAuth({
+  //       provider: "google",
+  //       options: {
+  //         redirectTo: `${appUrl}/auth/callback`,
+  //       },
+  //     });
+  //
+  //     if (error) {
+  //       console.error(`Error during Google sign-in: ${error.message}`);
+  //     }
+  //   } catch (error) {
+  //     console.error(`Error during Google sign-in: ${error}`);
+  //   }
+  // };
 
   const isExecuting = isLoggingIn || isSigningUp;
 
@@ -232,8 +234,8 @@ const LoginContent = () => {
                 </button>
               </form>
 
-              {/* Divider */}
-              <div className="relative my-6">
+              {/* COMMENTED OUT: Google OAuth Sign-In */}
+              {/* <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t border-border" />
                 </div>
@@ -242,7 +244,6 @@ const LoginContent = () => {
                 </div>
               </div>
 
-              {/* Google Sign-In */}
               <button
                 type="button"
                 onClick={handleSignInGoogle}
@@ -270,18 +271,18 @@ const LoginContent = () => {
                 Sign in with Google
               </button>
 
-              {/* OAuth Error */}
               {oauthError && (
                 <div className="alert alert-warning py-3 mb-4">
                   <span className="text-sm">{oauthError}</span>
                 </div>
-              )}
+              )} */}
               {/* Account Help */}
               <p
                 className="animate-slide-up text-center text-sm text-muted mt-5"
                 style={{ animationDelay: "0.3s" }}
               >
-                Need an account? Visit Bagong Silangan Health Center to have a clinician create one for you.
+                Need an account? Visit Bagong Silangan Health Center to have a
+                clinician create one for you.
               </p>
             </>
           )}
