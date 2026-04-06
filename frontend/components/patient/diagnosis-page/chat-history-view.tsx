@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import ChatContainer from "./chat-container";
 import BmiAdviceSection from "./bmi-advice-section";
+import InsightsModal from "./insights-modal";
 
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
 
@@ -48,19 +49,44 @@ const ChatHistoryView = ({
   diagnosisId,
   initialBmiData,
 }: ChatHistoryViewProps) => {
-  const processedMessages = useMemo(
-    () =>
-      messages.map((msg) => ({
+  // Extract the diagnosis message content, symptoms text, disease name, and explanation data
+  const {
+    chatMessages,
+    diagnosisMessage,
+    symptomsText,
+    diseaseName,
+    insightData,
+  } = useMemo(() => {
+    const diagMsg = messages.find((m) => m.type === "DIAGNOSIS");
+    const symptomsMsg = messages.find((m) => m.type === "SYMPTOMS");
+    const chatMsgs = messages.filter((m) => m.type !== "DIAGNOSIS");
+
+    // Extract disease name from the CDSS recommendation rationale
+    // Format: "Primary: {disease}"
+    const diseaseFromRationale = dbCdss?.recommendation?.rationale
+      ?.find((r: string) => r.startsWith("Primary:"))
+      ?.replace("Primary: ", "");
+
+    // Fallback: extract from diagnosis message content (between ** markers)
+    const diseaseFromMsg = diagMsg?.content?.match(/\*\*(.+?)\*\*/)?.[1];
+
+    return {
+      chatMessages: chatMsgs.map((msg) => ({
         ...msg,
         explanation: msg.explanation || dbExplanation,
       })),
-    [messages, dbExplanation],
-  );
+      diagnosisMessage: diagMsg?.content ?? null,
+      symptomsText: symptomsMsg?.content ?? "",
+      diseaseName: diseaseFromRationale ?? diseaseFromMsg ?? "",
+      // Use the dbExplanation or the last message's explanation for insights
+      insightData: dbExplanation ?? diagMsg?.explanation ?? null,
+    };
+  }, [messages, dbExplanation, dbCdss]);
 
   return (
     <div className="space-y-4">
       <ChatContainer
-        messages={processedMessages as any}
+        messages={chatMessages as any}
         isGettingQuestion={false}
         isDiagnosing={false}
         isGettingExplanations={false}
@@ -77,6 +103,7 @@ const ChatHistoryView = ({
             confidence={dbConfidence ?? undefined}
             uncertainty={dbUncertainty ?? undefined}
             isValid={dbIsValid ?? undefined}
+            diagnosisMessage={diagnosisMessage}
           />
         </div>
       )}
@@ -87,6 +114,16 @@ const ChatHistoryView = ({
             initialData={initialBmiData}
           />
         </div>
+      )}
+
+      {/* Insights modal — rendered here so the CDSS button can open it */}
+      {insightData && (
+        <InsightsModal
+          tokens={insightData.tokens}
+          importances={insightData.importances}
+          disease={diseaseName}
+          symptoms={symptomsText}
+        />
       )}
     </div>
   );
