@@ -86,6 +86,10 @@ const ChatHistoryView = ({
     };
   }, [messages, dbExplanation, dbCdss]);
 
+  // Only show CDSS summary for valid (conclusive) diagnoses.
+  // When isValid is false (inconclusive), the CDSS should be hidden entirely.
+  const shouldShowCdss = dbCdss && dbIsValid !== false;
+
   return (
     <div className="space-y-4">
       <ChatContainer
@@ -99,7 +103,7 @@ const ChatHistoryView = ({
         dbExplanation={dbExplanation as unknown as TempExplanation}
         userRole={userRole}
       />
-      {dbCdss && (
+      {shouldShowCdss && (
         <div className="w-full max-w-[768px] mx-auto px-4">
           <CDSSSummary
             cdss={dbCdss}
