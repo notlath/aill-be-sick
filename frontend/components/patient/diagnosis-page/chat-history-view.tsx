@@ -5,7 +5,6 @@ import { Explanation as TempExplanation } from "@/types";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import ChatContainer from "./chat-container";
-import BmiAdviceSection from "./bmi-advice-section";
 
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
 
@@ -80,14 +79,14 @@ const ChatHistoryView = ({
           />
         </div>
       )}
-      {diagnosisId && (
+      {/* {diagnosisId && (
         <div className="w-full max-w-[768px] mx-auto px-4 pb-8">
           <BmiAdviceSection
             diagnosisId={diagnosisId}
             initialData={initialBmiData}
           />
         </div>
-      )}
+      )} */}
     </div>
   );
 };
