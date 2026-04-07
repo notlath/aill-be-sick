@@ -33,7 +33,9 @@ jobs:
           cd backend && pip install -r requirements.txt
 
       - name: Run pytest
-        run: cd backend && python -m pytest tests/ -v --tb=short
+        run: python -m pytest tests/backend/tests/ -v --tb=short
+        env:
+          PYTHONPATH: backend
         continue-on-error: false
 
       - name: Report test status
