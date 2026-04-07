@@ -141,6 +141,7 @@ const formatTimestamp = (date: Date): string =>
 const CDSSSummary = ({
   cdss,
   generatedAt,
+  isValid,
   diagnosisMessage,
 }: CDSSSummaryProps) => {
   if (!cdss) return null;
