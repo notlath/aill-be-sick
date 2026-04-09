@@ -11,6 +11,7 @@ A quick guide to the AI'll Be Sick clinician dashboard for healthcare profession
 Log in at the clinician login page using your authorized credentials. First-time users must accept the terms of service.
 
 **Sidebar Navigation:**
+
 - **Overview** - Dashboard with illness pattern analysis
 - **Alerts** - Real-time anomaly notifications
 - **Disease Map** - Geographic visualization of cases
@@ -27,7 +28,11 @@ Log in at the clinician login page using your authorized credentials. First-time
 The main dashboard displays **Illness Patterns** - groups of similar diagnoses based on patient characteristics.
 
 **Features:**
+
 - **Clustering controls** - Choose which factors to analyze (age, gender, district, diagnosis date)
+- **Recommended preset** - Use **Recommended** for the fastest setup (age + district + diagnosis date)
+- **Variable groups** - Controls are grouped into **Demographics**, **Clinical**, and **Temporal** sections to simplify selection
+- **Quick help** - Use the **?** help control beside "Select variables" for guidance
 - **Cluster count** - Adjust the number of groups (2-10), with a recommended optimal value shown
 - **Overview cards** - Summary statistics for each group
 - **Details table** - Breakdown of patients within each group
@@ -41,6 +46,7 @@ Click **Apply** after adjusting settings. Click **Reset** to return to defaults.
 View real-time notifications about unusual disease patterns or potential outbreaks.
 
 **Features:**
+
 - **Tabs** - Filter by All, Unread, or Read alerts
 - **Alert cards** - Show type, severity, affected area, and timestamp
 - **Mark read/unread** - Toggle alert status
@@ -63,6 +69,7 @@ Visualize disease data geographically with three view modes:
 **By Anomaly** - Highlights areas with unusual disease activity
 
 **Controls:**
+
 - **View selector** - Switch between the three modes
 - **Disease filter** - Focus on a specific condition
 - **Date range** - Filter cases by time period
@@ -75,6 +82,7 @@ Visualize disease data geographically with three view modes:
 Browse all registered users in the system.
 
 **Features:**
+
 - **Search** - Find users by name or email
 - **Filter by role** - Show Admin, Clinician, or Patient accounts
 - **Sort columns** - Click headers to sort
@@ -88,6 +96,7 @@ Browse all registered users in the system.
 View all recorded diagnoses in the system.
 
 **Features:**
+
 - **Search** - Find by patient name, disease, or symptoms
 - **Filter by disease** - Show only specific conditions
 - **Filter by date** - Narrow down by time range
@@ -103,6 +112,7 @@ View all recorded diagnoses in the system.
 Manage your clinician account settings.
 
 **Options:**
+
 - Update your name and avatar
 - Change your email (requires verification)
 - Update your password
@@ -116,4 +126,4 @@ Manage your clinician account settings.
 
 ---
 
-*AI predictions are decision-support tools. Always apply clinical judgment when reviewing results.*
+_AI predictions are decision-support tools. Always apply clinical judgment when reviewing results._

@@ -11,9 +11,9 @@ export type ClusterVariableSelection = Record<ClusterVariableKey, boolean>;
 
 export const DEFAULT_CLUSTER_VARIABLES: ClusterVariableSelection = {
   age: true,
-  gender: true,
   district: true,
-  time: false,
+  time: true,
+  gender: false,
   riskLevel: false,
   symptomSeverity: false,
   comorbiditiesCount: false,

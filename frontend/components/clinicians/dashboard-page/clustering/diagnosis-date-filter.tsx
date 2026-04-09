@@ -19,7 +19,12 @@ interface DiagnosisDateFilterProps {
   className?: string;
 }
 
-type PresetType = "all-time" | "last-7-days" | "last-3-months" | "year-to-date" | "custom";
+type PresetType =
+  | "all-time"
+  | "last-7-days"
+  | "last-3-months"
+  | "year-to-date"
+  | "custom";
 
 interface DatePickerProps {
   selectedDate: Date | null;
@@ -86,7 +91,10 @@ const toDateKey = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-const resolvePresetFromRange = (startDate: Date | null, endDate: Date | null): PresetType => {
+const resolvePresetFromRange = (
+  startDate: Date | null,
+  endDate: Date | null,
+): PresetType => {
   if (!startDate && !endDate) {
     return "all-time";
   }
@@ -323,14 +331,18 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
           onValueChange={(value) => handlePresetClick(value as PresetType)}
         >
           <SelectTrigger
-            className="w-52"
+            className="h-7 w-52 text-xs"
             disabled={Boolean(loading)}
           >
             <SelectValue placeholder="Select date range" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="text-xs">
             {presets.map((preset) => (
-              <SelectItem key={preset.id} value={preset.id}>
+              <SelectItem
+                key={preset.id}
+                value={preset.id}
+                className="text-[11px] py-1"
+              >
                 {preset.label}
               </SelectItem>
             ))}

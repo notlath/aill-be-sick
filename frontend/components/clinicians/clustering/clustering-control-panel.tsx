@@ -10,7 +10,7 @@ import React, {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, OctagonAlert, MapPin, X } from "lucide-react";
 import DiagnosisDateFilter from "../dashboard-page/clustering/diagnosis-date-filter";
 import ViewSelect from "../map-page/view-select";
 import {
@@ -109,9 +109,9 @@ const formatReadableList = (items: string[]) => {
 };
 
 type ClusterVariablePresetKey =
+  | "recommended-default"
   | "outbreak-detection"
-  | "high-risk-cases"
-  | "geographic-hotspots";
+  | "high-risk-cases";
 
 const CLUSTER_VARIABLE_PRESETS: Record<
   ClusterVariablePresetKey,
@@ -120,6 +120,19 @@ const CLUSTER_VARIABLE_PRESETS: Record<
     variables: ClusterVariableSelection;
   }
 > = {
+  "recommended-default": {
+    label: "Recommended",
+    variables: {
+      ...DEFAULT_CLUSTER_VARIABLES,
+      age: true,
+      district: true,
+      time: true,
+      gender: false,
+      riskLevel: false,
+      symptomSeverity: false,
+      comorbiditiesCount: false,
+    },
+  },
   "outbreak-detection": {
     label: "Outbreak detection",
     variables: {
@@ -141,17 +154,6 @@ const CLUSTER_VARIABLE_PRESETS: Record<
       symptomSeverity: true,
       comorbiditiesCount: true,
       time: false,
-    },
-  },
-  "geographic-hotspots": {
-    label: "Geographic hotspots",
-    variables: {
-      ...DEFAULT_CLUSTER_VARIABLES,
-      district: true,
-      time: true,
-      riskLevel: false,
-      symptomSeverity: false,
-      comorbiditiesCount: false,
     },
   },
 };
@@ -491,6 +493,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   );
   const [exportButtonTarget, setExportButtonTarget] =
     useState<HTMLDivElement | null>(null);
+  const [showVariableHelp, setShowVariableHelp] = useState(false);
 
   const syncCachedRecommendation = useCallback(
     (params: {
@@ -1188,7 +1191,37 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
           >
             {/* Variable Selection */}
             <div>
-              <h2 className="text-base font-semibold">Select variables</h2>
+              <div className="flex items-start gap-2">
+                <h2 className="text-base font-semibold leading-7">
+                  Select variables
+                </h2>
+                {!showVariableHelp ? (
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs btn-circle"
+                    aria-label="Show variable selection help"
+                    onClick={() => setShowVariableHelp(true)}
+                  >
+                    ?
+                  </button>
+                ) : null}
+                {showVariableHelp ? (
+                  <div className="rounded-lg border border-base-300 bg-base-100 px-3 py-2 shadow-sm max-w-md text-xs leading-relaxed flex items-start justify-between gap-2">
+                    <span>
+                      Use <strong>Recommended</strong> for the fastest setup.
+                      Adjust only if you need a specific investigation focus.
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-xs btn-circle shrink-0"
+                      aria-label="Close variable selection help"
+                      onClick={() => setShowVariableHelp(false)}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : null}
+              </div>
               <div className="flex flex-wrap items-center gap-3 mt-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs text-base-content/70">Presets:</span>
@@ -1200,93 +1233,143 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                     <button
                       key={presetKey}
                       type="button"
-                      className="btn btn-xs btn-outline"
+                      className={`btn btn-sm ${areVariablesEqual(selectedVariables, CLUSTER_VARIABLE_PRESETS[presetKey].variables) ? "btn-primary" : "btn-outline"}`}
+                      title={
+                        presetKey === "recommended-default"
+                          ? "Balanced baseline for most cases: Age, District, and Diagnosis date"
+                          : presetKey === "outbreak-detection"
+                            ? "Focuses on spread patterns using District, Diagnosis date, Risk level, and Symptom severity"
+                            : "Prioritizes vulnerable cases using Age, District, Risk level, Symptom severity, and Comorbidities"
+                      }
                       onClick={() => handleApplyPreset(presetKey)}
                     >
+                      <span className="mr-1.5">
+                        {presetKey === "recommended-default" ? (
+                          <AlertCircle className="h-3 h-3" />
+                        ) : presetKey === "outbreak-detection" ? (
+                          <AlertCircle className="h-3 h-3" />
+                        ) : presetKey === "high-risk-cases" ? (
+                          <OctagonAlert className="h-3 h-3" />
+                        ) : (
+                          <MapPin className="h-3 h-3" />
+                        )}
+                      </span>
                       {CLUSTER_VARIABLE_PRESETS[presetKey].label}
                     </button>
                   ))}
                 </div>
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.age}
-                      onChange={() => handleVariableChange("age")}
-                    />
-                    <span>Age</span>
-                  </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.gender}
-                      onChange={() => handleVariableChange("gender")}
-                    />
-                    <span>Gender</span>
-                  </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.district}
-                      onChange={() => handleVariableChange("district")}
-                    />
-                    <span>District</span>
-                  </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.time}
-                      onChange={() => handleVariableChange("time")}
-                    />
-                    <span>Diagnosis date</span>
-                  </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.riskLevel ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.riskLevel}
-                      onChange={() => handleVariableChange("riskLevel")}
-                    />
-                    <span>Risk level</span>
-                  </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.symptomSeverity ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.symptomSeverity}
-                      onChange={() => handleVariableChange("symptomSeverity")}
-                    />
-                    <span>Symptom severity</span>
-                  </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.comorbiditiesCount ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.comorbiditiesCount}
-                      onChange={() =>
-                        handleVariableChange("comorbiditiesCount")
-                      }
-                    />
-                    <span>Comorbidities count</span>
-                  </label>
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3 w-full">
+                  <div className="card card-body bg-base-100 border-base-300 border p-3">
+                    <span className="text-xs font-semibold">Demographics</span>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <label
+                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary" : "btn-outline"}`}
+                        title="Patient's age helps identify vulnerable populations like children and older adults"
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={selectedVariables.age}
+                          onChange={() => handleVariableChange("age")}
+                        />
+                        <span className="whitespace-nowrap">Age</span>
+                      </label>
+                      <label
+                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary" : "btn-outline"}`}
+                        title="Patient sex can reveal differences in affected groups"
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={selectedVariables.gender}
+                          onChange={() => handleVariableChange("gender")}
+                        />
+                        <span className="whitespace-nowrap">Gender</span>
+                      </label>
+                      <label
+                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary" : "btn-outline"}`}
+                        title="District helps identify where cases are concentrating"
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={selectedVariables.district}
+                          onChange={() => handleVariableChange("district")}
+                        />
+                        <span className="whitespace-nowrap">District</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="card card-body bg-base-100 border-base-300 border p-3">
+                    <span className="text-xs font-semibold">Clinical</span>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <label
+                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.riskLevel ? "btn-primary" : "btn-outline"}`}
+                        title="Risk level helps prioritize urgent cases"
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={selectedVariables.riskLevel}
+                          onChange={() => handleVariableChange("riskLevel")}
+                        />
+                        <span className="whitespace-nowrap">Risk level</span>
+                      </label>
+                      <label
+                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.symptomSeverity ? "btn-primary" : "btn-outline"}`}
+                        title="Symptom severity shows how intense symptoms are"
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={selectedVariables.symptomSeverity}
+                          onChange={() =>
+                            handleVariableChange("symptomSeverity")
+                          }
+                        />
+                        <span className="whitespace-nowrap">
+                          Symptom severity
+                        </span>
+                      </label>
+                      <label
+                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.comorbiditiesCount ? "btn-primary" : "btn-outline"}`}
+                        title="Other health conditions may increase complications"
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={selectedVariables.comorbiditiesCount}
+                          onChange={() =>
+                            handleVariableChange("comorbiditiesCount")
+                          }
+                        />
+                        <span className="whitespace-nowrap">
+                          Comorbidities count
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="card card-body bg-base-100 border-base-300 border p-3">
+                    <span className="text-xs font-semibold">Temporal</span>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <label
+                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary" : "btn-outline"}`}
+                        title="Diagnosis date helps detect timing and trend changes"
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={selectedVariables.time}
+                          onChange={() => handleVariableChange("time")}
+                        />
+                        <span className="whitespace-nowrap">
+                          Diagnosis date
+                        </span>
+                      </label>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1347,10 +1430,13 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                   same group
                 </span>
                 {hasPendingClusteringChanges ? (
-                  <span className="block mt-1">
-                    The groups have not been updated. Click Apply to rebuild the
-                    groups using the updated settings
-                  </span>
+                  <div className="alert alert-warning mt-4 py-2 text-xs">
+                    <AlertCircle className="size-4" />
+                    <span>
+                      The groups have not been updated. Click Apply to rebuild
+                      the groups using the updated settings.
+                    </span>
+                  </div>
                 ) : null}
               </div>
 
