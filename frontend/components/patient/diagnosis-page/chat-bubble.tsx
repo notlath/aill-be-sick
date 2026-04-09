@@ -72,6 +72,7 @@ const ChatBubble = ({
   const isError = type === "ERROR";
   const isInfo = type === "INFO";
   const isDiagnosis = type === "DIAGNOSIS";
+  const isQuestion = type === "QUESTION";
 
   const canSeeDetails = userRole === "DEVELOPER" || userRole === "CLINICIAN";
   // Clinicians/devs can see raw details on any diagnosis, not only low-confidence ones
@@ -84,19 +85,11 @@ const ChatBubble = ({
 
     return (
       <article className="self-start !mb-0 w-full max-w-[85%] sm:max-w-[60%] break-words rounded-xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
-        {/* Header strip */}
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-base-200 border-b border-base-300">
-          <span className="text-base-content/50">
-            <ActivityIcon />
-          </span>
-          <span className="text-xs font-semibold uppercase tracking-wide text-base-content/50">
-            Suggested condition
-          </span>
-        </div>
-
         {/* Message content */}
-        <div className="px-4 pt-3 pb-1">
-          <LazyMarkdown components={MARKDOWN_COMPONENTS}>{content}</LazyMarkdown>
+        <div className="px-4 pt-4 pb-1">
+          <LazyMarkdown components={MARKDOWN_COMPONENTS}>
+            {content}
+          </LazyMarkdown>
         </div>
 
         {/* Confidence tier badge */}
@@ -184,6 +177,15 @@ const ChatBubble = ({
             symptoms={symptomsText}
           />
         )}
+      </article>
+    );
+  }
+
+  // ── QUESTION (read-only, past question in chat history) ────────────────────
+  if (isQuestion) {
+    return (
+      <article className="self-start bg-base-200 text-base-content p-3 px-4 rounded-xl max-w-[85%] sm:max-w-[60%] break-words">
+        <LazyMarkdown components={MARKDOWN_COMPONENTS}>{content}</LazyMarkdown>
       </article>
     );
   }

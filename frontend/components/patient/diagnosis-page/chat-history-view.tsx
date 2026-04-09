@@ -5,6 +5,9 @@ import { Explanation as TempExplanation } from "@/types";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import ChatContainer from "./chat-container";
+// TODO: Commented out BMI Advice feature
+// import BmiAdviceSection from "./bmi-advice-section";
+import InsightsModal from "./insights-modal";
 
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
 
@@ -19,11 +22,12 @@ type ChatHistoryViewProps = {
   dbUncertainty?: number | null;
   dbIsValid?: boolean | null;
   diagnosisId?: number;
-  initialBmiData?: {
-    heightCm: number | null;
-    weightKg: number | null;
-    bmiAdvice: string | null;
-  };
+  // TODO: Commented out BMI Advice feature
+  // initialBmiData?: {
+  //   heightCm: number | null;
+  //   weightKg: number | null;
+  //   bmiAdvice: string | null;
+  // };
 };
 
 /**
@@ -45,21 +49,51 @@ const ChatHistoryView = ({
   dbUncertainty,
   dbIsValid,
   diagnosisId,
-  initialBmiData,
+  // TODO: Commented out BMI Advice feature
+  // initialBmiData,
 }: ChatHistoryViewProps) => {
-  const processedMessages = useMemo(
-    () =>
-      messages.map((msg) => ({
+  // Extract the diagnosis message content, symptoms text, disease name, and explanation data
+  const {
+    chatMessages,
+    diagnosisMessage,
+    symptomsText,
+    diseaseName,
+    insightData,
+  } = useMemo(() => {
+    const diagMsg = messages.find((m) => m.type === "DIAGNOSIS");
+    const symptomsMsg = messages.find((m) => m.type === "SYMPTOMS");
+    const chatMsgs = messages.filter((m) => m.type !== "DIAGNOSIS");
+
+    // Extract disease name from the CDSS recommendation rationale
+    // Format: "Primary: {disease}"
+    const diseaseFromRationale = dbCdss?.recommendation?.rationale
+      ?.find((r: string) => r.startsWith("Primary:"))
+      ?.replace("Primary: ", "");
+
+    // Fallback: extract from diagnosis message content (between ** markers)
+    const diseaseFromMsg = diagMsg?.content?.match(/\*\*(.+?)\*\*/)?.[1];
+
+    return {
+      chatMessages: chatMsgs.map((msg) => ({
         ...msg,
         explanation: msg.explanation || dbExplanation,
       })),
-    [messages, dbExplanation],
-  );
+      diagnosisMessage: diagMsg?.content ?? null,
+      symptomsText: symptomsMsg?.content ?? "",
+      diseaseName: diseaseFromRationale ?? diseaseFromMsg ?? "",
+      // Use the dbExplanation or the last message's explanation for insights
+      insightData: dbExplanation ?? diagMsg?.explanation ?? null,
+    };
+  }, [messages, dbExplanation, dbCdss]);
+
+  // Only show CDSS summary for valid (conclusive) diagnoses.
+  // When isValid is false (inconclusive), the CDSS should be hidden entirely.
+  const shouldShowCdss = dbCdss && dbIsValid !== false;
 
   return (
     <div className="space-y-4">
       <ChatContainer
-        messages={processedMessages as any}
+        messages={chatMessages as any}
         isGettingQuestion={false}
         isDiagnosing={false}
         isGettingExplanations={false}
@@ -69,24 +103,37 @@ const ChatHistoryView = ({
         dbExplanation={dbExplanation as unknown as TempExplanation}
         userRole={userRole}
       />
-      {dbCdss && (
+      {shouldShowCdss && (
         <div className="w-full max-w-[768px] mx-auto px-4">
           <CDSSSummary
             cdss={dbCdss}
             confidence={dbConfidence ?? undefined}
             uncertainty={dbUncertainty ?? undefined}
             isValid={dbIsValid ?? undefined}
+            diagnosisMessage={diagnosisMessage}
           />
         </div>
       )}
-      {/* {diagnosisId && (
+      {/* TODO: Commented out BMI Advice feature
+      {diagnosisId && (
         <div className="w-full max-w-[768px] mx-auto px-4 pb-8">
           <BmiAdviceSection
             diagnosisId={diagnosisId}
             initialData={initialBmiData}
           />
         </div>
-      )} */}
+      )}
+      */}
+
+      {/* Insights modal — rendered here so the CDSS button can open it */}
+      {insightData && (
+        <InsightsModal
+          tokens={insightData.tokens}
+          importances={insightData.importances}
+          disease={diseaseName}
+          symptoms={symptomsText}
+        />
+      )}
     </div>
   );
 };
