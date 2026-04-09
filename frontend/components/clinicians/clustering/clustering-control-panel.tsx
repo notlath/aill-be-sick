@@ -82,6 +82,9 @@ const VARIABLE_LABELS: Record<keyof ClusterVariableSelection, string> = {
   gender: "Gender",
   district: "District",
   time: "Diagnosis date",
+  riskLevel: "Risk level",
+  symptomSeverity: "Symptom severity",
+  comorbiditiesCount: "Comorbidities count",
 };
 
 const toVariableLabelList = (variables: ClusterVariableSelection) =>
@@ -103,6 +106,54 @@ const formatReadableList = (items: string[]) => {
   }
 
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+};
+
+type ClusterVariablePresetKey =
+  | "outbreak-detection"
+  | "high-risk-cases"
+  | "geographic-hotspots";
+
+const CLUSTER_VARIABLE_PRESETS: Record<
+  ClusterVariablePresetKey,
+  {
+    label: string;
+    variables: ClusterVariableSelection;
+  }
+> = {
+  "outbreak-detection": {
+    label: "Outbreak detection",
+    variables: {
+      ...DEFAULT_CLUSTER_VARIABLES,
+      district: true,
+      time: true,
+      riskLevel: true,
+      symptomSeverity: true,
+      comorbiditiesCount: false,
+    },
+  },
+  "high-risk-cases": {
+    label: "High-risk cases",
+    variables: {
+      ...DEFAULT_CLUSTER_VARIABLES,
+      age: true,
+      district: true,
+      riskLevel: true,
+      symptomSeverity: true,
+      comorbiditiesCount: true,
+      time: false,
+    },
+  },
+  "geographic-hotspots": {
+    label: "Geographic hotspots",
+    variables: {
+      ...DEFAULT_CLUSTER_VARIABLES,
+      district: true,
+      time: true,
+      riskLevel: false,
+      symptomSeverity: false,
+      comorbiditiesCount: false,
+    },
+  },
 };
 
 // Date conversion utilities
@@ -128,7 +179,10 @@ const areVariablesEqual = (
     left.age === right.age &&
     left.gender === right.gender &&
     left.district === right.district &&
-    left.time === right.time
+    left.time === right.time &&
+    left.riskLevel === right.riskLevel &&
+    left.symptomSeverity === right.symptomSeverity &&
+    left.comorbiditiesCount === right.comorbiditiesCount
   );
 };
 
@@ -146,6 +200,9 @@ const buildRecommendationSignature = (
     variables.gender ? "1" : "0",
     variables.district ? "1" : "0",
     variables.time ? "1" : "0",
+    variables.riskLevel ? "1" : "0",
+    variables.symptomSeverity ? "1" : "0",
+    variables.comorbiditiesCount ? "1" : "0",
     startDate,
     endDate,
   ].join("|");
@@ -432,7 +489,8 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   const hasCompletedInitialUrlHydrationRef = useRef<boolean>(
     !hasExplicitClusterQuery,
   );
-  const [exportButtonTarget, setExportButtonTarget] = useState<HTMLDivElement | null>(null);
+  const [exportButtonTarget, setExportButtonTarget] =
+    useState<HTMLDivElement | null>(null);
 
   const syncCachedRecommendation = useCallback(
     (params: {
@@ -942,6 +1000,10 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     [selectedVariables],
   );
 
+  const handleApplyPreset = useCallback((preset: ClusterVariablePresetKey) => {
+    setSelectedVariables({ ...CLUSTER_VARIABLE_PRESETS[preset].variables });
+  }, []);
+
   const applyClusteringWithK = useCallback(
     (clusterCount: number) => {
       const nextK = clampK(clusterCount);
@@ -1128,6 +1190,23 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
             <div>
               <h2 className="text-base font-semibold">Select variables</h2>
               <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-base-content/70">Presets:</span>
+                  {(
+                    Object.keys(
+                      CLUSTER_VARIABLE_PRESETS,
+                    ) as ClusterVariablePresetKey[]
+                  ).map((presetKey) => (
+                    <button
+                      key={presetKey}
+                      type="button"
+                      className="btn btn-xs btn-outline"
+                      onClick={() => handleApplyPreset(presetKey)}
+                    >
+                      {CLUSTER_VARIABLE_PRESETS[presetKey].label}
+                    </button>
+                  ))}
+                </div>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <label
                     className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary" : ""}`}
@@ -1172,6 +1251,41 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                       onChange={() => handleVariableChange("time")}
                     />
                     <span>Diagnosis date</span>
+                  </label>
+                  <label
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.riskLevel ? "btn-primary" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={selectedVariables.riskLevel}
+                      onChange={() => handleVariableChange("riskLevel")}
+                    />
+                    <span>Risk level</span>
+                  </label>
+                  <label
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.symptomSeverity ? "btn-primary" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={selectedVariables.symptomSeverity}
+                      onChange={() => handleVariableChange("symptomSeverity")}
+                    />
+                    <span>Symptom severity</span>
+                  </label>
+                  <label
+                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.comorbiditiesCount ? "btn-primary" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={selectedVariables.comorbiditiesCount}
+                      onChange={() =>
+                        handleVariableChange("comorbiditiesCount")
+                      }
+                    />
+                    <span>Comorbidities count</span>
                   </label>
                 </div>
               </div>

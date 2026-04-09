@@ -233,6 +233,12 @@ export interface IllnessClusterStatistics {
   top_barangays?: BarangayCount[];
   top_districts?: { district: string; count: number }[];
   temporal_distribution?: Record<string, number>;
+  avg_risk_level?: number;
+  high_risk_percentage?: number;
+  avg_symptom_severity?: number;
+  avg_comorbidities_count?: number;
+  triage_score?: number;
+  insight_tags?: string[];
 }
 
 export interface IllnessClusterData {

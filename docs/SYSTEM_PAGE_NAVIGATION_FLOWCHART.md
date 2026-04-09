@@ -83,6 +83,7 @@ flowchart TD
 
     %% ========== CLINICIAN OPERATIONS AREA ==========
     Map --> Dashboard["/dashboard"]
+    Dashboard --> Map
     Dashboard --> Alerts["/alerts"]
     Alerts --> Reports["/healthcare-reports"]
     Reports --> Users["/users"]

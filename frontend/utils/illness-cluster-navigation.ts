@@ -210,6 +210,9 @@ const CLUSTER_NAVIGATION_PARAM_KEYS = [
   "gender",
   "district",
   "time",
+  "riskLevel",
+  "symptomSeverity",
+  "comorbiditiesCount",
   "start_date",
   "end_date",
   "cluster",
@@ -251,6 +254,9 @@ export const serializeIllnessClusterNavigationQuery = (
   searchParams.set("gender", String(variables.gender));
   searchParams.set("district", String(variables.district));
   searchParams.set("time", String(variables.time));
+  searchParams.set("riskLevel", String(variables.riskLevel));
+  searchParams.set("symptomSeverity", String(variables.symptomSeverity));
+  searchParams.set("comorbiditiesCount", String(variables.comorbiditiesCount));
 
   const { startDate, endDate } = validateDateRange(
     input.startDate,
@@ -275,6 +281,13 @@ export const parseIllnessClusterNavigationQuery = (
       gender: parseBooleanValue(searchParams.get("gender") ?? undefined),
       district: parseBooleanValue(searchParams.get("district") ?? undefined),
       time: parseBooleanValue(searchParams.get("time") ?? undefined),
+      riskLevel: parseBooleanValue(searchParams.get("riskLevel") ?? undefined),
+      symptomSeverity: parseBooleanValue(
+        searchParams.get("symptomSeverity") ?? undefined,
+      ),
+      comorbiditiesCount: parseBooleanValue(
+        searchParams.get("comorbiditiesCount") ?? undefined,
+      ),
     },
     DEFAULT_CLUSTER_VARIABLES,
   );

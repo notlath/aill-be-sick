@@ -16,7 +16,10 @@ import {
 } from "@/utils/illness-cluster-navigation";
 import { CLUSTER_THEMES } from "../../../../constants/cluster-themes";
 import EndemicBadge from "../endemic-badge";
-import { getCensusDataByZone, calculateIncidenceRate } from "@/constants/census-data";
+import {
+  getCensusDataByZone,
+  calculateIncidenceRate,
+} from "@/constants/census-data";
 
 interface IllnessClusterOverviewCardsProps {
   statistics: IllnessClusterStatistics[];
@@ -105,21 +108,24 @@ const IllnessClusterOverviewCards: React.FC<
           }
         }
 
+        const mapHref = buildIllnessClusterMapHref(index + 1, {
+          ...mapNavigationContext,
+          variables: mapNavigationContext?.variables ?? selectedVariables,
+        });
+        const triageScore =
+          typeof stat.triage_score === "number"
+            ? Number(stat.triage_score.toFixed(1))
+            : null;
+        const insightTagsToShow =
+          Array.isArray(stat.insight_tags) && stat.insight_tags.length > 0
+            ? stat.insight_tags.slice(0, 2)
+            : [];
+
         return (
           <Card
             key={stat.cluster_id}
             className={`group relative overflow-hidden shadow-sm! transition-all duration-200 cursor-pointer hover:shadow-md! hover:border-opacity-100 ${theme.border} border-2 `}
             onClick={() => {
-              console.log("[Card Click] Navigating to map with context", {
-                clusterDisplay: index + 1,
-                mapNavigationContext,
-                selectedVariables,
-              });
-              const mapHref = buildIllnessClusterMapHref(index + 1, {
-                ...mapNavigationContext,
-                variables: mapNavigationContext?.variables ?? selectedVariables,
-              });
-              console.log("[Card Click] Generated href:", mapHref);
               router.push(mapHref);
             }}
           >
@@ -255,8 +261,14 @@ const IllnessClusterOverviewCards: React.FC<
                       regionLocation = topDistrict.district;
                     } else if (stat.top_districts.length >= 2) {
                       const secondDistrict = stat.top_districts[1];
-                      if (topDistrict.count > 0 && (secondDistrict.count === 0 || (topDistrict.count - secondDistrict.count) / secondDistrict.count >= 0.4)) {
-                         regionLocation = topDistrict.district;
+                      if (
+                        topDistrict.count > 0 &&
+                        (secondDistrict.count === 0 ||
+                          (topDistrict.count - secondDistrict.count) /
+                            secondDistrict.count >=
+                            0.4)
+                      ) {
+                        regionLocation = topDistrict.district;
                       }
                     }
                   }
@@ -264,10 +276,16 @@ const IllnessClusterOverviewCards: React.FC<
                   if (regionLocation) {
                     const census = getCensusDataByZone(regionLocation);
                     if (census) {
-                      const incidence = calculateIncidenceRate(stat.count, census.populationTotal);
+                      const incidence = calculateIncidenceRate(
+                        stat.count,
+                        census.populationTotal,
+                      );
                       return (
                         <div className="text-xs text-base-content/70 mt-1">
-                          <span className="font-medium">{incidence.toFixed(1)}</span> per 1,000 pop. in {regionLocation}
+                          <span className="font-medium">
+                            {incidence.toFixed(1)}
+                          </span>{" "}
+                          per 1,000 pop. in {regionLocation}
                         </div>
                       );
                     }
@@ -278,6 +296,40 @@ const IllnessClusterOverviewCards: React.FC<
             </CardHeader>
 
             <CardContent className="relative space-y-5">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-base-content/70">
+                    Triage score
+                  </span>
+                  <span className={`text-sm font-semibold ${theme.accentText}`}>
+                    {triageScore ?? "N/A"}
+                  </span>
+                </div>
+                {insightTagsToShow.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {insightTagsToShow.map((tag, tagIndex) => (
+                      <Badge
+                        key={`${stat.cluster_id}-${tagIndex}`}
+                        variant="secondary"
+                        className="text-[11px] font-medium"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  className="btn btn-primary btn-xs"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    router.push(mapHref);
+                  }}
+                >
+                  Review high-priority cases
+                </button>
+              </div>
+
               {/* Top Diseases */}
               {stat.top_diseases && stat.top_diseases.length > 0 ? (
                 <div>

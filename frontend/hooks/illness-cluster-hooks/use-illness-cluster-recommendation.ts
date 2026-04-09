@@ -44,7 +44,15 @@ export const useIllnessClusterRecommendation = ({
       return;
     }
 
-    const { age, gender, district, time } = variables;
+    const {
+      age,
+      gender,
+      district,
+      time,
+      riskLevel,
+      symptomSeverity,
+      comorbiditiesCount,
+    } = variables;
     const requestId = activeRequestIdRef.current + 1;
     activeRequestIdRef.current = requestId;
 
@@ -58,6 +66,9 @@ export const useIllnessClusterRecommendation = ({
           gender: String(gender),
           district: String(district),
           time: String(time),
+          riskLevel: String(riskLevel),
+          symptomSeverity: String(symptomSeverity),
+          comorbiditiesCount: String(comorbiditiesCount),
         });
 
         if (startDate) params.set("start_date", startDate);
@@ -123,6 +134,9 @@ export const useIllnessClusterRecommendation = ({
     variables.gender,
     variables.district,
     variables.time,
+    variables.riskLevel,
+    variables.symptomSeverity,
+    variables.comorbiditiesCount,
     startDate,
     endDate,
   ]);
