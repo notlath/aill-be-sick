@@ -1194,9 +1194,12 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     </div>
   );
 
+  const isGlobalLoading =
+    loading || (loadingRecommendation && !displayedRecommendedK);
+
   const renderProps: ClusteringControlPanelRenderProps = {
     clusterData,
-    loading,
+    loading: isGlobalLoading,
     error,
     selectedClusterDisplay,
     selectedClusterIndex,
@@ -1439,21 +1442,16 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                 loading={loading}
               />
 
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 h-5">
                 <span className="text-muted flex items-center gap-1.5 text-xs font-normal">
-                  {loadingRecommendation && !displayedRecommendedK ? (
-                    <>
-                      <Loader2 className="size-3 animate-spin" />
-                      Finding the recommended number of groups...
-                    </>
-                  ) : displayedRecommendedK ? (
+                  {!isGlobalLoading && displayedRecommendedK ? (
                     <>Recommended: {displayedRecommendedK} groups</>
-                  ) : (
+                  ) : !isGlobalLoading ? (
                     <>Recommended: Current group count ({k})</>
-                  )}
+                  ) : null}
                 </span>
 
-                {!loadingRecommendation && recommendationMessage ? (
+                {!isGlobalLoading && recommendationMessage ? (
                   <span className="text-warning text-xs font-medium w-full sm:w-auto">
                     {recommendationMessage}
                   </span>
@@ -1524,7 +1522,9 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       </div>
 
       {/* Cluster Selection Dropdown */}
-      {showClusterSelector && !loading && clusterDisplayOptions.length > 0 ? (
+      {showClusterSelector &&
+      !isGlobalLoading &&
+      clusterDisplayOptions.length > 0 ? (
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-base-content/70">
             Select group:
@@ -1550,7 +1550,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       ) : null}
 
       {/* Error Display */}
-      {!loading && error ? (
+      {!isGlobalLoading && error ? (
         <div className="alert alert-error">
           <AlertCircle className="size-5" />
           <span>{error}</span>

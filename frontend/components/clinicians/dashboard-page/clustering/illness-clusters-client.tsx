@@ -63,12 +63,6 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
           <div className="space-y-6">
             {loading ? (
               <div className="flex w-full flex-col gap-4">
-                <div className="flex items-center justify-center gap-3">
-                  <Loader2 className="text-primary size-8 animate-spin" />
-                  <p className="text-muted-foreground text-sm font-medium">
-                    Recalculating groups...
-                  </p>
-                </div>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {[0, 1, 2, 3].map((index) => (
                     <Card key={index} className="border-border h-130">
