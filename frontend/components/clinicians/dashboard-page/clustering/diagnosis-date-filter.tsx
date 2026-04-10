@@ -19,12 +19,7 @@ interface DiagnosisDateFilterProps {
   className?: string;
 }
 
-type PresetType =
-  | "all-time"
-  | "last-7-days"
-  | "last-3-months"
-  | "year-to-date"
-  | "custom";
+type PresetType = "all-time" | "last-7-days" | "last-30-days" | "custom";
 
 interface DatePickerProps {
   selectedDate: Date | null;
@@ -64,16 +59,10 @@ const getDatePresetRange = (preset: PresetType): [Date | null, Date | null] => {
       return [start, today];
     }
 
-    case "last-3-months": {
-      const start = new Date(now.getFullYear(), now.getMonth() - 3, 1);
-      const end = today;
-      return [start, end];
-    }
-
-    case "year-to-date": {
-      const start = new Date(now.getFullYear(), 0, 1);
-      const end = today;
-      return [start, end];
+    case "last-30-days": {
+      const start = new Date(today);
+      start.setDate(start.getDate() - 30);
+      return [start, today];
     }
 
     case "custom":
@@ -103,11 +92,7 @@ const resolvePresetFromRange = (
     return "custom";
   }
 
-  const deterministicPresets: PresetType[] = [
-    "last-7-days",
-    "last-3-months",
-    "year-to-date",
-  ];
+  const deterministicPresets: PresetType[] = ["last-7-days", "last-30-days"];
 
   for (const preset of deterministicPresets) {
     const [presetStart, presetEnd] = getDatePresetRange(preset);
@@ -316,8 +301,7 @@ export const DiagnosisDateFilter: React.FC<DiagnosisDateFilterProps> = ({
   const presets: Array<{ id: PresetType; label: string }> = [
     { id: "all-time", label: "All time" },
     { id: "last-7-days", label: "Last 7 days" },
-    { id: "last-3-months", label: "Last 3 months" },
-    { id: "year-to-date", label: "Year to date" },
+    { id: "last-30-days", label: "Last 30 days" },
     { id: "custom", label: "Custom range" },
   ];
 

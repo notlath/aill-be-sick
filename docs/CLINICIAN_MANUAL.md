@@ -25,21 +25,98 @@ Log in at the clinician login page using your authorized credentials. First-time
 
 ## Overview (Dashboard)
 
-The main dashboard displays **Illness Patterns** - groups of similar diagnoses based on patient characteristics.
+The main dashboard shows **Illness Patterns** - groups of similar diagnoses based on patient details.
 
 **Features:**
 
-- **Clustering controls** - Choose which factors to analyze (age, gender, district, diagnosis date)
-- **Recommended preset** - Use **Recommended** for the fastest setup (age + district + diagnosis date)
-- **Variable groups** - Controls are grouped into **Demographics**, **Clinical**, and **Temporal** sections to simplify selection
-- **Quick help** - Use the **?** help control beside "Select variables" for guidance
-- **Cluster count** - Adjust the number of groups (2-10), with a recommended optimal value shown
-- **Overview cards** - Summary statistics for each group
-- **Details table** - Breakdown of patients within each group
+- **Simple setup first** - Use the **Recommended** preset for a quick baseline (age + district + diagnosis date)
+- **Advanced options toggle** - Click **Show advanced options** only when you need more control
+- **Variable sections** - Advanced options are organized into **Demographics**, **Clinical**, and **Temporal**
+- **Quick help** - Use the **?** beside "Select variables" for plain-language guidance
+- **Date range filter** - Choose all time, recent ranges, or a custom range
+- **Recommended group count** - The dashboard shows a suggested number of groups
+- **Manual group count (advanced)** - Set groups manually when advanced options are enabled (2-25)
+- **Overview cards** - Review summary details for each group
+- **Map shortcut** - Open a group directly on the map from each card
 
-Click **Apply** after adjusting settings. Click **Reset** to return to defaults.
+Click **Apply** after making changes.
 
 ---
+
+## Usability Test Scenarios for Illness Groups
+
+Use these quick scenarios with busy, non-technical healthcare workers. Ask them to think out loud, and record completion time, errors, and confidence.
+
+### 1) Basic mode (preset + quick date)
+
+**Steps:**
+
+- Open **Overview**.
+- Keep **Recommended** preset.
+- Pick a quick date range (for example, last 7 days).
+- Click **Apply**.
+
+**Expected outcome:**
+
+- The user completes setup in under 30 seconds.
+- The dashboard shows refreshed group cards without extra guidance.
+- The user can explain what changed in plain words.
+
+### 2) Advanced options toggle
+
+**Steps:**
+
+- Start in basic mode.
+- Turn on **Show advanced options**.
+- Select at least one extra variable.
+- Turn advanced options off again.
+
+**Expected outcome:**
+
+- The user understands the toggle controls optional settings.
+- The user can return to a simple setup without confusion.
+- No critical action is blocked when advanced options are off.
+
+### 3) Top 5 + Other groups behavior
+
+**Steps:**
+
+- Run grouping with enough data to produce more than 5 groups.
+- Review the cards and map shortcut links.
+
+**Expected outcome:**
+
+- The user sees top groups clearly first.
+- Smaller groups are combined into **Other** and still understandable.
+- The user can open a selected group on the map and verify the same context.
+
+### 4) Recommended vs manual group count behavior
+
+**Steps:**
+
+- Run with recommended count.
+- Turn on advanced options and set a manual count (for example, 4 then 8).
+- Re-run after each change.
+
+**Expected outcome:**
+
+- The user understands recommended count is the default starting point.
+- Manual count changes are visible in card totals and composition.
+- The user can pick a count that supports their current review task.
+
+### 5) Readability and decision speed (time-to-insight)
+
+**Steps:**
+
+- Give a realistic prompt: “Find where attention is needed today.”
+- Start timer when the page loads.
+- Stop timer when the user states a clear next action.
+
+**Expected outcome:**
+
+- Time-to-insight is under 2 minutes for most participants.
+- The user can identify one priority area and one follow-up action.
+- Labels and card summaries are readable without technical translation.
 
 ## Alerts
 
@@ -64,7 +141,7 @@ Visualize disease data geographically with three view modes:
 
 **By Disease** - Shows case distribution by district for a selected disease
 
-**By Cluster** - Displays geographic patient groups from the clustering analysis
+**By Group** - Displays geographic patient groups from the grouping analysis
 
 **By Anomaly** - Highlights areas with unusual disease activity
 

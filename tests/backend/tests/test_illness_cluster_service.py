@@ -59,6 +59,23 @@ def _patch_fetch(rows):
     return patch("app.services.illness_cluster_service.get_db_engine", return_value=mock_engine)
 
 
+def _make_cluster_illness(patient_age, diagnosed_at="2026-04-01T00:00:00"):
+    return {
+        "disease": "Dengue",
+        "patient_age": patient_age,
+        "patient_gender": "MALE",
+        "region": "Region NCR",
+        "province": "Province Y",
+        "city": "City X",
+        "barangay": "Barangay Z",
+        "district": "District A",
+        "diagnosed_at": diagnosed_at,
+        "risk_level": 0.6,
+        "symptom_severity": 0.4,
+        "comorbidities_count": 1,
+    }
+
+
 def test_derived_helpers_behavior():
     low_case = _derive_risk_level(
         disease="Influenza",
@@ -186,3 +203,30 @@ def test_cluster_statistics_include_triage_and_insights():
     assert cluster_stat["high_risk_percentage"] == 100.0
     assert 0.0 <= cluster_stat["triage_score"] <= 100.0
     assert 1 <= len(cluster_stat["insight_tags"]) <= 2
+
+
+def test_cluster_statistics_uses_median_age_for_odd_samples():
+    illness_info = [
+        _make_cluster_illness(20),
+        _make_cluster_illness(30),
+        _make_cluster_illness(100),
+    ]
+
+    clusters = np.array([0, 0, 0])
+    stats = get_illness_cluster_statistics(illness_info, clusters, n_clusters=1)
+
+    assert stats[0]["avg_patient_age"] == 30.0
+
+
+def test_cluster_statistics_uses_median_age_for_even_samples():
+    illness_info = [
+        _make_cluster_illness(20),
+        _make_cluster_illness(30),
+        _make_cluster_illness(40),
+        _make_cluster_illness(100),
+    ]
+
+    clusters = np.array([0, 0, 0, 0])
+    stats = get_illness_cluster_statistics(illness_info, clusters, n_clusters=1)
+
+    assert stats[0]["avg_patient_age"] == 35.0

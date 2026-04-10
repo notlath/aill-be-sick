@@ -558,8 +558,10 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
         ]
 
         # Calculate patient age statistics
+        # NOTE: Keep response key name `avg_patient_age` for API compatibility,
+        # but populate it with the cluster median age.
         ages = [p["patient_age"] for p in cluster_illnesses]
-        avg_age = sum(ages) / len(ages)
+        median_age = float(np.median(ages))
         min_age = min(ages)
         max_age = max(ages)
 
@@ -644,7 +646,7 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
                 "count": len(cluster_illnesses),
                 "disease_distribution": disease_distribution,
                 "top_diseases": top_diseases,
-                "avg_patient_age": round(avg_age, 1),
+                "avg_patient_age": round(median_age, 1),
                 "min_patient_age": min_age,
                 "max_patient_age": max_age,
                 "gender_distribution": gender_dist,

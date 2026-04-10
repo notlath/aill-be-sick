@@ -224,6 +224,7 @@ export interface IllnessClusterStatistics {
   disease_distribution: Record<string, { count: number; percent: number }>;
   top_diseases: { disease: string; count: number }[];
   avg_patient_age: number;
+  median_patient_age?: number;
   min_patient_age: number;
   max_patient_age: number;
   gender_distribution: GenderDistribution;

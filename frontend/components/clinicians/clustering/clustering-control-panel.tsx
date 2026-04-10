@@ -494,6 +494,8 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   const [exportButtonTarget, setExportButtonTarget] =
     useState<HTMLDivElement | null>(null);
   const [showVariableHelp, setShowVariableHelp] = useState(false);
+  const [isAdvancedOptionsEnabled, setIsAdvancedOptionsEnabled] =
+    useState<boolean>(false);
 
   const syncCachedRecommendation = useCallback(
     (params: {
@@ -685,12 +687,12 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     draftRecommendationSignature,
   ]);
 
-  // Sync recommendation to input
+  // Sync recommendation to input for basic flow.
   useEffect(() => {
-    if (displayedRecommendedK) {
+    if (!isAdvancedOptionsEnabled && displayedRecommendedK) {
       setKInput(String(displayedRecommendedK));
     }
-  }, [displayedRecommendedK]);
+  }, [displayedRecommendedK, isAdvancedOptionsEnabled]);
 
   // Rehydrate from persisted preferences when URL has no explicit clustering state.
   useEffect(() => {
@@ -1027,7 +1029,11 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     (e: React.FormEvent) => {
       e.preventDefault();
 
-      const hasPendingGroupCountChange = clampK(parseInt(kInput, 10)) !== k;
+      const nextBasicK = clampK(displayedRecommendedK ?? k);
+      const nextAdvancedK = clampK(parseInt(kInput, 10));
+      const nextK = isAdvancedOptionsEnabled ? nextAdvancedK : nextBasicK;
+
+      const hasPendingGroupCountChange = nextK !== k;
       const hasPendingVariableChange = (
         Object.keys(selectedVariables) as Array<keyof ClusterVariableSelection>
       ).some((key) => selectedVariables[key] !== appliedVariables[key]);
@@ -1043,9 +1049,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
         return;
       }
 
-      const nextK = clampK(parseInt(kInput, 10));
-
-      if (loadingRecommendation) {
+      if (loadingRecommendation && !displayedRecommendedK) {
         setPendingK(nextK);
         setShowConfirmModal(true);
         return;
@@ -1065,6 +1069,8 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       loadingRecommendation,
       clampK,
       applyClusteringWithK,
+      displayedRecommendedK,
+      isAdvancedOptionsEnabled,
     ],
   );
 
@@ -1115,12 +1121,39 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     hasPendingVariableChanges || hasPendingDateRangeChanges;
 
   const hasPendingGroupCountChange = useMemo(() => {
-    const normalizedInputK = clampK(parseInt(kInput, 10));
+    const normalizedInputK = isAdvancedOptionsEnabled
+      ? clampK(parseInt(kInput, 10))
+      : clampK(displayedRecommendedK ?? k);
+
     return normalizedInputK !== k;
-  }, [kInput, k, clampK]);
+  }, [kInput, k, clampK, displayedRecommendedK, isAdvancedOptionsEnabled]);
 
   const hasPendingClusteringChanges =
     hasPendingFilterChanges || hasPendingGroupCountChange;
+
+  useEffect(() => {
+    if (isAdvancedOptionsEnabled || !hasPendingFilterChanges) {
+      return;
+    }
+
+    if (loadingRecommendation) {
+      return;
+    }
+
+    if (typeof displayedRecommendedK !== "number") {
+      return;
+    }
+
+    const nextK = clampK(displayedRecommendedK);
+    applyClusteringWithK(nextK);
+  }, [
+    isAdvancedOptionsEnabled,
+    hasPendingFilterChanges,
+    loadingRecommendation,
+    displayedRecommendedK,
+    clampK,
+    applyClusteringWithK,
+  ]);
 
   const modalRoot = isMounted ? document.body : null;
   const confirmModal = (
@@ -1258,119 +1291,139 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                     </button>
                   ))}
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3 w-full">
-                  <div className="card card-body bg-base-100 border-base-300 border p-3">
-                    <span className="text-xs font-semibold">Demographics</span>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <label
-                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary" : "btn-outline"}`}
-                        title="Patient's age helps identify vulnerable populations like children and older adults"
-                      >
-                        <input
-                          type="checkbox"
-                          className="hidden"
-                          checked={selectedVariables.age}
-                          onChange={() => handleVariableChange("age")}
-                        />
-                        <span className="whitespace-nowrap">Age</span>
-                      </label>
-                      <label
-                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary" : "btn-outline"}`}
-                        title="Patient sex can reveal differences in affected groups"
-                      >
-                        <input
-                          type="checkbox"
-                          className="hidden"
-                          checked={selectedVariables.gender}
-                          onChange={() => handleVariableChange("gender")}
-                        />
-                        <span className="whitespace-nowrap">Gender</span>
-                      </label>
-                      <label
-                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary" : "btn-outline"}`}
-                        title="District helps identify where cases are concentrating"
-                      >
-                        <input
-                          type="checkbox"
-                          className="hidden"
-                          checked={selectedVariables.district}
-                          onChange={() => handleVariableChange("district")}
-                        />
-                        <span className="whitespace-nowrap">District</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="card card-body bg-base-100 border-base-300 border p-3">
-                    <span className="text-xs font-semibold">Clinical</span>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <label
-                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.riskLevel ? "btn-primary" : "btn-outline"}`}
-                        title="Risk level helps prioritize urgent cases"
-                      >
-                        <input
-                          type="checkbox"
-                          className="hidden"
-                          checked={selectedVariables.riskLevel}
-                          onChange={() => handleVariableChange("riskLevel")}
-                        />
-                        <span className="whitespace-nowrap">Risk level</span>
-                      </label>
-                      <label
-                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.symptomSeverity ? "btn-primary" : "btn-outline"}`}
-                        title="Symptom severity shows how intense symptoms are"
-                      >
-                        <input
-                          type="checkbox"
-                          className="hidden"
-                          checked={selectedVariables.symptomSeverity}
-                          onChange={() =>
-                            handleVariableChange("symptomSeverity")
-                          }
-                        />
-                        <span className="whitespace-nowrap">
-                          Symptom severity
-                        </span>
-                      </label>
-                      <label
-                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.comorbiditiesCount ? "btn-primary" : "btn-outline"}`}
-                        title="Other health conditions may increase complications"
-                      >
-                        <input
-                          type="checkbox"
-                          className="hidden"
-                          checked={selectedVariables.comorbiditiesCount}
-                          onChange={() =>
-                            handleVariableChange("comorbiditiesCount")
-                          }
-                        />
-                        <span className="whitespace-nowrap">
-                          Comorbidities count
-                        </span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="card card-body bg-base-100 border-base-300 border p-3">
-                    <span className="text-xs font-semibold">Temporal</span>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <label
-                        className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary" : "btn-outline"}`}
-                        title="Diagnosis date helps detect timing and trend changes"
-                      >
-                        <input
-                          type="checkbox"
-                          className="hidden"
-                          checked={selectedVariables.time}
-                          onChange={() => handleVariableChange("time")}
-                        />
-                        <span className="whitespace-nowrap">
-                          Diagnosis date
-                        </span>
-                      </label>
-                    </div>
-                  </div>
+                <div className="w-full">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm px-2"
+                    onClick={() =>
+                      setIsAdvancedOptionsEnabled(
+                        (previousValue) => !previousValue,
+                      )
+                    }
+                  >
+                    {isAdvancedOptionsEnabled
+                      ? "Hide advanced options"
+                      : "Show advanced options"}
+                  </button>
                 </div>
+
+                {isAdvancedOptionsEnabled ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3 w-full">
+                    <div className="card card-body bg-base-100 border-base-300 border p-3">
+                      <span className="text-xs font-semibold">
+                        Demographics
+                      </span>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <label
+                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary" : "btn-outline"}`}
+                          title="Patient's age helps identify vulnerable populations like children and older adults"
+                        >
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={selectedVariables.age}
+                            onChange={() => handleVariableChange("age")}
+                          />
+                          <span className="whitespace-nowrap">Age</span>
+                        </label>
+                        <label
+                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary" : "btn-outline"}`}
+                          title="Patient sex can reveal differences in affected groups"
+                        >
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={selectedVariables.gender}
+                            onChange={() => handleVariableChange("gender")}
+                          />
+                          <span className="whitespace-nowrap">Gender</span>
+                        </label>
+                        <label
+                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary" : "btn-outline"}`}
+                          title="District helps identify where cases are concentrating"
+                        >
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={selectedVariables.district}
+                            onChange={() => handleVariableChange("district")}
+                          />
+                          <span className="whitespace-nowrap">District</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="card card-body bg-base-100 border-base-300 border p-3">
+                      <span className="text-xs font-semibold">Clinical</span>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <label
+                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.riskLevel ? "btn-primary" : "btn-outline"}`}
+                          title="Risk level helps prioritize urgent cases"
+                        >
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={selectedVariables.riskLevel}
+                            onChange={() => handleVariableChange("riskLevel")}
+                          />
+                          <span className="whitespace-nowrap">Risk level</span>
+                        </label>
+                        <label
+                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.symptomSeverity ? "btn-primary" : "btn-outline"}`}
+                          title="Symptom severity shows how intense symptoms are"
+                        >
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={selectedVariables.symptomSeverity}
+                            onChange={() =>
+                              handleVariableChange("symptomSeverity")
+                            }
+                          />
+                          <span className="whitespace-nowrap">
+                            Symptom severity
+                          </span>
+                        </label>
+                        <label
+                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.comorbiditiesCount ? "btn-primary" : "btn-outline"}`}
+                          title="Other health conditions may increase complications"
+                        >
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={selectedVariables.comorbiditiesCount}
+                            onChange={() =>
+                              handleVariableChange("comorbiditiesCount")
+                            }
+                          />
+                          <span className="whitespace-nowrap">
+                            Comorbidities count
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="card card-body bg-base-100 border-base-300 border p-3">
+                      <span className="text-xs font-semibold">Temporal</span>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <label
+                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary" : "btn-outline"}`}
+                          title="Diagnosis date helps detect timing and trend changes"
+                        >
+                          <input
+                            type="checkbox"
+                            className="hidden"
+                            checked={selectedVariables.time}
+                            onChange={() => handleVariableChange("time")}
+                          />
+                          <span className="whitespace-nowrap">
+                            Diagnosis date
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -1386,40 +1439,44 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                 loading={loading}
               />
 
-              {/* Groups Input */}
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <label htmlFor="cluster-k-input" className="text-xs">
-                  Groups:
-                </label>
-                <Input
-                  id="cluster-k-input"
-                  type="number"
-                  className="input h-7 w-17 text-xs font-medium"
-                  min={2}
-                  max={25}
-                  value={kInput}
-                  onChange={(e) => setKInput(e.target.value)}
-                  disabled={loading}
-                />
-
                 <span className="text-muted flex items-center gap-1.5 text-xs font-normal">
-                  {loadingRecommendation ? (
+                  {loadingRecommendation && !displayedRecommendedK ? (
                     <>
                       <Loader2 className="size-3 animate-spin" />
-                      Calculating recommendation...
+                      Finding the recommended number of groups...
                     </>
                   ) : displayedRecommendedK ? (
                     <>Recommended: {displayedRecommendedK} groups</>
                   ) : (
-                    <>Recommended: 2-25 groups</>
+                    <>Recommended: Current group count ({k})</>
                   )}
                 </span>
+
                 {!loadingRecommendation && recommendationMessage ? (
                   <span className="text-warning text-xs font-medium w-full sm:w-auto">
                     {recommendationMessage}
                   </span>
                 ) : null}
               </div>
+
+              {isAdvancedOptionsEnabled ? (
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <label htmlFor="cluster-k-input" className="text-xs">
+                    Groups:
+                  </label>
+                  <Input
+                    id="cluster-k-input"
+                    type="number"
+                    className="input h-7 w-17 text-xs font-medium"
+                    min={2}
+                    max={25}
+                    value={kInput}
+                    onChange={(e) => setKInput(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+              ) : null}
 
               {/* Description */}
               <div className="text-muted text-xs font-normal w-full max-w-full overflow-hidden text-ellipsis">
@@ -1429,7 +1486,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                   Patients with similar details in these areas are placed in the
                   same group
                 </span>
-                {hasPendingClusteringChanges ? (
+                {hasPendingClusteringChanges && isAdvancedOptionsEnabled ? (
                   <div className="alert alert-warning mt-4 py-2 text-xs">
                     <AlertCircle className="size-4" />
                     <span>
@@ -1441,16 +1498,18 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
               </div>
 
               {/* Apply Button */}
-              <div>
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-sm w-fit mt-1"
-                  title="Apply group settings"
-                  disabled={loading || !hasPendingClusteringChanges}
-                >
-                  {loading ? "Applying..." : "Apply"}
-                </button>
-              </div>
+              {isAdvancedOptionsEnabled ? (
+                <div>
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm w-fit mt-1"
+                    title="Apply group settings"
+                    disabled={loading || !hasPendingClusteringChanges}
+                  >
+                    {loading ? "Applying..." : "Apply"}
+                  </button>
+                </div>
+              ) : null}
             </div>
           </form>
 
