@@ -5,8 +5,12 @@ import { Suspense } from "react";
 
 const DEFAULT_K = 4;
 
-const IllnessClusters = () => {
-  return <IllnessClustersClient initialK={DEFAULT_K} />;
+const IllnessClusters = ({
+  dateRange,
+}: {
+  dateRange?: { start: Date | null; end: Date | null };
+}) => {
+  return <IllnessClustersClient initialK={DEFAULT_K} dateRange={dateRange} />;
 };
 
 const IllnessClustersSkeleton = () => {
@@ -59,10 +63,14 @@ const IllnessClustersSkeleton = () => {
   );
 };
 
-const IllnessClustersWrapper = () => {
+const IllnessClustersWrapper = ({
+  dateRange,
+}: {
+  dateRange?: { start: Date | null; end: Date | null };
+}) => {
   return (
     <Suspense fallback={<IllnessClustersSkeleton />}>
-      <IllnessClusters />
+      <IllnessClusters dateRange={dateRange} />
     </Suspense>
   );
 };

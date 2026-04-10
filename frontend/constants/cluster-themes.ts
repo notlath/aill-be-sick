@@ -72,3 +72,24 @@ export const CLUSTER_THEMES = [
     badgeBg: "bg-[#e8706a]/15 text-[#c8504a] border-[#e8706a]/20",
   },
 ];
+
+export const DISEASE_THEMES: Record<string, (typeof CLUSTER_THEMES)[0]> = {
+  // Highly Contagious (Danger/Red themes)
+  Measles: CLUSTER_THEMES[7],
+  Influenza: CLUSTER_THEMES[4],
+  // Vector-borne / Endemic (Severity/Warning themes)
+  Dengue: CLUSTER_THEMES[3],
+  Typhoid: CLUSTER_THEMES[6],
+  Diarrhea: CLUSTER_THEMES[1],
+  Pneumonia: CLUSTER_THEMES[2],
+};
+
+export const getThemeForDisease = (
+  diseaseName: string | null | undefined,
+  rankIndex: number = 0,
+) => {
+  if (diseaseName && DISEASE_THEMES[diseaseName]) {
+    return DISEASE_THEMES[diseaseName];
+  }
+  return CLUSTER_THEMES[rankIndex % CLUSTER_THEMES.length];
+};

@@ -320,6 +320,7 @@ export interface ClusteringControlPanelProps {
   initialK?: number;
   onClusterDataChange?: (data: IllnessClusterData | null) => void;
   children?: (props: ClusteringControlPanelRenderProps) => React.ReactNode;
+  externalDateRange?: { start: Date | null; end: Date | null };
 }
 
 export interface ClusteringControlPanelRenderProps {
@@ -349,6 +350,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   initialK = DEFAULT_CLUSTER_COUNT,
   onClusterDataChange,
   children,
+  externalDateRange,
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -531,6 +533,19 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     },
     [],
   );
+
+  useEffect(() => {
+    if (
+      externalDateRange &&
+      (!areSameDateValue(appliedDateRangeStart, externalDateRange.start) ||
+        !areSameDateValue(appliedDateRangeEnd, externalDateRange.end))
+    ) {
+      setAppliedDateRangeStart(externalDateRange.start);
+      setAppliedDateRangeEnd(externalDateRange.end);
+      setDateRangeStart(externalDateRange.start);
+      setDateRangeEnd(externalDateRange.end);
+    }
+  }, [externalDateRange, appliedDateRangeStart, appliedDateRangeEnd]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -1435,12 +1450,14 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
               {enableViewToggle ? (
                 <ViewSelect value={view} onValueChange={setView} />
               ) : null}
-              <DiagnosisDateFilter
-                currentStartDate={dateRangeStart}
-                currentEndDate={dateRangeEnd}
-                onDateRangeChange={handleDateRangeChange}
-                loading={loading}
-              />
+              {externalDateRange === undefined ? (
+                <DiagnosisDateFilter
+                  currentStartDate={dateRangeStart}
+                  currentEndDate={dateRangeEnd}
+                  onDateRangeChange={handleDateRangeChange}
+                  loading={loading}
+                />
+              ) : null}
 
               <div className="flex flex-wrap items-center gap-2 sm:gap-3 h-5">
                 <span className="text-muted flex items-center gap-1.5 text-xs font-normal">

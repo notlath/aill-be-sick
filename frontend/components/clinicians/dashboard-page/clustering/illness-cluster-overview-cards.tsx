@@ -4,7 +4,14 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, HeartPulse, MapPin, Users } from "lucide-react";
+import {
+  Calendar,
+  HeartPulse,
+  MapPin,
+  Users,
+  AlertCircle,
+  FileText,
+} from "lucide-react";
 import type { IllnessClusterStatistics, IllnessRecord } from "@/types";
 import {
   DEFAULT_CLUSTER_VARIABLES,
@@ -14,7 +21,7 @@ import {
   buildIllnessClusterMapHref,
   type IllnessClusterMapNavigationContext,
 } from "@/utils/illness-cluster-navigation";
-import { CLUSTER_THEMES } from "@/constants/cluster-themes";
+import { getThemeForDisease } from "@/constants/cluster-themes";
 import EndemicBadge from "../endemic-badge";
 
 interface IllnessClusterOverviewCardsProps {
@@ -110,15 +117,18 @@ const IllnessClusterOverviewCards: React.FC<
   }, [remainingGroups]);
 
   const renderGroupCard = ({ stat, rankIndex }: RankedGroupStat) => {
-    const theme = CLUSTER_THEMES[rankIndex % CLUSTER_THEMES.length];
+    const topDiseaseText = getTopDiseaseText(stat);
+    const topDiseaseName = stat.top_diseases?.[0]?.disease;
+    const theme = getThemeForDisease(topDiseaseName, rankIndex);
     const mapHref = buildIllnessClusterMapHref(rankIndex + 1, {
       ...mapNavigationContext,
       variables: mapNavigationContext?.variables ?? selectedVariables,
     });
 
-    const topDiseaseText = getTopDiseaseText(stat);
     const topDistrictText = getTopDistrictText(stat, selectedVariables);
     const ageSummary = getAgeSummary(stat);
+    const isVulnerable =
+      ageSummary === "mostly older adults" || ageSummary === "mostly children";
     const detailKey = `${stat.cluster_id}-details`;
     const isDetailsOpen = expandedGroups[detailKey] || false;
 
@@ -128,40 +138,96 @@ const IllnessClusterOverviewCards: React.FC<
         className={`overflow-hidden border-2 shadow-sm! transition-all duration-200 hover:border-opacity-100 hover:shadow-md! ${theme.border}`}
       >
         <CardHeader className="space-y-3 pb-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="font-semibold">Group {rankIndex + 1}</div>
-            <Badge variant="outline" className="text-[11px]">
-              {stat.count} diagnoses
-            </Badge>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-semibold">Group {rankIndex + 1}</div>
+              <Badge variant="outline" className="text-[11px]">
+                {stat.count} diagnoses
+              </Badge>
+            </div>
+
+            <div className="flex gap-2 mt-1">
+              <button
+                type="button"
+                className={`btn btn-sm flex-1 border-0 ${theme.badgeBg}`}
+                title="Generate Report"
+                disabled
+              >
+                <FileText className="size-3.5 mr-1" /> Report
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm flex-1 border-0 ${theme.badgeBg}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  router.push(mapHref);
+                }}
+              >
+                <MapPin className="size-3.5 mr-1" /> Map
+              </button>
+            </div>
           </div>
 
-          <div
-            className={`rounded-[12px] border p-3 text-xs leading-relaxed text-base-content/75 ${theme.border} ${theme.accentBg}`}
-          >
-            This group includes {ageSummary}
-            {topDistrictText ? (
-              <>
-                , mostly from <strong>{topDistrictText}</strong>
-              </>
-            ) : null}
-            {topDiseaseText ? (
-              <>
-                . Most common illness: <strong>{topDiseaseText}</strong>
-              </>
-            ) : null}
-            .
-          </div>
+          <div className="flex flex-col gap-2">
+            <div
+              className={`rounded-[12px] border p-3 text-xs leading-relaxed text-base-content/75 space-y-2 ${theme.border} ${theme.accentBg}`}
+            >
+              <div>
+                Group primarily includes{" "}
+                <strong
+                  className={`font-semibold ${isVulnerable ? "text-error flex items-center gap-1 inline-flex" : ""}`}
+                >
+                  {isVulnerable && <AlertCircle className="size-3" />}
+                  {ageSummary}
+                </strong>
+                .
+              </div>
 
-          <button
-            type="button"
-            className={`btn btn-xs w-fit border-0 ${theme.badgeBg}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              router.push(mapHref);
-            }}
-          >
-            Open group on map
-          </button>
+              {topDistrictText ||
+              (selectedVariables.time &&
+                stat.temporal_distribution &&
+                Object.keys(stat.temporal_distribution).length > 0) ? (
+                <div className="flex flex-col gap-1.5 pt-1.5 border-t border-black/5 dark:border-white/5">
+                  {topDistrictText && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="size-3" />
+                      <span>
+                        Top area: <strong>{topDistrictText}</strong>
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedVariables.time &&
+                    stat.temporal_distribution &&
+                    Object.keys(stat.temporal_distribution).length > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="size-3" />
+                        <span className="flex items-center gap-1 flex-wrap">
+                          Trend:
+                          {Object.entries(stat.temporal_distribution)
+                            .sort((a, b) => a[0].localeCompare(b[0]))
+                            .slice(0, 3)
+                            .map(([month, count]) => (
+                              <span
+                                key={`${stat.cluster_id}-header-${month}`}
+                                className="font-semibold"
+                              >
+                                {month} ({count})
+                              </span>
+                            ))}
+                        </span>
+                      </div>
+                    )}
+                </div>
+              ) : null}
+
+              {topDiseaseText && (
+                <div className="pt-1.5 border-t border-black/5 dark:border-white/5">
+                  Most common illness: <strong>{topDiseaseText}</strong>
+                </div>
+              )}
+            </div>
+          </div>
         </CardHeader>
 
         <CardContent className="pt-2">
@@ -238,10 +304,10 @@ const IllnessClusterOverviewCards: React.FC<
                   {stat.gender_distribution &&
                   Object.keys(stat.gender_distribution).length > 0 ? (
                     <div className="col-span-2 rounded-lg border border-base-300 p-2">
-                      <div className="text-base-content/60 mb-1">
+                      <div className="text-base-content/60">
                         Gender distribution
                       </div>
-                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      <div className="font-semibold text-base-content flex flex-wrap gap-x-4 gap-y-1 mt-1">
                         {Object.entries(stat.gender_distribution).map(
                           ([gender, count]) => (
                             <div
@@ -249,7 +315,9 @@ const IllnessClusterOverviewCards: React.FC<
                               className="flex items-center gap-1.5"
                             >
                               <span className="font-medium capitalize text-base-content">
-                                {gender}:
+                                {gender.charAt(0).toUpperCase() +
+                                  gender.slice(1).toLowerCase()}
+                                :
                               </span>
                               <span className="text-base-content/80">
                                 {count} (
@@ -263,53 +331,6 @@ const IllnessClusterOverviewCards: React.FC<
                   ) : null}
                 </div>
               </div>
-
-              {selectedVariables.district && stat.top_districts?.length ? (
-                <div>
-                  <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
-                    <MapPin className={`size-3.5 ${theme.accentText}`} />
-                    Districts
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {stat.top_districts
-                      .slice(0, 8)
-                      .map((district, districtIndex) => (
-                        <Badge
-                          key={`${stat.cluster_id}-district-${districtIndex}`}
-                          variant="outline"
-                          className="text-xs"
-                        >
-                          {district.district} ({district.count})
-                        </Badge>
-                      ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {selectedVariables.time &&
-              stat.temporal_distribution &&
-              Object.keys(stat.temporal_distribution).length > 0 ? (
-                <div>
-                  <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
-                    <Calendar className={`size-3.5 ${theme.accentText}`} />
-                    Time trend
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {Object.entries(stat.temporal_distribution)
-                      .sort((a, b) => a[0].localeCompare(b[0]))
-                      .slice(0, 6)
-                      .map(([month, count]) => (
-                        <Badge
-                          key={`${stat.cluster_id}-${month}`}
-                          variant="outline"
-                          className="text-xs"
-                        >
-                          {month} ({count})
-                        </Badge>
-                      ))}
-                  </div>
-                </div>
-              ) : null}
             </div>
           </div>
         </CardContent>

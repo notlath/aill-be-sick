@@ -17,10 +17,12 @@ import type { IllnessClusterMapNavigationContext } from "@/utils/illness-cluster
 interface IllnessClustersClientProps {
   initialData?: IllnessClusterData;
   initialK?: number;
+  dateRange?: { start: Date | null; end: Date | null } | undefined;
 }
 
 const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
   initialK = DEFAULT_CLUSTER_COUNT,
+  dateRange,
 }) => {
   return (
     <ClusteringControlPanel
@@ -28,6 +30,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
       enableUrlSync={true}
       showClusterSelector={false}
       initialK={initialK}
+      externalDateRange={dateRange}
     >
       {({
         clusterData,
