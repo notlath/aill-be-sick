@@ -235,6 +235,32 @@ const IllnessClusterOverviewCards: React.FC<
                       {stat.min_patient_age} - {stat.max_patient_age} years
                     </div>
                   </div>
+                  {stat.gender_distribution &&
+                  Object.keys(stat.gender_distribution).length > 0 ? (
+                    <div className="col-span-2 rounded-lg border border-base-300 p-2">
+                      <div className="text-base-content/60 mb-1">
+                        Gender distribution
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {Object.entries(stat.gender_distribution).map(
+                          ([gender, count]) => (
+                            <div
+                              key={gender}
+                              className="flex items-center gap-1.5"
+                            >
+                              <span className="font-medium capitalize text-base-content">
+                                {gender}:
+                              </span>
+                              <span className="text-base-content/80">
+                                {count} (
+                                {Math.round((count / stat.count) * 100)}%)
+                              </span>
+                            </div>
+                          ),
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
