@@ -204,8 +204,8 @@ const IllnessClusterOverviewCards: React.FC<
         <CardHeader className="space-y-3 pb-2">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
-              <div className="font-semibold">{clinicalLabel}</div>
-              <Badge variant="outline" className="text-[11px]">
+              <div className="text-lg font-bold">{clinicalLabel}</div>
+              <Badge variant="outline" className="text-[11px] font-semibold">
                 {stat.count} diagnoses
               </Badge>
             </div>
@@ -216,7 +216,7 @@ const IllnessClusterOverviewCards: React.FC<
               </Badge>
             )}
             {riskAssessment === "MEDIUM" && (
-              <Badge variant="secondary" className="text-[10px]">
+              <Badge variant="secondary" className="animate-pulse text-[10px]">
                 Medium Risk
               </Badge>
             )}
@@ -245,12 +245,12 @@ const IllnessClusterOverviewCards: React.FC<
 
           <div className="flex flex-col gap-2">
             <div
-              className={`rounded-[12px] border p-3 text-xs leading-relaxed text-base-content/75 space-y-2 ${theme.border} ${theme.accentBg}`}
+              className={`rounded-[12px] border p-3 text-xs leading-relaxed text-base-content/60 space-y-2 ${theme.border} ${theme.accentBg}`}
             >
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap text-base-content/70">
                 <span>Age:</span>
                 <span
-                  className={`font-bold ${isVulnerable ? "text-error bg-error/10 px-2 py-0.5 rounded flex items-center gap-1.5 inline-flex" : "text-base-content font-semibold"}`}
+                  className={`${isVulnerable ? "text-error bg-error/10 px-2 py-0.5 rounded flex items-center gap-1.5 inline-flex font-semibold" : "font-medium text-base-content/80"}`}
                 >
                   {isVulnerable && <AlertCircle className="size-3" />}
                   {ageSummary.label} ({ageSummary.range})
@@ -263,10 +263,10 @@ const IllnessClusterOverviewCards: React.FC<
                 Object.keys(stat.temporal_distribution).length > 0) ? (
                 <div className="flex flex-col gap-1.5 pt-1.5 border-t border-black/5 dark:border-white/5">
                   {topDistrictText && (
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="size-3" />
+                    <div className="flex items-center gap-1.5 text-base-content/70">
+                      <MapPin className="size-3 text-base-content/50" />
                       <span>
-                        Top area: <strong>{topDistrictText}</strong>
+                        Top area: <span className="font-medium text-base-content/90">{topDistrictText}</span>
                       </span>
                     </div>
                   )}
@@ -274,11 +274,11 @@ const IllnessClusterOverviewCards: React.FC<
                   {selectedVariables.time &&
                     stat.temporal_distribution &&
                     Object.keys(stat.temporal_distribution).length > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="size-3" />
+                      <div className="flex items-center gap-1.5 text-base-content/70">
+                        <Calendar className="size-3 text-base-content/50" />
                         {temporalTrend ? (
                           <span className="flex items-center gap-1.5">
-                            <span className={`flex items-center gap-0.5 font-semibold ${
+                            <span className={`flex items-center gap-0.5 font-medium ${
                               temporalTrend.direction === "critical-rise" || temporalTrend.direction === "critical-drop" || temporalTrend.direction === "increasing" || temporalTrend.direction === "decreasing"
                                 ? `${theme.accentText}`
                                 : "text-base-content/70"
@@ -286,7 +286,7 @@ const IllnessClusterOverviewCards: React.FC<
                               {temporalTrend.arrow} {temporalTrend.label}
                             </span>
                             <span className="text-base-content/50 text-xs">
-                              ({temporalTrend.months} months)
+                              {temporalTrend.months}mo trend
                             </span>
                           </span>
                         ) : (
@@ -297,7 +297,7 @@ const IllnessClusterOverviewCards: React.FC<
                               .map(([month, count]) => (
                                 <span
                                   key={`${stat.cluster_id}-header-${month}`}
-                                  className="font-semibold"
+                                  className="font-medium text-base-content/80"
                                 >
                                   {month} ({count})
                                 </span>
@@ -318,7 +318,7 @@ const IllnessClusterOverviewCards: React.FC<
               {topDiseasesText && (
                 <div className="pt-1.5 border-t border-black/5 dark:border-white/5">
                   <span className="font-medium">Diseases:</span>{" "}
-                  <strong>{topDiseasesText}</strong>
+                  <span className="font-semibold text-base-content/90">{topDiseasesText}</span>
                 </div>
               )}
 
