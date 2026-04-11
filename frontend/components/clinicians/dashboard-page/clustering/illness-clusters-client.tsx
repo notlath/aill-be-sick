@@ -91,7 +91,7 @@ const IllnessClustersClient: React.FC<IllnessClustersClientProps> = ({
                     Error Loading Group Data
                   </CardTitle>
                   <CardDescription className="text-red-600">
-                    {error || "Could not retrieve illness group information."}
+                    {error || "Could not retrieve case group information."}
                   </CardDescription>
                 </CardHeader>
               </Card>

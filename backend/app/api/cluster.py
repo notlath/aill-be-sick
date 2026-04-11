@@ -269,7 +269,10 @@ def illness_clusters():
         if data.size == 0:
             return jsonify({"error": "No diagnosis data available"}), 404
 
-        n_clusters = min(n_clusters, len(data))
+        unique_diseases = len(set(illness.get("disease") for illness in illness_info if illness.get("disease")))
+        dynamic_k = min(n_clusters, unique_diseases)
+        dynamic_k = max(dynamic_k, 1)
+        n_clusters = dynamic_k
 
         # Run K-means clustering
         clusters, centers = run_illness_kmeans(data, n_clusters=n_clusters)

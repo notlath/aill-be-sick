@@ -168,6 +168,10 @@ const IllnessClusterOverviewCards: React.FC<
     const detailKey = `${stat.cluster_id}-details`;
     const isDetailsOpen = expandedGroups[detailKey] || false;
     const temporalTrend = getTemporalTrend(stat.temporal_distribution);
+    const clinicalLabel = stat.clinical_label || `Group ${rankIndex + 1}`;
+    const clinicalInsight = stat.clinical_insight || "";
+    const riskAssessment = stat.risk_assessment || "LOW";
+    const recommendations = stat.recommendations || [];
 
     return (
       <Card
@@ -177,11 +181,22 @@ const IllnessClusterOverviewCards: React.FC<
         <CardHeader className="space-y-3 pb-2">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
-              <div className="font-semibold">Group {rankIndex + 1}</div>
+              <div className="font-semibold">{clinicalLabel}</div>
               <Badge variant="outline" className="text-[11px]">
                 {stat.count} diagnoses
               </Badge>
             </div>
+            {riskAssessment === "HIGH" && (
+              <Badge variant="destructive" className="animate-pulse text-[10px]">
+                <AlertCircle className="size-3 mr-1" />
+                HIGH RISK
+              </Badge>
+            )}
+            {riskAssessment === "MEDIUM" && (
+              <Badge variant="secondary" className="text-[10px]">
+                Medium Risk
+              </Badge>
+            )}
 
             <div className="flex gap-2 mt-1">
               <button
@@ -279,6 +294,12 @@ const IllnessClusterOverviewCards: React.FC<
                 </div>
               ) : null}
 
+              {clinicalInsight && (
+                <div className={`pt-1.5 border-t border-black/5 dark:border-white/5 font-medium ${theme.accentText}`}>
+                  {clinicalInsight}
+                </div>
+              )}
+
               {topDiseaseText && (
                 <div className="pt-1.5 border-t border-black/5 dark:border-white/5">
                   Most common illness: <strong>{topDiseaseText}</strong>
@@ -287,6 +308,24 @@ const IllnessClusterOverviewCards: React.FC<
             </div>
           </div>
         </CardHeader>
+        {recommendations.length > 0 && (
+          <CardContent className="pt-2 pb-0">
+            <div className={`rounded-lg ${theme.accentBg} p-3 space-y-2`}>
+              <div className={`text-xs font-semibold flex items-center gap-1.5 ${theme.accentText}`}>
+                <AlertCircle className="size-3.5" />
+                Recommended Actions
+              </div>
+              <ul className="text-xs space-y-1.5">
+                {recommendations.slice(0, 3).map((rec, idx) => (
+                  <li key={idx} className="flex items-start gap-2 text-base-content/80">
+                    <span className={`${theme.accentText} font-medium`}>•</span>
+                    <span>{rec}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        )}
 
         <CardContent className="pt-2">
           <div className="collapse rounded-none">

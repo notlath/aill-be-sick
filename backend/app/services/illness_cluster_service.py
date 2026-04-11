@@ -169,6 +169,111 @@ def _build_insight_tags(high_risk_percentage, avg_symptom_severity, avg_comorbid
     return insight_tags[:2]
 
 
+def _describe_age_group(min_age, max_age):
+    """Convert age range to human-readable group."""
+    if min_age is None or max_age is None:
+        return "unknown ages"
+    avg_age = (min_age + max_age) / 2
+    if avg_age >= 65:
+        return "elderly"
+    if avg_age >= 50:
+        return "older adults"
+    if avg_age >= 36:
+        return "middle-aged adults"
+    if avg_age >= 18:
+        return "young adults"
+    if avg_age >= 13:
+        return "adolescents"
+    return "children"
+
+
+def _generate_clinical_label(cluster_illnesses):
+    """Generate human-readable clinical label for cluster."""
+    if not cluster_illnesses:
+        return {
+            "label": "Empty group",
+            "insight": "No cases in this group",
+            "primary_disease": None,
+            "primary_location": None,
+            "age_range": None,
+        }
+
+    diseases = [p.get("disease") for p in cluster_illnesses if p.get("disease")]
+    disease_counter = Counter(diseases)
+    dominant_disease = (
+        disease_counter.most_common(1)[0][0] if disease_counter else "Unknown"
+    )
+
+    ages = [p.get("patient_age") for p in cluster_illnesses if p.get("patient_age") is not None]
+    if ages:
+        min_age, max_age = min(ages), max(ages)
+        age_summary = _describe_age_group(min_age, max_age)
+    else:
+        min_age, max_age = None, None
+        age_summary = "unknown ages"
+
+    districts = [p.get("district") for p in cluster_illnesses if p.get("district")]
+    if districts:
+        location_counter = Counter(districts)
+        top_location = location_counter.most_common(1)[0][0]
+    else:
+        top_location = None
+
+    label = f"{dominant_disease} concentration"
+    insight_parts = []
+    if min_age is not None and max_age is not None:
+        insight_parts.append(f"ages {min_age}-{max_age} ({age_summary})")
+    else:
+        insight_parts.append(age_summary)
+    if top_location:
+        insight_parts.append(f"concentrated in {top_location}")
+
+    return {
+        "label": label,
+        "insight": ", ".join(insight_parts),
+        "primary_disease": dominant_disease,
+        "primary_location": top_location,
+        "age_range": f"{min_age}-{max_age}" if min_age is not None and max_age is not None else None,
+    }
+
+
+def _generate_recommendations(cluster_illnesses, clinical_label, high_risk_percentage):
+    """Generate actionable recommendations based on cluster characteristics."""
+    recommendations = []
+
+    dominant_disease = clinical_label.get("primary_disease", "")
+    high_risk_pct = high_risk_percentage or 0
+
+    if dominant_disease == "Dengue":
+        recommendations.append("Coordinate mosquito control with barangay health workers")
+        recommendations.append("Door-to-door screening in affected areas")
+    elif dominant_disease == "Typhoid":
+        recommendations.append("Investigate water sanitation in affected barangays")
+        recommendations.append("Provide water purification guidance")
+    elif dominant_disease == "Pneumonia":
+        if high_risk_pct > 40:
+            recommendations.append("Prioritize elderly patients for follow-up")
+            recommendations.append("Check vaccination status")
+    elif dominant_disease == "Influenza":
+        recommendations.append("Seasonal flu awareness campaign")
+    elif dominant_disease == "Measles":
+        recommendations.append("Verify vaccination status of affected patients")
+        recommendations.append("Check for additional cases in household/network")
+    elif dominant_disease == "Diarrhea":
+        recommendations.append("Investigate potential food/water source contamination")
+        recommendations.append("Provide oral rehydration guidance")
+
+    if high_risk_pct > 50:
+        recommendations.append("URGENT: High-risk patients require immediate follow-up")
+    elif high_risk_pct > 30:
+        recommendations.append("Schedule follow-up for high-risk patients")
+
+    if not recommendations:
+        recommendations.append("Continue routine monitoring")
+
+    return recommendations[:3]
+
+
 def fetch_diagnosis_data(
     db_url=None,
     include_age=True,
@@ -517,6 +622,7 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
         ]
 
         if not cluster_illnesses:
+            clinical_label = _generate_clinical_label([])
             cluster_stats.append(
                 {
                     "cluster_id": cluster_id,
@@ -538,6 +644,13 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
                     "avg_comorbidities_count": 0.0,
                     "triage_score": 0.0,
                     "insight_tags": ["Continue routine monitoring"],
+                    "clinical_label": clinical_label["label"],
+                    "clinical_insight": clinical_label["insight"],
+                    "primary_disease": clinical_label["primary_disease"],
+                    "primary_location": clinical_label["primary_location"],
+                    "age_range": clinical_label["age_range"],
+                    "risk_assessment": "LOW",
+                    "recommendations": ["Continue routine monitoring"],
                 }
             )
             continue
@@ -640,6 +753,15 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
             avg_comorbidities_count=avg_comorbidities_count,
         )
 
+        clinical_label = _generate_clinical_label(cluster_illnesses)
+        recommendations = _generate_recommendations(
+            cluster_illnesses, clinical_label, high_risk_percentage
+        )
+
+        risk_assessment = (
+            "HIGH" if high_risk_percentage >= 50 else "MEDIUM" if high_risk_percentage >= 30 else "LOW"
+        )
+
         cluster_stats.append(
             {
                 "cluster_id": cluster_id,
@@ -664,6 +786,13 @@ def get_illness_cluster_statistics(illness_info, clusters, n_clusters):
                 "avg_comorbidities_count": round(avg_comorbidities_count, 2),
                 "triage_score": triage_score,
                 "insight_tags": insight_tags,
+                "clinical_label": clinical_label["label"],
+                "clinical_insight": clinical_label["insight"],
+                "primary_disease": clinical_label["primary_disease"],
+                "primary_location": clinical_label["primary_location"],
+                "age_range": clinical_label["age_range"],
+                "risk_assessment": risk_assessment,
+                "recommendations": recommendations,
             }
         )
 

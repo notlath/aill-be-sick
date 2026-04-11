@@ -240,6 +240,13 @@ export interface IllnessClusterStatistics {
   avg_comorbidities_count?: number;
   triage_score?: number;
   insight_tags?: string[];
+  clinical_label?: string;
+  clinical_insight?: string;
+  primary_disease?: string;
+  primary_location?: string;
+  age_range?: string;
+  risk_assessment?: "HIGH" | "MEDIUM" | "LOW";
+  recommendations?: string[];
 }
 
 export interface IllnessClusterData {
