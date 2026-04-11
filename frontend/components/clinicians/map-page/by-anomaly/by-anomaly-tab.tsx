@@ -28,7 +28,6 @@ import {
 import AnomalyPatientsModal from "./anomaly-patients-modal";
 import { AnomalyTimelineChart } from "../anomaly-timeline-chart";
 import AnomalySummary from "./anomaly-summary";
-import TopCriticalAnomalies from "./top-critical-anomalies";
 import { getSurveillanceExportData, type SurveillanceExportData } from "@/utils/report-export";
 import { ExportReportButton } from "@/components/ui/export-report-button";
 import { PdfImage } from "@/utils/pdf-export";
@@ -105,12 +104,6 @@ const ByAnomalyTab = () => {
           ),
     [allNormalDiagnoses, selectedDisease],
   );
-
-  const topCriticalAnomalies: SurveillanceAnomaly[] = useMemo(() => {
-    return [...anomalies]
-      .sort((a, b) => a.anomaly_score - b.anomaly_score)
-      .slice(0, 5);
-  }, [anomalies]);
 
   // ─── District view derived data ─────────────────────────────────────────────
 
@@ -448,13 +441,11 @@ const ByAnomalyTab = () => {
                 geoData={geoData!}
                 casesData={districtCasesData}
                 diagnoses={[] as any}
-                topAnomalies={topCriticalAnomalies}
                 onFeatureClick={handleFeatureClick}
               />
             ) : (
               <HeatmapMap
                 diagnoses={pinnedAnomalies}
-                topAnomalies={topCriticalAnomalies}
                 showReasons
               />
             )}
@@ -516,15 +507,6 @@ const ByAnomalyTab = () => {
             disease={selectedDisease}
             diseaseColor={diseaseColor}
           />
-        )}
-      </div>
-
-      {/* Top Critical Cases Table below timeline */}
-      <div className="mt-6">
-        {loading ? (
-          <div className="skeleton h-[400px] w-full rounded-xl" />
-        ) : (
-          <TopCriticalAnomalies topAnomalies={topCriticalAnomalies} />
         )}
       </div>
 

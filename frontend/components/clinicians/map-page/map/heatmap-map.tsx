@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useEffect, useState, useMemo } from "react";
+import { useId, useRef, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
 import HeatmapLayer from "./heatmap-layer";
@@ -45,11 +45,10 @@ function MapCenterUpdater() {
 
 type HeatmapMapProps = {
   diagnoses: (GeoPoint | SurveillanceAnomaly)[];
-  topAnomalies?: SurveillanceAnomaly[];
   showReasons?: boolean;
 };
 
-const HeatmapMap = ({ diagnoses, topAnomalies = [], showReasons = false }: HeatmapMapProps) => {
+const HeatmapMap = ({ diagnoses, showReasons = false }: HeatmapMapProps) => {
   const id = useId();
   const mountRef = useRef(0);
   mountRef.current += 1;
@@ -88,16 +87,6 @@ const HeatmapMap = ({ diagnoses, topAnomalies = [], showReasons = false }: Heatm
     </>
   );
 
-  const excludedCoords = useMemo(() => {
-    const coords = new Set<string>();
-    for (const anomaly of topAnomalies) {
-      if (anomaly.latitude != null && anomaly.longitude != null) {
-        coords.add(`${anomaly.latitude.toFixed(6)},${anomaly.longitude.toFixed(6)}`);
-      }
-    }
-    return coords;
-  }, [topAnomalies]);
-
   const handlePointClick = (point: GeoPoint) => {
     setSelectedPoint(point);
     setIsDetailModalOpen(true);
@@ -107,17 +96,6 @@ const HeatmapMap = ({ diagnoses, topAnomalies = [], showReasons = false }: Heatm
     setIsDetailModalOpen(false);
     setSelectedPoint(null);
   };
-
-  // Custom icon for critical anomalies
-  const criticalIcon = L.divIcon({
-    className: "bg-transparent border-none",
-    html: `<div class="relative flex h-6 w-6">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-6 w-6 bg-error shadow-lg shadow-error/50 border-2 border-base-100 flex items-center justify-center text-error-content text-[10px] font-bold">!</span>
-          </div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-  });
 
   // Custom icon for targeted anomaly (GPS Pin)
   const targetIcon = L.divIcon({
@@ -140,23 +118,11 @@ const HeatmapMap = ({ diagnoses, topAnomalies = [], showReasons = false }: Heatm
   // Attempt to find the full anomaly object for the target location to display rich tooltip
   let targetAnomaly: SurveillanceAnomaly | null = null;
   if (hasTarget) {
-    // Look through top anomalies first (they are more likely to be the ones alerted on)
-    targetAnomaly = topAnomalies.find((a) => 
-      a.latitude !== null && a.longitude !== null &&
-      Math.abs(a.latitude - targetLat) < 0.0001 && 
-      Math.abs(a.longitude - targetLng) < 0.0001
-    ) || null;
-
-    if (!targetAnomaly) {
-      // If not in topAnomalies, look in all diagnoses (assuming diagnoses is actually SurveillanceAnomaly[])
-      const foundInDiagnoses = diagnoses.find((d: any) => 
-        d.latitude !== null && d.longitude !== null &&
-        Math.abs(d.latitude - targetLat) < 0.0001 && 
-        Math.abs(d.longitude - targetLng) < 0.0001
-      ) as SurveillanceAnomaly | undefined;
-      
-      if (foundInDiagnoses) targetAnomaly = foundInDiagnoses;
-    }
+    targetAnomaly = diagnoses.find((d) =>
+      d.latitude !== null && d.longitude !== null &&
+      Math.abs(d.latitude - targetLat) < 0.0001 &&
+      Math.abs(d.longitude - targetLng) < 0.0001
+    ) as SurveillanceAnomaly | undefined || null;
   }
 
   return (
@@ -177,30 +143,10 @@ const HeatmapMap = ({ diagnoses, topAnomalies = [], showReasons = false }: Heatm
         <HeatmapLayer diagnoses={diagnoses} />
         <InteractivePointsLayer
           points={diagnoses}
-          excludedCoords={excludedCoords}
           onPointClick={handlePointClick}
           showDate={!showReasons}
           showReasons={showReasons}
         />
-        
-        {/* Render Critical Anomalies as pulsating markers */}
-        {topAnomalies.map((anomaly) => {
-          if (anomaly.latitude == null || anomaly.longitude == null) return null;
-          // Skip if this is the exact target coordinate, we'll render it separately below
-          if (hasTarget && Math.abs(anomaly.latitude - targetLat) < 0.0001 && Math.abs(anomaly.longitude - targetLng) < 0.0001) return null;
-          
-          return (
-            <Marker 
-              key={`anomaly-${anomaly.id}`} 
-              position={[anomaly.latitude, anomaly.longitude]}
-              icon={criticalIcon}
-            >
-              <Tooltip className="leaflet-point-tooltip" opacity={1}>
-                {renderAnomalyTooltip(anomaly)}
-              </Tooltip>
-            </Marker>
-          );
-        })}
 
         {/* Render the targeted anomaly from URL if present */}
         {hasTarget && (
