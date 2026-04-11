@@ -1299,120 +1299,45 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                 </div>
 
                 {isAdvancedOptionsEnabled ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 w-full">
-                    <div className="card card-body bg-base-100 border-base-300 border p-4">
-                      <span className="text-xs font-semibold mb-3">
-                        Demographics
-                      </span>
-                      <div className="flex flex-col gap-3">
-                        <label
-                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.age ? "bg-primary/10" : "hover:bg-base-200/50"}`}
-                          title="Patient's age helps identify vulnerable populations like children and older adults"
+                  <div className="flex flex-wrap gap-2 w-full">
+                    {(
+                      Object.keys(
+                        DEFAULT_CLUSTER_VARIABLES,
+                      ) as Array<keyof ClusterVariableSelection>
+                    ).map((key) => {
+                      const isSelected = selectedVariables[key];
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`btn btn-sm rounded-full px-4 transition-all ${
+                            isSelected
+                              ? "btn-primary"
+                              : "btn-ghost border-base-300 border hover:border-primary/50"
+                          }`}
+                          title={
+                            key === "age"
+                              ? "Patient's age helps identify vulnerable populations like children and older adults"
+                              : key === "gender"
+                                ? "Patient sex can reveal differences in affected groups"
+                                : key === "district"
+                                  ? "District helps identify where cases are concentrating"
+                                  : key === "riskLevel"
+                                    ? "Risk level helps prioritize urgent cases"
+                                    : key === "symptomSeverity"
+                                      ? "Symptom severity shows how intense symptoms are"
+                                      : key === "comorbiditiesCount"
+                                        ? "Other health conditions may increase complications"
+                                        : key === "time"
+                                          ? "Diagnosis date helps detect timing and trend changes"
+                                          : ""
+                          }
+                          onClick={() => handleVariableChange(key)}
                         >
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-primary checkbox-sm"
-                            checked={selectedVariables.age}
-                            onChange={() => handleVariableChange("age")}
-                          />
-                          <span className="text-sm">Age</span>
-                        </label>
-                        <label
-                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.gender ? "bg-primary/10" : "hover:bg-base-200/50"}`}
-                          title="Patient sex can reveal differences in affected groups"
-                        >
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-primary checkbox-sm"
-                            checked={selectedVariables.gender}
-                            onChange={() => handleVariableChange("gender")}
-                          />
-                          <span className="text-sm">Gender</span>
-                        </label>
-                        <label
-                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.district ? "bg-primary/10" : "hover:bg-base-200/50"}`}
-                          title="District helps identify where cases are concentrating"
-                        >
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-primary checkbox-sm"
-                            checked={selectedVariables.district}
-                            onChange={() => handleVariableChange("district")}
-                          />
-                          <span className="text-sm">District</span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="card card-body bg-base-100 border-base-300 border p-4">
-                      <span className="text-xs font-semibold mb-3">
-                        Clinical
-                      </span>
-                      <div className="flex flex-col gap-3">
-                        <label
-                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.riskLevel ? "bg-primary/10" : "hover:bg-base-200/50"}`}
-                          title="Risk level helps prioritize urgent cases"
-                        >
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-primary checkbox-sm"
-                            checked={selectedVariables.riskLevel}
-                            onChange={() => handleVariableChange("riskLevel")}
-                          />
-                          <span className="text-sm">Risk level</span>
-                        </label>
-                        <label
-                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.symptomSeverity ? "bg-primary/10" : "hover:bg-base-200/50"}`}
-                          title="Symptom severity shows how intense symptoms are"
-                        >
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-primary checkbox-sm"
-                            checked={selectedVariables.symptomSeverity}
-                            onChange={() =>
-                              handleVariableChange("symptomSeverity")
-                            }
-                          />
-                          <span className="text-sm">Symptom severity</span>
-                        </label>
-                        <label
-                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.comorbiditiesCount ? "bg-primary/10" : "hover:bg-base-200/50"}`}
-                          title="Other health conditions may increase complications"
-                        >
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-primary checkbox-sm"
-                            checked={selectedVariables.comorbiditiesCount}
-                            onChange={() =>
-                              handleVariableChange("comorbiditiesCount")
-                            }
-                          />
-                          <span className="text-sm">
-                            Other health conditions
-                          </span>
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="card card-body bg-base-100 border-base-300 border p-4">
-                      <span className="text-xs font-semibold mb-3">
-                        Temporal
-                      </span>
-                      <div className="flex flex-col gap-3">
-                        <label
-                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.time ? "bg-primary/10" : "hover:bg-base-200/50"}`}
-                          title="Diagnosis date helps detect timing and trend changes"
-                        >
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-primary checkbox-sm"
-                            checked={selectedVariables.time}
-                            onChange={() => handleVariableChange("time")}
-                          />
-                          <span className="text-sm">Diagnosis date</span>
-                        </label>
-                      </div>
-                    </div>
+                          {VARIABLE_LABELS[key]}
+                        </button>
+                      );
+                    })}
                   </div>
                 ) : null}
               </div>
