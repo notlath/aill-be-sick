@@ -11,9 +11,6 @@ import {
   Users,
   AlertCircle,
   FileText,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   Activity,
   Heart,
   Tag,
@@ -42,35 +39,44 @@ type RankedGroupStat = {
   rankIndex: number;
 };
 
-const getAgeSummary = (stat: IllnessClusterStatistics): string => {
+type AgeSummary = {
+  label: string;
+  range: string;
+};
+
+const getAgeSummary = (stat: IllnessClusterStatistics): AgeSummary => {
   const ageValue = stat.median_patient_age ?? stat.avg_patient_age;
 
   if (ageValue >= 60) {
-    return "mostly older adults";
+    return { label: "Older adults", range: "60+" };
   }
 
   if (ageValue >= 36) {
-    return "mostly middle-aged adults";
+    return { label: "Adults", range: "36-59" };
   }
 
   if (ageValue >= 18) {
-    return "mostly young adults";
+    return { label: "Young adults", range: "18-35" };
   }
 
   if (ageValue >= 13) {
-    return "mostly adolescents";
+    return { label: "Adolescents", range: "13-17" };
   }
 
-  return "mostly children";
+  return { label: "Children", range: "0-12" };
 };
 
-const getTopDiseaseText = (stat: IllnessClusterStatistics): string | null => {
+const MAX_TOP_DISEASES_QUICK_LOOK = 3;
+
+const getTopDiseasesText = (stat: IllnessClusterStatistics): string | null => {
   if (!stat.top_diseases || stat.top_diseases.length === 0) {
     return null;
   }
 
-  const topDisease = stat.top_diseases[0];
-  return `${topDisease.disease} (${topDisease.count})`;
+  const topDiseases = stat.top_diseases.slice(0, MAX_TOP_DISEASES_QUICK_LOOK);
+  return topDiseases
+    .map((disease) => `${disease.disease} (${disease.count})`)
+    .join(" · ");
 };
 
 const getTopDistrictText = (
@@ -84,9 +90,16 @@ const getTopDistrictText = (
   return stat.top_districts[0]?.district ?? null;
 };
 
+type TrendInfo = {
+  direction: "critical-rise" | "increasing" | "stable" | "decreasing" | "critical-drop";
+  arrow: string;
+  label: string;
+  months: number;
+};
+
 const getTemporalTrend = (
   temporalDistribution: Record<string, number> | undefined,
-): { direction: "up" | "down" | "stable"; percentage: number; label: string } | null => {
+): TrendInfo | null => {
   if (!temporalDistribution || Object.keys(temporalDistribution).length < 2) {
     return null;
   }
@@ -108,12 +121,18 @@ const getTemporalTrend = (
     ? ((secondHalfTotal - firstHalfTotal) / firstHalfTotal) * 100 
     : secondHalfTotal > 0 ? 100 : 0;
 
-  if (Math.abs(percentChange) < 10) {
-    return { direction: "stable", percentage: Math.abs(percentChange), label: "Steady" };
-  } else if (percentChange > 0) {
-    return { direction: "up", percentage: Math.round(percentChange), label: "Up" };
+  const months = Object.keys(temporalDistribution).length;
+
+  if (percentChange > 50) {
+    return { direction: "critical-rise", arrow: "↑", label: "Rising", months };
+  } else if (percentChange > 20) {
+    return { direction: "increasing", arrow: "↗", label: "Increasing", months };
+  } else if (percentChange < -50) {
+    return { direction: "critical-drop", arrow: "↓", label: "Dropping", months };
+  } else if (percentChange < -20) {
+    return { direction: "decreasing", arrow: "↘", label: "Decreasing", months };
   } else {
-    return { direction: "down", percentage: Math.round(Math.abs(percentChange)), label: "Down" };
+    return { direction: "stable", arrow: "→", label: "Stable", months };
   }
 };
 
@@ -156,7 +175,7 @@ const IllnessClusterOverviewCards: React.FC<
   }, [remainingGroups]);
 
   const renderGroupCard = ({ stat, rankIndex }: RankedGroupStat) => {
-    const topDiseaseText = getTopDiseaseText(stat);
+    const topDiseasesText = getTopDiseasesText(stat);
     const topDiseaseName = stat.top_diseases?.[0]?.disease;
     const theme = getThemeForDisease(topDiseaseName, rankIndex);
     const mapHref = buildIllnessClusterMapHref(rankIndex + 1, {
@@ -167,7 +186,7 @@ const IllnessClusterOverviewCards: React.FC<
     const topDistrictText = getTopDistrictText(stat, selectedVariables);
     const ageSummary = getAgeSummary(stat);
     const isVulnerable =
-      ageSummary === "mostly older adults" || ageSummary === "mostly children";
+      ageSummary.label === "Older adults" || ageSummary.label === "Children";
     const detailKey = `${stat.cluster_id}-details`;
     const isDetailsOpen = expandedGroups[detailKey] || false;
     const temporalTrend = getTemporalTrend(stat.temporal_distribution);
@@ -175,6 +194,7 @@ const IllnessClusterOverviewCards: React.FC<
     const clinicalInsight = stat.clinical_insight || "";
     const riskAssessment = stat.risk_assessment || "LOW";
     const recommendations = stat.recommendations || [];
+    const clinicalInsightTooLong = clinicalInsight.length > 150;
 
     return (
       <Card
@@ -227,15 +247,14 @@ const IllnessClusterOverviewCards: React.FC<
             <div
               className={`rounded-[12px] border p-3 text-xs leading-relaxed text-base-content/75 space-y-2 ${theme.border} ${theme.accentBg}`}
             >
-              <div>
-                Group primarily includes{" "}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span>Age:</span>
                 <span
                   className={`font-bold ${isVulnerable ? "text-error bg-error/10 px-2 py-0.5 rounded flex items-center gap-1.5 inline-flex" : "text-base-content font-semibold"}`}
                 >
                   {isVulnerable && <AlertCircle className="size-3" />}
-                  {ageSummary}
+                  {ageSummary.label} ({ageSummary.range})
                 </span>
-                .
               </div>
 
               {topDistrictText ||
@@ -260,21 +279,14 @@ const IllnessClusterOverviewCards: React.FC<
                         {temporalTrend ? (
                           <span className="flex items-center gap-1.5">
                             <span className={`flex items-center gap-0.5 font-semibold ${
-                              temporalTrend.direction === "up" ? `${theme.accentText}` :
-                              temporalTrend.direction === "down" ? `${theme.accentText}` :
-                              "text-base-content/70"
+                              temporalTrend.direction === "critical-rise" || temporalTrend.direction === "critical-drop" || temporalTrend.direction === "increasing" || temporalTrend.direction === "decreasing"
+                                ? `${theme.accentText}`
+                                : "text-base-content/70"
                             }`}>
-                              {temporalTrend.direction === "up" ? (
-                                <TrendingUp className="size-3" />
-                              ) : temporalTrend.direction === "down" ? (
-                                <TrendingDown className="size-3" />
-                              ) : (
-                                <Minus className="size-3" />
-                              )}
-                              {temporalTrend.label} {temporalTrend.percentage}%
+                              {temporalTrend.arrow} {temporalTrend.label}
                             </span>
                             <span className="text-base-content/50 text-xs">
-                              ({Object.keys(stat.temporal_distribution).length} months)
+                              ({temporalTrend.months} months)
                             </span>
                           </span>
                         ) : (
@@ -297,15 +309,16 @@ const IllnessClusterOverviewCards: React.FC<
                 </div>
               ) : null}
 
-              {clinicalInsight && (
+              {clinicalInsight && !clinicalInsightTooLong && (
                 <div className={`pt-1.5 border-t border-black/5 dark:border-white/5 font-medium ${theme.accentText}`}>
                   {clinicalInsight}
                 </div>
               )}
 
-              {topDiseaseText && (
+              {topDiseasesText && (
                 <div className="pt-1.5 border-t border-black/5 dark:border-white/5">
-                  Most common illness: <strong>{topDiseaseText}</strong>
+                  <span className="font-medium">Diseases:</span>{" "}
+                  <strong>{topDiseasesText}</strong>
                 </div>
               )}
 

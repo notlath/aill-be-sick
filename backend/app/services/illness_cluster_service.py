@@ -219,7 +219,7 @@ def _generate_clinical_label(cluster_illnesses):
     else:
         top_location = None
 
-    label = f"{dominant_disease} concentration"
+    label = f"{dominant_disease}"
     insight_parts = []
     if min_age is not None and max_age is not None:
         insight_parts.append(f"ages {min_age}-{max_age} ({age_summary})")
