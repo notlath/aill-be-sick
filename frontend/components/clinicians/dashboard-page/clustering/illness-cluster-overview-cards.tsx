@@ -11,6 +11,9 @@ import {
   Users,
   AlertCircle,
   FileText,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 import type { IllnessClusterStatistics, IllnessRecord } from "@/types";
 import {
@@ -78,6 +81,39 @@ const getTopDistrictText = (
   return stat.top_districts[0]?.district ?? null;
 };
 
+const getTemporalTrend = (
+  temporalDistribution: Record<string, number> | undefined,
+): { direction: "up" | "down" | "stable"; percentage: number; label: string } | null => {
+  if (!temporalDistribution || Object.keys(temporalDistribution).length < 2) {
+    return null;
+  }
+
+  const sortedEntries = Object.entries(temporalDistribution).sort((a, b) => a[0].localeCompare(b[0]));
+  const midPoint = Math.floor(sortedEntries.length / 2);
+  
+  const firstHalf = sortedEntries.slice(0, midPoint);
+  const secondHalf = sortedEntries.slice(midPoint);
+  
+  const firstHalfTotal = firstHalf.reduce((sum, [, count]) => sum + count, 0);
+  const secondHalfTotal = secondHalf.reduce((sum, [, count]) => sum + count, 0);
+  
+  if (firstHalfTotal === 0 && secondHalfTotal === 0) {
+    return null;
+  }
+
+  const percentChange = firstHalfTotal > 0 
+    ? ((secondHalfTotal - firstHalfTotal) / firstHalfTotal) * 100 
+    : secondHalfTotal > 0 ? 100 : 0;
+
+  if (Math.abs(percentChange) < 10) {
+    return { direction: "stable", percentage: Math.abs(percentChange), label: "Steady" };
+  } else if (percentChange > 0) {
+    return { direction: "up", percentage: Math.round(percentChange), label: "Up" };
+  } else {
+    return { direction: "down", percentage: Math.round(Math.abs(percentChange)), label: "Down" };
+  }
+};
+
 const IllnessClusterOverviewCards: React.FC<
   IllnessClusterOverviewCardsProps
 > = ({
@@ -131,6 +167,7 @@ const IllnessClusterOverviewCards: React.FC<
       ageSummary === "mostly older adults" || ageSummary === "mostly children";
     const detailKey = `${stat.cluster_id}-details`;
     const isDetailsOpen = expandedGroups[detailKey] || false;
+    const temporalTrend = getTemporalTrend(stat.temporal_distribution);
 
     return (
       <Card
@@ -174,12 +211,12 @@ const IllnessClusterOverviewCards: React.FC<
             >
               <div>
                 Group primarily includes{" "}
-                <strong
-                  className={`font-semibold ${isVulnerable ? "text-error flex items-center gap-1 inline-flex" : ""}`}
+                <span
+                  className={`font-bold ${isVulnerable ? "text-error bg-error/10 px-2 py-0.5 rounded flex items-center gap-1.5 inline-flex" : "text-base-content font-semibold"}`}
                 >
                   {isVulnerable && <AlertCircle className="size-3" />}
                   {ageSummary}
-                </strong>
+                </span>
                 .
               </div>
 
@@ -202,20 +239,41 @@ const IllnessClusterOverviewCards: React.FC<
                     Object.keys(stat.temporal_distribution).length > 0 && (
                       <div className="flex items-center gap-1.5">
                         <Calendar className="size-3" />
-                        <span className="flex items-center gap-1 flex-wrap">
-                          Trend:
-                          {Object.entries(stat.temporal_distribution)
-                            .sort((a, b) => a[0].localeCompare(b[0]))
-                            .slice(0, 3)
-                            .map(([month, count]) => (
-                              <span
-                                key={`${stat.cluster_id}-header-${month}`}
-                                className="font-semibold"
-                              >
-                                {month} ({count})
-                              </span>
-                            ))}
-                        </span>
+                        {temporalTrend ? (
+                          <span className="flex items-center gap-1.5">
+                            <span className={`flex items-center gap-0.5 font-semibold ${
+                              temporalTrend.direction === "up" ? `${theme.accentText}` :
+                              temporalTrend.direction === "down" ? `${theme.accentText}` :
+                              "text-base-content/70"
+                            }`}>
+                              {temporalTrend.direction === "up" ? (
+                                <TrendingUp className="size-3" />
+                              ) : temporalTrend.direction === "down" ? (
+                                <TrendingDown className="size-3" />
+                              ) : (
+                                <Minus className="size-3" />
+                              )}
+                              {temporalTrend.label} {temporalTrend.percentage}%
+                            </span>
+                            <span className="text-base-content/50 text-xs">
+                              ({Object.keys(stat.temporal_distribution).length} months)
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 flex-wrap">
+                            {Object.entries(stat.temporal_distribution)
+                              .sort((a, b) => a[0].localeCompare(b[0]))
+                              .slice(0, 3)
+                              .map(([month, count]) => (
+                                <span
+                                  key={`${stat.cluster_id}-header-${month}`}
+                                  className="font-semibold"
+                                >
+                                  {month} ({count})
+                                </span>
+                              ))}
+                          </span>
+                        )}
                       </div>
                     )}
                 </div>

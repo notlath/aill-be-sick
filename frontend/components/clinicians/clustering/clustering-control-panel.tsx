@@ -84,7 +84,7 @@ const VARIABLE_LABELS: Record<keyof ClusterVariableSelection, string> = {
   time: "Diagnosis date",
   riskLevel: "Risk level",
   symptomSeverity: "Symptom severity",
-  comorbiditiesCount: "Comorbidities count",
+  comorbiditiesCount: "Other health conditions",
 };
 
 const toVariableLabelList = (variables: ClusterVariableSelection) =>
@@ -117,11 +117,13 @@ const CLUSTER_VARIABLE_PRESETS: Record<
   ClusterVariablePresetKey,
   {
     label: string;
+    description: string;
     variables: ClusterVariableSelection;
   }
 > = {
   "recommended-default": {
-    label: "Recommended",
+    label: "Quick View",
+    description: "Best for general monitoring and situational awareness",
     variables: {
       ...DEFAULT_CLUSTER_VARIABLES,
       age: true,
@@ -134,7 +136,8 @@ const CLUSTER_VARIABLE_PRESETS: Record<
     },
   },
   "outbreak-detection": {
-    label: "Outbreak detection",
+    label: "Outbreak",
+    description: "Prioritizes location, time, and severity to catch outbreaks",
     variables: {
       ...DEFAULT_CLUSTER_VARIABLES,
       district: true,
@@ -145,7 +148,9 @@ const CLUSTER_VARIABLE_PRESETS: Record<
     },
   },
   "high-risk-cases": {
-    label: "High-risk cases",
+    label: "High Risk",
+    description:
+      "Groups patients with severe symptoms and pre-existing conditions",
     variables: {
       ...DEFAULT_CLUSTER_VARIABLES,
       age: true,
@@ -495,7 +500,6 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   );
   const [exportButtonTarget, setExportButtonTarget] =
     useState<HTMLDivElement | null>(null);
-  const [showVariableHelp, setShowVariableHelp] = useState(false);
   const [isAdvancedOptionsEnabled, setIsAdvancedOptionsEnabled] =
     useState<boolean>(false);
 
@@ -1246,32 +1250,6 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                 <h2 className="text-base font-semibold leading-7">
                   Select variables
                 </h2>
-                {!showVariableHelp ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-xs btn-circle"
-                    aria-label="Show variable selection help"
-                    onClick={() => setShowVariableHelp(true)}
-                  >
-                    ?
-                  </button>
-                ) : null}
-                {showVariableHelp ? (
-                  <div className="rounded-lg border border-base-300 bg-base-100 px-3 py-2 shadow-sm max-w-md text-xs leading-relaxed flex items-start justify-between gap-2">
-                    <span>
-                      Use <strong>Recommended</strong> for the fastest setup.
-                      Adjust only if you need a specific investigation focus.
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-xs btn-circle shrink-0"
-                      aria-label="Close variable selection help"
-                      onClick={() => setShowVariableHelp(false)}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : null}
               </div>
               <div className="flex flex-wrap items-center gap-3 mt-1.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -1281,32 +1259,27 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                       CLUSTER_VARIABLE_PRESETS,
                     ) as ClusterVariablePresetKey[]
                   ).map((presetKey) => (
-                    <button
-                      key={presetKey}
-                      type="button"
-                      className={`btn btn-sm ${areVariablesEqual(selectedVariables, CLUSTER_VARIABLE_PRESETS[presetKey].variables) ? "btn-primary" : "btn-outline"}`}
-                      title={
-                        presetKey === "recommended-default"
-                          ? "Balanced baseline for most cases: Age, District, and Diagnosis date"
-                          : presetKey === "outbreak-detection"
-                            ? "Focuses on spread patterns using District, Diagnosis date, Risk level, and Symptom severity"
-                            : "Prioritizes vulnerable cases using Age, District, Risk level, Symptom severity, and Comorbidities"
-                      }
-                      onClick={() => handleApplyPreset(presetKey)}
-                    >
-                      <span className="mr-1.5">
-                        {presetKey === "recommended-default" ? (
-                          <AlertCircle className="h-3 h-3" />
-                        ) : presetKey === "outbreak-detection" ? (
-                          <AlertCircle className="h-3 h-3" />
-                        ) : presetKey === "high-risk-cases" ? (
-                          <OctagonAlert className="h-3 h-3" />
-                        ) : (
-                          <MapPin className="h-3 h-3" />
-                        )}
-                      </span>
-                      {CLUSTER_VARIABLE_PRESETS[presetKey].label}
-                    </button>
+                    <div key={presetKey} className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${areVariablesEqual(selectedVariables, CLUSTER_VARIABLE_PRESETS[presetKey].variables) ? "btn-primary" : "btn-outline"}`}
+                        onClick={() => handleApplyPreset(presetKey)}
+                        title={CLUSTER_VARIABLE_PRESETS[presetKey].description}
+                      >
+                        <span className="mr-1.5">
+                          {presetKey === "recommended-default" ? (
+                            <AlertCircle className="h-3 w-3" />
+                          ) : presetKey === "outbreak-detection" ? (
+                            <AlertCircle className="h-3 w-3" />
+                          ) : presetKey === "high-risk-cases" ? (
+                            <OctagonAlert className="h-3 w-3" />
+                          ) : (
+                            <MapPin className="h-3 w-3" />
+                          )}
+                        </span>
+                        {CLUSTER_VARIABLE_PRESETS[presetKey].label}
+                      </button>
+                    </div>
                   ))}
                 </div>
                 <div className="w-full">
@@ -1326,117 +1299,117 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                 </div>
 
                 {isAdvancedOptionsEnabled ? (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-3 w-full">
-                    <div className="card card-body bg-base-100 border-base-300 border p-3">
-                      <span className="text-xs font-semibold">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 w-full">
+                    <div className="card card-body bg-base-100 border-base-300 border p-4">
+                      <span className="text-xs font-semibold mb-3">
                         Demographics
                       </span>
-                      <div className="mt-2 flex flex-wrap gap-2">
+                      <div className="flex flex-col gap-3">
                         <label
-                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary" : "btn-outline"}`}
+                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.age ? "bg-primary/10" : "hover:bg-base-200/50"}`}
                           title="Patient's age helps identify vulnerable populations like children and older adults"
                         >
                           <input
                             type="checkbox"
-                            className="hidden"
+                            className="checkbox checkbox-primary checkbox-sm"
                             checked={selectedVariables.age}
                             onChange={() => handleVariableChange("age")}
                           />
-                          <span className="whitespace-nowrap">Age</span>
+                          <span className="text-sm">Age</span>
                         </label>
                         <label
-                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary" : "btn-outline"}`}
+                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.gender ? "bg-primary/10" : "hover:bg-base-200/50"}`}
                           title="Patient sex can reveal differences in affected groups"
                         >
                           <input
                             type="checkbox"
-                            className="hidden"
+                            className="checkbox checkbox-primary checkbox-sm"
                             checked={selectedVariables.gender}
                             onChange={() => handleVariableChange("gender")}
                           />
-                          <span className="whitespace-nowrap">Gender</span>
+                          <span className="text-sm">Gender</span>
                         </label>
                         <label
-                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary" : "btn-outline"}`}
+                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.district ? "bg-primary/10" : "hover:bg-base-200/50"}`}
                           title="District helps identify where cases are concentrating"
                         >
                           <input
                             type="checkbox"
-                            className="hidden"
+                            className="checkbox checkbox-primary checkbox-sm"
                             checked={selectedVariables.district}
                             onChange={() => handleVariableChange("district")}
                           />
-                          <span className="whitespace-nowrap">District</span>
+                          <span className="text-sm">District</span>
                         </label>
                       </div>
                     </div>
 
-                    <div className="card card-body bg-base-100 border-base-300 border p-3">
-                      <span className="text-xs font-semibold">Clinical</span>
-                      <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="card card-body bg-base-100 border-base-300 border p-4">
+                      <span className="text-xs font-semibold mb-3">
+                        Clinical
+                      </span>
+                      <div className="flex flex-col gap-3">
                         <label
-                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.riskLevel ? "btn-primary" : "btn-outline"}`}
+                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.riskLevel ? "bg-primary/10" : "hover:bg-base-200/50"}`}
                           title="Risk level helps prioritize urgent cases"
                         >
                           <input
                             type="checkbox"
-                            className="hidden"
+                            className="checkbox checkbox-primary checkbox-sm"
                             checked={selectedVariables.riskLevel}
                             onChange={() => handleVariableChange("riskLevel")}
                           />
-                          <span className="whitespace-nowrap">Risk level</span>
+                          <span className="text-sm">Risk level</span>
                         </label>
                         <label
-                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.symptomSeverity ? "btn-primary" : "btn-outline"}`}
+                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.symptomSeverity ? "bg-primary/10" : "hover:bg-base-200/50"}`}
                           title="Symptom severity shows how intense symptoms are"
                         >
                           <input
                             type="checkbox"
-                            className="hidden"
+                            className="checkbox checkbox-primary checkbox-sm"
                             checked={selectedVariables.symptomSeverity}
                             onChange={() =>
                               handleVariableChange("symptomSeverity")
                             }
                           />
-                          <span className="whitespace-nowrap">
-                            Symptom severity
-                          </span>
+                          <span className="text-sm">Symptom severity</span>
                         </label>
                         <label
-                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.comorbiditiesCount ? "btn-primary" : "btn-outline"}`}
+                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.comorbiditiesCount ? "bg-primary/10" : "hover:bg-base-200/50"}`}
                           title="Other health conditions may increase complications"
                         >
                           <input
                             type="checkbox"
-                            className="hidden"
+                            className="checkbox checkbox-primary checkbox-sm"
                             checked={selectedVariables.comorbiditiesCount}
                             onChange={() =>
                               handleVariableChange("comorbiditiesCount")
                             }
                           />
-                          <span className="whitespace-nowrap">
-                            Comorbidities count
+                          <span className="text-sm">
+                            Other health conditions
                           </span>
                         </label>
                       </div>
                     </div>
 
-                    <div className="card card-body bg-base-100 border-base-300 border p-3">
-                      <span className="text-xs font-semibold">Temporal</span>
-                      <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="card card-body bg-base-100 border-base-300 border p-4">
+                      <span className="text-xs font-semibold mb-3">
+                        Temporal
+                      </span>
+                      <div className="flex flex-col gap-3">
                         <label
-                          className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary" : "btn-outline"}`}
+                          className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer transition-colors ${selectedVariables.time ? "bg-primary/10" : "hover:bg-base-200/50"}`}
                           title="Diagnosis date helps detect timing and trend changes"
                         >
                           <input
                             type="checkbox"
-                            className="hidden"
+                            className="checkbox checkbox-primary checkbox-sm"
                             checked={selectedVariables.time}
                             onChange={() => handleVariableChange("time")}
                           />
-                          <span className="whitespace-nowrap">
-                            Diagnosis date
-                          </span>
+                          <span className="text-sm">Diagnosis date</span>
                         </label>
                       </div>
                     </div>
@@ -1459,21 +1432,23 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                 />
               ) : null}
 
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 h-5">
-                <span className="text-muted flex items-center gap-1.5 text-xs font-normal">
-                  {!isGlobalLoading && displayedRecommendedK ? (
-                    <>Recommended: {displayedRecommendedK} groups</>
-                  ) : !isGlobalLoading ? (
-                    <>Recommended: Current group count ({k})</>
-                  ) : null}
-                </span>
-
-                {!isGlobalLoading && recommendationMessage ? (
-                  <span className="text-warning text-xs font-medium w-full sm:w-auto">
-                    {recommendationMessage}
+              {isAdvancedOptionsEnabled ? (
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <span className="text-muted flex items-center gap-1.5 text-xs font-normal">
+                    {!isGlobalLoading && displayedRecommendedK ? (
+                      <>Recommended: {displayedRecommendedK} groups</>
+                    ) : !isGlobalLoading ? (
+                      <>Recommended: Current group count ({k})</>
+                    ) : null}
                   </span>
-                ) : null}
-              </div>
+
+                  {!isGlobalLoading && recommendationMessage ? (
+                    <span className="text-warning text-xs font-medium w-full sm:w-auto">
+                      {recommendationMessage}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
 
               {isAdvancedOptionsEnabled ? (
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
@@ -1502,26 +1477,40 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                   same group
                 </span>
                 {hasPendingClusteringChanges && isAdvancedOptionsEnabled ? (
-                  <div className="alert alert-warning mt-4 py-2 text-xs">
-                    <AlertCircle className="size-4" />
-                    <span>
-                      The groups have not been updated. Click Apply to rebuild
-                      the groups using the updated settings.
-                    </span>
+                  <div className="alert alert-warning mt-3 py-3 px-4">
+                    <AlertCircle className="size-5" />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-medium">
+                        Changes pending
+                      </span>
+                      <span className="text-xs">
+                        The groups have not been updated. Click Apply to rebuild
+                        the groups using the updated settings.
+                      </span>
+                    </div>
                   </div>
                 ) : null}
               </div>
 
               {/* Apply Button */}
               {isAdvancedOptionsEnabled ? (
-                <div>
+                <div className="mt-2">
                   <button
                     type="submit"
-                    className="btn btn-primary btn-sm w-fit mt-1"
+                    className={`btn btn-sm w-full sm:w-fit ${hasPendingClusteringChanges ? "btn-primary" : "btn-ghost"} ${loading ? "animate-pulse" : ""}`}
                     title="Apply group settings"
                     disabled={loading || !hasPendingClusteringChanges}
                   >
-                    {loading ? "Applying..." : "Apply"}
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Applying...
+                      </>
+                    ) : hasPendingClusteringChanges ? (
+                      "Apply changes"
+                    ) : (
+                      "No changes pending"
+                    )}
                   </button>
                 </div>
               ) : null}
@@ -1568,7 +1557,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
 
       {/* Error Display */}
       {!isGlobalLoading && error ? (
-        <div className="alert alert-error">
+        <div className="alert alert-error my-4 p-4 shadow-md animate-pulse">
           <AlertCircle className="size-5" />
           <span>{error}</span>
         </div>
