@@ -10,7 +10,7 @@ import React, {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Loader2, OctagonAlert, MapPin, X } from "lucide-react";
+import { AlertCircle, Loader2, MapPin, ShieldAlert, X, Zap, Eye } from "lucide-react";
 import DiagnosisDateFilter from "../dashboard-page/clustering/diagnosis-date-filter";
 import ViewSelect from "../map-page/view-select";
 import {
@@ -140,6 +140,7 @@ const CLUSTER_VARIABLE_PRESETS: Record<
     description: "Prioritizes location, time, and severity to catch outbreaks",
     variables: {
       ...DEFAULT_CLUSTER_VARIABLES,
+      age: true,
       district: true,
       time: true,
       riskLevel: true,
@@ -155,7 +156,7 @@ const CLUSTER_VARIABLE_PRESETS: Record<
       ...DEFAULT_CLUSTER_VARIABLES,
       age: true,
       district: true,
-      riskLevel: true,
+      riskLevel: false,
       symptomSeverity: true,
       comorbiditiesCount: true,
       time: false,
@@ -1268,11 +1269,11 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
                       >
                         <span className="mr-1.5">
                           {presetKey === "recommended-default" ? (
-                            <AlertCircle className="h-3 w-3" />
+                            <Eye className="h-3 w-3" />
                           ) : presetKey === "outbreak-detection" ? (
-                            <AlertCircle className="h-3 w-3" />
+                            <Zap className="h-3 w-3" />
                           ) : presetKey === "high-risk-cases" ? (
-                            <OctagonAlert className="h-3 w-3" />
+                            <ShieldAlert className="h-3 w-3" />
                           ) : (
                             <MapPin className="h-3 w-3" />
                           )}
