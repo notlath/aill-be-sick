@@ -305,27 +305,26 @@ const IllnessClusterOverviewCards: React.FC<
                   Most common illness: <strong>{topDiseaseText}</strong>
                 </div>
               )}
+
+              {recommendations.length > 0 && (
+                <div className={`rounded-lg ${theme.accentBg} p-3 space-y-2`}>
+                  <div className={`text-xs font-semibold flex items-center gap-1.5 ${theme.accentText}`}>
+                    <AlertCircle className="size-3.5" />
+                    Recommended Actions
+                  </div>
+                  <ul className="text-xs space-y-1.5">
+                    {recommendations.slice(0, 3).map((rec, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-base-content/80">
+                        <span className={`${theme.accentText} font-medium`}>•</span>
+                        <span>{rec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
-        {recommendations.length > 0 && (
-          <CardContent className="pt-2 pb-0">
-            <div className={`rounded-lg ${theme.accentBg} p-3 space-y-2`}>
-              <div className={`text-xs font-semibold flex items-center gap-1.5 ${theme.accentText}`}>
-                <AlertCircle className="size-3.5" />
-                Recommended Actions
-              </div>
-              <ul className="text-xs space-y-1.5">
-                {recommendations.slice(0, 3).map((rec, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-base-content/80">
-                    <span className={`${theme.accentText} font-medium`}>•</span>
-                    <span>{rec}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </CardContent>
-        )}
 
         <CardContent className="pt-2">
           <div className="collapse rounded-none">
