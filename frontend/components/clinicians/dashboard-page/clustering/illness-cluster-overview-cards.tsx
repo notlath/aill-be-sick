@@ -14,6 +14,9 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Activity,
+  Heart,
+  Tag,
 } from "lucide-react";
 import type { IllnessClusterStatistics, IllnessRecord } from "@/types";
 import {
@@ -350,12 +353,14 @@ const IllnessClusterOverviewCards: React.FC<
                 <div>
                   <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
                     <HeartPulse className={`size-3.5 ${theme.accentText}`} />
-                    Illnesses
+                    Illness Breakdown
                   </div>
                   <div className="space-y-1.5">
-                    {stat.top_diseases
-                      .slice(0, 6)
-                      .map((diseaseItem, diseaseIndex) => (
+                    {stat.top_diseases.map((diseaseItem, diseaseIndex) => {
+                      const percentage = stat.count > 0
+                        ? Math.round((diseaseItem.count / stat.count) * 100)
+                        : 0;
+                      return (
                         <div
                           key={`${stat.cluster_id}-disease-${diseaseIndex}`}
                           className="flex items-center justify-between gap-2"
@@ -367,64 +372,117 @@ const IllnessClusterOverviewCards: React.FC<
                               size="sm"
                             />
                           </span>
-                          <span className="font-semibold text-base-content">
-                            {diseaseItem.count}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-base-content">
+                              {diseaseItem.count}
+                            </span>
+                            <span className="text-base-content/60 text-xs">
+                              ({percentage}%)
+                            </span>
+                          </div>
                         </div>
-                      ))}
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}
 
+              {stat.top_districts && stat.top_districts.length > 0 && (
+                <div>
+                  <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
+                    <MapPin className={`size-3.5 ${theme.accentText}`} />
+                    Area Distribution (Bagong Silangan)
+                  </div>
+                  <div className="space-y-1.5">
+                    {stat.top_districts.map((district, idx) => {
+                      const percentage = Math.round((district.count / stat.count) * 100);
+                      return (
+                        <div key={idx} className="flex items-center justify-between gap-2">
+                          <span className="text-base-content/80">{district.district}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-base-content">{district.count}</span>
+                            <span className="text-base-content/60 text-xs">({percentage}%)</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {stat.avg_symptom_severity != null && (
+                <div>
+                  <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
+                    <Activity className={`size-3.5 ${theme.accentText}`} />
+                    Symptom Severity
+                  </div>
+                  <div className="rounded-lg border border-base-300 p-2">
+                    <div className="font-semibold text-base-content">
+                      {stat.avg_symptom_severity.toFixed(1)}
+                      <span className="text-base-content/60 text-sm ml-1">
+                        {stat.avg_symptom_severity >= 7 ? "(High)" : stat.avg_symptom_severity >= 4 ? "(Medium)" : "(Low)"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {stat.avg_comorbidities_count != null && (
+                <div>
+                  <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
+                    <Heart className={`size-3.5 ${theme.accentText}`} />
+                    Comorbidities
+                  </div>
+                  <div className="rounded-lg border border-base-300 p-2">
+                    <div className="font-semibold text-base-content">
+                      {stat.avg_comorbidities_count.toFixed(1)} avg
+                    </div>
+                    <div className="text-xs text-base-content/60">
+                      {stat.avg_comorbidities_count > 1 ? "High comorbidity rate" : stat.avg_comorbidities_count > 0.5 ? "Moderate" : "Mostly healthy patients"}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {stat.insight_tags && stat.insight_tags.length > 0 && (
+                <div>
+                  <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
+                    <Tag className={`size-3.5 ${theme.accentText}`} />
+                    Quick Insights
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {stat.insight_tags.map((tag, idx) => (
+                      <span key={idx} className={`badge badge-sm ${theme.badgeBg}`}>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
                   <Users className={`size-3.5 ${theme.accentText}`} />
-                  Patient details
+                  Demographics
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-base-300 p-2">
-                    <div className="text-base-content/60">Median age</div>
-                    <div className="font-semibold text-base-content">
-                      {Math.round(
-                        stat.median_patient_age ?? stat.avg_patient_age,
-                      )}{" "}
-                      years
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-base-300 p-2">
-                    <div className="text-base-content/60">Age range</div>
-                    <div className="font-semibold text-base-content">
-                      {stat.min_patient_age} - {stat.max_patient_age} years
-                    </div>
-                  </div>
-                  {stat.gender_distribution &&
-                  Object.keys(stat.gender_distribution).length > 0 ? (
-                    <div className="col-span-2 rounded-lg border border-base-300 p-2">
-                      <div className="text-base-content/60">
-                        Gender distribution
-                      </div>
-                      <div className="font-semibold text-base-content flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                        {Object.entries(stat.gender_distribution).map(
-                          ([gender, count]) => (
-                            <div
-                              key={gender}
-                              className="flex items-center gap-1.5"
-                            >
-                              <span className="font-medium capitalize text-base-content">
-                                {gender.charAt(0).toUpperCase() +
-                                  gender.slice(1).toLowerCase()}
-                                :
-                              </span>
-                              <span className="text-base-content/80">
-                                {count} (
-                                {Math.round((count / stat.count) * 100)}%)
-                              </span>
-                            </div>
-                          ),
-                        )}
+                <div className="rounded-lg border border-base-300 p-2 space-y-2">
+                  {stat.gender_distribution && Object.keys(stat.gender_distribution).length > 0 && (
+                    <div>
+                      <div className="text-base-content/60 text-xs">Gender</div>
+                      <div className="flex flex-wrap gap-x-3 gap-y-1">
+                        {Object.entries(stat.gender_distribution).map(([gender, count]) => (
+                          <span key={gender} className="text-sm">
+                            <span className="capitalize font-medium">{gender}: </span>
+                            <span className="text-base-content/80">{count} ({Math.round((count / stat.count) * 100)}%)</span>
+                          </span>
+                        ))}
                       </div>
                     </div>
-                  ) : null}
+                  )}
+                  <div>
+                    <div className="text-base-content/60 text-xs">Total Cases</div>
+                    <div className="font-semibold">{stat.count}</div>
+                  </div>
                 </div>
               </div>
             </div>
