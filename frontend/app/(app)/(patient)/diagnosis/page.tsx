@@ -28,6 +28,8 @@ const PatientHomePage = () => {
     defaultValues: {
       symptoms: "",
       chatId: crypto.randomUUID(),
+      daysOfIllness: "" as any,
+      feverPresence: "" as any,
     },
     resolver: zodResolver(CreateChatSchema),
   });
@@ -95,22 +97,36 @@ const PatientHomePage = () => {
   // ── Free-text submit ───────────────────────────────────────────────
   const handleTextSubmit = (data: CreateChatSchemaType) => {
     hasSubmittedRef.current = true;
-    execute(data);
+    const finalSymptoms = `${data.symptoms}. Fever: ${data.feverPresence}. Duration: ${data.daysOfIllness}.`;
+    execute({
+      ...data,
+      symptoms: finalSymptoms,
+    });
   };
 
   // ── Checklist submit ───────────────────────────────────────────────
   const handleChecklistSubmit = (phrase: string) => {
-    hasSubmittedRef.current = true;
-    form.setValue("symptoms", phrase);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = "44px";
-    }
-    execute({
-      chatId: form.getValues("chatId"),
-      symptoms: phrase,
+    // Validate form before submitting checklist so required fields are caught
+    const isValid = form.trigger(["daysOfIllness", "feverPresence"]);
+    isValid.then((valid) => {
+      if (!valid) return;
+      hasSubmittedRef.current = true;
+      const daysOfIllness = form.getValues("daysOfIllness");
+      const feverPresence = form.getValues("feverPresence");
+      const finalSymptoms = `${phrase}. Fever: ${feverPresence}. Duration: ${daysOfIllness}.`;
+      form.setValue("symptoms", finalSymptoms);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = "auto";
+        textareaRef.current.style.height = "44px";
+      }
+      execute({
+        chatId: form.getValues("chatId"),
+        symptoms: finalSymptoms,
+        daysOfIllness,
+        feverPresence,
+      });
+      setIsChecklistOpen(false);
     });
-    setIsChecklistOpen(false);
   };
 
   return (
@@ -235,6 +251,57 @@ const PatientHomePage = () => {
                       <ArrowUp className="size-5" strokeWidth={2.5} />
                     )}
                   </button>
+                </div>
+
+                {/* Structured Inputs */}
+                <div className="px-3 pb-3 sm:px-4 flex flex-col sm:flex-row gap-4 border-t border-base-200/50 pt-3">
+                  <div className="form-control w-full sm:w-1/2">
+                    <label className="label py-1">
+                      <span className="label-text font-medium text-base-content/80">Do you have a fever?</span>
+                    </label>
+                    <div className="join w-full">
+                      <input
+                        type="radio"
+                        value="Yes"
+                        aria-label="Yes"
+                        className="join-item btn flex-1 bg-base-200 hover:bg-base-300 checked:!bg-primary checked:!text-primary-content"
+                        {...form.register("feverPresence")}
+                        disabled={isLoading}
+                      />
+                      <input
+                        type="radio"
+                        value="No"
+                        aria-label="No"
+                        className="join-item btn flex-1 bg-base-200 hover:bg-base-300 checked:!bg-primary checked:!text-primary-content"
+                        {...form.register("feverPresence")}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    {form.formState.errors.feverPresence && (
+                      <span className="text-error text-xs mt-1 px-1">{form.formState.errors.feverPresence.message}</span>
+                    )}
+                  </div>
+                  <div className="form-control w-full sm:w-1/2">
+                    <label className="label py-1">
+                      <span className="label-text font-medium text-base-content/80">Days of illness</span>
+                    </label>
+                    <select
+                      className={`select select-bordered w-full bg-base-200/50 focus:bg-base-200/80 focus:ring-2 focus:ring-primary/50 ${form.formState.errors.daysOfIllness ? 'select-error' : ''}`}
+                      {...form.register("daysOfIllness")}
+                      defaultValue=""
+                      disabled={isLoading}
+                    >
+                      <option value="" disabled>Select duration...</option>
+                      <option value="Today">Today</option>
+                      <option value="1-2 days">1-2 days</option>
+                      <option value="3-6 days">3-6 days</option>
+                      <option value="7-10 days">7-10 days</option>
+                      <option value="10+ days">10+ days</option>
+                    </select>
+                    {form.formState.errors.daysOfIllness && (
+                      <span className="text-error text-xs mt-1 px-1">{form.formState.errors.daysOfIllness.message}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Input hint */}
