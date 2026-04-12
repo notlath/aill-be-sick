@@ -79,13 +79,14 @@ export function AnomalyDetailModal({
     );
   }
 
-  if (!diagnosis) return null;
+  if (!diagnosis || !anomaly) return null;
 
   return (
     <ReportDetailModal
       isOpen={isOpen}
       onClose={onClose}
       report={diagnosis}
+      anomalyReason={anomaly.reason}
     />
   );
 }

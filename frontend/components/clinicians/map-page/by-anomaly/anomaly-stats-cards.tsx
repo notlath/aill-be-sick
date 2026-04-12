@@ -40,7 +40,7 @@ const AnomalyDistrictStatsCards = ({
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Total Anomalies
+            Total Flagged Cases
           </CardTitle>
           <Activity className="h-4 w-4 text-primary" />
         </CardHeader>
@@ -49,7 +49,7 @@ const AnomalyDistrictStatsCards = ({
             {totalAnomalies.toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Click to view all anomaly records
+            Click to view all flagged records
           </p>
         </CardContent>
       </Card>
@@ -72,7 +72,7 @@ const AnomalyDistrictStatsCards = ({
             {highestDistrict}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            With {highestCount.toLocaleString()} detected anomalies
+            With {highestCount.toLocaleString()} flagged cases
           </p>
         </CardContent>
       </Card>
@@ -100,7 +100,7 @@ const AnomalyDistrictStatsCards = ({
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Average Anomalies
+            Average Flagged Cases
           </CardTitle>
           <TrendingUp className="h-4 w-4 text-emerald-500" />
         </CardHeader>
@@ -142,7 +142,7 @@ const AnomalyCoordinatesStatsCards = ({
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
-            Total Anomalies
+            Total Flagged Cases
           </CardTitle>
           <Activity className="h-4 w-4 text-primary" />
         </CardHeader>
@@ -151,7 +151,7 @@ const AnomalyCoordinatesStatsCards = ({
             {totalAnomalies.toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Click to view all anomaly records
+            Click to view all flagged records
           </p>
         </CardContent>
       </Card>

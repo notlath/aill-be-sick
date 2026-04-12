@@ -132,7 +132,7 @@ export function AnomalyTimelineChart({
       <Card className="relative overflow-hidden border">
         <div className="absolute inset-0 bg-base-100 opacity-90" />
         <CardContent className="relative py-8 text-center text-sm text-base-content/70">
-          No temporal data available for {disease} anomalies
+          No temporal data available for {disease} flagged cases
         </CardContent>
       </Card>
     );
@@ -204,7 +204,7 @@ export function AnomalyTimelineChart({
                           : label}
                       </p>
                       <p>
-                        {bucket.count} anomal{bucket.count === 1 ? "y" : "ies"}
+                        {bucket.count} flagged case{bucket.count === 1 ? "" : "s"}
                       </p>
                     </div>
                   );
