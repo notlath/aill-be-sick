@@ -42,6 +42,7 @@ const MODELS = [
   "auditLog",
   "deletionSchedule",
   "diagnosis_sessions",
+  "diagnosticQuestion",
 ];
 
 function getTimestamp() {

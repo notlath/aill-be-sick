@@ -3,7 +3,7 @@ import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { Explanation } from "@/types";
 import { forwardRef, memo } from "react";
 import ChatBubble from "./chat-bubble";
-import QuestionBubble from "./question-bubble";
+import DiagnosticInterview from "./diagnostic-interview";
 
 const MARKDOWN_COMPONENTS = {
   p: ({ children }: any) => <p className="my-0">{children}</p>,
@@ -118,14 +118,14 @@ const ChatContainer = memo(
         <section className="flex flex-col flex-1 space-y-2 py-8 pb-0 px-4 w-full max-w-[768px]">
           {messages.map((message, idx) => {
             // If this is a QUESTION message and it matches currentQuestion,
-            // render it as QuestionBubble (with Yes/No buttons)
+            // render it as DiagnosticInterview (with Yes/No buttons)
             if (
               message.type === "QUESTION" &&
               currentQuestion &&
               message.content === currentQuestion.question
             ) {
               return (
-                <QuestionBubble
+                <DiagnosticInterview
                   key={message.id ? `${message.id}-${idx}` : `q-${idx}`}
                   question={currentQuestion.question}
                   questionId={currentQuestion.id}

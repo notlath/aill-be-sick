@@ -36,12 +36,14 @@ const ActivityIcon = () => (
 
 type ConfidenceTier = { label: string; badgeClass: string };
 
-const getConfidenceTier = (confidence: number): ConfidenceTier => {
+const getConfidenceTier = (confidence: number, isValid: boolean): ConfidenceTier => {
+  if (!isValid)
+    return { label: "Inconclusive", badgeClass: "badge-neutral" };
   if (confidence >= 0.95)
-    return { label: "Strong match", badgeClass: "badge-success" };
+    return { label: "High Match", badgeClass: "badge-success" };
   if (confidence >= 0.7)
-    return { label: "Possible match", badgeClass: "badge-warning" };
-  return { label: "Weak match", badgeClass: "badge-error" };
+    return { label: "Moderate Match", badgeClass: "badge-warning" };
+  return { label: "Inconclusive", badgeClass: "badge-neutral" };
 };
 
 const formatModelName = (modelUsed: string) => {
@@ -78,10 +80,10 @@ const ChatBubble = ({
   // Clinicians/devs can see raw details on any diagnosis, not only low-confidence ones
   const shouldShowToggle = isDiagnosis && tempDiagnosis && canSeeDetails;
 
-  // ── DIAGNOSIS bubble — distinct card layout ──────────────────────────────
-  if (isDiagnosis) {
+  if (isDiagnosis || (isInfo && tempDiagnosis && tempDiagnosis.isValid === false)) {
     const confidence = tempDiagnosis?.confidence ?? 0;
-    const tier = getConfidenceTier(confidence);
+    const isValid = tempDiagnosis?.isValid ?? true;
+    const tier = getConfidenceTier(confidence, isValid);
 
     return (
       <article className="self-start !mb-0 w-full max-w-[85%] sm:max-w-[60%] break-words rounded-xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">

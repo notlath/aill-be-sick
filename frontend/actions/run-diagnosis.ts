@@ -108,92 +108,44 @@ export const runDiagnosis = actionClient
         if (uncertainty < RELIABILITY_THRESHOLDS.reliable.maxUncertainty && confidence >= RELIABILITY_THRESHOLDS.reliable.minConfidence) {
           // Safe
           diagnosisMessage = `
-Based on your symptom description, you might be experiencing: **${pred}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
-            confidence * 100
-          ).toFixed(4)}%**.  \n
-Here are other most likely conditions based on your symptoms:
+Based on your symptom description, your symptoms closely match standard clinical criteria for: **${pred}**.  \n
+Here are other possible conditions based on your symptoms:
 ${probs.map((prob: any) => `- ${prob}`).join("\n")}  \n
 
-The **uncertainty score** associated with this diagnosis is **${(
-            uncertainty * 100
-          ).toFixed(4)}%**.
-
-A high confidence score (${(confidence * 100).toFixed(
-            4,
-          )}%) combined with a low uncertainty score (${(
-            uncertainty * 100
-          ).toFixed(
-            4,
-          )}%) suggests that **the model is confident about this diagnosis and that there's very little disagreement in predictions after repeated tests.**  \n
+This result suggests a strong match based on the provided information.
 
 Do you want to record this diagnosis?
                 `;
         } else if (uncertainty > RELIABILITY_THRESHOLDS.reliable.maxUncertainty && confidence < RELIABILITY_THRESHOLDS.reliable.minConfidence) {
           // Escalate to clinician
           diagnosisMessage = `
-Based on your symptom description, you might be experiencing: **${pred}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
-            confidence * 100
-          ).toFixed(4)}%**.  \n
-Here are other most likely conditions based on your symptoms:
+Based on your symptom description, your symptoms share some common signs with: **${pred}**.  \n
+Here are other possible conditions based on your symptoms:
 ${probs.map((prob: any) => `- ${prob}`).join("\n")}  \n
 
-The **uncertainty score** associated with this diagnosis is **${(
-            uncertainty * 100
-          ).toFixed(4)}%**.
-          
-A low confidence score (${(confidence * 100).toFixed(
-            4,
-          )}%) combined with a high uncertainty score (${(
-            uncertainty * 100
-          ).toFixed(
-            4,
-          )}%) suggests that the model does not know the diagnosis and also does not know what the best diagnosis could be. **These results should not be trusted without further validation or a human expert's opinion.**  \n
+This result is **Inconclusive**. The symptoms provided do not form a clear picture of a specific condition. **These results should not be trusted without further validation or a human expert's opinion.**  \n
 
 Do you want to record this diagnosis?
                 `;
         } else if (uncertainty > RELIABILITY_THRESHOLDS.reliable.maxUncertainty && confidence >= RELIABILITY_THRESHOLDS.reliable.minConfidence) {
           // Potential distribution shift
           diagnosisMessage = `
-Based on your symptom description, you might be experiencing: **${pred}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
-            confidence * 100
-          ).toFixed(4)}%**.  \n
-Here are other most likely conditions based on your symptoms:
+Based on your symptom description, your symptoms closely match standard clinical criteria for: **${pred}**, but some conflicting information was detected.  \n
+Here are other possible conditions based on your symptoms:
 ${probs.map((prob: any) => `- ${prob}`).join("\n")}  \n
 
-The **uncertainty score** associated with this diagnosis is **${(
-            uncertainty * 100
-          ).toFixed(4)}%**.
-
-A high confidence score (${(confidence * 100).toFixed(
-            4,
-          )}%) combined with a high uncertainty score (${(
-            uncertainty * 100
-          ).toFixed(
-            4,
-          )}%) indicates **overconfidence** of the model in this diagnosis. The model is confident about the diagnosis, but is also not sure what the best diagnosis could be. This could be a sign of distribution shift, where the model is encountering data that is different from what it was trained on. **These results should not be trusted without further validation or a human expert's opinion.**  \n
+This result is a **Moderate Match**, but with a high degree of uncertainty regarding the exact presentation. **These results should not be trusted without further validation or a human expert's opinion.**  \n
 
 Do you want to record this diagnosis?
                 `;
         } else if (uncertainty <= RELIABILITY_THRESHOLDS.reliable.maxUncertainty && confidence < RELIABILITY_THRESHOLDS.reliable.minConfidence) {
           // Ambiguous case, the model doesn't know and knows that it doesn't know
           diagnosisMessage = `
-Based on your symptom description, you might be experiencing: **${pred}**. This diagnosis was made using the **${model_used}** model with a **confidence score** of **${(
-            confidence * 100
-          ).toFixed(4)}%**.  \n
-Here are other most likely conditions based on your symptoms:
+Based on your symptom description, your symptoms share some common signs with: **${pred}**.  \n
+Here are other possible conditions based on your symptoms:
 ${probs.map((prob: any) => `- ${prob}`).join("\n")}  \n
 
-The **uncertainty score** associated with this diagnosis is **${(
-            uncertainty * 100
-          ).toFixed(4)}%**.
-
-A low confidence score (${(confidence * 100).toFixed(
-            4,
-          )}%) combined with a low uncertainty score (${(
-            uncertainty * 100
-          ).toFixed(
-            4,
-          )}%) suggests that **the model is unsure about the diagnosis,** and is aware that **it needs more information to make a confident prediction for this specific case.** It is recommended to seek further medical advice or provide additional context for an accurate diagnosis.  \n
+This result is a **Moderate Match**, suggesting that **the system is unsure about the diagnosis,** and needs more information to make a confident prediction for this specific case. It is recommended to seek further medical advice or provide additional context for an accurate diagnosis.  \n
 
 Do you want to record this diagnosis?
                 `;
