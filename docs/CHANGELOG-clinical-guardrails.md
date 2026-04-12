@@ -32,3 +32,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 #### Changed
 - `DiagnosisForm` in `frontend/app/(app)/(patient)/diagnosis/page.tsx` to include "Days of Illness" (DaisyUI select) and "Fever Toggle" (DaisyUI segmented control).
 - Concatenated structured inputs to the `symptoms` string before passing it to `createChat` and `runDiagnosis` to securely anchor backend guardrails against model bias.
+
+### Phase 4: Dynamic Follow-Up Funnel (Completed)
+#### Added
+- `DiagnosticInterview` component in `frontend/components/patient/diagnosis-page/diagnostic-interview.tsx` that replaces standard chat questions with a focused, progressive disclosure "card" UI aligned with DaisyUI.
+#### Changed
+- `ChatContainer` to render `DiagnosticInterview` when a follow-up question is active, taking the user out of the standard chat flow and focusing them on the dynamic interview.
+- Deleted legacy `QuestionBubble` component.
+
+### Phase 5: Results Display Redesign (Completed)
+#### Changed
+- `run-diagnosis.ts`: Removed raw NLP percentage numbers (confidence and uncertainty) from the patient-facing diagnosis message text. Replaced them with qualitative wording (e.g. "closely match standard clinical criteria", "share some common signs").
+- `chat-bubble.tsx`: Updated `getConfidenceTier` to use the new qualitative Match Tiers (High Match, Moderate Match, Inconclusive) based on `confidence` and `isValid` flags. Used DaisyUI badges (`badge-success`, `badge-warning`, `badge-neutral`).
+- `chat-bubble.tsx`: Maintained the raw percentage details in a collapsible "Clinician details" block, strictly guarded by `shouldShowToggle` which only permits `CLINICIAN` and `DEVELOPER` roles to view them.
+- `cdss-summary.tsx`: Ensured the actionable Triage Alert section is presented prominently at the top of the summary UI.
+
+### Phase 6: Pre-Merge Validation & Testing (Completed)
+#### Added
+- `test_clinical_guardrails.py`: Wrote `pytest` assertions simulating the panel's defense traps.
+  - "Fever Only": Verifies that non-specific symptoms result in roughly equal probabilities for Dengue, Typhoid, Flu and trigger `NEEDS_DIFFERENTIATION`.
+  - Contradictory inputs: Verifies that contradictory inputs (e.g., Dengue + "good appetite") severely penalize the disease score and trigger `CONTRADICTION_PENALTY`.
+  - Missing WHO criteria: Verifies that missing WHO criteria (e.g., Dengue without rash/nausea) caps confidence at 40% and triggers follow-up (`NEEDS_DIFFERENTIATION`).
+  - Met Criteria: Ensures that patients correctly meeting the matrix trigger an `OK` status without penalties.

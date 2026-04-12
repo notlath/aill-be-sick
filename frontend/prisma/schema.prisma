@@ -10,56 +10,56 @@ datasource db {
 }
 
 model User {
-  id                 Int                 @id @default(autoincrement())
-  email              String              @unique
-  name               String?
-  authId             String?             @unique
-  avatar             String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @default(now()) @updatedAt
-  role               Role                @default(PATIENT)
-  city               String?
-  latitude           Float?
-  longitude          Float?
-  region             String?
-  age                Int?
-  gender             Gender?
-  province           String?
-  barangay           String?
-  birthday           DateTime?
-  isOnboarded        Boolean             @default(false)
-  district           String?
-  address            String?
-  privacyAcceptedAt  DateTime?
-  privacyVersion     String?
-  termsAcceptedAt    DateTime?
-  termsVersion       String?
-  approvalStatus     ApprovalStatus      @default(ACTIVE)
-  approvedAt         DateTime?
-  approvedBy         Int?
-  approvalNotes      String?
-  rejectedAt         DateTime?
-  mustChangePassword Boolean             @default(false)
-  emailVerified      Boolean             @default(false)
-  patientAccessCode  String?             @unique
+  id                       Int                 @id @default(autoincrement())
+  email                    String              @unique
+  name                     String?
+  authId                   String?             @unique
+  avatar                   String?
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @default(now()) @updatedAt
+  role                     Role                @default(PATIENT)
+  city                     String?
+  latitude                 Float?
+  longitude                Float?
+  region                   String?
+  age                      Int?
+  gender                   Gender?
+  province                 String?
+  barangay                 String?
+  birthday                 DateTime?
+  isOnboarded              Boolean             @default(false)
+  district                 String?
+  address                  String?
+  privacyAcceptedAt        DateTime?
+  privacyVersion           String?
+  termsAcceptedAt          DateTime?
+  termsVersion             String?
+  approvalStatus           ApprovalStatus      @default(ACTIVE)
+  approvedAt               DateTime?
+  approvedBy               Int?
+  approvalNotes            String?
+  rejectedAt               DateTime?
+  mustChangePassword       Boolean             @default(false)
+  emailVerified            Boolean             @default(false)
+  patientAccessCode        String?             @unique
   // Guardian information for minors (under 18)
-  guardianName       String?
-  guardianEmail      String?
-  guardianPhone      String?
-  guardianRelation   String?
-  acknowledgedAlerts Alert[]             @relation("AlertAcknowledger")
-  resolvedAlerts     Alert[]             @relation("AlertResolver")
-  alertNotes         AlertNote[]         @relation("AlertNoteAuthor")
-  auditLogs          AuditLog[]
-  chats              Chat[]
-  restoredDeletions  DeletionSchedule[]  @relation("DeletionRestoredBy")
-  scheduledDeletions DeletionSchedule[]  @relation("DeletionScheduledBy")
+  guardianName             String?
+  guardianEmail            String?
+  guardianPhone            String?
+  guardianRelation         String?
+  acknowledgedAlerts       Alert[]             @relation("AlertAcknowledger")
+  resolvedAlerts           Alert[]             @relation("AlertResolver")
+  alertNotes               AlertNote[]         @relation("AlertNoteAuthor")
+  auditLogs                AuditLog[]
+  chats                    Chat[]
+  restoredDeletions        DeletionSchedule[]  @relation("DeletionRestoredBy")
+  scheduledDeletions       DeletionSchedule[]  @relation("DeletionScheduledBy")
   patientDeletionSchedules DeletionSchedule[]  @relation("PatientDeletionSchedule")
-  rejectedDiagnoses  Diagnosis[]         @relation("DiagnosisRejector")
-  diagnoses          Diagnosis[]
-  verifiedDiagnoses  Diagnosis[]         @relation("DiagnosisVerifier")
-  diagnosisNotes     DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
-  diagnosisOverrides DiagnosisOverride[] @relation("OverrideClinicianRelation")
+  rejectedDiagnoses        Diagnosis[]         @relation("DiagnosisRejector")
+  diagnoses                Diagnosis[]
+  verifiedDiagnoses        Diagnosis[]         @relation("DiagnosisVerifier")
+  diagnosisNotes           DiagnosisNote[]     @relation("DiagnosisNoteAuthor")
+  diagnosisOverrides       DiagnosisOverride[] @relation("OverrideClinicianRelation")
 
   @@index([latitude, longitude])
   @@index([region])
@@ -368,4 +368,32 @@ enum DeletionScheduleStatus {
   SCHEDULED
   RESTORED
   ANONYMIZED
+}
+
+enum DiseaseCategory {
+  DENGUE
+  PNEUMONIA
+  TYPHOID
+  DIARRHEA
+  MEASLES
+  INFLUENZA
+  RED_FLAG
+  DIFFERENTIAL
+}
+
+enum ResponseType {
+  BOOLEAN
+  CATEGORICAL
+  NUMERIC
+}
+
+model DiagnosticQuestion {
+  id              String          @id @default(uuid())
+  diseaseCategory DiseaseCategory
+  textEn          String
+  textTl          String
+  responseType    ResponseType
+  isRedFlag       Boolean         @default(false)
+  options         Json? // For categorical options
+  orderIndex      Int // Determines flow sequence
 }

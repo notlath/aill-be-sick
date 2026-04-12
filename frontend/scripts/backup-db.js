@@ -56,6 +56,7 @@ const MODELS = [
   "auditLog",
   "deletionSchedule",
   "diagnosis_sessions",
+  "diagnosticQuestion",
 ];
 
 // Default user IDs to preserve during restore (hardcoded)

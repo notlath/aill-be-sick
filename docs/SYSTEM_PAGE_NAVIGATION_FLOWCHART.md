@@ -72,7 +72,8 @@ flowchart TD
     DevView -- Admin view --> PendingClinicians
 
     %% ========== PATIENT APP AREA ==========
-    Diagnosis --> History["/history"]
+    Diagnosis --> DiagnosticInterview["/diagnosis (interview)"]
+    DiagnosticInterview --> History["/history"]
     History --> Profile["/profile"]
     Profile --> PrivacyRights["/privacy-rights"]
     PrivacyRights --> Profile
@@ -137,7 +138,7 @@ flowchart TD
 
     %% Apply styles to nodes
     class Login,VerifyEmail,OAuthStart,AuthCallback,AuthCodeError,NeedAccount,ClinLogin,AdminLogin,ClinForgot,ClinReset,Privacy,Terms,AuthConfirm,SyncError authNode
-    class Diagnosis,History,Profile,PrivacyRights,ChatDetail patientNode
+    class Diagnosis,DiagnosticInterview,History,Profile,PrivacyRights,ChatDetail patientNode
     class Map,Dashboard,Alerts,Reports,Users,CreatePatient,ClinicianProfile,Waiting clinicianNode
     class PendingClinicians adminNode
     class Unauthorized,Forbidden,ErrorPage errorNode
@@ -195,7 +196,8 @@ flowchart TD
 
 ### Patient Routes (Authenticated + Patient Role)
 
-- `/diagnosis` — Main diagnosis interface
+- `/diagnosis` — Main diagnosis interface (Symptom Intake)
+- `/diagnosis (interview)` — Dynamic follow-up questions funnel
 - `/diagnosis/:chatId` — Individual chat/diagnosis detail
 - `/history` — Diagnosis history
 - `/profile` — Patient profile management

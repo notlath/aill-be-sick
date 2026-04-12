@@ -270,6 +270,19 @@ def new_case():
             classifier(symptoms)
         )
 
+        # ── CLINICAL GUARDRAIL LAYER ──
+        # Inject DOH/WHO rules to correct model bias on shared/contradictory symptoms
+        from app.services.clinical_guardrails import apply_clinical_guardrails
+
+        pred, confidence, mean_probs, top_diseases, guardrail_status = (
+            apply_clinical_guardrails(
+                symptoms, top_diseases, mean_probs, pred, confidence
+            )
+        )
+
+        if guardrail_status == "NEEDS_DIFFERENTIATION":
+            print("[NEW CASE] Guardrail flagged for NEEDS_DIFFERENTIATION")
+
         # NEURO-SYMBOLIC VERIFICATION: Check for ontology mismatch
         verification_layer = current_app.config["VERIFICATION_LAYER"]
         verification_result = verification_layer.verify(symptoms, pred)
