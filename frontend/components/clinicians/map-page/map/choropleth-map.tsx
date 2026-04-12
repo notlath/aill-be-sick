@@ -8,11 +8,7 @@ import "leaflet/dist/leaflet.css";
 import ChoroplethLayer from "./choropleth-layer";
 import ChoroplethLegend from "./choropleth-legend";
 import L from "leaflet";
-import { type FeatureCollection } from "geojson";
-import { centerOfMass } from "@turf/turf";
-import type { SurveillanceAnomaly } from "@/types";
 import { BAGONG_SILANGAN_DISTRICTS } from "@/constants/bagong-silangan-districts";
-import { parseReasonCodes, getReasonLabel } from "@/utils/anomaly-reasons";
 import type { Diagnosis } from "@/lib/generated/prisma";
 
 // Hoist static primitives outside the component so they are never recreated on re-renders
@@ -43,11 +39,10 @@ type ChoroplethMapProps = {
   casesData: Record<string, number>;
   geoData: GeoJsonObject;
   diagnoses: Diagnosis[];
-  topAnomalies?: SurveillanceAnomaly[];
   onFeatureClick?: (featureName: string) => void;
 };
 
-const ChoroplethMap = ({ casesData, geoData, diagnoses, topAnomalies = [], onFeatureClick }: ChoroplethMapProps) => {
+const ChoroplethMap = ({ casesData, geoData, diagnoses, onFeatureClick }: ChoroplethMapProps) => {
   // Generate a unique, stable key per mount cycle so each navigation produces
   // a fresh MapContainer and avoids the "container is being reused" error.
   const id = useId();
@@ -57,26 +52,6 @@ const ChoroplethMap = ({ casesData, geoData, diagnoses, topAnomalies = [], onFea
 
   const mapKey = `${id}-${mountRef.current}`;
   const searchParams = useSearchParams();
-
-  // Group top anomalies by district
-  const anomaliesByDistrict = topAnomalies.reduce((acc, anomaly) => {
-    if (anomaly.district) {
-      if (!acc[anomaly.district]) acc[anomaly.district] = [];
-      acc[anomaly.district].push(anomaly);
-    }
-    return acc;
-  }, {} as Record<string, SurveillanceAnomaly[]>);
-
-  // Custom icon for critical anomalies
-  const criticalIcon = L.divIcon({
-    className: "bg-transparent border-none",
-    html: `<div class="relative flex h-6 w-6">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-6 w-6 bg-error shadow-lg shadow-error/50 border-2 border-base-100 flex items-center justify-center text-error-content text-[10px] font-bold">!</span>
-          </div>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-  });
 
   // Custom icon for targeted outbreak (GPS Pin)
   const targetIcon = L.divIcon({
@@ -127,75 +102,6 @@ const ChoroplethMap = ({ casesData, geoData, diagnoses, topAnomalies = [], onFea
           onFeatureClick={onFeatureClick}
         />
         <ChoroplethLegend />
-        
-        {/* Render markers for critical district anomalies */}
-        {Object.entries(anomaliesByDistrict).map(([district, districtAnomalies]) => {
-          // Find the feature for this district
-          const featureCollection = geoData as FeatureCollection;
-          if (featureCollection.type !== "FeatureCollection") return null;
-          
-          const districtFeature = featureCollection.features.find(
-             f => f.properties?.name === district
-          );
-          
-          if (!districtFeature) return null;
-          
-          try {
-             // Calculate visual center of district polygon
-             const center = centerOfMass(districtFeature);
-             const [lng, lat] = center.geometry.coordinates;
-             
-             // Skip if this is the exact target coordinate
-             if (hasTarget && Math.abs(lat - targetLat) < 0.0001 && Math.abs(lng - targetLng) < 0.0001) return null;
-
-             return (
-                 <Marker 
-                   key={`district-anomaly-group-${district}`} 
-                   position={[lat, lng]}
-                   icon={criticalIcon}
-                 >
-                   <Tooltip className="bg-base-100 border-none shadow-xl rounded-lg text-base-content p-3" opacity={1} direction="top" offset={[0, -10]}>
-                     {(() => {
-                       const diseaseCounts: Record<string, number> = {};
-                       const allReasons = new Set<string>();
-                       for (const a of districtAnomalies) {
-                         diseaseCounts[a.disease] = (diseaseCounts[a.disease] || 0) + 1;
-                         if (a.reason) {
-                           parseReasonCodes(a.reason).forEach(r => allReasons.add(r));
-                         }
-                       }
-
-                       return (
-                         <div className="space-y-1">
-                           {Object.entries(diseaseCounts).map(([disease, count]) => (
-                             <div key={disease} className="text-sm">
-                               {count} case{count !== 1 ? 's' : ''} of {disease}
-                             </div>
-                           ))}
-                           {allReasons.size > 0 && (
-                             <div className="text-sm pt-1">
-                               <span className="opacity-70">Reason flags:</span>
-                               <div className="flex flex-wrap gap-1 mt-1">
-                                  {Array.from(allReasons).map((reason) => (
-                                    <span key={reason} className="text-xs bg-error/10 text-error px-2 py-0.5 rounded">
-                                      {getReasonLabel(reason)}
-                                    </span>
-                                  ))}
-                               </div>
-                             </div>
-                           )}
-                         </div>
-                       );
-                     })()}
-                   </Tooltip>
-                 </Marker>
-             );
-          } catch (e) {
-             // In case geometry is invalid for turf
-             console.error("Failed to compute center for anomaly district:", e);
-             return null;
-          }
-        })}
 
         {/* Render the targeted outbreak from URL if present */}
         {hasTarget && (

@@ -11,6 +11,11 @@ import { processTokensForDisplay, type TokenWithImportance } from "@/utils/shap-
 import { getExplanationByDiagnosisId } from "@/utils/explanation";
 import { WordHeatmapToggle } from "@/components/shared/word-heatmap-toggle";
 import { DiagnosisNotesSection } from "../diagnosis-notes-section";
+import {
+  parseReasonCodes,
+  getReasonLabel,
+  getReasonDescription,
+} from "@/utils/anomaly-reasons";
 
 interface ReportDetailModalProps {
   isOpen: boolean;
@@ -20,6 +25,8 @@ interface ReportDetailModalProps {
   onReject?: () => void;
   onSuccess?: () => void;
   onUndoRejection?: () => void;
+  /** Pipe-separated reason codes from anomaly detection, e.g. "GEOGRAPHIC:RARE|TEMPORAL:RARE" */
+  anomalyReason?: string | null;
 }
 
 export function ReportDetailModal({
@@ -30,6 +37,7 @@ export function ReportDetailModal({
   onReject,
   onSuccess,
   onUndoRejection,
+  anomalyReason,
 }: ReportDetailModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
@@ -132,6 +140,21 @@ export function ReportDetailModal({
           <h3 className="font-bold text-2xl mb-6">Report Details</h3>
 
           <div className="space-y-4">
+            {/* Why was this case flagged — anomaly surveillance context */}
+            {anomalyReason && parseReasonCodes(anomalyReason).length > 0 && (
+              <div className="bg-base-200 p-4 rounded-lg space-y-3">
+                <p className="text-xs text-base-content/50 uppercase tracking-wide">Why was this case flagged</p>
+                {parseReasonCodes(anomalyReason).map((code, idx) => (
+                  <div key={idx}>
+                    <p className="text-sm font-medium">{getReasonLabel(code)}</p>
+                    <p className="text-xs text-base-content/60 mt-0.5">
+                      {getReasonDescription(code)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Clinician Override indicator if present */}
             {hasOverride && report.override && (
               <div className="bg-success/10 border border-success/30 p-4 rounded-lg">
@@ -207,6 +230,18 @@ export function ReportDetailModal({
                 <p className="text-sm text-base-content/60 mb-1">Date Reported</p>
                 <p className="font-medium">{new Date(report.createdAt).toLocaleString()}</p>
               </div>
+              {report.user?.age != null && (
+                <div className="bg-base-200 p-4 rounded-lg">
+                  <p className="text-sm text-base-content/60 mb-1">Patient Age</p>
+                  <p className="font-medium">{report.user.age} years old</p>
+                </div>
+              )}
+              {report.user?.gender && (
+                <div className="bg-base-200 p-4 rounded-lg">
+                  <p className="text-sm text-base-content/60 mb-1">Patient Gender</p>
+                  <p className="font-medium capitalize">{report.user.gender.toLowerCase()}</p>
+                </div>
+              )}
             </div>
 
             <div className="bg-base-200 p-4 rounded-lg">

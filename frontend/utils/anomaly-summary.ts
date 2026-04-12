@@ -21,21 +21,21 @@ export interface DistributionItem {
 export interface AnomalyStatistics {
   // Reason code distribution
   reason_distribution: DistributionItem[];
-  
+
   // Disease distribution within anomalies
   disease_distribution: DistributionItem[];
-  
+
   // District distribution within anomalies
   district_distribution: DistributionItem[];
-  
+
   // Region distribution within anomalies
   region_distribution: DistributionItem[];
-  
+
   // Average statistics
   avg_anomaly_score: number;
   avg_confidence: number;
   avg_uncertainty: number;
-  
+
   // Total count
   total_anomalies: number;
 }
@@ -51,7 +51,7 @@ export function computeAnomalyStatistics(anomalies: SurveillanceAnomaly[]): Anom
   const diseaseCounts = new Map<string, number>();
   const districtCounts = new Map<string, number>();
   const regionCounts = new Map<string, number>();
-  
+
   let totalAnomalyScore = 0;
   let totalConfidence = 0;
   let totalUncertainty = 0;
@@ -132,13 +132,13 @@ export function generateAnomalyNarrative(
   const { total_anomalies, reason_distribution, disease_distribution, district_distribution } = stats;
 
   if (total_anomalies === 0) {
-    return "No anomalies detected for the selected criteria.";
+    return "No flagged cases detected for the selected criteria.";
   }
 
   const parts: string[] = [];
 
   // Start with count
-  parts.push(`${total_anomalies} anomal${total_anomalies === 1 ? "y" : "ies"} detected`);
+  parts.push(`${total_anomalies} flagged case${total_anomalies === 1 ? "" : "s"}`);
 
   // Add district info if available
   if (district_distribution.length > 0) {
@@ -214,7 +214,64 @@ export function getTopDisease(stats: AnomalyStatistics): string | null {
  * Get the most affected district from a distribution.
  */
 export function getTopDistrict(stats: AnomalyStatistics): string | null {
-  return stats.district_distribution.length > 0 
-    ? stats.district_distribution[0].label 
+  return stats.district_distribution.length > 0
+    ? stats.district_distribution[0].label
     : null;
+}
+
+/**
+ * Generate a plain-language clinical takeaway for the flagged cases summary.
+ * Translates statistical patterns into guidance a clinician can act on.
+ */
+export function generateClinicalTakeaway(
+  stats: AnomalyStatistics,
+  selectedDisease: string
+): string {
+  const { total_anomalies, reason_distribution, disease_distribution, district_distribution } = stats;
+
+  if (total_anomalies === 0) {
+    return "No unusual patterns detected — current case activity appears within expected ranges.";
+  }
+
+  const topReason = reason_distribution.length > 0 ? reason_distribution[0].label : null;
+  const topDisease = disease_distribution.length > 0 ? disease_distribution[0].label : null;
+  const topDistrict = district_distribution.length > 0 ? district_distribution[0].label : null;
+
+  const parts: string[] = [];
+
+  if (topReason === "GEOGRAPHIC:RARE") {
+    const diseaseRef = topDisease ? topDisease + " is" : "these diseases are";
+    parts.push(`Cases are appearing in areas where ${diseaseRef} rarely reported — may indicate emerging spread`);
+  } else if (topReason === "TEMPORAL:RARE") {
+    const diseaseRef = topDisease ? ` for ${topDisease}` : "";
+    parts.push(`Cases occurring at an unusual time of year${diseaseRef} — may signal an off-cycle outbreak`);
+  } else if (topReason === "COMBINED:MULTI") {
+    parts.push("Multiple factors contributing to flags — these cases warrant comprehensive review");
+  } else if (topReason) {
+    const label = getReasonLabel(topReason).toLowerCase();
+    parts.push(`Cases mostly flagged for ${label}`);
+  }
+
+  if (selectedDisease === "all" && topDisease && disease_distribution.length > 1) {
+    const pct = disease_distribution[0].percent;
+    if (pct >= 50) {
+      parts.push(`${topDisease} accounts for the majority of flagged cases`);
+    }
+  }
+
+  if (topDistrict && district_distribution.length > 1) {
+    const topPct = district_distribution[0].percent;
+    if (topPct >= 50) {
+      parts.push(`Cases concentrated in ${topDistrict}`);
+    }
+  }
+
+  if (parts.length === 0) {
+    if (total_anomalies <= 3) {
+      return `Only ${total_anomalies} case${total_anomalies > 1 ? "s" : ""} flagged — isolated incidents, no clear pattern emerging.`;
+    }
+    return `${total_anomalies} cases flagged across varied patterns — continued monitoring recommended.`;
+  }
+
+  return parts.join(". ") + ".";
 }

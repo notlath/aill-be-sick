@@ -105,11 +105,14 @@ const PointDetailContent = ({
   }
 
   if (diagnosis) {
+    const anomalyReason = "reason" in point ? (point.reason as string | null) : null;
+
     return (
       <ReportDetailModal
         isOpen={true}
         onClose={onClose}
         report={diagnosis}
+        anomalyReason={anomalyReason}
       />
     );
   }
