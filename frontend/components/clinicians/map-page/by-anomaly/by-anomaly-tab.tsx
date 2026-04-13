@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useMemo, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, HelpCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { DiseaseSelect } from "../disease-select";
 import { DateRangeFilter } from "../date-range-filter";
 import ViewSelect from "../view-select";
@@ -28,7 +28,6 @@ import {
 import AnomalyPatientsModal from "./anomaly-patients-modal";
 import { AnomalyTimelineChart } from "../anomaly-timeline-chart";
 import AnomalySummary from "./anomaly-summary";
-import TopCriticalAnomalies from "./top-critical-anomalies";
 import { getSurveillanceExportData, type SurveillanceExportData } from "@/utils/report-export";
 import { ExportReportButton } from "@/components/ui/export-report-button";
 import { PdfImage } from "@/utils/pdf-export";
@@ -48,6 +47,7 @@ const ByAnomalyTab = () => {
   const { startDate, endDate, setStartDate, setEndDate } = useDateRangeStore();
 
   const [view, setView] = useState<"coordinates" | "district">("coordinates");
+  const [showInfo, setShowInfo] = useState(false);
   const generatedBy = useCurrentUser();
 
   // Modal state:
@@ -105,12 +105,6 @@ const ByAnomalyTab = () => {
           ),
     [allNormalDiagnoses, selectedDisease],
   );
-
-  const topCriticalAnomalies: SurveillanceAnomaly[] = useMemo(() => {
-    return [...anomalies]
-      .sort((a, b) => a.anomaly_score - b.anomaly_score)
-      .slice(0, 5);
-  }, [anomalies]);
 
   // ─── District view derived data ─────────────────────────────────────────────
 
@@ -179,8 +173,8 @@ const ByAnomalyTab = () => {
   }, [coordinatesModal, anomalies, normalDiagnoses]);
 
   const coordinatesModalTitle = useMemo(() => {
-    if (coordinatesModal === "anomalies") return "All Flagged Anomalies";
-    if (coordinatesModal === "normal") return "All Normal Diagnoses";
+    if (coordinatesModal === "anomalies") return "All Flagged Cases";
+    if (coordinatesModal === "normal") return "All Typical Cases";
     return "";
   }, [coordinatesModal]);
 
@@ -215,11 +209,11 @@ const ByAnomalyTab = () => {
 
   const districtStatsModalTitle = useMemo(() => {
     if (!districtModal) return "";
-    if (districtModal === "total") return "All Anomalies";
+    if (districtModal === "total") return "All Flagged Cases";
     if (districtModal === "mostAffected")
-      return `${districtStats.highestDistrict} — Anomalies`;
+      return `${districtStats.highestDistrict} — Flagged Cases`;
     if (districtModal === "affectedDistricts")
-      return "Affected Districts — Anomalies";
+      return "Affected Districts — Flagged Cases";
     return "";
   }, [districtModal, districtStats.highestDistrict]);
 
@@ -400,12 +394,12 @@ const ByAnomalyTab = () => {
             {loading ? (
               <>
                 <RefreshCw className="size-4 animate-spin" />
-                Rescanning...
+                Refreshing...
               </>
             ) : (
               <>
                 <RefreshCw className="size-4" />
-                Rescan Anomalies
+                Refresh Analysis
               </>
             )}
           </button>
@@ -422,6 +416,45 @@ const ByAnomalyTab = () => {
         </div>
       </div>
 
+      {/* What This Means info card */}
+      <Card className="border-dashed">
+        <button
+          type="button"
+          className="w-full flex items-center justify-between p-4 transition-colors"
+          onClick={() => setShowInfo(!showInfo)}
+        >
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <HelpCircle className="size-4 text-muted-foreground" />
+            How are cases flagged?
+          </div>
+          {showInfo ? (
+            <ChevronUp className="size-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="size-4 text-muted-foreground" />
+          )}
+        </button>
+        {showInfo && (
+          <div className="px-4 pb-4 text-sm text-base-content/80 space-y-2 border-t border-dashed pt-3">
+            <p>
+              This analysis automatically reviews all verified diagnosis records and flags cases 
+              that show unusual patterns. A case may be flagged for several reasons:
+            </p>
+            <ul className="list-disc list-inside space-y-1 ml-2">
+              <li><strong>Unusual location</strong> — This disease is rarely reported in this area</li>
+              <li><strong>Unusual timing</strong> — This case occurred at an unusual time of year</li>
+              <li><strong>Unusual age</strong> — The patient&apos;s age is atypical for this diagnosis</li>
+              <li><strong>Unusual gender</strong> — The patient&apos;s gender is uncommon for this diagnosis</li>
+              <li><strong>Multiple factors</strong> — Two or more reasons applied simultaneously</li>
+            </ul>
+            <p className="text-base-content/70">
+              Flagged cases do not mean the diagnosis is incorrect — they indicate patterns worth 
+              reviewing for public health surveillance. Approximately 5% of cases are expected to be 
+              flagged by design.
+            </p>
+          </div>
+        )}
+      </Card>
+
       {/* Error state */}
       {!loading && (error || geoError) ? (
         <Card className="col-span-2 border-red-200/50 bg-red-50/50">
@@ -430,7 +463,7 @@ const ByAnomalyTab = () => {
               <AlertCircle className="size-8 text-red-700" />
             </div>
             <CardTitle className="mt-4 text-red-700">
-              Error Loading Anomaly Data
+              Error Loading Flagged Cases Data
             </CardTitle>
             <p className="text-red-600 text-sm">{error || geoError}</p>
           </CardHeader>
@@ -448,13 +481,11 @@ const ByAnomalyTab = () => {
                 geoData={geoData!}
                 casesData={districtCasesData}
                 diagnoses={[] as any}
-                topAnomalies={topCriticalAnomalies}
                 onFeatureClick={handleFeatureClick}
               />
             ) : (
               <HeatmapMap
                 diagnoses={pinnedAnomalies}
-                topAnomalies={topCriticalAnomalies}
                 showReasons
               />
             )}
@@ -519,20 +550,11 @@ const ByAnomalyTab = () => {
         )}
       </div>
 
-      {/* Top Critical Cases Table below timeline */}
-      <div className="mt-6">
-        {loading ? (
-          <div className="skeleton h-[400px] w-full rounded-xl" />
-        ) : (
-          <TopCriticalAnomalies topAnomalies={topCriticalAnomalies} />
-        )}
-      </div>
-
       {/* District modal */}
       <AnomalyPatientsModal
         isOpen={!!selectedDistrict}
         onClose={handleCloseDistrictModal}
-        title={`${selectedDistrict ?? ""} — Anomalies`}
+        title={`${selectedDistrict ?? ""} — Flagged Cases`}
         anomalies={districtModalAnomalies}
         isAnomaly={true}
       />

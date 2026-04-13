@@ -96,7 +96,7 @@ const MapTabs = () => {
           By case group
         </TabsTrigger>
         <TabsTrigger value="by-anomaly" className="flex-1 sm:flex-none">
-          By anomaly
+          Flagged cases
         </TabsTrigger>
       </TabsList>
 
