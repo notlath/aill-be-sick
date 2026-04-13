@@ -1404,28 +1404,30 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
               ) : null}
 
               {/* Description */}
-              <div className="text-muted text-xs font-normal w-full max-w-full overflow-hidden text-ellipsis">
-                <span>
-                  These groups are currently based on{" "}
-                  <span className="font-medium">{appliedVariableSummary}</span>.
-                  Patients with similar details in these areas are placed in the
-                  same group
-                </span>
-                {hasPendingClusteringChanges && isAdvancedOptionsEnabled ? (
-                  <div className="alert alert-warning mt-3 py-3 px-4">
-                    <AlertCircle className="size-5" />
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">
-                        Changes pending
-                      </span>
-                      <span className="text-xs">
-                        The groups have not been updated. Click Apply to rebuild
-                        the groups using the updated settings.
-                      </span>
+              {isAdvancedOptionsEnabled ? (
+                <div className="text-muted text-xs font-normal w-full max-w-full overflow-hidden text-ellipsis">
+                  <span>
+                    These groups are currently based on{" "}
+                    <span className="font-medium">{appliedVariableSummary}</span>.
+                    Patients with similar details in these areas are placed in the
+                    same group
+                  </span>
+                  {hasPendingClusteringChanges ? (
+                    <div className="alert alert-warning mt-3 py-3 px-4">
+                      <AlertCircle className="size-5" />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium">
+                          Changes pending
+                        </span>
+                        <span className="text-xs">
+                          The groups have not been updated. Click Apply to rebuild
+                          the groups using the updated settings.
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ) : null}
-              </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {/* Apply Button */}
               {isAdvancedOptionsEnabled ? (
