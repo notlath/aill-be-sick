@@ -147,7 +147,7 @@ const ByClusterTab = () => {
                 dataUrl,
                 width: img.width,
                 height: img.height,
-                title: 'Illness Group Surveillance Map',
+                title: 'Case Group Surveillance Map',
               });
             }
           } finally {

@@ -5,8 +5,12 @@ import { Suspense } from "react";
 
 const DEFAULT_K = 4;
 
-const IllnessClusters = () => {
-  return <IllnessClustersClient initialK={DEFAULT_K} />;
+const IllnessClusters = ({
+  dateRange,
+}: {
+  dateRange?: { start: Date | null; end: Date | null };
+}) => {
+  return <IllnessClustersClient initialK={DEFAULT_K} dateRange={dateRange} />;
 };
 
 const IllnessClustersSkeleton = () => {
@@ -39,7 +43,7 @@ const IllnessClustersSkeleton = () => {
         <div className="flex items-center justify-center gap-3">
           <Loader2 className="text-primary size-8 animate-spin" />
           <p className="text-muted-foreground text-sm font-medium">
-            Loading Illness Groups...
+            Loading Case Groups...
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -59,10 +63,14 @@ const IllnessClustersSkeleton = () => {
   );
 };
 
-const IllnessClustersWrapper = () => {
+const IllnessClustersWrapper = ({
+  dateRange,
+}: {
+  dateRange?: { start: Date | null; end: Date | null };
+}) => {
   return (
     <Suspense fallback={<IllnessClustersSkeleton />}>
-      <IllnessClusters />
+      <IllnessClusters dateRange={dateRange} />
     </Suspense>
   );
 };

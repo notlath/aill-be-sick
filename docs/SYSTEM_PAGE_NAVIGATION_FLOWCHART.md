@@ -83,6 +83,7 @@ flowchart TD
 
     %% ========== CLINICIAN OPERATIONS AREA ==========
     Map --> Dashboard["/dashboard"]
+    Dashboard --> Map
     Dashboard --> Alerts["/alerts"]
     Alerts --> Reports["/healthcare-reports"]
     Reports --> Users["/users"]
@@ -204,7 +205,7 @@ flowchart TD
 ### Clinician Routes (Authenticated + Approved Clinician)
 
 - `/map` — Disease surveillance map
-- `/dashboard` — Clinician dashboard
+- `/dashboard` — Clinician dashboard (group overview cards open map via explicit **Open group on map** button)
 - `/alerts` — Alert management
 - `/healthcare-reports` — Healthcare reports and analytics
 - `/users` — Patient/user management

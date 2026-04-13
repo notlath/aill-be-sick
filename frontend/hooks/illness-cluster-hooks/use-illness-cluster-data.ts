@@ -35,7 +35,15 @@ export const useIllnessClusterData = ({
   useEffect(() => {
     let isMounted = true;
     const controller = new AbortController();
-    const { age, gender, district, time } = variables;
+    const {
+      age,
+      gender,
+      district,
+      time,
+      riskLevel,
+      symptomSeverity,
+      comorbiditiesCount,
+    } = variables;
 
     const fetchClusterData = async () => {
       setLoading(true);
@@ -46,6 +54,9 @@ export const useIllnessClusterData = ({
         gender: String(gender),
         district: String(district),
         time: String(time),
+        riskLevel: String(riskLevel),
+        symptomSeverity: String(symptomSeverity),
+        comorbiditiesCount: String(comorbiditiesCount),
       });
 
       if (startDate) params.set("start_date", startDate);
@@ -87,6 +98,9 @@ export const useIllnessClusterData = ({
     variables.gender,
     variables.district,
     variables.time,
+    variables.riskLevel,
+    variables.symptomSeverity,
+    variables.comorbiditiesCount,
     startDate,
     endDate,
   ]);

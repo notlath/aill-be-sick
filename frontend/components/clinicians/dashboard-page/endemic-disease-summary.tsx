@@ -18,11 +18,21 @@ import {
  * This helps clinicians contextualize diagnoses within local
  * epidemiological patterns.
  */
-const EndemicDiseaseSummary: React.FC = () => {
+const EndemicDiseaseSummary: React.FC<{
+  dateRange?: { start: Date | null; end: Date | null };
+}> = ({ dateRange }) => {
   const endemicDiseases = getEndemicDiseases();
   const peakSeasonDiseases = getDiseasesInPeakSeason();
 
-  const currentMonth = new Date().toLocaleString("en-US", { month: "long" });
+  // If a single month is selected via the date filter, show that month. Otherwise use current.
+  let displayMonth = new Date().toLocaleString("en-US", { month: "long" });
+  if (
+    dateRange?.start &&
+    dateRange?.end &&
+    dateRange.start.getMonth() === dateRange.end.getMonth()
+  ) {
+    displayMonth = dateRange.start.toLocaleString("en-US", { month: "long" });
+  }
 
   return (
     <Card className="border-border bg-base-200 overflow-hidden w-full">
@@ -38,11 +48,11 @@ const EndemicDiseaseSummary: React.FC = () => {
                 Endemic Disease Awareness
               </h3>
               <p className="text-xs text-base-content/60 mt-0.5">
-                {currentMonth} — Philippines regional context
+                {displayMonth} — Philippines regional context
               </p>
             </div>
           </div>
-          
+
           {peakSeasonDiseases.length > 0 && (
             <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 mt-auto">
               <div className="flex items-start gap-2">
@@ -86,14 +96,14 @@ const EndemicDiseaseSummary: React.FC = () => {
               </span>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {endemicDiseases.map((disease) => (
               <EndemicDiseaseItem
                 key={disease.value}
                 disease={disease}
                 isPeakSeason={peakSeasonDiseases.some(
-                  (d) => d.value === disease.value
+                  (d) => d.value === disease.value,
                 )}
               />
             ))}

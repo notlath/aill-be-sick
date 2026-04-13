@@ -1,12 +1,22 @@
-export type ClusterVariableKey = "age" | "gender" | "district" | "time";
+export type ClusterVariableKey =
+  | "age"
+  | "gender"
+  | "district"
+  | "time"
+  | "riskLevel"
+  | "symptomSeverity"
+  | "comorbiditiesCount";
 
 export type ClusterVariableSelection = Record<ClusterVariableKey, boolean>;
 
 export const DEFAULT_CLUSTER_VARIABLES: ClusterVariableSelection = {
   age: true,
-  gender: true,
   district: true,
-  time: false,
+  time: true,
+  gender: false,
+  riskLevel: false,
+  symptomSeverity: false,
+  comorbiditiesCount: false,
 };
 
 export const MIN_CLUSTER_COUNT = 2;
@@ -43,6 +53,10 @@ export const normalizeClusterVariables = (
     gender: input?.gender ?? fallback.gender,
     district: input?.district ?? fallback.district,
     time: input?.time ?? fallback.time,
+    riskLevel: input?.riskLevel ?? fallback.riskLevel,
+    symptomSeverity: input?.symptomSeverity ?? fallback.symptomSeverity,
+    comorbiditiesCount:
+      input?.comorbiditiesCount ?? fallback.comorbiditiesCount,
   };
 
   if (!Object.values(normalized).some(Boolean)) {

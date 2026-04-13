@@ -10,7 +10,7 @@ import React, {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, MapPin, ShieldAlert, X, Zap, Eye } from "lucide-react";
 import DiagnosisDateFilter from "../dashboard-page/clustering/diagnosis-date-filter";
 import ViewSelect from "../map-page/view-select";
 import {
@@ -84,6 +84,9 @@ const VARIABLE_LABELS: Record<keyof ClusterVariableSelection, string> = {
   gender: "Gender",
   district: "District",
   time: "Diagnosis date",
+  riskLevel: "Risk level",
+  symptomSeverity: "Symptom severity",
+  comorbiditiesCount: "Other health conditions",
 };
 
 const toVariableLabelList = (variables: ClusterVariableSelection) =>
@@ -105,6 +108,62 @@ const formatReadableList = (items: string[]) => {
   }
 
   return `${items.slice(0, -1).join(", ")}, and ${items[items.length - 1]}`;
+};
+
+type ClusterVariablePresetKey =
+  | "recommended-default"
+  | "outbreak-detection"
+  | "high-risk-cases";
+
+const CLUSTER_VARIABLE_PRESETS: Record<
+  ClusterVariablePresetKey,
+  {
+    label: string;
+    description: string;
+    variables: ClusterVariableSelection;
+  }
+> = {
+  "recommended-default": {
+    label: "Quick View",
+    description: "Best for general monitoring and situational awareness",
+    variables: {
+      ...DEFAULT_CLUSTER_VARIABLES,
+      age: true,
+      district: true,
+      time: true,
+      gender: false,
+      riskLevel: false,
+      symptomSeverity: false,
+      comorbiditiesCount: false,
+    },
+  },
+  "outbreak-detection": {
+    label: "Outbreak",
+    description: "Prioritizes location, time, and severity to catch outbreaks",
+    variables: {
+      ...DEFAULT_CLUSTER_VARIABLES,
+      age: true,
+      district: true,
+      time: true,
+      riskLevel: true,
+      symptomSeverity: true,
+      comorbiditiesCount: false,
+    },
+  },
+  "high-risk-cases": {
+    label: "High Risk",
+    description:
+      "Groups patients with severe symptoms and pre-existing conditions",
+    variables: {
+      ...DEFAULT_CLUSTER_VARIABLES,
+      age: true,
+      district: true,
+      riskLevel: false,
+      symptomSeverity: true,
+      comorbiditiesCount: true,
+      time: false,
+    },
+  },
 };
 
 // Date conversion utilities
@@ -130,7 +189,10 @@ const areVariablesEqual = (
     left.age === right.age &&
     left.gender === right.gender &&
     left.district === right.district &&
-    left.time === right.time
+    left.time === right.time &&
+    left.riskLevel === right.riskLevel &&
+    left.symptomSeverity === right.symptomSeverity &&
+    left.comorbiditiesCount === right.comorbiditiesCount
   );
 };
 
@@ -148,6 +210,9 @@ const buildRecommendationSignature = (
     variables.gender ? "1" : "0",
     variables.district ? "1" : "0",
     variables.time ? "1" : "0",
+    variables.riskLevel ? "1" : "0",
+    variables.symptomSeverity ? "1" : "0",
+    variables.comorbiditiesCount ? "1" : "0",
     startDate,
     endDate,
   ].join("|");
@@ -264,6 +329,7 @@ export interface ClusteringControlPanelProps {
   initialK?: number;
   onClusterDataChange?: (data: IllnessClusterData | null) => void;
   children?: (props: ClusteringControlPanelRenderProps) => React.ReactNode;
+  externalDateRange?: { start: Date | null; end: Date | null };
 }
 
 export interface ClusteringControlPanelRenderProps {
@@ -299,6 +365,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   initialK = DEFAULT_CLUSTER_COUNT,
   onClusterDataChange,
   children,
+  externalDateRange,
 }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -441,7 +508,10 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   const hasCompletedInitialUrlHydrationRef = useRef<boolean>(
     !hasExplicitClusterQuery,
   );
-  const [exportButtonTarget, setExportButtonTarget] = useState<HTMLDivElement | null>(null);
+  const [exportButtonTarget, setExportButtonTarget] =
+    useState<HTMLDivElement | null>(null);
+  const [isAdvancedOptionsEnabled, setIsAdvancedOptionsEnabled] =
+    useState<boolean>(false);
 
   const syncCachedRecommendation = useCallback(
     (params: {
@@ -477,6 +547,19 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     },
     [],
   );
+
+  useEffect(() => {
+    if (
+      externalDateRange &&
+      (!areSameDateValue(appliedDateRangeStart, externalDateRange.start) ||
+        !areSameDateValue(appliedDateRangeEnd, externalDateRange.end))
+    ) {
+      setAppliedDateRangeStart(externalDateRange.start);
+      setAppliedDateRangeEnd(externalDateRange.end);
+      setDateRangeStart(externalDateRange.start);
+      setDateRangeEnd(externalDateRange.end);
+    }
+  }, [externalDateRange, appliedDateRangeStart, appliedDateRangeEnd]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -633,12 +716,12 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     draftRecommendationSignature,
   ]);
 
-  // Sync recommendation to input
+  // Sync recommendation to input for basic flow.
   useEffect(() => {
-    if (displayedRecommendedK) {
+    if (!isAdvancedOptionsEnabled && displayedRecommendedK) {
       setKInput(String(displayedRecommendedK));
     }
-  }, [displayedRecommendedK]);
+  }, [displayedRecommendedK, isAdvancedOptionsEnabled]);
 
   // Rehydrate from persisted preferences when URL has no explicit clustering state.
   useEffect(() => {
@@ -951,6 +1034,10 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     [selectedVariables],
   );
 
+  const handleApplyPreset = useCallback((preset: ClusterVariablePresetKey) => {
+    setSelectedVariables({ ...CLUSTER_VARIABLE_PRESETS[preset].variables });
+  }, []);
+
   const applyClusteringWithK = useCallback(
     (clusterCount: number) => {
       const nextK = clampK(clusterCount);
@@ -971,7 +1058,11 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     (e: React.FormEvent) => {
       e.preventDefault();
 
-      const hasPendingGroupCountChange = clampK(parseInt(kInput, 10)) !== k;
+      const nextBasicK = clampK(displayedRecommendedK ?? k);
+      const nextAdvancedK = clampK(parseInt(kInput, 10));
+      const nextK = isAdvancedOptionsEnabled ? nextAdvancedK : nextBasicK;
+
+      const hasPendingGroupCountChange = nextK !== k;
       const hasPendingVariableChange = (
         Object.keys(selectedVariables) as Array<keyof ClusterVariableSelection>
       ).some((key) => selectedVariables[key] !== appliedVariables[key]);
@@ -987,9 +1078,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
         return;
       }
 
-      const nextK = clampK(parseInt(kInput, 10));
-
-      if (loadingRecommendation) {
+      if (loadingRecommendation && !displayedRecommendedK) {
         setPendingK(nextK);
         setShowConfirmModal(true);
         return;
@@ -1009,6 +1098,8 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       loadingRecommendation,
       clampK,
       applyClusteringWithK,
+      displayedRecommendedK,
+      isAdvancedOptionsEnabled,
     ],
   );
 
@@ -1059,12 +1150,39 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     hasPendingVariableChanges || hasPendingDateRangeChanges;
 
   const hasPendingGroupCountChange = useMemo(() => {
-    const normalizedInputK = clampK(parseInt(kInput, 10));
+    const normalizedInputK = isAdvancedOptionsEnabled
+      ? clampK(parseInt(kInput, 10))
+      : clampK(displayedRecommendedK ?? k);
+
     return normalizedInputK !== k;
-  }, [kInput, k, clampK]);
+  }, [kInput, k, clampK, displayedRecommendedK, isAdvancedOptionsEnabled]);
 
   const hasPendingClusteringChanges =
     hasPendingFilterChanges || hasPendingGroupCountChange;
+
+  useEffect(() => {
+    if (isAdvancedOptionsEnabled || !hasPendingFilterChanges) {
+      return;
+    }
+
+    if (loadingRecommendation) {
+      return;
+    }
+
+    if (typeof displayedRecommendedK !== "number") {
+      return;
+    }
+
+    const nextK = clampK(displayedRecommendedK);
+    applyClusteringWithK(nextK);
+  }, [
+    isAdvancedOptionsEnabled,
+    hasPendingFilterChanges,
+    loadingRecommendation,
+    displayedRecommendedK,
+    clampK,
+    applyClusteringWithK,
+  ]);
 
   const modalRoot = isMounted ? document.body : null;
   const confirmModal = (
@@ -1105,9 +1223,12 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
     </div>
   );
 
+  const isGlobalLoading =
+    loading || (loadingRecommendation && !displayedRecommendedK);
+
   const renderProps: ClusteringControlPanelRenderProps = {
     clusterData,
-    loading,
+    loading: isGlobalLoading,
     error,
     selectedClusterDisplay,
     selectedClusterIndex,
@@ -1135,54 +1256,100 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
           >
             {/* Variable Selection */}
             <div>
-              <h2 className="text-base font-semibold">Select variables</h2>
+              <div className="flex items-start gap-2">
+                <h2 className="text-base font-semibold leading-7">
+                  Select variables
+                </h2>
+              </div>
               <div className="flex flex-wrap items-center gap-3 mt-1.5">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.age ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.age}
-                      onChange={() => handleVariableChange("age")}
-                    />
-                    <span>Age</span>
-                  </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.gender ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.gender}
-                      onChange={() => handleVariableChange("gender")}
-                    />
-                    <span>Gender</span>
-                  </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.district ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.district}
-                      onChange={() => handleVariableChange("district")}
-                    />
-                    <span>District</span>
-                  </label>
-                  <label
-                    className={`btn btn-sm cursor-pointer font-normal ${selectedVariables.time ? "btn-primary" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="hidden"
-                      checked={selectedVariables.time}
-                      onChange={() => handleVariableChange("time")}
-                    />
-                    <span>Diagnosis date</span>
-                  </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-base-content/70">Presets:</span>
+                  {(
+                    Object.keys(
+                      CLUSTER_VARIABLE_PRESETS,
+                    ) as ClusterVariablePresetKey[]
+                  ).map((presetKey) => (
+                    <div key={presetKey} className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        className={`btn btn-sm ${areVariablesEqual(selectedVariables, CLUSTER_VARIABLE_PRESETS[presetKey].variables) ? "btn-primary" : "btn-outline"}`}
+                        onClick={() => handleApplyPreset(presetKey)}
+                        title={CLUSTER_VARIABLE_PRESETS[presetKey].description}
+                      >
+                        <span className="mr-1.5">
+                          {presetKey === "recommended-default" ? (
+                            <Eye className="h-3 w-3" />
+                          ) : presetKey === "outbreak-detection" ? (
+                            <Zap className="h-3 w-3" />
+                          ) : presetKey === "high-risk-cases" ? (
+                            <ShieldAlert className="h-3 w-3" />
+                          ) : (
+                            <MapPin className="h-3 w-3" />
+                          )}
+                        </span>
+                        {CLUSTER_VARIABLE_PRESETS[presetKey].label}
+                      </button>
+                    </div>
+                  ))}
                 </div>
+                <div className="w-full">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm px-2"
+                    onClick={() =>
+                      setIsAdvancedOptionsEnabled(
+                        (previousValue) => !previousValue,
+                      )
+                    }
+                  >
+                    {isAdvancedOptionsEnabled
+                      ? "Hide advanced options"
+                      : "Show advanced options"}
+                  </button>
+                </div>
+
+                {isAdvancedOptionsEnabled ? (
+                  <div className="flex flex-wrap gap-2 w-full">
+                    {(
+                      Object.keys(
+                        DEFAULT_CLUSTER_VARIABLES,
+                      ) as Array<keyof ClusterVariableSelection>
+                    ).map((key) => {
+                      const isSelected = selectedVariables[key];
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          className={`btn btn-sm rounded-full px-4 transition-all ${
+                            isSelected
+                              ? "btn-primary"
+                              : "btn-ghost border-base-300 border hover:border-primary/50"
+                          }`}
+                          title={
+                            key === "age"
+                              ? "Patient's age helps identify vulnerable populations like children and older adults"
+                              : key === "gender"
+                                ? "Patient sex can reveal differences in affected groups"
+                                : key === "district"
+                                  ? "District helps identify where cases are concentrating"
+                                  : key === "riskLevel"
+                                    ? "Risk level helps prioritize urgent cases"
+                                    : key === "symptomSeverity"
+                                      ? "Symptom severity shows how intense symptoms are"
+                                      : key === "comorbiditiesCount"
+                                        ? "Other health conditions may increase complications"
+                                        : key === "time"
+                                          ? "Diagnosis date helps detect timing and trend changes"
+                                          : ""
+                          }
+                          onClick={() => handleVariableChange(key)}
+                        >
+                          {VARIABLE_LABELS[key]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -1191,75 +1358,99 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
               {enableViewToggle ? (
                 <ViewSelect value={view} onValueChange={setView} />
               ) : null}
-              <DiagnosisDateFilter
-                currentStartDate={dateRangeStart}
-                currentEndDate={dateRangeEnd}
-                onDateRangeChange={handleDateRangeChange}
-                loading={loading}
-              />
-
-              {/* Groups Input */}
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <label htmlFor="cluster-k-input" className="text-xs">
-                  Groups:
-                </label>
-                <Input
-                  id="cluster-k-input"
-                  type="number"
-                  className="input h-7 w-17 text-xs font-medium"
-                  min={2}
-                  max={25}
-                  value={kInput}
-                  onChange={(e) => setKInput(e.target.value)}
-                  disabled={loading}
+              {externalDateRange === undefined ? (
+                <DiagnosisDateFilter
+                  currentStartDate={dateRangeStart}
+                  currentEndDate={dateRangeEnd}
+                  onDateRangeChange={handleDateRangeChange}
+                  loading={loading}
                 />
+              ) : null}
 
-                <span className="text-muted flex items-center gap-1.5 text-xs font-normal">
-                  {loadingRecommendation ? (
-                    <>
-                      <Loader2 className="size-3 animate-spin" />
-                      Calculating recommendation...
-                    </>
-                  ) : displayedRecommendedK ? (
-                    <>Recommended: {displayedRecommendedK} groups</>
-                  ) : (
-                    <>Recommended: 2-25 groups</>
-                  )}
-                </span>
-                {!loadingRecommendation && recommendationMessage ? (
-                  <span className="text-warning text-xs font-medium w-full sm:w-auto">
-                    {recommendationMessage}
+              {isAdvancedOptionsEnabled ? (
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <span className="text-muted flex items-center gap-1.5 text-xs font-normal">
+                    {!isGlobalLoading && displayedRecommendedK ? (
+                      <>Recommended: {displayedRecommendedK} groups</>
+                    ) : !isGlobalLoading ? (
+                      <>Recommended: Current group count ({k})</>
+                    ) : null}
                   </span>
-                ) : null}
-              </div>
+
+                  {!isGlobalLoading && recommendationMessage ? (
+                    <span className="text-warning text-xs font-medium w-full sm:w-auto">
+                      {recommendationMessage}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {isAdvancedOptionsEnabled ? (
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  <label htmlFor="cluster-k-input" className="text-xs">
+                    Groups:
+                  </label>
+                  <Input
+                    id="cluster-k-input"
+                    type="number"
+                    className="input h-7 w-17 text-xs font-medium"
+                    min={2}
+                    max={25}
+                    value={kInput}
+                    onChange={(e) => setKInput(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+              ) : null}
 
               {/* Description */}
-              <div className="text-muted text-xs font-normal w-full max-w-full overflow-hidden text-ellipsis">
-                <span>
-                  These groups are currently based on{" "}
-                  <span className="font-medium">{appliedVariableSummary}</span>.
-                  Patients with similar details in these areas are placed in the
-                  same group
-                </span>
-                {hasPendingClusteringChanges ? (
-                  <span className="block mt-1">
-                    The groups have not been updated. Click Apply to rebuild the
-                    groups using the updated settings
+              {isAdvancedOptionsEnabled ? (
+                <div className="text-muted text-xs font-normal w-full max-w-full overflow-hidden text-ellipsis">
+                  <span>
+                    These groups are currently based on{" "}
+                    <span className="font-medium">{appliedVariableSummary}</span>.
+                    Patients with similar details in these areas are placed in the
+                    same group
                   </span>
-                ) : null}
-              </div>
+                  {hasPendingClusteringChanges ? (
+                    <div className="alert alert-warning mt-3 py-3 px-4">
+                      <AlertCircle className="size-5" />
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium">
+                          Changes pending
+                        </span>
+                        <span className="text-xs">
+                          The groups have not been updated. Click Apply to rebuild
+                          the groups using the updated settings.
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               {/* Apply Button */}
-              <div>
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-sm w-fit mt-1"
-                  title="Apply group settings"
-                  disabled={loading || !hasPendingClusteringChanges}
-                >
-                  {loading ? "Applying..." : "Apply"}
-                </button>
-              </div>
+              {isAdvancedOptionsEnabled ? (
+                <div className="mt-2">
+                  <button
+                    type="submit"
+                    className={`btn btn-sm w-full sm:w-fit ${hasPendingClusteringChanges ? "btn-primary" : "btn-ghost"} ${loading ? "animate-pulse" : ""}`}
+                    title="Apply group settings"
+                    disabled={loading || !hasPendingClusteringChanges}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        Applying...
+                      </>
+                    ) : hasPendingClusteringChanges ? (
+                      "Apply changes"
+                    ) : (
+                      "No changes pending"
+                    )}
+                  </button>
+                </div>
+              ) : null}
             </div>
           </form>
 
@@ -1274,7 +1465,9 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       </div>
 
       {/* Cluster Selection Dropdown */}
-      {showClusterSelector && !loading && clusterDisplayOptions.length > 0 ? (
+      {showClusterSelector &&
+      !isGlobalLoading &&
+      clusterDisplayOptions.length > 0 ? (
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-base-content/70">
             Select group:
@@ -1300,8 +1493,8 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
       ) : null}
 
       {/* Error Display */}
-      {!loading && error ? (
-        <div className="alert alert-error">
+      {!isGlobalLoading && error ? (
+        <div className="alert alert-error my-4 p-4 shadow-md animate-pulse">
           <AlertCircle className="size-5" />
           <span>{error}</span>
         </div>

@@ -224,6 +224,7 @@ export interface IllnessClusterStatistics {
   disease_distribution: Record<string, { count: number; percent: number }>;
   top_diseases: { disease: string; count: number }[];
   avg_patient_age: number;
+  median_patient_age?: number;
   min_patient_age: number;
   max_patient_age: number;
   gender_distribution: GenderDistribution;
@@ -233,6 +234,19 @@ export interface IllnessClusterStatistics {
   top_barangays?: BarangayCount[];
   top_districts?: { district: string; count: number }[];
   temporal_distribution?: Record<string, number>;
+  avg_risk_level?: number;
+  high_risk_percentage?: number;
+  avg_symptom_severity?: number;
+  avg_comorbidities_count?: number;
+  triage_score?: number;
+  insight_tags?: string[];
+  clinical_label?: string;
+  clinical_insight?: string;
+  primary_disease?: string;
+  primary_location?: string;
+  age_range?: string;
+  risk_assessment?: "HIGH" | "MEDIUM" | "LOW";
+  recommendations?: string[];
 }
 
 export interface IllnessClusterData {

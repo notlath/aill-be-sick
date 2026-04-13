@@ -26,6 +26,25 @@ def _parse_bool(value, default=True):
     return str(value).lower() in {"1", "true", "yes", "on"}
 
 
+def _parse_bool_with_validation(value, default, field_name):
+    """Parse boolean query values and fail fast on invalid inputs."""
+    if value is None:
+        return default
+
+    normalized = str(value).strip().lower()
+    truthy = {"1", "true", "yes", "on"}
+    falsy = {"0", "false", "no", "off"}
+
+    if normalized in truthy:
+        return True
+    if normalized in falsy:
+        return False
+
+    raise ValueError(
+        f"Invalid boolean value for '{field_name}'. Use true/false (or 1/0)."
+    )
+
+
 @cluster_bp.route("/api/patient-clusters", methods=["GET"])
 def patient_clusters():
     try:
@@ -203,6 +222,21 @@ def illness_clusters():
         include_gender = _parse_bool(request.args.get("gender"), True)
         include_district = _parse_bool(request.args.get("district"), True)
         include_time = _parse_bool(request.args.get("time"), False)
+        include_risk_level = _parse_bool_with_validation(
+            request.args.get("riskLevel"),
+            False,
+            "riskLevel",
+        )
+        include_symptom_severity = _parse_bool_with_validation(
+            request.args.get("symptomSeverity"),
+            False,
+            "symptomSeverity",
+        )
+        include_comorbidities_count = _parse_bool_with_validation(
+            request.args.get("comorbiditiesCount"),
+            False,
+            "comorbiditiesCount",
+        )
         diagnosis_month = request.args.get("month")
         diagnosis_week = request.args.get("week")
         start_date = request.args.get("start_date")
@@ -223,6 +257,9 @@ def illness_clusters():
             include_gender=include_gender,
             include_district=include_district,
             include_time=include_time,
+            include_risk_level=include_risk_level,
+            include_symptom_severity=include_symptom_severity,
+            include_comorbidities_count=include_comorbidities_count,
             diagnosis_month=diagnosis_month,
             diagnosis_week=diagnosis_week,
             start_date=start_date,
@@ -232,7 +269,10 @@ def illness_clusters():
         if data.size == 0:
             return jsonify({"error": "No diagnosis data available"}), 404
 
-        n_clusters = min(n_clusters, len(data))
+        unique_diseases = len(set(illness.get("disease") for illness in illness_info if illness.get("disease")))
+        dynamic_k = min(n_clusters, unique_diseases)
+        dynamic_k = max(dynamic_k, 1)
+        n_clusters = dynamic_k
 
         # Run K-means clustering
         clusters, centers = run_illness_kmeans(data, n_clusters=n_clusters)
@@ -304,6 +344,21 @@ def illness_clusters_silhouette():
         include_gender = _parse_bool(request.args.get("gender"), True)
         include_district = _parse_bool(request.args.get("district"), True)
         include_time = _parse_bool(request.args.get("time"), False)
+        include_risk_level = _parse_bool_with_validation(
+            request.args.get("riskLevel"),
+            False,
+            "riskLevel",
+        )
+        include_symptom_severity = _parse_bool_with_validation(
+            request.args.get("symptomSeverity"),
+            False,
+            "symptomSeverity",
+        )
+        include_comorbidities_count = _parse_bool_with_validation(
+            request.args.get("comorbiditiesCount"),
+            False,
+            "comorbiditiesCount",
+        )
         diagnosis_month = request.args.get("month")
         diagnosis_week = request.args.get("week")
         start_date = request.args.get("start_date")
@@ -324,6 +379,9 @@ def illness_clusters_silhouette():
             include_gender=include_gender,
             include_district=include_district,
             include_time=include_time,
+            include_risk_level=include_risk_level,
+            include_symptom_severity=include_symptom_severity,
+            include_comorbidities_count=include_comorbidities_count,
             diagnosis_month=diagnosis_month,
             diagnosis_week=diagnosis_week,
             start_date=start_date,

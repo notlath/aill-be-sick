@@ -129,6 +129,129 @@ TRIAGE_MEDIUM_UNCERTAINTY_MAX = float(
 # Confidence below 70% OR high uncertainty (>0.08)
 # Note: TRIAGE_MEDIUM_CONFIDENCE_MIN serves as the threshold
 
+# --- Illness Clustering Derived Variables & Actionable Insights ---
+
+# Risk derivation thresholds and weights
+ILLNESS_CLUSTER_RISK_HIGH_THRESHOLD = float(
+    os.getenv("ILLNESS_CLUSTER_RISK_HIGH_THRESHOLD", "0.67")
+)
+ILLNESS_CLUSTER_RISK_MEDIUM_THRESHOLD = float(
+    os.getenv("ILLNESS_CLUSTER_RISK_MEDIUM_THRESHOLD", "0.34")
+)
+ILLNESS_CLUSTER_RISK_UNCERTAINTY_CAP = float(
+    os.getenv("ILLNESS_CLUSTER_RISK_UNCERTAINTY_CAP", "0.25")
+)
+ILLNESS_CLUSTER_RISK_LOW_CONFIDENCE_WEIGHT = float(
+    os.getenv("ILLNESS_CLUSTER_RISK_LOW_CONFIDENCE_WEIGHT", "0.20")
+)
+ILLNESS_CLUSTER_RISK_UNCERTAINTY_WEIGHT = float(
+    os.getenv("ILLNESS_CLUSTER_RISK_UNCERTAINTY_WEIGHT", "0.30")
+)
+ILLNESS_CLUSTER_RISK_AGE_WEIGHT = float(
+    os.getenv("ILLNESS_CLUSTER_RISK_AGE_WEIGHT", "0.10")
+)
+ILLNESS_CLUSTER_RISK_DISEASE_WEIGHT = float(
+    os.getenv("ILLNESS_CLUSTER_RISK_DISEASE_WEIGHT", "0.40")
+)
+ILLNESS_CLUSTER_RISK_NORMALIZATION_MAX = float(
+    os.getenv("ILLNESS_CLUSTER_RISK_NORMALIZATION_MAX", "1.5")
+)
+ILLNESS_CLUSTER_RISK_DISEASE_BASE = {
+    "DENGUE": 0.85,
+    "PNEUMONIA": 0.75,
+    "TYPHOID": 0.65,
+    "MEASLES": 0.60,
+    "DIARRHEA": 0.45,
+    "INFLUENZA": 0.40,
+    "UNKNOWN": 0.50,
+}
+
+# Symptom severity derivation thresholds and weights
+ILLNESS_CLUSTER_SEVERITY_HIGH_THRESHOLD = float(
+    os.getenv("ILLNESS_CLUSTER_SEVERITY_HIGH_THRESHOLD", "0.67")
+)
+ILLNESS_CLUSTER_SEVERITY_MEDIUM_THRESHOLD = float(
+    os.getenv("ILLNESS_CLUSTER_SEVERITY_MEDIUM_THRESHOLD", "0.34")
+)
+ILLNESS_CLUSTER_SEVERITY_COUNT_CAP = int(
+    os.getenv("ILLNESS_CLUSTER_SEVERITY_COUNT_CAP", "10")
+)
+ILLNESS_CLUSTER_SEVERITY_HIGH_IMPACT_WEIGHT = float(
+    os.getenv("ILLNESS_CLUSTER_SEVERITY_HIGH_IMPACT_WEIGHT", "0.55")
+)
+ILLNESS_CLUSTER_SEVERITY_BURDEN_WEIGHT = float(
+    os.getenv("ILLNESS_CLUSTER_SEVERITY_BURDEN_WEIGHT", "0.45")
+)
+ILLNESS_CLUSTER_SEVERITY_KEYWORDS_HIGH_IMPACT = {
+    "chest pain",
+    "difficulty breathing",
+    "shortness of breath",
+    "bleeding",
+    "blood",
+    "dehydration",
+    "severe",
+    "persistent",
+    "matinding",
+    "hirap huminga",
+    "pagdurugo",
+    "dugo",
+    "malubha",
+    "hindi makahinga",
+}
+
+# Comorbidity keyword list and normalization caps
+ILLNESS_CLUSTER_COMORBIDITY_KEYWORDS = {
+    "diabetes",
+    "hypertension",
+    "high blood",
+    "heart disease",
+    "asthma",
+    "copd",
+    "kidney disease",
+    "ckd",
+    "cancer",
+    "immunocompromised",
+    "obesity",
+    "stroke",
+    "tb",
+    "tuberculosis",
+    "hika",
+    "altapresyon",
+    "alta presyon",
+    "diabetic",
+    "sakit sa puso",
+    "sakit sa bato",
+}
+ILLNESS_CLUSTER_COMORBIDITY_COUNT_CAP = int(
+    os.getenv("ILLNESS_CLUSTER_COMORBIDITY_COUNT_CAP", "5")
+)
+
+# Actionable triage score weights and insight thresholds
+ILLNESS_CLUSTER_TRIAGE_RISK_WEIGHT = float(
+    os.getenv("ILLNESS_CLUSTER_TRIAGE_RISK_WEIGHT", "0.45")
+)
+ILLNESS_CLUSTER_TRIAGE_SEVERITY_WEIGHT = float(
+    os.getenv("ILLNESS_CLUSTER_TRIAGE_SEVERITY_WEIGHT", "0.35")
+)
+ILLNESS_CLUSTER_TRIAGE_COMORBIDITY_WEIGHT = float(
+    os.getenv("ILLNESS_CLUSTER_TRIAGE_COMORBIDITY_WEIGHT", "0.20")
+)
+ILLNESS_CLUSTER_TRIAGE_HIGH_RISK_THRESHOLD = float(
+    os.getenv("ILLNESS_CLUSTER_TRIAGE_HIGH_RISK_THRESHOLD", "70.0")
+)
+ILLNESS_CLUSTER_TRIAGE_MEDIUM_RISK_THRESHOLD = float(
+    os.getenv("ILLNESS_CLUSTER_TRIAGE_MEDIUM_RISK_THRESHOLD", "45.0")
+)
+ILLNESS_CLUSTER_INSIGHT_HIGH_RISK_PERCENT = float(
+    os.getenv("ILLNESS_CLUSTER_INSIGHT_HIGH_RISK_PERCENT", "40.0")
+)
+ILLNESS_CLUSTER_INSIGHT_SEVERITY_PERCENT = float(
+    os.getenv("ILLNESS_CLUSTER_INSIGHT_SEVERITY_PERCENT", "45.0")
+)
+ILLNESS_CLUSTER_INSIGHT_COMORBIDITY_AVG = float(
+    os.getenv("ILLNESS_CLUSTER_INSIGHT_COMORBIDITY_AVG", "1.5")
+)
+
 # --- Medical Keywords for Semantic Filtering ---
 # Basic health-related terms used to validate that input is medical in nature
 MEDICAL_KEYWORDS_EN = {

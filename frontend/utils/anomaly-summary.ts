@@ -262,7 +262,8 @@ export function generateClinicalTakeaway(
   if (topDistrict && district_distribution.length > 1) {
     const topPct = district_distribution[0].percent;
     if (topPct >= 50) {
-      parts.push(`Cases concentrated in ${topDistrict}`);
+      const districtText = `Cases concentrated in ${topDistrict}`;
+      parts.push(districtText.charAt(0).toUpperCase() + districtText.slice(1));
     }
   }
 
