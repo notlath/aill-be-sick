@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import type { ReportColumn, ReportFormat } from "@/utils/report-export";
 
-const FORMAT_OPTIONS: { value: ReportFormat; label: string }[] = [
+export const FORMAT_OPTIONS: { value: ReportFormat; label: string }[] = [
   { value: "pdf", label: "PDF" },
   { value: "csv", label: "CSV" },
   { value: "json", label: "JSON" },
@@ -25,6 +25,7 @@ interface ExportReportModalProps {
   title: string;
   filenameSlug: string;
   disabled?: boolean;
+  availableFormats?: { value: ReportFormat; label: string }[];
 }
 
 export function ExportReportModal({
@@ -34,6 +35,7 @@ export function ExportReportModal({
   title,
   filenameSlug,
   disabled = false,
+  availableFormats = FORMAT_OPTIONS,
 }: ExportReportModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [selectedFormat, setSelectedFormat] = useState<ReportFormat>("pdf");
@@ -93,7 +95,7 @@ export function ExportReportModal({
               <SelectValue placeholder="Select format" />
             </SelectTrigger>
             <SelectContent>
-              {FORMAT_OPTIONS.map((opt) => (
+              {availableFormats.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
                 </SelectItem>

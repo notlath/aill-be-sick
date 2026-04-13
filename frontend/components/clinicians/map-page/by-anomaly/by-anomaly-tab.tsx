@@ -412,6 +412,7 @@ const ByAnomalyTab = () => {
             disabled={loading}
             images={captureImages}
             generatedBy={generatedBy}
+            context="ALERT_ANOMALIES"
           />
         </div>
       </div>

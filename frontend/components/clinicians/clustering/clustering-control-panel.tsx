@@ -36,6 +36,8 @@ import {
   serializeIllnessClusterNavigationQuery,
 } from "@/utils/illness-cluster-navigation";
 import type { IllnessClusterData } from "@/types";
+import { ExportReportButton } from "@/components/ui/export-report-button";
+
 import useClusteringPreferencesStore from "@/stores/use-clustering-preferences-store";
 
 type ClusteringPreferencesPersistApi = {
@@ -323,6 +325,7 @@ export interface ClusteringControlPanelProps {
   enableViewToggle?: boolean;
   enableUrlSync?: boolean;
   showClusterSelector?: boolean;
+  showExportButton?: boolean;
   initialK?: number;
   onClusterDataChange?: (data: IllnessClusterData | null) => void;
   children?: (props: ClusteringControlPanelRenderProps) => React.ReactNode;
@@ -347,12 +350,18 @@ export interface ClusteringControlPanelRenderProps {
   appliedStartDate: string;
   appliedEndDate: string;
   exportButtonTarget: HTMLDivElement | null;
+  exportData?: {
+    data: Record<string, unknown>[];
+    title: string;
+    images?: () => Promise<import("@/utils/pdf-export").PdfImage[]>;
+  };
 }
 
 const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
   enableViewToggle = false,
   enableUrlSync = true,
   showClusterSelector = true,
+  showExportButton = true,
   initialK = DEFAULT_CLUSTER_COUNT,
   onClusterDataChange,
   children,
@@ -1464,7 +1473,7 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
           <Select
             value={selectedClusterDisplay}
             onValueChange={(value) => setSelectedClusterDisplay(value)}
-            className="w-auto"
+            className="w-65"
           >
             <SelectTrigger className="w-65">
               <SelectValue placeholder="Select group" />
@@ -1486,6 +1495,26 @@ const ClusteringControlPanel: React.FC<ClusteringControlPanelProps> = ({
         <div className="alert alert-error my-4 p-4 shadow-md animate-pulse">
           <AlertCircle className="size-5" />
           <span>{error}</span>
+        </div>
+      ) : null}
+
+      {/* Export Report Button */}
+      {showExportButton && !loading && clusterData && clusterData.illnesses.length > 0 ? (
+        <div className="flex justify-end mt-4">
+          <ExportReportButton
+            data={clusterData.illnesses as unknown as Record<string, unknown>[]}
+            columns={[
+              { header: "ID", dataKey: "id" },
+              { header: "Disease", dataKey: "disease" },
+              { header: "District", dataKey: "district" },
+              { header: "Created At", dataKey: "createdAt" },
+              { header: "Cluster", dataKey: "cluster" },
+            ]}
+            filenameSlug={`patterns-clustering-${formatDateToString(new Date())}`}
+            title="Strategic Barangay Action Plan - Patterns Analysis"
+            generatedBy={undefined}
+            context="PATTERNS_CLUSTERING"
+          />
         </div>
       ) : null}
 
