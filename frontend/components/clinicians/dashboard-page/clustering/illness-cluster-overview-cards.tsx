@@ -10,7 +10,6 @@ import {
   MapPin,
   Users,
   AlertCircle,
-  FileText,
   Activity,
   Heart,
   Tag,
@@ -240,7 +239,7 @@ const IllnessClusterOverviewCards: React.FC<
                   router.push(mapHref);
                 }}
               >
-                <MapPin className="size-3.5 mr-1" /> Map
+                <MapPin className="size-3.5 mr-1" /> View Map
               </button>
             </div>
           </div>
@@ -319,8 +318,15 @@ const IllnessClusterOverviewCards: React.FC<
 
               {topDiseasesText && (
                 <div className="pt-1.5 border-t border-black/5 dark:border-white/5">
-                  <span className="font-medium">Diseases:</span>{" "}
-                  <span className="font-semibold text-base-content/90">{topDiseasesText}</span>
+                  <div className="font-medium text-base-content/70 mb-1.5">Diseases</div>
+                  <div className="space-y-1 text-xs">
+                    {stat.top_diseases.slice(0, 3).map((d, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <span className="font-medium text-base-content/90 capitalize">{d.disease}</span>
+                        <span className="text-base-content/80 tabular-nums">{d.count}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -429,12 +435,14 @@ const IllnessClusterOverviewCards: React.FC<
                 <div>
                   <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
                     <Activity className={`size-3.5 ${theme.accentText}`} />
-                    Symptom Severity
+                    Symptom severity
                   </div>
                   <div className="rounded-lg border border-base-300 p-2">
-                    <div className="font-semibold text-base-content">
-                      {stat.avg_symptom_severity.toFixed(1)}
-                      <span className="text-base-content/60 text-sm ml-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-base-content tabular-nums">
+                        {stat.avg_symptom_severity.toFixed(1)}
+                      </span>
+                      <span className="text-base-content/60 text-xs">
                         {stat.avg_symptom_severity >= 7 ? "(High)" : stat.avg_symptom_severity >= 4 ? "(Medium)" : "(Low)"}
                       </span>
                     </div>
@@ -446,15 +454,15 @@ const IllnessClusterOverviewCards: React.FC<
                 <div>
                   <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
                     <Heart className={`size-3.5 ${theme.accentText}`} />
-                    Comorbidities
+                    Other conditions
                   </div>
                   <div className="rounded-lg border border-base-300 p-2">
-                    <div className="font-semibold text-base-content">
-                      {stat.avg_comorbidities_count.toFixed(1)} avg
-                    </div>
-                    <div className="text-xs text-base-content/60">
+                    <div className="text-xs text-base-content/60 mb-1">
                       {stat.avg_comorbidities_count > 1 ? "High comorbidity rate" : stat.avg_comorbidities_count > 0.5 ? "Moderate" : "Mostly healthy patients"}
                     </div>
+                    <span className="font-semibold text-base-content tabular-nums">
+                      {stat.avg_comorbidities_count.toFixed(1)} avg
+                    </span>
                   </div>
                 </div>
               )}
@@ -478,26 +486,19 @@ const IllnessClusterOverviewCards: React.FC<
               <div>
                 <div className="mb-2 flex items-center gap-2 font-semibold text-base-content/80">
                   <Users className={`size-3.5 ${theme.accentText}`} />
-                  Demographics
+                  Gender
                 </div>
-                <div className="rounded-lg border border-base-300 p-2 space-y-2">
+                <div className="rounded-lg border border-base-300 p-2 space-y-1">
                   {stat.gender_distribution && Object.keys(stat.gender_distribution).length > 0 && (
-                    <div>
-                      <div className="text-base-content/60 text-xs">Gender</div>
-                      <div className="flex flex-wrap gap-x-3 gap-y-1">
-                        {Object.entries(stat.gender_distribution).map(([gender, count]) => (
-                          <span key={gender} className="text-sm">
-                            <span className="capitalize font-medium">{gender}: </span>
-                            <span className="text-base-content/80">{count} ({Math.round((count / stat.count) * 100)}%)</span>
-                          </span>
-                        ))}
-                      </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1">
+                      {Object.entries(stat.gender_distribution).map(([gender, count]) => (
+                        <span key={gender} className="text-xs">
+                          <span className="capitalize font-medium text-base-content/70">{gender.toLowerCase()}</span>
+                          <span className="text-base-content/80 ml-1">{Math.round((count / stat.count) * 100)}%</span>
+                        </span>
+                      ))}
                     </div>
                   )}
-                  <div>
-                    <div className="text-base-content/60 text-xs">Total Cases</div>
-                    <div className="font-semibold">{stat.count}</div>
-                  </div>
                 </div>
               </div>
             </div>

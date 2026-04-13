@@ -222,11 +222,11 @@ def _generate_clinical_label(cluster_illnesses):
     label = f"{dominant_disease}"
     insight_parts = []
     if min_age is not None and max_age is not None:
-        insight_parts.append(f"ages {min_age}-{max_age} ({age_summary})")
+        insight_parts.append(f"Ages {min_age}-{max_age} ({age_summary})")
     else:
         insight_parts.append(age_summary)
     if top_location:
-        insight_parts.append(f"concentrated in {top_location}")
+        insight_parts.append(f"Concentrated in {top_location}")
 
     return {
         "label": label,

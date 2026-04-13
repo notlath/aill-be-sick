@@ -185,14 +185,16 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
                 Diseases ({stat.top_diseases.length})
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {stat.top_diseases.map((d, idx) => (
                 <div
                   key={idx}
                   className="flex items-center justify-between text-sm"
                 >
-                  <span className="text-base-content/80">{d.disease}</span>
-                  <span className="text-base-content font-medium bg-base-200 px-2 py-0.5 rounded-full text-xs">
+                  <span className="text-base-content/80 font-medium capitalize">
+                    {d.disease.charAt(0).toUpperCase() + d.disease.slice(1).toLowerCase()}
+                  </span>
+                  <span className="text-base-content font-medium bg-base-200 px-2 py-0.5 rounded-full text-xs tabular-nums">
                     {d.count} ({Math.round((d.count / stat.count) * 100)}%)
                   </span>
                 </div>
@@ -206,36 +208,36 @@ const SelectedClusterSummary: React.FC<SelectedClusterSummaryProps> = ({
           <div className="mb-4 flex items-center gap-2">
             <Users className={`size-4 ${theme.accentText}`} />
             <span className="text-base-content font-semibold tracking-tight">
-              Demographics
+              Age & gender
             </span>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-base-200/50 p-3 rounded-xl">
-              <div className="text-muted text-xs mb-1">Avg. Age</div>
-              <div className="text-base-content text-lg font-semibold tabular-nums">
+              <div className="text-muted text-xs mb-1">Avg. age</div>
+              <div className="text-base-content text-base font-semibold tabular-nums">
                 {stat.avg_patient_age} yrs
               </div>
-              <div className="text-muted text-xs font-normal">
-                {stat.min_patient_age}-{stat.max_patient_age} yrs
+              <div className="text-muted text-xs">
+                {stat.min_patient_age}–{stat.max_patient_age} yrs
               </div>
             </div>
             <div className="bg-base-200/50 p-3 rounded-xl flex flex-col justify-center">
               <div className="flex justify-between items-center mb-1 text-sm">
-                <span className="text-base-content/70">Male</span>
-                <span className="font-semibold tabular-nums">
+                <span className="text-base-content/70 text-xs">Male</span>
+                <span className="font-medium tabular-nums text-xs">
                   {malePercent}%
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm mb-1">
-                <span className="text-base-content/70">Female</span>
-                <span className="font-semibold tabular-nums">
+                <span className="text-base-content/70 text-xs">Female</span>
+                <span className="font-medium tabular-nums text-xs">
                   {femalePercent}%
                 </span>
               </div>
               {otherPercent > 0 && (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-base-content/70">Other</span>
-                  <span className="font-semibold tabular-nums">
+                  <span className="text-base-content/70 text-xs">Other</span>
+                  <span className="font-medium tabular-nums text-xs">
                     {otherPercent}%
                   </span>
                 </div>
