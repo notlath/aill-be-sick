@@ -44,6 +44,7 @@ async function ChatHistoryList() {
     let reliabilityLabel: string | null = null;
     let reliabilityBadgeClass: string | null = null;
     let reliabilityRank: number | null = null;
+    let clinicalVerificationStatus: string | null = null;
 
     if (chat.hasDiagnosis && chat.diagnosis) {
       diagnosis = chat.diagnosis.disease
@@ -54,6 +55,7 @@ async function ChatHistoryList() {
       uncertainty = chat.diagnosis.uncertainty;
       confidence = chat.diagnosis.confidence;
       diagnosisStatus = chat.diagnosis.status;
+      clinicalVerificationStatus = chat.diagnosis.clinicalVerificationStatus;
 
       // Handle INCONCLUSIVE diagnoses — AI could not reach a confident prediction
       if (chat.diagnosis.status === "INCONCLUSIVE") {
@@ -78,6 +80,7 @@ async function ChatHistoryList() {
         .split("_")
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(" ");
+      clinicalVerificationStatus = latestTemp.clinicalVerificationStatus;
 
       // Temp diagnoses are not permanently recorded — clinicians cannot review them
       reliabilityLabel = "Not Recorded";
@@ -105,6 +108,7 @@ async function ChatHistoryList() {
       reliabilityLabel,
       reliabilityBadgeClass,
       reliabilityRank,
+      clinicalVerificationStatus,
       createdAt: chat.createdAt,
     };
   });

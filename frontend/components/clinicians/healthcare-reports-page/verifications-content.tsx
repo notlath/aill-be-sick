@@ -135,6 +135,9 @@ async function PendingDiagnosesData() {
             district: d.district,
             barangay: d.barangay,
             createdAt: d.createdAt,
+            clinicalVerification: d.clinicalVerification as any,
+            clinicalVerificationStatus:
+              d.clinicalVerificationStatus as any,
             patientId: getAnonymizedPatientId(d.userId),
             reliability: getReliability(d.confidence, d.uncertainty),
             submittedAt: new Date(d.createdAt),

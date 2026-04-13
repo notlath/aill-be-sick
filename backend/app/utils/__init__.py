@@ -144,6 +144,29 @@ def _has_medical_keywords(text: str, lang: str = "en") -> bool:
     return has_en_keyword or has_tl_keyword
 
 
+def extract_all_symptom_qids(
+    symptoms_text: str, question_answers: dict, evidence_keywords: dict
+) -> list[str]:
+    """
+    Extracts all symptom question IDs that are matched in the initial symptoms text
+    or were answered with "yes" in follow-up questions.
+    """
+    matched = set()
+    symptoms_lower = symptoms_text.lower()
+
+    # 1. Add matches from initial text keywords
+    for qid, keywords in evidence_keywords.items():
+        if any(kw.lower() in symptoms_lower for kw in keywords):
+            matched.add(qid)
+
+    # 2. Add explicitly answered "yes" questions
+    for qid, ans in question_answers.items():
+        if str(ans).lower() == "yes":
+            matched.add(qid)
+
+    return list(matched)
+
+
 def _build_cdss_payload(
     symptoms: str,
     disease: str,
@@ -152,6 +175,7 @@ def _build_cdss_payload(
     top_diseases: list,
     model_used: str,
     is_valid: bool = True,
+    question_answers: dict | None = None,
 ) -> dict:
     """Construct a structured CDSS payload to accompany narrative output.
 
@@ -173,7 +197,7 @@ def _build_cdss_payload(
     """
     # Track if this is an uncertain/unable-to-diagnose case
     is_uncertain = not is_valid or confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN
-    
+
     # 3-Tier triage determination based on confidence and uncertainty
     if (
         confidence >= config.TRIAGE_HIGH_CONFIDENCE
@@ -213,7 +237,7 @@ def _build_cdss_payload(
     else:
         # HIGH PRIORITY (Red): Low confidence or high uncertainty
         triage_level = "High Priority"
-        
+
         # Modify reasons based on whether we could make a diagnosis
         if is_uncertain:
             # Unable to diagnose case - emphasize need for human evaluation
@@ -225,11 +249,15 @@ def _build_cdss_payload(
         else:
             # Diagnosed but high uncertainty - emphasize review of findings
             triage_reasons = [
-                f"Low model confidence (< {config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%})" if confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN else f"High uncertainty (> {config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
+                (
+                    f"Low model confidence (< {config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%})"
+                    if confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN
+                    else f"High uncertainty (> {config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})"
+                ),
                 "Model prediction requires expert clinical review",
                 "Additional diagnostic workup recommended",
             ]
-        
+
         care_setting = "Prompt physician evaluation required"
         actions = [
             "Consult a healthcare professional promptly",
@@ -335,6 +363,22 @@ def _build_cdss_payload(
         ],
     )
 
+    from app.evidence_keywords import EVIDENCE_KEYWORDS
+
+    # Try to grab question_answers from Flask session if not provided, for backwards compat
+    if question_answers is None:
+        try:
+            from flask import session
+
+            sess = session.get("diagnosis", {})
+            question_answers = sess.get("question_answers", {})
+        except Exception:
+            question_answers = {}
+
+    extracted_symptoms = extract_all_symptom_qids(
+        symptoms, question_answers or {}, EVIDENCE_KEYWORDS
+    )
+
     payload = {
         "differential": differential,
         "triage": {
@@ -365,6 +409,7 @@ def _build_cdss_payload(
                 "soft_max_mi": config.SYMPTOM_SOFT_MAX_MI,
             },
         },
+        "extracted_symptoms": extracted_symptoms,
     }
 
     return payload

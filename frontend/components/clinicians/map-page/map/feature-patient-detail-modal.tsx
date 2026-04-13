@@ -37,6 +37,9 @@ export function FeaturePatientDetailModal({
       override: (diagnosis as any).override ?? null,
       notes: (diagnosis as any).notes ?? [],
       status: diagnosis.status,
+      clinicalVerification: diagnosis.clinicalVerification as any,
+      clinicalVerificationStatus:
+        diagnosis.clinicalVerificationStatus as any,
     });
   }, [isOpen, diagnosis]);
 

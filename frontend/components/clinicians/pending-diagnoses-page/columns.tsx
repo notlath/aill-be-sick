@@ -1,5 +1,6 @@
 "use client";
 
+import type { ClinicalVerificationStatus } from "@/types/clinical-verification";
 import { User } from "@/lib/generated/prisma";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Clock } from "lucide-react";
@@ -31,6 +32,8 @@ export type PendingDiagnosisRow = {
   submittedAt: Date;
   user?: User;
   notes?: DiagnosisNoteRow[];
+  clinicalVerification?: unknown;
+  clinicalVerificationStatus?: ClinicalVerificationStatus | null;
 };
 
 export const pendingDiagnosesColumns: ColumnDef<PendingDiagnosisRow>[] = [

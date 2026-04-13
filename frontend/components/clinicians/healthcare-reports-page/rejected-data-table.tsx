@@ -440,6 +440,9 @@ export function RejectedDataTable<TData, TValue>({
             notes: selectedDiagnosis.notes,
             status: "REJECTED",
             rejectionReason: selectedDiagnosis.rejectionReason,
+            clinicalVerification: selectedDiagnosis.clinicalVerification,
+            clinicalVerificationStatus:
+              selectedDiagnosis.clinicalVerificationStatus,
           }}
           onUndoRejection={() => handleUndo(selectedDiagnosis.id)}
         />

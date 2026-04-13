@@ -544,6 +544,9 @@ export function PendingDiagnosesDataTable<TData, TValue>({
               barangay: selectedDiagnosis.barangay,
               createdAt: selectedDiagnosis.submittedAt,
               notes: selectedDiagnosis.notes,
+              clinicalVerification: selectedDiagnosis.clinicalVerification,
+              clinicalVerificationStatus:
+                selectedDiagnosis.clinicalVerificationStatus,
             } as DiagnosisRow
           }
           onApprove={() => handleApprove(selectedDiagnosis.id)}

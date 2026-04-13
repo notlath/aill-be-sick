@@ -107,6 +107,9 @@ async function RejectedDiagnosesData() {
               notes: (d as any).notes,
               rejectedByUser: (d as any).rejectedByUser,
               rejectedAt: (d as any).rejectedAt,
+              clinicalVerification: d.clinicalVerification as any,
+              clinicalVerificationStatus:
+                d.clinicalVerificationStatus as any,
               rejectionReason: rejectionNote
                 ? rejectionNote.content.replace("Rejection reason: ", "")
                 : undefined,

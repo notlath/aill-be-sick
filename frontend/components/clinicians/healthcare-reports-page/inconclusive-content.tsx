@@ -100,6 +100,9 @@ async function InconclusiveDiagnosesData() {
             district: d.district,
             barangay: d.barangay,
             createdAt: d.createdAt,
+            clinicalVerification: d.clinicalVerification as any,
+            clinicalVerificationStatus:
+              d.clinicalVerificationStatus as any,
             patientId: getAnonymizedPatientId(d.userId),
             submittedAt: new Date(d.createdAt),
             notes: d.notes,
