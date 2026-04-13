@@ -417,6 +417,7 @@ const ByDiseaseTab = () => {
             disabled={isLoading}
             images={captureImages}
             generatedBy={generatedBy}
+            context="SURVEILLANCE_DISEASE"
           />
         </div>
       </div>

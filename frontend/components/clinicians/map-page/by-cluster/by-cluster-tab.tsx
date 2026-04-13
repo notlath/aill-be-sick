@@ -48,6 +48,7 @@ const ByClusterTab = () => {
     <ClusteringControlPanel
       enableViewToggle={true}
       enableUrlSync={activeTab === "by-cluster"}
+      showExportButton={false}
     >
       {({
         clusterData,
@@ -157,18 +158,17 @@ const ByClusterTab = () => {
         };
 
         const exportInfo = useMemo(() => {
-          if (!clusterData || !selectedClusterStat) return null;
+          if (!clusterData) return null;
 
           const stats: Record<string, unknown> = {
             clusterId: selectedClusterId,
             clusterLabel: selectedClusterLabel,
-            totalIllnesses: filteredIllnesses.length,
-            ...selectedClusterStat,
+            totalIllnesses: clusterData.total_illnesses,
             nClusters: k,
             appliedVariables,
           };
 
-          const illnessesData = filteredIllnesses.map(i => ({
+          const illnessesData = clusterData.illnesses.map(i => ({
             id: i.id,
             disease: i.disease,
             district: i.district,
@@ -187,23 +187,25 @@ const ByClusterTab = () => {
           };
 
           return getSurveillanceExportData(exportData);
-        }, [clusterData, selectedClusterStat, selectedClusterId, selectedClusterLabel, filteredIllnesses, k, appliedVariables, view]);
+        }, [clusterData, selectedClusterId, selectedClusterLabel, k, appliedVariables, view]);
 
         return (
           <div className="space-y-4">
-            {exportButtonTarget && exportInfo && createPortal(
-              <ExportReportButton
-                data={exportInfo.data}
-                columns={exportInfo.columns}
-                filenameSlug={exportInfo.filenameSlug}
-                title={exportInfo.title}
-                subtitle={exportInfo.subtitle}
-                disabled={loading}
-                images={captureImages}
-                generatedBy={generatedBy}
-              />,
-              exportButtonTarget,
-            )}
+            {exportButtonTarget && exportInfo
+              ? createPortal(
+                  <ExportReportButton
+                    data={exportInfo.data}
+                    columns={exportInfo.columns}
+                    filenameSlug={exportInfo.filenameSlug}
+                    title={exportInfo.title}
+                    subtitle={exportInfo.subtitle}
+                    disabled={loading}
+                    images={captureImages}
+                    generatedBy={generatedBy}
+                  />,
+                  exportButtonTarget,
+                )
+              : null}
 
             {!loading && (error || geoError) ? (
               <Card className="col-span-2 border-red-200/50 bg-red-50/50">

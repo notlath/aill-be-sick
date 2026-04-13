@@ -385,6 +385,7 @@ const AlertsList = ({ currentUserId, generatedBy }: AlertsListProps) => {
               title="Alerts Report"
               subtitle={tabLabelMap[activeTab] || "All Alerts"}
               generatedBy={generatedBy}
+              context="ALERT_ANOMALIES"
             />
           </div>
         )}
