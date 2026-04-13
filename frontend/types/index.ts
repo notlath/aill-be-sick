@@ -1,9 +1,16 @@
+import type {
+  ClinicalVerificationPayload,
+  ClinicalVerificationStatus,
+} from "./clinical-verification";
+
 export type TempDiagnosis = {
   confidence: number;
   uncertainty: number;
   modelUsed: string;
   disease: string;
   chatId: string;
+  clinicalVerification?: ClinicalVerificationPayload | null;
+  clinicalVerificationStatus?: ClinicalVerificationStatus | null;
 };
 
 export type Explanation = {
@@ -216,6 +223,8 @@ export interface IllnessRecord {
   patient_age: number;
   patient_gender: "MALE" | "FEMALE" | "OTHER";
   cluster: number;
+  clinicalVerification?: ClinicalVerificationPayload | null;
+  clinicalVerificationStatus?: ClinicalVerificationStatus | null;
 }
 
 export interface IllnessClusterStatistics {

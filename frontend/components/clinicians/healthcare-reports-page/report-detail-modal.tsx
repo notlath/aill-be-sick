@@ -1,5 +1,6 @@
 "use client";
 
+import ClinicalVerificationCard from "@/components/shared/clinical-verification-card";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DiagnosisRow } from "./columns";
 import { getAnonymizedPatientId } from "@/utils/patient";
@@ -248,6 +249,13 @@ export function ReportDetailModal({
               <p className="text-sm text-base-content/60 mb-2">Reported Symptoms</p>
               <p className="text-sm leading-relaxed">{report.symptoms}</p>
             </div>
+
+            <ClinicalVerificationCard
+              disease={report.disease}
+              verificationStatus={report.clinicalVerificationStatus ?? null}
+              verificationPayload={report.clinicalVerification ?? null}
+              readOnly
+            />
 
             {/* Word Heatmap Toggle */}
             <WordHeatmapToggle

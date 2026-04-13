@@ -1,17 +1,20 @@
 "use client";
 
-import React from "react";
 import { Card } from "@/components/ui/card";
+import LazyMarkdown from "@/components/ui/lazy-markdown";
+import { getSymptomLabelMap } from "@/constants/clinical-verification-protocols";
 import {
   Activity,
-  ListChecks,
   BookOpen,
-  ShieldAlert,
+  ClipboardCheck,
+  ClipboardList,
   ExternalLink,
-  MapPin,
   Lightbulb,
+  ListChecks,
+  MapPin,
+  ShieldAlert,
 } from "lucide-react";
-import LazyMarkdown from "@/components/ui/lazy-markdown";
+import React from "react";
 
 type Differential = {
   code?: string | null;
@@ -36,6 +39,7 @@ type CDSSPayload = {
     model_version?: string;
     thresholds?: Record<string, number>;
   };
+  extracted_symptoms?: string[];
 };
 
 type CDSSSummaryProps = {
@@ -48,6 +52,10 @@ type CDSSSummaryProps = {
   isValid?: boolean;
   /** The diagnosis message from the chat (e.g. "Based on what you've told us, it could be Measles...") */
   diagnosisMessage?: string | null;
+  /** Result of clinical symptom verification protocol validation */
+  verificationStatus?: string | null;
+  /** Callback to open the clinical verification modal */
+  onOpenVerification?: () => void;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -143,6 +151,8 @@ const CDSSSummary = ({
   generatedAt,
   isValid,
   diagnosisMessage,
+  verificationStatus,
+  onOpenVerification,
 }: CDSSSummaryProps) => {
   if (!cdss) return null;
 
@@ -155,6 +165,13 @@ const CDSSSummary = ({
       (modal as HTMLDialogElement).showModal();
     }
   };
+
+  const symptomMap = getSymptomLabelMap();
+  const extractedSymptomLabels = React.useMemo(() => {
+    if (!cdss.extracted_symptoms || cdss.extracted_symptoms.length === 0)
+      return [];
+    return cdss.extracted_symptoms.map((qid) => symptomMap[qid] || qid).sort();
+  }, [cdss.extracted_symptoms, symptomMap]);
 
   return (
     <>
@@ -194,6 +211,22 @@ const CDSSSummary = ({
             </div>
           </div>
         </div>
+
+        {/* ── Unconfirmed Verification Alert ────────────────────── */}
+        {verificationStatus === "UNCONFIRMED" && (
+          <div className="mx-6 mt-5 bg-error/10 text-error border border-error/20 rounded-xl flex items-start gap-3 p-4">
+            <ShieldAlert className="size-5 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-sm">
+                Clinical Verification Failed
+              </h4>
+              <p className="text-sm opacity-90 mt-0.5 leading-relaxed">
+                The reported symptoms do not strongly match the expected
+                protocol pattern for this condition.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="px-6 py-4 space-y-4">
           {/* ── Verification Notice ──────────────────────────────── */}
@@ -301,6 +334,26 @@ const CDSSSummary = ({
             </section>
           )}
 
+          {/* ── Extracted Symptoms ───────────────────────────────── */}
+          {extractedSymptomLabels.length > 0 && (
+            <section>
+              <SectionLabel
+                icon={<ClipboardList className="w-4 h-4" strokeWidth={2.5} />}
+                label="Identified symptoms"
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                {extractedSymptomLabels.map((symptom, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-base-200 border border-base-300 text-xs font-medium text-base-content/80 text-center leading-none"
+                  >
+                    {symptom}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* ── Knowledge Links ──────────────────────────────────── */}
           {cdss.knowledge && cdss.knowledge.length > 0 && (
             <section>
@@ -352,6 +405,20 @@ const CDSSSummary = ({
             See what influenced this result
           </button>
         </div>
+
+        {/* ── Action: Clinical verification ──────────────────────── */}
+        {onOpenVerification && (
+          <div className="px-6 pb-5">
+            <button
+              type="button"
+              className="flex items-center justify-center gap-2 w-full btn btn-primary"
+              onClick={onOpenVerification}
+            >
+              <ClipboardCheck className="w-4 h-4" />
+              Verify your symptoms
+            </button>
+          </div>
+        )}
       </Card>
     </>
   );

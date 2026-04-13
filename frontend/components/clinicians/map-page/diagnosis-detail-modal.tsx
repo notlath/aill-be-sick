@@ -1,5 +1,6 @@
 "use client";
 
+import ClinicalVerificationCard from "@/components/shared/clinical-verification-card";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { IllnessRecord } from "@/types";
 import { getReliability } from "@/utils/reliability";
@@ -141,6 +142,13 @@ export function DiagnosisDetailModal({
               <p className="text-sm leading-relaxed">{diagnosis.symptoms}</p>
             </div>
           )}
+
+          <ClinicalVerificationCard
+            disease={diagnosis.disease}
+            verificationStatus={diagnosis.clinicalVerificationStatus ?? null}
+            verificationPayload={diagnosis.clinicalVerification ?? null}
+            readOnly
+          />
 
           {/* Word Heatmap Toggle */}
           <WordHeatmapToggle

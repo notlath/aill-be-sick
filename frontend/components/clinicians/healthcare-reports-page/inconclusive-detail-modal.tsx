@@ -1,5 +1,6 @@
 "use client";
 
+import ClinicalVerificationCard from "@/components/shared/clinical-verification-card";
 import { useEffect, useRef, useState } from "react";
 import { InconclusiveDiagnosisRow } from "./inconclusive-columns";
 import { getAnonymizedPatientId } from "@/utils/patient";
@@ -139,6 +140,13 @@ export function InconclusiveDetailModal({
               <p className="text-sm text-base-content/60 mb-2">Reported Symptoms</p>
               <p className="text-sm leading-relaxed">{report.symptoms}</p>
             </div>
+
+            <ClinicalVerificationCard
+              disease={report.disease}
+              verificationStatus={report.clinicalVerificationStatus ?? null}
+              verificationPayload={report.clinicalVerification ?? null}
+              readOnly
+            />
 
             {/* No SHAP explanation for inconclusive diagnoses */}
             <div className="bg-base-200/50 border border-dashed border-base-300 p-4 rounded-lg">
