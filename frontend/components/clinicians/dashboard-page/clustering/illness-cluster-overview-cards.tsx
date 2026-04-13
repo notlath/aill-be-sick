@@ -222,6 +222,7 @@ const IllnessClusterOverviewCards: React.FC<
             )}
 
             <div className="flex gap-2 mt-1">
+              {/*
               <button
                 type="button"
                 className={`btn btn-sm flex-1 border-0 ${theme.badgeBg}`}
@@ -230,6 +231,7 @@ const IllnessClusterOverviewCards: React.FC<
               >
                 <FileText className="size-3.5 mr-1" /> Report
               </button>
+              */}
               <button
                 type="button"
                 className={`btn btn-sm flex-1 border-0 ${theme.badgeBg}`}

@@ -68,7 +68,8 @@ const ClinicianHomePage = () => {
       {/* Main Content */}
       <div className="w-full px-4 pb-12 sm:pb-16 md:px-8 lg:px-12">
         <div className="mx-auto w-full max-w-7xl flex flex-col gap-6 sm:gap-8">
-          {/* Urgent Alerts Section */}
+{/*
+          // Urgent Alerts Section - Static/Unused
           {showAlert && (
             <section className="animate-slide-up w-full flex flex-col gap-4 relative z-10">
               <div
@@ -99,8 +100,10 @@ const ClinicianHomePage = () => {
               </div>
             </section>
           )}
+*/}
 
-          {/* Key Metrics Grid */}
+          {/* Key Metrics Grid - Static/Mock Data */}
+          {/*
           <section
             className="animate-slide-up w-full"
             style={{ animationDelay: "50ms" }}
@@ -144,8 +147,9 @@ const ClinicianHomePage = () => {
               ))}
             </div>
           </section>
+          */}
 
-          {/* Endemic Disease Awareness - Full width */}
+          {/* Endemic Disease Awareness */}
           <section
             className="animate-slide-up w-full"
             style={{ animationDelay: "100ms" }}
