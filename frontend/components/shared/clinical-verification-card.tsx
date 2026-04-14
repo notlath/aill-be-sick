@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAction } from "next-safe-action/hooks";
 import { toast } from "sonner";
 import {
@@ -338,7 +338,7 @@ export default function ClinicalVerificationCard({
     }
     
     // Removed setIsEditing to prevent aggressive snapping shut of the UI
-  }, [chatId, normalizedPropRecord, readOnly, extractedSymptomIds.join(",")]);
+  }, [normalizedPropRecord, extractedSymptomIds]);
 
   const preview = useMemo(
     () =>
@@ -397,12 +397,40 @@ export default function ClinicalVerificationCard({
     },
   });
 
+  const extractedSymptomSet = useMemo(() => new Set(extractedSymptomIds), [extractedSymptomIds]);
+
+  const hasAutoSaved = useRef(false);
+
+  useEffect(() => {
+    if (
+      !normalizedPropRecord &&
+      extractedSymptomIds.length > 0 &&
+      !hasAutoSaved.current &&
+      !isExecuting &&
+      chatId &&
+      protocol
+    ) {
+      hasAutoSaved.current = true;
+      execute({
+        chatId,
+        disease: protocol.disease,
+        selectedSymptomIds: extractedSymptomIds,
+      });
+    }
+  }, [
+    normalizedPropRecord,
+    extractedSymptomIds,
+    isExecuting,
+    chatId,
+    protocol,
+    execute,
+  ]);
+
   if (!protocol) {
     return null;
   }
 
   const selectedSymptomSet = new Set(selectedSymptomIds);
-  const extractedSymptomSet = useMemo(() => new Set(extractedSymptomIds), [extractedSymptomIds.join(",")]);
   const previewMeta = getClinicalVerificationStatusMeta(preview?.status);
   const allowEdit = !readOnly && Boolean(chatId);
   const showEditor = allowEdit && isEditing;
