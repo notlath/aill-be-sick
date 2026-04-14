@@ -57,7 +57,9 @@ CONTRADICTION_MAX_UNCERTAINTY = float(
 VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.70"))  # Thesis: 70%
 
 # Mutual Information (epistemic uncertainty)
-VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.05"))  # Thesis: 5%
+VALID_MAX_UNCERTAINTY = float(
+    os.getenv("VALID_MAX_UNCERTAINTY", "0.10")
+)  # Thesis: 10% (Relaxed from 5% to prevent rejecting 98%+ confident diagnoses)
 
 # Variance threshold (prediction stability)
 VALID_MAX_VARIANCE = float(os.getenv("VALID_MAX_VARIANCE", "0.02"))
@@ -1719,7 +1721,7 @@ TIER3_REFERRAL_MESSAGES = {
 # Short words (e.g., "baha", "ihi") need near-exact match to prevent collisions.
 FUZZY_THRESHOLD_SHORT = 95  # terms <= 5 chars
 FUZZY_THRESHOLD_MEDIUM = 95  # terms 6–9 chars
-FUZZY_THRESHOLD_LONG = 90  # terms ≥ 10 chars
+FUZZY_THRESHOLD_LONG = 93  # terms ≥ 10 chars
 FUZZY_MIN_TERM_LENGTH = 3  # skip fuzzy matching for terms shorter than this
 
 # --- Out-of-Scope Disease Registry ---

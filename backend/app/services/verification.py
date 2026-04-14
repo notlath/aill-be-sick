@@ -40,8 +40,35 @@ def _fuzzy_match_term(term: str, text: str) -> bool:
         window = window.translate(str.maketrans("", "", string.punctuation))
 
         score = fuzz.ratio(term, window)
+
+        # --- ML ENGINEER FIX: Critical Semantic Conflict Penalty ---
+        # Prevent false positives between morphologically similar but semantically opposite words
+        # (e.g., "puting pantal" vs "pulang pantal" which differ by 2 letters but mean white vs red)
         if score >= threshold:
-            return True
+            critical_conflicts = [
+                ("puti", "pula"),
+                ("puting", "pulang"),
+                ("pula", "puti"),
+                ("pulang", "puting"),
+                ("wala", "may"),
+                ("walang", "meron"),
+                ("may", "wala"),
+                ("meron", "walang"),
+                ("hindi", "oo"),
+                ("bata", "matanda"),
+                ("matanda", "bata"),
+                ("mataas", "mababa"),
+                ("mabilis", "mabagal"),
+            ]
+            term_words = set(term.split())
+            window_words = set(window.split())
+
+            for t_word, w_word in critical_conflicts:
+                if t_word in term_words and w_word in window_words:
+                    score -= 20  # Severe penalty for opposite meaning
+
+            if score >= threshold:
+                return True
 
     return False
 
