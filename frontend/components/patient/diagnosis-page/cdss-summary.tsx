@@ -170,6 +170,8 @@ const CDSSSummary = ({
     return cdss.extracted_symptoms.map((qid) => symptomMap[qid] || qid).sort();
   }, [cdss.extracted_symptoms, symptomMap]);
 
+  const isHighPriority = cdss.triage?.level?.toUpperCase().includes("HIGH");
+
   return (
     <>
       <Card className="cdss-card border border-base-300 bg-base-100 shadow-sm rounded-2xl overflow-hidden">
@@ -187,7 +189,7 @@ const CDSSSummary = ({
                 className="cdss-heading text-base font-700 text-base-content leading-tight"
                 style={{ fontWeight: 700 }}
               >
-                Your results
+                {isHighPriority ? "Medical Review Recommended" : "Your results"}
               </h3>
               {diagnosisMessage && (
                 <div className="text-sm text-base-content/70 mt-1 leading-relaxed">
@@ -201,7 +203,7 @@ const CDSSSummary = ({
                       ),
                     }}
                   >
-                    {diagnosisMessage}
+                    {isHighPriority ? "Based on the symptoms you shared, a healthcare professional needs to evaluate you in person to provide an accurate diagnosis." : diagnosisMessage}
                   </LazyMarkdown>
                 </div>
               )}
@@ -268,7 +270,7 @@ const CDSSSummary = ({
                       {getTriageDescription(cdss.triage.level)}
                     </p>
                   </div>
-                  {cdss.triage.reasons && cdss.triage.reasons.length > 0 && (
+                  {!isHighPriority && cdss.triage.reasons && cdss.triage.reasons.length > 0 && (
                     <div className="mt-3">
                       <details className="group">
                         <summary className="flex cursor-pointer items-center text-sm font-medium text-base-content/70 hover:text-base-content/90 transition-colors">
@@ -313,7 +315,7 @@ const CDSSSummary = ({
           )}
 
           {/* ── Recommendation / Next Steps ──────────────────────── */}
-          {cdss.recommendation && (
+          {!isHighPriority && cdss.recommendation && (
             <section>
               <SectionLabel
                 icon={<ListChecks className="w-4 h-4" strokeWidth={2.5} />}
@@ -362,7 +364,7 @@ const CDSSSummary = ({
           )}
 
           {/* ── Knowledge Links ──────────────────────────────────── */}
-          {cdss.knowledge && cdss.knowledge.length > 0 && (
+          {!isHighPriority && cdss.knowledge && cdss.knowledge.length > 0 && (
             <section>
               <SectionLabel
                 icon={<BookOpen className="w-4 h-4" strokeWidth={2.5} />}
@@ -402,16 +404,18 @@ const CDSSSummary = ({
         </div>
 
         {/* ── Action: See what influenced this result ────────────── */}
-        <div className="px-6 py-4 border-t border-base-300">
-          <button
-            type="button"
-            className="flex items-center justify-center gap-2 w-full border border-base-300 btn cursor-pointer"
-            onClick={handleViewInsights}
-          >
-            <Lightbulb className="w-4 h-4" />
-            See what influenced this result
-          </button>
-        </div>
+        {!isHighPriority && (
+          <div className="px-6 py-4 border-t border-base-300">
+            <button
+              type="button"
+              className="flex items-center justify-center gap-2 w-full border border-base-300 btn cursor-pointer"
+              onClick={handleViewInsights}
+            >
+              <Lightbulb className="w-4 h-4" />
+              See what influenced this result
+            </button>
+          </div>
+        )}
 
       </Card>
     </>

@@ -108,6 +108,7 @@ const ChatHistoryView = ({
   // Show CDSS summary only if we have CDSS data and the diagnosis is valid.
   // We do NOT show the CDSS/Verification checklist for inconclusive/invalid diagnoses.
   const shouldShowCdss = dbCdss && dbIsValid !== false;
+  const isHighPriority = dbCdss?.triage?.level?.toUpperCase().includes("HIGH");
 
   return (
     <div className="space-y-4">
@@ -141,7 +142,7 @@ const ChatHistoryView = ({
                 diagnosisMessage={diagnosisMessage}
                 verificationStatus={clinicalVerificationStatus}
               />
-              {diagnosisDisease && (
+              {diagnosisDisease && !isHighPriority && (
                 <ClinicalVerificationCard
                   disease={diagnosisDisease}
                   chatId={chatId}
@@ -167,7 +168,7 @@ const ChatHistoryView = ({
       */}
 
       {/* Insights modal — rendered here so the CDSS button can open it */}
-      {insightData && (
+      {insightData && !isHighPriority && (
         <InsightsModal
           tokens={insightData.tokens}
           importances={insightData.importances}

@@ -1007,6 +1007,8 @@ const ChatWindow = ({
                   currentDiagnosis.cdss?.extracted_symptoms ?? [],
                 );
 
+                const isHighPriority = currentDiagnosis.cdss?.triage?.level?.toUpperCase().includes("HIGH");
+
                 return (
                   <div className="mt-2 w-full space-y-4">
                     <CDSSSummary
@@ -1016,16 +1018,18 @@ const ChatWindow = ({
                       isValid={currentDiagnosis.is_valid}
                       verificationStatus={verificationStatus}
                     />
-                    <ClinicalVerificationCard
-                      disease={currentDiagnosis.disease}
-                      chatId={chatId}
-                      verificationStatus={verificationStatus}
-                      verificationPayload={
-                        latestStoredTempDiagnosis?.clinicalVerification ?? null
-                      }
-                      extractedSymptomIds={extractedSymptomIds}
-                      defaultExpanded={true}
-                    />
+                    {!isHighPriority && (
+                      <ClinicalVerificationCard
+                        disease={currentDiagnosis.disease}
+                        chatId={chatId}
+                        verificationStatus={verificationStatus}
+                        verificationPayload={
+                          latestStoredTempDiagnosis?.clinicalVerification ?? null
+                        }
+                        extractedSymptomIds={extractedSymptomIds}
+                        defaultExpanded={true}
+                      />
+                    )}
                   </div>
                 );
               })()}

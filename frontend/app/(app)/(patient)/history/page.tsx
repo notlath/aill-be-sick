@@ -45,6 +45,7 @@ async function ChatHistoryList() {
     let reliabilityBadgeClass: string | null = null;
     let reliabilityRank: number | null = null;
     let clinicalVerificationStatus: string | null = null;
+    let cdss: any = null;
 
     if (chat.hasDiagnosis && chat.diagnosis) {
       diagnosis = chat.diagnosis.disease
@@ -56,6 +57,7 @@ async function ChatHistoryList() {
       confidence = chat.diagnosis.confidence;
       diagnosisStatus = chat.diagnosis.status;
       clinicalVerificationStatus = chat.diagnosis.clinicalVerificationStatus;
+      cdss = chat.diagnosis.cdss;
 
       // Handle INCONCLUSIVE diagnoses — AI could not reach a confident prediction
       if (chat.diagnosis.status === "INCONCLUSIVE") {
@@ -82,6 +84,7 @@ async function ChatHistoryList() {
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
         .join(" ");
       clinicalVerificationStatus = latestTemp.clinicalVerificationStatus;
+      cdss = latestTemp.cdss;
 
       // Temp diagnoses are not permanently recorded — clinicians cannot review them
       reliabilityLabel = "Not Recorded";
@@ -100,6 +103,14 @@ async function ChatHistoryList() {
       reliabilityLabel = "Incomplete";
       reliabilityBadgeClass = "badge-soft";
       reliabilityRank = null;
+    }
+
+    // Apply Pattern A: Suppress specific disease names for High Priority cases in Patient view
+    if (cdss && typeof cdss === 'object' && 'triage' in cdss) {
+      const triageLevel = (cdss as any).triage?.level;
+      if (triageLevel && String(triageLevel).toUpperCase().includes("HIGH")) {
+        diagnosis = "Medical Review Recommended";
+      }
     }
 
     return {
