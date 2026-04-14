@@ -59,6 +59,7 @@ async function ChatHistoryList() {
 
       // Handle INCONCLUSIVE diagnoses — AI could not reach a confident prediction
       if (chat.diagnosis.status === "INCONCLUSIVE") {
+        diagnosis = "No clear match";
         reliabilityLabel = "Inconclusive";
         reliabilityBadgeClass = "badge-soft";
         reliabilityRank = null;

@@ -38,9 +38,17 @@ export const columns: ColumnDef<HistoryRow>[] = [
         ? getClinicalVerificationStatusMeta(clinicalVerificationStatus)
         : null;
 
+      const isInconclusive = row.original.diagnosisStatus === "INCONCLUSIVE";
+
       return (
         <div className="flex flex-col gap-1">
-          <span className="font-medium">{diagnosis}</span>
+          <span
+            className={`font-medium ${
+              isInconclusive ? "text-base-content/60 italic" : ""
+            }`}
+          >
+            {diagnosis}
+          </span>
           {clinicalVerificationMeta && (
             <span
               className={`badge ${clinicalVerificationMeta.badgeClass} badge-xs whitespace-nowrap w-fit`}
