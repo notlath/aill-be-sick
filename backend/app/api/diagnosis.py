@@ -980,6 +980,7 @@ def follow_up_question():
                 top_diseases,
                 mean_probs,
                 symptoms_text,
+                is_valid=True,
                 question_answers=locals().get("question_answers"),
             )
 
@@ -1201,6 +1202,8 @@ def follow_up_question():
                     top_diseases,
                     mean_probs,
                     symptoms_text,
+                    is_valid=True,
+                    question_answers=locals().get("question_answers"),
                 )
 
         # Log selection
