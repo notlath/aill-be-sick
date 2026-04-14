@@ -256,14 +256,14 @@ const CDSSSummary = ({
                 className={`mt-2 rounded-xl border ${triage.borderColor} ${triage.bgColor} overflow-hidden`}
               >
                 <div className="px-4 py-3">
-                  <div className="flex items-start gap-3">
+                  <div className="flex flex-col gap-2.5">
                     <span
-                      className={`badge badge-sm ${triage.badgeClass} font-semibold tracking-wide flex-shrink-0`}
+                      className={`badge badge-sm ${triage.badgeClass} font-semibold tracking-wide flex-shrink-0 w-fit`}
                     >
                       {triage.label}
                     </span>
                     <p
-                      className={`text-sm text-base-content/80 leading-snug pt-0.5`}
+                      className={`text-sm text-base-content/80 leading-snug`}
                     >
                       {getTriageDescription(cdss.triage.level)}
                     </p>
