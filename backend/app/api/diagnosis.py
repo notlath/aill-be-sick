@@ -82,6 +82,7 @@ def _stop_response(
     message=None,
     is_valid=True,
     extra_fields=None,
+    question_answers=None,
 ):
     """Build a standard 'should_stop' response dict."""
     data = {
@@ -105,6 +106,7 @@ def _stop_response(
                 top_diseases,
                 model_used,
                 is_valid=is_valid,
+                question_answers=question_answers,
             ),
         },
     }
@@ -288,6 +290,7 @@ def new_case():
                 uncertainty,
                 top_diseases,
                 model_used,
+                question_answers=locals().get("question_answers"),
             )
             cdss["red_flags"] = cdss.get("red_flags", []) + [
                 f"Some symptoms you described are not typical of {pred}. Please consult a healthcare professional."
@@ -377,6 +380,7 @@ def new_case():
                 uncertainty,
                 top_diseases,
                 model_used,
+                question_answers=locals().get("question_answers"),
             )
             return (
                 jsonify(
@@ -882,6 +886,7 @@ def follow_up_question():
                                     uncertainty,
                                     top_diseases,
                                     model_used,
+                                    question_answers=locals().get("question_answers"),
                                 ),
                                 "verification_failure": {
                                     "unexplained_concepts": list(unexplained),
@@ -953,6 +958,7 @@ def follow_up_question():
                 symptoms_text,
                 message=message,
                 is_valid=is_valid,
+                question_answers=locals().get("question_answers"),
             )
 
         # ── EARLY STOP CHECKS ────────────────────────────────────────────
@@ -974,6 +980,7 @@ def follow_up_question():
                 top_diseases,
                 mean_probs,
                 symptoms_text,
+                question_answers=locals().get("question_answers"),
             )
 
         is_valid_prediction = (
@@ -1002,6 +1009,7 @@ def follow_up_question():
                 message=out_of_scope_message,
                 is_valid=False,
                 extra_fields={"out_of_scope_type": "NO_CLEAR_MATCH"},
+                question_answers=locals().get("question_answers"),
             )
 
         if len(asked_questions) >= config.EXHAUSTED_QUESTIONS_THRESHOLD:
@@ -1034,6 +1042,7 @@ def follow_up_question():
                 extra_fields={"out_of_scope_type": "NO_CLEAR_MATCH"}
                 if not is_valid
                 else None,
+                question_answers=locals().get("question_answers"),
             )
 
         # ── 5. EIG-BASED QUESTION SELECTION ──────────────────────────────
@@ -1127,6 +1136,7 @@ def follow_up_question():
                 symptoms_text,
                 message=message,
                 is_valid=is_valid,
+                question_answers=locals().get("question_answers"),
             )
 
         if not selected_question:
@@ -1158,6 +1168,7 @@ def follow_up_question():
                 extra_fields={"out_of_scope_type": "NO_CLEAR_MATCH"}
                 if not is_valid
                 else None,
+                question_answers=locals().get("question_answers"),
             )
 
         # Evidence-based early stop (from coverage)
@@ -1238,6 +1249,7 @@ def follow_up_question():
                                 uncertainty,
                                 top_diseases,
                                 model_used,
+                                question_answers=locals().get("question_answers"),
                             ),
                         },
                         "session_id": session_id,

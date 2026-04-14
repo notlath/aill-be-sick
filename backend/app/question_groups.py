@@ -714,6 +714,28 @@ SYMPTOM_KEYWORDS: dict[str, list[str]] = {
         "uhaw",
         "tuyo ang bibig",
     ],
+    "mild_bleeding": [
+        "bleeding",
+        "nosebleed",
+        "bleeding gums",
+        "blood",
+        "dugo",
+        "pagdurugo",
+        "nagdudugo",
+        "balinguyngoy",
+        "nagdugo ang gilagid",
+        "petechiae",
+        "red spots",
+    ],
+    "blood_in_stool": [
+        "blood in stool",
+        "bloody stool",
+        "blood in poop",
+        "dugo sa dumi",
+        "duming may dugo",
+        "nagtae ng dugo",
+        "pagtae ng dugo",
+    ],
 }
 
 

@@ -272,33 +272,43 @@ const CDSSSummary = ({
                     </p>
                   </div>
                   {cdss.triage.reasons && cdss.triage.reasons.length > 0 && (
-                    <ul className="mt-2 space-y-1.5 pl-1">
-                      {cdss.triage.reasons
-                        .filter((r) => {
-                          // Skip technical/internal reasons that don't help patients
-                          const skipPatterns = [
-                            /high model confidence/i,
-                            /low uncertainty/i,
-                            /safe for automated/i,
-                            /without human review/i,
-                            /confidence.*\d+%/i,
-                            /uncertainty.*\d+%/i,
-                          ];
-                          return !skipPatterns.some((p) => p.test(r));
-                        })
-                        .map((r, idx) => (
-                          <li
-                            key={idx}
-                            className="flex items-start gap-2 text-sm text-base-content/70"
-                          >
-                            <span
-                              className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: triage.accentColor }}
-                            />
-                            {r}
-                          </li>
-                        ))}
-                    </ul>
+                    <div className="mt-3">
+                      <details className="group">
+                        <summary className="flex cursor-pointer items-center text-sm font-medium text-base-content/70 hover:text-base-content/90 transition-colors">
+                          <span className="mr-1.5 text-xs inline-block transition-transform group-open:rotate-90">
+                            ▶
+                          </span>
+                          Show clinical reasoning
+                        </summary>
+                        <ul className="mt-3 space-y-2 pl-4 border-l-2 border-base-300/50 ml-1.5">
+                          {cdss.triage.reasons
+                            .filter((r) => {
+                              // Skip technical/internal reasons that don't help patients
+                              const skipPatterns = [
+                                /high model confidence/i,
+                                /low uncertainty/i,
+                                /safe for automated/i,
+                                /without human review/i,
+                                /confidence.*\d+%/i,
+                                /uncertainty.*\d+%/i,
+                              ];
+                              return !skipPatterns.some((p) => p.test(r));
+                            })
+                            .map((r, idx) => (
+                              <li
+                                key={idx}
+                                className="flex items-start gap-2 text-sm text-base-content/80 leading-snug"
+                              >
+                                <span
+                                  className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: triage.accentColor }}
+                                />
+                                {r}
+                              </li>
+                            ))}
+                        </ul>
+                      </details>
+                    </div>
                   )}
                 </div>
               </div>
