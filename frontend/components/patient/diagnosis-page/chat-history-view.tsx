@@ -102,8 +102,9 @@ const ChatHistoryView = ({
     };
   }, [messages, dbExplanation, dbCdss]);
 
-  // Show CDSS summary for all diagnoses (both conclusive and inconclusive).
-  const shouldShowCdss = dbCdss;
+  // Show CDSS summary only if we have CDSS data and the diagnosis is valid.
+  // We do NOT show the CDSS/Verification checklist for inconclusive/invalid diagnoses.
+  const shouldShowCdss = dbCdss && dbIsValid !== false;
 
   // State for clinical verification modal
   const [showVerificationModal, setShowVerificationModal] = useState(false);

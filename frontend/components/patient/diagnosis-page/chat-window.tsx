@@ -251,10 +251,13 @@ const ChatWindow = ({
               diagnosis,
               verificationFailure: diagnosis?.verification_failure,
             });
+            const outOfScopeType = diagnosis?.out_of_scope_type;
+            const messageType = outOfScopeType === "CONTRADICTORY_INPUT" ? "URGENT_WARNING" : "INFO";
+
             createMessageExecute({
               chatId,
               content: outOfScopeMessage,
-              type: "INFO",
+              type: messageType,
               role: "AI",
             });
             setCurrentQuestion(null);
@@ -262,7 +265,7 @@ const ChatWindow = ({
           }
 
           // Handle low confidence / unable to diagnose cases
-          // Still show CDSS with triage guidance, but mark as informational
+          // Do NOT show CDSS/Verification checklist for inconclusive results
           if (diagnosis?.is_valid === false) {
             setIsFinalDiagnosis(true);
             const { disease, confidence, uncertainty, model_used } = diagnosis;
@@ -533,11 +536,13 @@ const ChatWindow = ({
                 diagnosis: data.diagnosis,
                 verificationFailure,
               });
+              const outOfScopeType = (data.diagnosis as any)?.out_of_scope_type;
+              const messageType = outOfScopeType === "CONTRADICTORY_INPUT" ? "URGENT_WARNING" : "INFO";
 
               createMessageExecute({
                 chatId,
                 content: infoMsg,
-                type: "INFO",
+                type: messageType,
                 role: "AI",
               });
               setCurrentQuestion(null);
@@ -989,6 +994,7 @@ const ChatWindow = ({
             />
             {isFinalDiagnosis &&
               currentDiagnosis?.cdss &&
+              currentDiagnosis.is_valid !== false &&
               finalDiagnosisCreatedRef.current &&
               !isGettingExplanations &&
               (() => {

@@ -272,6 +272,31 @@ def new_case():
             classifier(symptoms)
         )
 
+        # EPISTEMIC UNCERTAINTY CONTRADICTION CHECK
+        # High MI/Variance indicates the model is receiving conflicting signals (e.g. "severe pain" vs "I feel great")
+        if uncertainty > config.CONTRADICTION_MAX_UNCERTAINTY:
+            print(
+                f"[CONTRADICTION] Detected high uncertainty: {uncertainty:.4f} > {config.CONTRADICTION_MAX_UNCERTAINTY}"
+            )
+            contradiction_message = (
+                "We noticed some contradictory information in your symptoms (for example, reporting severe illness but also feeling completely well). "
+                "To ensure your safety, we cannot provide an analysis based on conflicting details. Please try again with clear, consistent symptoms."
+            )
+            return (
+                jsonify(
+                    {
+                        "data": {
+                            "skip_followup": True,
+                            "skip_reason": "OUT_OF_SCOPE",
+                            "out_of_scope_type": "CONTRADICTORY_INPUT",
+                            "message": contradiction_message,
+                            "is_valid": False,
+                        }
+                    }
+                ),
+                200,
+            )
+
         # NEURO-SYMBOLIC VERIFICATION: Check for ontology mismatch
         verification_layer = current_app.config["VERIFICATION_LAYER"]
         verification_result = verification_layer.verify(symptoms, pred)

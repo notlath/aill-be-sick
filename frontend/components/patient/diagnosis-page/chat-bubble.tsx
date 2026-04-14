@@ -71,6 +71,7 @@ const ChatBubble = ({
 
   const isError = type === "ERROR";
   const isInfo = type === "INFO";
+  const isUrgentWarning = type === "URGENT_WARNING";
   const isDiagnosis = type === "DIAGNOSIS";
   const isQuestion = type === "QUESTION";
 
@@ -190,17 +191,19 @@ const ChatBubble = ({
     );
   }
 
-  // ── Regular bubbles (USER / AI / ERROR / INFO) ───────────────────────────
+  // ── Regular bubbles (USER / AI / ERROR / INFO / URGENT_WARNING) ───────────────────────────
   const containerClass = cn(
     "p-3 px-4 rounded-xl max-w-[85%] sm:max-w-[60%] break-words",
     role === "USER" ? "self-end" : "self-start",
     isError
       ? "border border-red-400 bg-red-50 text-red-800"
-      : isInfo
-        ? "border border-blue-300 bg-blue-50 text-blue-900"
-        : role === "USER"
-          ? "bg-primary text-primary-content chat-bubble-user"
-          : "bg-base-200 text-base-content chat-bubble-ai",
+      : isUrgentWarning
+        ? "alert alert-warning shadow-sm"
+        : isInfo
+          ? "border border-blue-300 bg-blue-50 text-blue-900"
+          : role === "USER"
+            ? "bg-primary text-primary-content chat-bubble-user"
+            : "bg-base-200 text-base-content chat-bubble-ai",
   );
 
   return (
@@ -209,6 +212,12 @@ const ChatBubble = ({
         <div className="flex items-center gap-2 mb-1 text-red-700">
           <XCircle className="w-4 h-4" aria-hidden="true" />
           <span className="font-semibold text-sm">Error</span>
+        </div>
+      )}
+      {isUrgentWarning && (
+        <div className="flex items-center gap-2 mb-2 text-warning-content font-semibold">
+          <Info className="w-5 h-5" aria-hidden="true" />
+          <span>Action Required</span>
         </div>
       )}
       {isInfo && (
