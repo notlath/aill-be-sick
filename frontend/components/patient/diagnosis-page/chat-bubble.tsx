@@ -124,6 +124,7 @@ const ChatBubble = ({
         {shouldShowToggle && (
           <div className="border-t border-base-300 px-4 py-3">
             <button
+              type="button"
               onClick={() => setShowClinicianDetails(!showClinicianDetails)}
               className="flex items-center gap-1.5 text-xs font-medium text-base-content/50 hover:text-base-content transition-colors cursor-pointer"
               aria-expanded={showClinicianDetails}
@@ -196,11 +197,11 @@ const ChatBubble = ({
     "p-3 px-4 rounded-xl max-w-[85%] sm:max-w-[60%] break-words",
     role === "USER" ? "self-end" : "self-start",
     isError
-      ? "border border-red-400 bg-red-50 text-red-800"
+      ? "border border-error bg-error/10 text-error"
       : isUrgentWarning
         ? "alert alert-warning shadow-sm"
         : isInfo
-          ? "border border-blue-300 bg-blue-50 text-blue-900"
+          ? "border border-info bg-info/10 text-info"
           : role === "USER"
             ? "bg-primary text-primary-content chat-bubble-user"
             : "bg-base-200 text-base-content chat-bubble-ai",

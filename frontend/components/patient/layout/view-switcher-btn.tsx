@@ -58,9 +58,10 @@ const ViewSwitcherBtn = () => {
 
   return (
     <button
+      type="button"
       onClick={handleToggleView}
       disabled={isLoading}
-      className="rounded-xl transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-200/80 active:scale-95 font-medium text-base-content/80 hover:text-base-content flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="rounded-xl transition-all duration-200 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-base-200/80 active:scale-95 font-medium text-base-content/80 hover:text-base-content flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
     >
       {isLoading ? (
         <Loader2 className="w-4 h-4 animate-spin" />

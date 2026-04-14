@@ -29,34 +29,34 @@ const QuestionBubble = ({
         <p id={`q-${questionId}`}>{question}</p>
       </div>
       <div className="flex gap-3">
-        <button
-          onClick={() => onAnswer("yes", positiveSymptom, questionId)}
-          disabled={disabled}
-          className={cn(
-            "flex-1 btn btn-sm group relative",
-            disabled ? "btn-disabled" : "btn-success",
-          )}
-          aria-label={`Yes, I have ${positiveSymptom}`}
-        >
-          Yes
-          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block tooltip tooltip-top bg-neutral text-neutral-content text-xs rounded px-2 py-1 whitespace-nowrap">
-            {positiveSymptom}
-          </span>
-        </button>
-        <button
-          onClick={() => onAnswer("no", negativeSymptom, questionId)}
-          disabled={disabled}
-          className={cn(
-            "flex-1 btn btn-sm group relative",
-            disabled ? "btn-disabled" : "btn-error",
-          )}
-          aria-label={`No, I don't have ${positiveSymptom}`}
-        >
-          No
-          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block tooltip tooltip-top bg-neutral text-neutral-content text-xs rounded px-2 py-1 whitespace-nowrap">
-            {negativeSymptom}
-          </span>
-        </button>
+        <div className="tooltip tooltip-top flex-1" data-tip={positiveSymptom}>
+          <button
+            type="button"
+            onClick={() => onAnswer("yes", positiveSymptom, questionId)}
+            disabled={disabled}
+            className={cn(
+              "w-full btn btn-sm cursor-pointer transition-colors duration-200",
+              disabled ? "btn-disabled" : "btn-success",
+            )}
+            aria-label={`Yes, I have ${positiveSymptom}`}
+          >
+            Yes
+          </button>
+        </div>
+        <div className="tooltip tooltip-top flex-1" data-tip={negativeSymptom}>
+          <button
+            type="button"
+            onClick={() => onAnswer("no", negativeSymptom, questionId)}
+            disabled={disabled}
+            className={cn(
+              "w-full btn btn-sm cursor-pointer transition-colors duration-200",
+              disabled ? "btn-disabled" : "btn-error",
+            )}
+            aria-label={`No, I don't have ${positiveSymptom}`}
+          >
+            No
+          </button>
+        </div>
       </div>
     </article>
   );

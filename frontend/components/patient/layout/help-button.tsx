@@ -18,7 +18,7 @@ const HelpButton = () => {
       type="button"
       onClick={handleClick}
       className={cn(
-        "group flex items-center gap-3 px-2.5 py-2 rounded-xl transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] relative overflow-hidden w-full",
+        "group flex items-center gap-3 px-2.5 py-2 rounded-xl transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] relative overflow-hidden w-full cursor-pointer",
         "hover:bg-base-200/60 hover:shadow-sm active:scale-[0.98]",
         "focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none",
         "bg-transparent",

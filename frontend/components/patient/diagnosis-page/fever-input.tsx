@@ -117,7 +117,7 @@ const FeverInput = ({
         <div className="relative">
           <button
             type="button"
-            className="btn btn-ghost btn-xs btn-circle text-base-content/40 hover:text-primary transition-colors"
+            className="btn btn-ghost btn-sm btn-circle text-base-content/40 hover:text-primary transition-colors cursor-pointer"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
             onFocus={() => setShowTooltip(true)}
@@ -172,7 +172,7 @@ const FeverInput = ({
             type="button"
             onClick={handleUnitToggle}
             disabled={disabled}
-            className="btn btn-outline border-base-content/20 join-item bg-base-200 hover:bg-base-300 min-w-[70px] transition-colors"
+            className="btn btn-outline border-base-content/20 join-item bg-base-200 hover:bg-base-300 min-w-[70px] transition-colors cursor-pointer"
             aria-label={
               language === "en" ? "Switch temperature unit" : "Palitan ang unit"
             }

@@ -405,7 +405,7 @@ const CDSSSummary = ({
         <div className="px-6 py-4 border-t border-base-300">
           <button
             type="button"
-            className="flex items-center justify-center gap-2 w-full border border-border btn cursor-pointer"
+            className="flex items-center justify-center gap-2 w-full border border-base-300 btn cursor-pointer"
             onClick={handleViewInsights}
           >
             <Lightbulb className="w-4 h-4" />
