@@ -426,16 +426,19 @@ def _build_cdss_payload(
         ],
     }
 
-    knowledge = _KNOWLEDGE_BY_DISEASE.get(
-        disease,
-        [
-            {
-                "topic": "General health information",
-                "source": "WHO",
-                "link": "https://www.who.int/health-topics",
-            },
-        ],
-    )
+    if is_uncertain:
+        knowledge = []
+    else:
+        knowledge = _KNOWLEDGE_BY_DISEASE.get(
+            disease,
+            [
+                {
+                    "topic": "General health information",
+                    "source": "WHO",
+                    "link": "https://www.who.int/health-topics",
+                },
+            ],
+        )
 
     from app.evidence_keywords import EVIDENCE_KEYWORDS
 
