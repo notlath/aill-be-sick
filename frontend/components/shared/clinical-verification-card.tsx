@@ -40,6 +40,7 @@ type ClinicalVerificationCardProps = {
   title?: string;
   description?: string;
   extractedSymptomIds?: string[];
+  defaultExpanded?: boolean;
 };
 
 type SymptomSectionProps = {
@@ -209,7 +210,7 @@ const ClinicalVerificationSummary = ({
           </p>
         </div>
 
-        {allowEdit && onEdit && (
+        {allowEdit && onEdit && record && (
           <button
             type="button"
             className="btn btn-outline btn-sm gap-2"
@@ -267,11 +268,22 @@ const ClinicalVerificationSummary = ({
           />
         </div>
       ) : (
-        <div className="alert alert-info">
-          <ShieldAlert className="size-5" />
-          <p className="text-sm leading-relaxed">
-            This result has not yet been checked against the {protocol.diseaseName} symptom guide.
-          </p>
+        <div className="alert alert-info bg-info/10 border border-info/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl text-info-content">
+          <div className="flex items-start sm:items-center gap-3">
+            <ShieldAlert className="size-5 shrink-0 text-info mt-0.5 sm:mt-0" />
+            <p className="text-sm leading-relaxed text-base-content/80">
+              This result has not yet been checked against the {protocol.diseaseName} symptom guide.
+            </p>
+          </div>
+          {allowEdit && onEdit && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm shrink-0"
+              onClick={onEdit}
+            >
+              Verify symptoms
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -287,6 +299,7 @@ export default function ClinicalVerificationCard({
   title = "Clinical symptom check",
   description,
   extractedSymptomIds = [],
+  defaultExpanded = false,
 }: ClinicalVerificationCardProps) {
   const protocol = getClinicalVerificationProtocol(disease);
 
@@ -311,7 +324,7 @@ export default function ClinicalVerificationCard({
     
   const [selectedSymptomIds, setSelectedSymptomIds] = useState<string[]>(defaultSelected);
   const [isEditing, setIsEditing] = useState(
-    !readOnly && !normalizedPropRecord && Boolean(chatId),
+    defaultExpanded && !readOnly && !normalizedPropRecord && Boolean(chatId)
   );
 
   useEffect(() => {
@@ -324,7 +337,7 @@ export default function ClinicalVerificationCard({
       setSelectedSymptomIds(extractedSymptomIds);
     }
     
-    setIsEditing(!readOnly && !normalizedPropRecord && Boolean(chatId));
+    // Removed setIsEditing to prevent aggressive snapping shut of the UI
   }, [chatId, normalizedPropRecord, readOnly, extractedSymptomIds.join(",")]);
 
   const preview = useMemo(
@@ -457,7 +470,7 @@ export default function ClinicalVerificationCard({
           <ClinicalVerificationSummary
             protocol={protocol}
             record={savedRecord}
-            allowEdit={allowEdit && Boolean(savedRecord)}
+            allowEdit={allowEdit}
             onEdit={() => setIsEditing(true)}
           />
         ) : (

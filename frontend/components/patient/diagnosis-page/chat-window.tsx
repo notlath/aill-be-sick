@@ -1024,6 +1024,7 @@ const ChatWindow = ({
                         latestStoredTempDiagnosis?.clinicalVerification ?? null
                       }
                       extractedSymptomIds={extractedSymptomIds}
+                      defaultExpanded={true}
                     />
                   </div>
                 );

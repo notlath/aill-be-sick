@@ -148,7 +148,8 @@ const ChatHistoryView = ({
                   verificationStatus={clinicalVerificationStatus}
                   verificationPayload={clinicalVerification}
                   extractedSymptomIds={extractedSymptomIds}
-                  readOnly={true}
+                  readOnly={false}
+                  defaultExpanded={false}
                 />
               )}
             </div>
