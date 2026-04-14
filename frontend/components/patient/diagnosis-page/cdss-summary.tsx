@@ -54,8 +54,6 @@ type CDSSSummaryProps = {
   diagnosisMessage?: string | null;
   /** Result of clinical symptom verification protocol validation */
   verificationStatus?: string | null;
-  /** Callback to open the clinical verification modal */
-  onOpenVerification?: () => void;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -152,7 +150,6 @@ const CDSSSummary = ({
   isValid,
   diagnosisMessage,
   verificationStatus,
-  onOpenVerification,
 }: CDSSSummaryProps) => {
   if (!cdss) return null;
 
@@ -416,19 +413,6 @@ const CDSSSummary = ({
           </button>
         </div>
 
-        {/* ── Action: Clinical verification ──────────────────────── */}
-        {onOpenVerification && (
-          <div className="px-6 pb-5">
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 w-full btn btn-primary"
-              onClick={onOpenVerification}
-            >
-              <ClipboardCheck className="w-4 h-4" />
-              Verify your symptoms
-            </button>
-          </div>
-        )}
       </Card>
     </>
   );

@@ -1,6 +1,5 @@
 "use client";
 
-import ClinicalVerificationModal from "@/components/shared/clinical-verification-modal";
 import {
   Chat,
   Explanation,
@@ -17,6 +16,10 @@ import ChatContainer from "./chat-container";
 import InsightsModal from "./insights-modal";
 
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
+const ClinicalVerificationCard = dynamic(
+  () => import("@/components/shared/clinical-verification-card"),
+  { ssr: false }
+);
 
 type ChatHistoryViewProps = {
   chatId: string;
@@ -106,9 +109,6 @@ const ChatHistoryView = ({
   // We do NOT show the CDSS/Verification checklist for inconclusive/invalid diagnoses.
   const shouldShowCdss = dbCdss && dbIsValid !== false;
 
-  // State for clinical verification modal
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
-
   return (
     <div className="space-y-4">
       <ChatContainer
@@ -140,21 +140,15 @@ const ChatHistoryView = ({
                 isValid={dbIsValid ?? undefined}
                 diagnosisMessage={diagnosisMessage}
                 verificationStatus={clinicalVerificationStatus}
-                onOpenVerification={
-                  diagnosisDisease
-                    ? () => setShowVerificationModal(true)
-                    : undefined
-                }
               />
               {diagnosisDisease && (
-                <ClinicalVerificationModal
-                  isOpen={showVerificationModal}
-                  onClose={() => setShowVerificationModal(false)}
+                <ClinicalVerificationCard
                   disease={diagnosisDisease}
                   chatId={chatId}
                   verificationStatus={clinicalVerificationStatus}
                   verificationPayload={clinicalVerification}
                   extractedSymptomIds={extractedSymptomIds}
+                  readOnly={true}
                 />
               )}
             </div>

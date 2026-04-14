@@ -5,7 +5,6 @@ import { createMessage } from "@/actions/create-message";
 import { explainDiagnosis } from "@/actions/explain-diagnosis";
 import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
 import { runDiagnosis } from "@/actions/run-diagnosis";
-import ClinicalVerificationModal from "@/components/shared/clinical-verification-modal";
 import {
   Chat,
   Explanation,
@@ -28,6 +27,10 @@ import ThreadTransition from "./thread-transition";
 
 import { getSymptomIdsFromQuestionIds } from "@/utils/clinical-verification";
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
+const ClinicalVerificationCard = dynamic(
+  () => import("@/components/shared/clinical-verification-card"),
+  { ssr: false }
+);
 
 // Helpers to map backend strings to enum values expected by CreateMessageSchema
 const mapModelUsed = (
@@ -188,7 +191,6 @@ const ChatWindow = ({
     is_valid?: boolean;
   } | null>(null);
   const [isFinalDiagnosis, setIsFinalDiagnosis] = useState<boolean>(false);
-  const [showVerificationModal, setShowVerificationModal] = useState(false);
   const latestStoredTempDiagnosis = messages
     .map((message) => message.tempDiagnosis)
     .filter((tempDiagnosis): tempDiagnosis is TempDiagnosis =>
@@ -1013,11 +1015,8 @@ const ChatWindow = ({
                       uncertainty={currentDiagnosis.uncertainty ?? undefined}
                       isValid={currentDiagnosis.is_valid}
                       verificationStatus={verificationStatus}
-                      onOpenVerification={() => setShowVerificationModal(true)}
                     />
-                    <ClinicalVerificationModal
-                      isOpen={showVerificationModal}
-                      onClose={() => setShowVerificationModal(false)}
+                    <ClinicalVerificationCard
                       disease={currentDiagnosis.disease}
                       chatId={chatId}
                       verificationStatus={verificationStatus}
