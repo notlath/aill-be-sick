@@ -203,7 +203,7 @@ const CDSSSummary = ({
                       ),
                     }}
                   >
-                    {isHighPriority ? "Based on the symptoms you shared, a healthcare professional needs to evaluate you in person to provide an accurate diagnosis." : diagnosisMessage}
+                    {isHighPriority ? "Based on the symptoms you shared, please head to the Bagong Silangan Health Center (or your nearest healthcare provider) promptly for an in-person medical evaluation." : diagnosisMessage}
                   </LazyMarkdown>
                 </div>
               )}
@@ -229,23 +229,25 @@ const CDSSSummary = ({
 
         <div className="px-6 py-4 space-y-4">
           {/* ── Verification Notice ──────────────────────────────── */}
-          <div className="flex gap-3 rounded-xl bg-info/10 border border-info/20 px-4 py-3">
-            <MapPin
-              className="w-5 h-5 text-info flex-shrink-0 mt-0.5"
-              strokeWidth={2.5}
-            />
-            <div>
-              <p className="text-sm font-semibold text-info leading-snug">
-                Next step: get your results verified
-              </p>
-              <p className="text-xs text-base-content/70 mt-1 leading-relaxed">
-                This assessment is a helpful starting point, but it's not a
-                substitute for a doctor's visit. Head to the Bagong Silangan
-                Health Center for a check-up so a healthcare provider can review
-                your results and guide your next steps.
-              </p>
+          {!isHighPriority && (
+            <div className="flex gap-3 rounded-xl bg-info/10 border border-info/20 px-4 py-3">
+              <MapPin
+                className="w-5 h-5 text-info flex-shrink-0 mt-0.5"
+                strokeWidth={2.5}
+              />
+              <div>
+                <p className="text-sm font-semibold text-info leading-snug">
+                  Next step: get your results verified
+                </p>
+                <p className="text-xs text-base-content/70 mt-1 leading-relaxed">
+                  This assessment is a helpful starting point, but it's not a
+                  substitute for a doctor's visit. Head to the Bagong Silangan
+                  Health Center for a check-up so a healthcare provider can review
+                  your results and guide your next steps.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ── Triage — Urgency ─────────────────────────────────── */}
           {cdss.triage && triage && (
