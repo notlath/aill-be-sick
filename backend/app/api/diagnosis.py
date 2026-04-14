@@ -279,8 +279,8 @@ def new_case():
                 f"[CONTRADICTION] Detected high uncertainty: {uncertainty:.4f} > {config.CONTRADICTION_MAX_UNCERTAINTY}"
             )
             contradiction_message = (
-                "We noticed some contradictory information in your symptoms (for example, reporting severe illness but also feeling completely well). "
-                "To ensure your safety, we cannot provide an analysis based on conflicting details. Please try again with clear, consistent symptoms."
+                "It looks like some of the symptoms you described contradict each other (e.g., reporting severe illness but also feeling completely well). "
+                "To ensure a safe and accurate assessment, we need a clear picture of what you're experiencing."
             )
             return (
                 jsonify(

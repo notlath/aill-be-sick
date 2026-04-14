@@ -2,8 +2,9 @@ import LazyMarkdown from "@/components/ui/lazy-markdown";
 import { Message, TempDiagnosis } from "@/lib/generated/prisma";
 import { Explanation } from "@/types";
 import { cn } from "@/utils/lib";
-import { ChevronDown, ChevronUp, Info, XCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Info, XCircle, ShieldAlert, RefreshCw } from "lucide-react";
 import { memo, useState } from "react";
+import Link from "next/link";
 import InsightsModal from "./insights-modal";
 import ViewInsightsBtn from "./view-insights-btn";
 
@@ -199,7 +200,7 @@ const ChatBubble = ({
     isError
       ? "border border-error bg-error/10 text-error"
       : isUrgentWarning
-        ? "alert alert-warning shadow-sm"
+        ? "w-full max-w-[85%] sm:max-w-[60%] rounded-xl border-l-4 border-warning bg-warning/10 shadow-sm p-4 text-warning-content break-words"
         : isInfo
           ? "border border-info bg-info/10 text-info"
           : role === "USER"
@@ -207,18 +208,32 @@ const ChatBubble = ({
             : "bg-base-200 text-base-content chat-bubble-ai",
   );
 
+  if (isUrgentWarning) {
+    return (
+      <article className={cn(containerClass, "self-start")}>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2 text-warning-content font-bold">
+            <ShieldAlert className="w-5 h-5 shrink-0" aria-hidden="true" />
+            <span>Action Required</span>
+          </div>
+          <div className="text-warning-content/90 text-sm leading-relaxed">
+            <LazyMarkdown components={MARKDOWN_COMPONENTS}>{content}</LazyMarkdown>
+          </div>
+          <Link href="/diagnosis" className="btn btn-warning btn-sm mt-1 self-start font-medium shadow-sm hover:shadow-md transition-all">
+            <RefreshCw className="w-4 h-4 shrink-0" />
+            Start new assessment
+          </Link>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <article className={containerClass}>
       {isError && (
         <div className="flex items-center gap-2 mb-1 text-red-700">
-          <XCircle className="w-4 h-4" aria-hidden="true" />
-          <span className="font-semibold text-sm">Error</span>
-        </div>
-      )}
-      {isUrgentWarning && (
-        <div className="flex items-center gap-2 mb-2 text-warning-content font-semibold">
-          <Info className="w-5 h-5" aria-hidden="true" />
-          <span>Action Required</span>
+           <XCircle className="w-4 h-4" aria-hidden="true" />
+           <span className="font-semibold text-sm">Error</span>
         </div>
       )}
       {isInfo && (
