@@ -5,14 +5,12 @@ import LazyMarkdown from "@/components/ui/lazy-markdown";
 import { getSymptomLabelMap } from "@/constants/clinical-verification-protocols";
 import {
   Activity,
-  BookOpen,
-  ClipboardCheck,
-  ClipboardList,
+  BookOpen, ClipboardList,
   ExternalLink,
   Lightbulb,
   ListChecks,
   MapPin,
-  ShieldAlert,
+  ShieldAlert
 } from "lucide-react";
 import React from "react";
 
@@ -174,7 +172,7 @@ const CDSSSummary = ({
 
   return (
     <>
-      <Card className="cdss-card border border-base-300 bg-base-100 shadow-sm rounded-2xl overflow-hidden">
+      <Card className="cdss-card border border-base-300 bg-base-100 shadow-sm rounded-2xl mb-8 overflow-hidden">
         {/* ── Header ──────────────────────────────────────────────── */}
         <div className="px-6 pt-5 pb-4 border-b border-base-300">
           <div className="flex items-center gap-3">
