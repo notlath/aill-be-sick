@@ -144,6 +144,29 @@ def _has_medical_keywords(text: str, lang: str = "en") -> bool:
     return has_en_keyword or has_tl_keyword
 
 
+def extract_all_symptom_qids(
+    symptoms_text: str, question_answers: dict, evidence_keywords: dict
+) -> list[str]:
+    """
+    Extracts all symptom question IDs that are matched in the initial symptoms text
+    or were answered with "yes" in follow-up questions.
+    """
+    matched = set()
+    symptoms_lower = symptoms_text.lower()
+
+    # 1. Add matches from initial text keywords
+    for qid, keywords in evidence_keywords.items():
+        if any(kw.lower() in symptoms_lower for kw in keywords):
+            matched.add(qid)
+
+    # 2. Add explicitly answered "yes" questions
+    for qid, ans in question_answers.items():
+        if str(ans).lower() == "yes":
+            matched.add(qid)
+
+    return list(matched)
+
+
 def _build_cdss_payload(
     symptoms: str,
     disease: str,
@@ -152,38 +175,67 @@ def _build_cdss_payload(
     top_diseases: list,
     model_used: str,
     is_valid: bool = True,
+    question_answers: dict | None = None,
 ) -> dict:
-    """Construct a structured CDSS payload to accompany narrative output.
+    from app.question_groups import (
+        detect_symptom_groups_in_text,
+        get_warning_sign_groups,
+        get_groups_for_question,
+    )
+    import app.config as config
 
-    Triage determination uses a 3-tier risk stratification system based on
-    ML model confidence and uncertainty thresholds from config. Thresholds are
-    thesis-backed: ECE calibration (0.084), sensitivity analysis, ROC/PR optimization.
+    # 1. Gather all detected symptom groups (from text and questions)
+    detected_groups = detect_symptom_groups_in_text(symptoms)
+    if question_answers:
+        for qid, ans in question_answers.items():
+            if str(ans).lower() == "yes":
+                detected_groups.update(get_groups_for_question(qid))
 
-    3-Tier System:
-    - LOW PRIORITY (Green): Confidence >= 90% AND uncertainty <= 3% → Automated diagnosis
-    - MEDIUM PRIORITY (Yellow): Confidence 70-90% OR uncertainty 3-8% → Nurse review
-    - HIGH PRIORITY (Red): Confidence < 70% OR uncertainty > 8% → Physician review
+    warning_signs = get_warning_sign_groups(detected_groups)
+    has_warning_signs = len(warning_signs) > 0
 
-    When is_valid=False (unable to diagnose), the triage level is still computed
-    to provide appropriate care guidance, but reasons are modified to reflect
-    diagnostic uncertainty rather than a confirmed condition.
-
-    No keyword-based escalation is performed, as CDSS should not autonomously label
-    symptoms as emergent without clinician review.
-    """
-    # Track if this is an uncertain/unable-to-diagnose case
+    # 2. Determine base metrics-driven triage
     is_uncertain = not is_valid or confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN
-    
-    # 3-Tier triage determination based on confidence and uncertainty
+
     if (
         confidence >= config.TRIAGE_HIGH_CONFIDENCE
         and uncertainty <= config.TRIAGE_LOW_UNCERTAINTY
     ):
-        # LOW PRIORITY (Green): High confidence, low uncertainty
-        triage_level = "Low Priority"
+        base_level = "Low Priority"
+    elif (
+        confidence >= config.TRIAGE_MEDIUM_CONFIDENCE_MIN
+        and uncertainty <= config.TRIAGE_MEDIUM_UNCERTAINTY_MAX
+    ):
+        base_level = "Medium Priority"
+    else:
+        base_level = "High Priority"
+
+    # 3. Determine Disease-Specific Floor
+    disease_floor = "Low Priority"
+    if disease in ["Dengue", "Typhoid", "Pneumonia", "Measles"]:
+        disease_floor = "Medium Priority"
+
+    # 4. Resolve Final Triage Level
+    priority_rank = {"Low Priority": 1, "Medium Priority": 2, "High Priority": 3}
+
+    final_level = base_level
+    if priority_rank[disease_floor] > priority_rank[final_level]:
+        final_level = disease_floor
+    if has_warning_signs:
+        final_level = "High Priority"
+
+    triage_level = final_level
+
+    # 5. Build Reasons and Actions based on final level
+    triage_reasons = []
+    actions = []
+    care_setting = ""
+
+    if triage_level == "Low Priority":
         triage_reasons = [
             f"High model confidence (≥ {config.TRIAGE_HIGH_CONFIDENCE:.0%})",
             f"Low uncertainty (≤ {config.TRIAGE_LOW_UNCERTAINTY:.0%})",
+            "No severe warning signs detected",
             "Safe for automated diagnosis without human review",
         ]
         care_setting = "Home care or routine clinic visit"
@@ -192,17 +244,21 @@ def _build_cdss_payload(
             "Schedule routine clinic follow-up if symptoms persist or worsen",
             "Return immediately if warning signs develop",
         ]
-    elif (
-        confidence >= config.TRIAGE_MEDIUM_CONFIDENCE_MIN
-        and uncertainty <= config.TRIAGE_MEDIUM_UNCERTAINTY_MAX
-    ):
-        # MEDIUM PRIORITY (Yellow): Moderate confidence or uncertainty
-        triage_level = "Medium Priority"
-        triage_reasons = [
-            f"Moderate model confidence ({config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%}–{config.TRIAGE_HIGH_CONFIDENCE:.0%})",
-            f"Moderate uncertainty level ({config.TRIAGE_LOW_UNCERTAINTY:.0%}–{config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
-            "Requires clinical validation for safety",
-        ]
+    elif triage_level == "Medium Priority":
+        if base_level == "Low Priority":
+            # Escalated strictly due to disease floor
+            triage_reasons.append(
+                "Clinical baseline protocol requires medical evaluation"
+            )
+        else:
+            triage_reasons.extend(
+                [
+                    f"Moderate model confidence ({config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%}–{config.TRIAGE_HIGH_CONFIDENCE:.0%})",
+                    f"Moderate uncertainty level ({config.TRIAGE_LOW_UNCERTAINTY:.0%}–{config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
+                    "Requires clinical validation for safety",
+                ]
+            )
+
         care_setting = "Clinic visit within 24 hours"
         actions = [
             "Consult a healthcare professional within 24 hours",
@@ -210,26 +266,31 @@ def _build_cdss_payload(
             "Provide additional history, vitals, and physical exam",
             "Monitor for symptom progression or warning signs",
         ]
-    else:
-        # HIGH PRIORITY (Red): Low confidence or high uncertainty
-        triage_level = "High Priority"
-        
-        # Modify reasons based on whether we could make a diagnosis
+    else:  # High Priority
+        if has_warning_signs:
+            triage_reasons.append(
+                "Severe warning signs detected (requires immediate clinical assessment)"
+            )
+
         if is_uncertain:
-            # Unable to diagnose case - emphasize need for human evaluation
-            triage_reasons = [
-                "Unable to reach confident diagnosis from symptoms provided",
-                "Clinical evaluation needed for proper assessment",
-                "Additional diagnostic workup may be required",
-            ]
-        else:
-            # Diagnosed but high uncertainty - emphasize review of findings
-            triage_reasons = [
-                f"Low model confidence (< {config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%})" if confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN else f"High uncertainty (> {config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
-                "Model prediction requires expert clinical review",
-                "Additional diagnostic workup recommended",
-            ]
-        
+            triage_reasons.extend(
+                [
+                    "Unable to reach confident diagnosis from symptoms provided",
+                    "Clinical evaluation needed for proper assessment",
+                    "Additional diagnostic workup may be required",
+                ]
+            )
+        elif base_level == "High Priority":
+            triage_reasons.extend(
+                [
+                    f"Low model confidence (< {config.TRIAGE_MEDIUM_CONFIDENCE_MIN:.0%})"
+                    if confidence < config.TRIAGE_MEDIUM_CONFIDENCE_MIN
+                    else f"High uncertainty (> {config.TRIAGE_MEDIUM_UNCERTAINTY_MAX:.0%})",
+                    "Model prediction requires expert clinical review",
+                    "Additional diagnostic workup recommended",
+                ]
+            )
+
         care_setting = "Prompt physician evaluation required"
         actions = [
             "Consult a healthcare professional promptly",
@@ -237,6 +298,47 @@ def _build_cdss_payload(
             "Consider additional diagnostic tests (labs, imaging) as clinically indicated",
             "Provide comprehensive history, vitals, and physical examination",
         ]
+
+    # 6. Append Disease-Specific Reasons and Actions
+    if not is_uncertain:
+        if disease == "Dengue":
+            if (
+                priority_rank[triage_level] >= 2
+                and base_level == "Low Priority"
+                and not has_warning_signs
+            ):
+                triage_reasons.append(
+                    "Suspected Dengue requires an initial laboratory test (CBC) and medical monitoring."
+                )
+            actions.insert(0, "Get a Complete Blood Count (CBC) as soon as possible.")
+            actions.insert(
+                0,
+                "Do not take ibuprofen or aspirin (NSAIDs) as they increase bleeding risk. Take paracetamol for fever.",
+            )
+        elif disease in ["Typhoid", "Pneumonia"]:
+            if (
+                priority_rank[triage_level] >= 2
+                and base_level == "Low Priority"
+                and not has_warning_signs
+            ):
+                triage_reasons.append(
+                    "Requires clinical evaluation for appropriate prescription antibiotics."
+                )
+        elif disease == "Measles":
+            if (
+                priority_rank[triage_level] >= 2
+                and base_level == "Low Priority"
+                and not has_warning_signs
+            ):
+                triage_reasons.append(
+                    "Requires clinical evaluation for Vitamin A supplementation and isolation protocols."
+                )
+            actions.insert(0, "Isolate immediately to prevent spreading the virus.")
+        elif disease == "Diarrhea":
+            actions.insert(
+                0,
+                "Begin drinking Oral Rehydration Salts (ORS) immediately to replace lost fluids.",
+            )
 
     # Differential list from top_diseases (already sorted in caller)
     differential = [
@@ -324,15 +426,34 @@ def _build_cdss_payload(
         ],
     }
 
-    knowledge = _KNOWLEDGE_BY_DISEASE.get(
-        disease,
-        [
-            {
-                "topic": "General health information",
-                "source": "WHO",
-                "link": "https://www.who.int/health-topics",
-            },
-        ],
+    if is_uncertain:
+        knowledge = []
+    else:
+        knowledge = _KNOWLEDGE_BY_DISEASE.get(
+            disease,
+            [
+                {
+                    "topic": "General health information",
+                    "source": "WHO",
+                    "link": "https://www.who.int/health-topics",
+                },
+            ],
+        )
+
+    from app.evidence_keywords import EVIDENCE_KEYWORDS
+
+    # Try to grab question_answers from Flask session if not provided, for backwards compat
+    if question_answers is None:
+        try:
+            from flask import session
+
+            sess = session.get("diagnosis", {})
+            question_answers = sess.get("question_answers", {})
+        except Exception:
+            question_answers = {}
+
+    extracted_symptoms = extract_all_symptom_qids(
+        symptoms, question_answers or {}, EVIDENCE_KEYWORDS
     )
 
     payload = {
@@ -365,6 +486,7 @@ def _build_cdss_payload(
                 "soft_max_mi": config.SYMPTOM_SOFT_MAX_MI,
             },
         },
+        "extracted_symptoms": extracted_symptoms,
     }
 
     return payload

@@ -82,6 +82,10 @@ export const autoRecordDiagnosis = actionClient
           symptoms: tempDiagnosis.symptoms,
           cdss: (tempDiagnosis as any).cdss ?? undefined,
           isValid: tempDiagnosis.isValid,
+          clinicalVerification:
+            tempDiagnosis.clinicalVerification ?? undefined,
+          clinicalVerificationStatus:
+            tempDiagnosis.clinicalVerificationStatus ?? undefined,
           userId: dbUser.id,
           latitude: dbUser.latitude ?? null,
           longitude: dbUser.longitude ?? null,

@@ -14,6 +14,8 @@ const diagnosisWithUserSelect = {
   modelUsed: true,
   cdss: true,
   isValid: true,
+  clinicalVerification: true,
+  clinicalVerificationStatus: true,
   city: true,
   region: true,
   province: true,

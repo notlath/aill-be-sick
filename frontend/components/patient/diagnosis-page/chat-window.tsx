@@ -5,7 +5,12 @@ import { createMessage } from "@/actions/create-message";
 import { explainDiagnosis } from "@/actions/explain-diagnosis";
 import { getFollowUpQuestion } from "@/actions/get-follow-up-question";
 import { runDiagnosis } from "@/actions/run-diagnosis";
-import { Chat, Explanation, Message } from "@/lib/generated/prisma";
+import {
+  Chat,
+  Explanation,
+  Message,
+  TempDiagnosis,
+} from "@/lib/generated/prisma";
 import {
   CreateChatSchema,
   CreateChatSchemaType,
@@ -20,7 +25,12 @@ import ChatContainer from "./chat-container";
 import DiagnosisForm from "./diagnosis-form";
 import ThreadTransition from "./thread-transition";
 
+import { getSymptomIdsFromQuestionIds } from "@/utils/clinical-verification";
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
+const ClinicalVerificationCard = dynamic(
+  () => import("@/components/shared/clinical-verification-card"),
+  { ssr: false }
+);
 
 // Helpers to map backend strings to enum values expected by CreateMessageSchema
 const mapModelUsed = (
@@ -102,7 +112,10 @@ const getOutOfScopeMessage = ({
 
 type ChatWindowProps = {
   chatId: string;
-  messages: (Message & { explanation?: Explanation | null })[];
+  messages: (Message & {
+    explanation?: Explanation | null;
+    tempDiagnosis?: TempDiagnosis | null;
+  })[];
   chat: Chat;
   dbExplanation: Explanation | null;
   userRole?: string;
@@ -178,6 +191,12 @@ const ChatWindow = ({
     is_valid?: boolean;
   } | null>(null);
   const [isFinalDiagnosis, setIsFinalDiagnosis] = useState<boolean>(false);
+  const latestStoredTempDiagnosis = messages
+    .map((message) => message.tempDiagnosis)
+    .filter((tempDiagnosis): tempDiagnosis is TempDiagnosis =>
+      Boolean(tempDiagnosis),
+    )
+    .at(-1);
 
   const { execute: getFollowUpExecute, isExecuting: isGettingQuestion } =
     useAction(getFollowUpQuestion, {
@@ -234,10 +253,13 @@ const ChatWindow = ({
               diagnosis,
               verificationFailure: diagnosis?.verification_failure,
             });
+            const outOfScopeType = diagnosis?.out_of_scope_type;
+            const messageType = outOfScopeType === "CONTRADICTORY_INPUT" ? "URGENT_WARNING" : "INFO";
+
             createMessageExecute({
               chatId,
               content: outOfScopeMessage,
-              type: "INFO",
+              type: messageType,
               role: "AI",
             });
             setCurrentQuestion(null);
@@ -245,7 +267,7 @@ const ChatWindow = ({
           }
 
           // Handle low confidence / unable to diagnose cases
-          // Still show CDSS with triage guidance, but mark as informational
+          // Do NOT show CDSS/Verification checklist for inconclusive results
           if (diagnosis?.is_valid === false) {
             setIsFinalDiagnosis(true);
             const { disease, confidence, uncertainty, model_used } = diagnosis;
@@ -516,11 +538,13 @@ const ChatWindow = ({
                 diagnosis: data.diagnosis,
                 verificationFailure,
               });
+              const outOfScopeType = (data.diagnosis as any)?.out_of_scope_type;
+              const messageType = outOfScopeType === "CONTRADICTORY_INPUT" ? "URGENT_WARNING" : "INFO";
 
               createMessageExecute({
                 chatId,
                 content: infoMsg,
-                type: "INFO",
+                type: messageType,
                 role: "AI",
               });
               setCurrentQuestion(null);
@@ -886,6 +910,25 @@ const ChatWindow = ({
   }, [chatId]);
 
   useEffect(() => {
+    if (chat.hasDiagnosis || currentDiagnosis || !latestStoredTempDiagnosis) {
+      return;
+    }
+
+    if (latestStoredTempDiagnosis.cdss) {
+      setCurrentDiagnosis({
+        disease: latestStoredTempDiagnosis.disease,
+        confidence: latestStoredTempDiagnosis.confidence,
+        uncertainty: latestStoredTempDiagnosis.uncertainty,
+        cdss: latestStoredTempDiagnosis.cdss,
+        model_used: latestStoredTempDiagnosis.modelUsed,
+        is_valid: latestStoredTempDiagnosis.isValid,
+      });
+      setIsFinalDiagnosis(true);
+      finalDiagnosisCreatedRef.current = true;
+    }
+  }, [chat.hasDiagnosis, currentDiagnosis, latestStoredTempDiagnosis]);
+
+  useEffect(() => {
     const hasExistingAiMessages = messages.some((m) => m.role === "AI");
     if (chat.hasDiagnosis || hasExistingAiMessages) return;
 
@@ -953,17 +996,39 @@ const ChatWindow = ({
             />
             {isFinalDiagnosis &&
               currentDiagnosis?.cdss &&
+              currentDiagnosis.is_valid !== false &&
               finalDiagnosisCreatedRef.current &&
-              !isGettingExplanations && (
-                <div className="mt-2 w-full">
-                  <CDSSSummary
-                    cdss={currentDiagnosis.cdss}
-                    confidence={currentDiagnosis.confidence ?? undefined}
-                    uncertainty={currentDiagnosis.uncertainty ?? undefined}
-                    isValid={currentDiagnosis.is_valid}
-                  />
-                </div>
-              )}
+              !isGettingExplanations &&
+              (() => {
+                const verificationStatus =
+                  latestStoredTempDiagnosis?.clinicalVerificationStatus ?? null;
+                const extractedSymptomIds = getSymptomIdsFromQuestionIds(
+                  currentDiagnosis.disease,
+                  currentDiagnosis.cdss?.extracted_symptoms ?? [],
+                );
+
+                return (
+                  <div className="mt-2 w-full space-y-4">
+                    <CDSSSummary
+                      cdss={currentDiagnosis.cdss}
+                      confidence={currentDiagnosis.confidence ?? undefined}
+                      uncertainty={currentDiagnosis.uncertainty ?? undefined}
+                      isValid={currentDiagnosis.is_valid}
+                      verificationStatus={verificationStatus}
+                    />
+                    <ClinicalVerificationCard
+                      disease={currentDiagnosis.disease}
+                      chatId={chatId}
+                      verificationStatus={verificationStatus}
+                      verificationPayload={
+                        latestStoredTempDiagnosis?.clinicalVerification ?? null
+                      }
+                      extractedSymptomIds={extractedSymptomIds}
+                      defaultExpanded={true}
+                    />
+                  </div>
+                );
+              })()}
           </ThreadTransition>
         </div>
 

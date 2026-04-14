@@ -1,5 +1,6 @@
 "use client";
 
+import { getClinicalVerificationStatusMeta } from "@/utils/clinical-verification";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, ExternalLink } from "lucide-react";
 import Link from "next/link";
@@ -12,6 +13,7 @@ export type HistoryRow = {
   reliabilityLabel: string | null;
   reliabilityBadgeClass: string | null;
   reliabilityRank: number | null;
+  clinicalVerificationStatus: string | null;
   createdAt: Date;
 };
 
@@ -31,7 +33,23 @@ export const columns: ColumnDef<HistoryRow>[] = [
     },
     cell: ({ row }) => {
       const diagnosis = row.getValue("diagnosis") as string;
-      return <span className="font-medium">{diagnosis}</span>;
+      const clinicalVerificationStatus = row.original.clinicalVerificationStatus;
+      const clinicalVerificationMeta = clinicalVerificationStatus
+        ? getClinicalVerificationStatusMeta(clinicalVerificationStatus)
+        : null;
+
+      return (
+        <div className="flex flex-col gap-1">
+          <span className="font-medium">{diagnosis}</span>
+          {clinicalVerificationMeta && (
+            <span
+              className={`badge ${clinicalVerificationMeta.badgeClass} badge-xs whitespace-nowrap w-fit`}
+            >
+              Clinical check: {clinicalVerificationMeta.label}
+            </span>
+          )}
+        </div>
+      );
     },
     // filterFn is customized for both global search and exact select matching if needed
     // or we can stick to includesString and it will work with Selects if we use exact values

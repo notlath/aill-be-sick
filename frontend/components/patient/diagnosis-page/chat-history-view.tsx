@@ -1,19 +1,32 @@
 "use client";
 
-import { Chat, Explanation, Message } from "@/lib/generated/prisma";
+import {
+  Chat,
+  Explanation,
+  Message,
+  TempDiagnosis,
+} from "@/lib/generated/prisma";
 import { Explanation as TempExplanation } from "@/types";
+import { getSymptomIdsFromQuestionIds } from "@/utils/clinical-verification";
 import dynamic from "next/dynamic";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import ChatContainer from "./chat-container";
 // TODO: Commented out BMI Advice feature
 // import BmiAdviceSection from "./bmi-advice-section";
 import InsightsModal from "./insights-modal";
 
 const CDSSSummary = dynamic(() => import("./cdss-summary"));
+const ClinicalVerificationCard = dynamic(
+  () => import("@/components/shared/clinical-verification-card"),
+  { ssr: false }
+);
 
 type ChatHistoryViewProps = {
   chatId: string;
-  messages: (Message & { explanation?: Explanation | null })[];
+  messages: (Message & {
+    explanation?: Explanation | null;
+    tempDiagnosis?: TempDiagnosis | null;
+  })[];
   chat: Chat;
   dbExplanation: Explanation | null;
   userRole?: string;
@@ -21,6 +34,9 @@ type ChatHistoryViewProps = {
   dbConfidence?: number | null;
   dbUncertainty?: number | null;
   dbIsValid?: boolean | null;
+  diagnosisDisease?: string | null;
+  clinicalVerificationStatus?: string | null;
+  clinicalVerification?: unknown;
   diagnosisId?: number;
   // TODO: Commented out BMI Advice feature
   // initialBmiData?: {
@@ -48,6 +64,9 @@ const ChatHistoryView = ({
   dbConfidence,
   dbUncertainty,
   dbIsValid,
+  diagnosisDisease,
+  clinicalVerificationStatus,
+  clinicalVerification,
   diagnosisId,
   // TODO: Commented out BMI Advice feature
   // initialBmiData,
@@ -86,8 +105,8 @@ const ChatHistoryView = ({
     };
   }, [messages, dbExplanation, dbCdss]);
 
-  // Only show CDSS summary for valid (conclusive) diagnoses.
-  // When isValid is false (inconclusive), the CDSS should be hidden entirely.
+  // Show CDSS summary only if we have CDSS data and the diagnosis is valid.
+  // We do NOT show the CDSS/Verification checklist for inconclusive/invalid diagnoses.
   const shouldShowCdss = dbCdss && dbIsValid !== false;
 
   return (
@@ -103,17 +122,39 @@ const ChatHistoryView = ({
         dbExplanation={dbExplanation as unknown as TempExplanation}
         userRole={userRole}
       />
-      {shouldShowCdss && (
-        <div className="w-full max-w-[768px] mx-auto px-4">
-          <CDSSSummary
-            cdss={dbCdss}
-            confidence={dbConfidence ?? undefined}
-            uncertainty={dbUncertainty ?? undefined}
-            isValid={dbIsValid ?? undefined}
-            diagnosisMessage={diagnosisMessage}
-          />
-        </div>
-      )}
+      {shouldShowCdss &&
+        (() => {
+          const extractedSymptomIds = diagnosisDisease
+            ? getSymptomIdsFromQuestionIds(
+                diagnosisDisease,
+                dbCdss?.extracted_symptoms ?? [],
+              )
+            : [];
+
+          return (
+            <div className="w-full max-w-[768px] mx-auto px-4 space-y-4">
+              <CDSSSummary
+                cdss={dbCdss}
+                confidence={dbConfidence ?? undefined}
+                uncertainty={dbUncertainty ?? undefined}
+                isValid={dbIsValid ?? undefined}
+                diagnosisMessage={diagnosisMessage}
+                verificationStatus={clinicalVerificationStatus}
+              />
+              {diagnosisDisease && (
+                <ClinicalVerificationCard
+                  disease={diagnosisDisease}
+                  chatId={chatId}
+                  verificationStatus={clinicalVerificationStatus}
+                  verificationPayload={clinicalVerification}
+                  extractedSymptomIds={extractedSymptomIds}
+                  readOnly={false}
+                  defaultExpanded={false}
+                />
+              )}
+            </div>
+          );
+        })()}
       {/* TODO: Commented out BMI Advice feature
       {diagnosisId && (
         <div className="w-full max-w-[768px] mx-auto px-4 pb-8">

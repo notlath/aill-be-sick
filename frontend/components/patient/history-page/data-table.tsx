@@ -1,5 +1,6 @@
 "use client";
 
+import { getClinicalVerificationStatusMeta } from "@/utils/clinical-verification";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -179,9 +180,15 @@ export function DataTable<TData, TValue>({
             const diagnosisStatus = original.diagnosisStatus as string | null;
             const reliabilityLabel = original.reliabilityLabel as string | null;
             const reliabilityBadgeClass = original.reliabilityBadgeClass as string | null;
+            const clinicalVerificationStatus = original.clinicalVerificationStatus as
+              | string
+              | null;
             const createdAt = original.createdAt as Date;
 
             const statusBadge = diagnosisStatus ? getStatusBadge(diagnosisStatus) : null;
+            const clinicalVerificationBadge = clinicalVerificationStatus
+              ? getClinicalVerificationStatusMeta(clinicalVerificationStatus)
+              : null;
 
             return (
               <div
@@ -217,6 +224,13 @@ export function DataTable<TData, TValue>({
                     {reliabilityLabel && reliabilityBadgeClass && (
                       <span className={`badge badge-sm shrink-0 w-fit ${reliabilityBadgeClass}`}>
                         {reliabilityLabel}
+                      </span>
+                    )}
+                    {clinicalVerificationBadge && (
+                      <span
+                        className={`badge badge-sm shrink-0 w-fit ${clinicalVerificationBadge.badgeClass}`}
+                      >
+                        {clinicalVerificationBadge.label}
                       </span>
                     )}
                   </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ClinicalVerificationStatus } from "@/types/clinical-verification";
 import { User } from "@/lib/generated/prisma";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, Clock } from "lucide-react";
@@ -29,6 +30,8 @@ export type InconclusiveDiagnosisRow = {
   submittedAt: Date;
   user?: User;
   notes?: DiagnosisNoteRow[];
+  clinicalVerification?: unknown;
+  clinicalVerificationStatus?: ClinicalVerificationStatus | null;
 };
 
 export const inconclusiveColumns: ColumnDef<InconclusiveDiagnosisRow>[] = [

@@ -1,17 +1,20 @@
 "use client";
 
-import React from "react";
 import { Card } from "@/components/ui/card";
+import LazyMarkdown from "@/components/ui/lazy-markdown";
+import { getSymptomLabelMap } from "@/constants/clinical-verification-protocols";
 import {
   Activity,
-  ListChecks,
   BookOpen,
-  ShieldAlert,
+  ClipboardCheck,
+  ClipboardList,
   ExternalLink,
-  MapPin,
   Lightbulb,
+  ListChecks,
+  MapPin,
+  ShieldAlert,
 } from "lucide-react";
-import LazyMarkdown from "@/components/ui/lazy-markdown";
+import React from "react";
 
 type Differential = {
   code?: string | null;
@@ -36,6 +39,7 @@ type CDSSPayload = {
     model_version?: string;
     thresholds?: Record<string, number>;
   };
+  extracted_symptoms?: string[];
 };
 
 type CDSSSummaryProps = {
@@ -48,6 +52,8 @@ type CDSSSummaryProps = {
   isValid?: boolean;
   /** The diagnosis message from the chat (e.g. "Based on what you've told us, it could be Measles...") */
   diagnosisMessage?: string | null;
+  /** Result of clinical symptom verification protocol validation */
+  verificationStatus?: string | null;
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -143,6 +149,7 @@ const CDSSSummary = ({
   generatedAt,
   isValid,
   diagnosisMessage,
+  verificationStatus,
 }: CDSSSummaryProps) => {
   if (!cdss) return null;
 
@@ -155,6 +162,13 @@ const CDSSSummary = ({
       (modal as HTMLDialogElement).showModal();
     }
   };
+
+  const symptomMap = getSymptomLabelMap();
+  const extractedSymptomLabels = React.useMemo(() => {
+    if (!cdss.extracted_symptoms || cdss.extracted_symptoms.length === 0)
+      return [];
+    return cdss.extracted_symptoms.map((qid) => symptomMap[qid] || qid).sort();
+  }, [cdss.extracted_symptoms, symptomMap]);
 
   return (
     <>
@@ -194,6 +208,22 @@ const CDSSSummary = ({
             </div>
           </div>
         </div>
+
+        {/* ── Unconfirmed Verification Alert ────────────────────── */}
+        {verificationStatus === "UNCONFIRMED" && (
+          <div className="mx-6 mt-5 bg-error/10 text-error border border-error/20 rounded-xl flex items-start gap-3 p-4">
+            <ShieldAlert className="size-5 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-semibold text-sm">
+                Clinical Verification Failed
+              </h4>
+              <p className="text-sm opacity-90 mt-0.5 leading-relaxed">
+                The reported symptoms do not strongly match the expected
+                protocol pattern for this condition.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="px-6 py-4 space-y-4">
           {/* ── Verification Notice ──────────────────────────────── */}
@@ -239,33 +269,43 @@ const CDSSSummary = ({
                     </p>
                   </div>
                   {cdss.triage.reasons && cdss.triage.reasons.length > 0 && (
-                    <ul className="mt-2 space-y-1.5 pl-1">
-                      {cdss.triage.reasons
-                        .filter((r) => {
-                          // Skip technical/internal reasons that don't help patients
-                          const skipPatterns = [
-                            /high model confidence/i,
-                            /low uncertainty/i,
-                            /safe for automated/i,
-                            /without human review/i,
-                            /confidence.*\d+%/i,
-                            /uncertainty.*\d+%/i,
-                          ];
-                          return !skipPatterns.some((p) => p.test(r));
-                        })
-                        .map((r, idx) => (
-                          <li
-                            key={idx}
-                            className="flex items-start gap-2 text-sm text-base-content/70"
-                          >
-                            <span
-                              className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
-                              style={{ backgroundColor: triage.accentColor }}
-                            />
-                            {r}
-                          </li>
-                        ))}
-                    </ul>
+                    <div className="mt-3">
+                      <details className="group">
+                        <summary className="flex cursor-pointer items-center text-sm font-medium text-base-content/70 hover:text-base-content/90 transition-colors">
+                          <span className="mr-1.5 text-xs inline-block transition-transform group-open:rotate-90">
+                            ▶
+                          </span>
+                          Show clinical reasoning
+                        </summary>
+                        <ul className="mt-3 space-y-2 pl-4 border-l-2 border-base-300/50 ml-1.5">
+                          {cdss.triage.reasons
+                            .filter((r) => {
+                              // Skip technical/internal reasons that don't help patients
+                              const skipPatterns = [
+                                /high model confidence/i,
+                                /low uncertainty/i,
+                                /safe for automated/i,
+                                /without human review/i,
+                                /confidence.*\d+%/i,
+                                /uncertainty.*\d+%/i,
+                              ];
+                              return !skipPatterns.some((p) => p.test(r));
+                            })
+                            .map((r, idx) => (
+                              <li
+                                key={idx}
+                                className="flex items-start gap-2 text-sm text-base-content/80 leading-snug"
+                              >
+                                <span
+                                  className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0"
+                                  style={{ backgroundColor: triage.accentColor }}
+                                />
+                                {r}
+                              </li>
+                            ))}
+                        </ul>
+                      </details>
+                    </div>
                   )}
                 </div>
               </div>
@@ -297,6 +337,26 @@ const CDSSSummary = ({
                       ))}
                     </ol>
                   )}
+              </div>
+            </section>
+          )}
+
+          {/* ── Extracted Symptoms ───────────────────────────────── */}
+          {extractedSymptomLabels.length > 0 && (
+            <section>
+              <SectionLabel
+                icon={<ClipboardList className="w-4 h-4" strokeWidth={2.5} />}
+                label="Identified symptoms"
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                {extractedSymptomLabels.map((symptom, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-base-200 border border-base-300 text-xs font-medium text-base-content/80 text-center leading-none"
+                  >
+                    {symptom}
+                  </span>
+                ))}
               </div>
             </section>
           )}
@@ -345,13 +405,14 @@ const CDSSSummary = ({
         <div className="px-6 py-4 border-t border-base-300">
           <button
             type="button"
-            className="flex items-center justify-center gap-2 w-full border border-border btn cursor-pointer"
+            className="flex items-center justify-center gap-2 w-full border border-base-300 btn cursor-pointer"
             onClick={handleViewInsights}
           >
             <Lightbulb className="w-4 h-4" />
             See what influenced this result
           </button>
         </div>
+
       </Card>
     </>
   );

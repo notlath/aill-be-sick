@@ -48,12 +48,16 @@ EVIDENCE_STOP_MAX_UNCERTAINTY = float(
 # --- Uncertainty Quantification Thresholds ---
 # Multi-metric uncertainty thresholds (data-driven, adjust based on validation)
 
+# Contradiction threshold: reject inputs with highly conflicting signals
+CONTRADICTION_MAX_UNCERTAINTY = float(
+    os.getenv("CONTRADICTION_MAX_UNCERTAINTY", "0.12")
+)
+
 # Confidence thresholds
-VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.75"))  # Thesis: 70%
+VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.70"))  # Thesis: 70%
 
 # Mutual Information (epistemic uncertainty)
-VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.04"))  # Thesis: 5%
-TRIAGE_LOW_UNCERTAINTY = float(os.getenv("TRIAGE_LOW_UNCERTAINTY", "0.02"))
+VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.05"))  # Thesis: 5%
 
 # Variance threshold (prediction stability)
 VALID_MAX_VARIANCE = float(os.getenv("VALID_MAX_VARIANCE", "0.02"))
@@ -74,11 +78,9 @@ CALIBRATION_N_BINS = int(os.getenv("CALIBRATION_N_BINS", "10"))
 TARGET_ECE = float(os.getenv("TARGET_ECE", "0.05"))  # Target Expected Calibration Error
 
 # Temperature scaling for calibration
-USE_TEMPERATURE_SCALING = (
-    os.getenv("USE_TEMPERATURE_SCALING", "false").lower() == "true"
-)
+USE_TEMPERATURE_SCALING = os.getenv("USE_TEMPERATURE_SCALING", "true").lower() == "true"
 TEMPERATURE = float(
-    os.getenv("TEMPERATURE", "1.0")
+    os.getenv("TEMPERATURE", "1.5")
 )  # 1.0 = no scaling, >1 = softer probs
 
 # Low confidence - stop asking questions after MAX_QUESTIONS_THRESHOLD

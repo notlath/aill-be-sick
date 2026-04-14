@@ -93,59 +93,63 @@ model Message {
 }
 
 model TempDiagnosis {
-  id          Int      @id @default(autoincrement())
-  confidence  Float
-  uncertainty Float
-  disease     Disease
-  createdAt   DateTime @default(now())
-  messageId   Int      @unique
-  modelUsed   Model
-  chatId      String
-  symptoms    String
-  cdss        Json?
-  isValid     Boolean  @default(true)
-  chat        Chat     @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
-  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  id                       Int                        @id @default(autoincrement())
+  confidence               Float
+  uncertainty              Float
+  disease                  Disease
+  createdAt                DateTime                   @default(now())
+  messageId                Int                        @unique
+  modelUsed                Model
+  chatId                   String
+  symptoms                 String
+  cdss                     Json?
+  isValid                  Boolean                    @default(true)
+  clinicalVerification     Json?
+  clinicalVerificationStatus ClinicalVerificationStatus?
+  chat                     Chat                       @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+  message                  Message                    @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
 model Diagnosis {
-  id              Int                @id @default(autoincrement())
-  confidence      Float
-  uncertainty     Float
-  disease         Disease
-  createdAt       DateTime           @default(now())
-  chatId          String             @unique
-  userId          Int
-  modelUsed       Model
-  symptoms        String
-  city            String?
-  latitude        Float?
-  longitude       Float?
-  region          String?
-  province        String?
-  barangay        String?
-  district        String?
-  cdss            Json?
-  isValid         Boolean            @default(true)
-  bmiAdvice       String?
-  heightCm        Float?
-  temperature     Float?
-  temperatureUnit String?
-  weightKg        Float?
-  rejectedAt      DateTime?
-  rejectedBy      Int?
-  status          DiagnosisStatus    @default(PENDING)
-  verifiedAt      DateTime?
-  verifiedBy      Int?
-  originalStatus  DiagnosisStatus?
-  alerts          Alert[]
-  chat            Chat               @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
-  rejectedByUser  User?              @relation("DiagnosisRejector", fields: [rejectedBy], references: [id])
-  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  verifiedByUser  User?              @relation("DiagnosisVerifier", fields: [verifiedBy], references: [id])
-  notes           DiagnosisNote[]
-  override        DiagnosisOverride?
-  explanation     Explanation?
+  id                         Int                        @id @default(autoincrement())
+  confidence                 Float
+  uncertainty                Float
+  disease                    Disease
+  createdAt                  DateTime                   @default(now())
+  chatId                     String                     @unique
+  userId                     Int
+  modelUsed                  Model
+  symptoms                   String
+  city                       String?
+  latitude                   Float?
+  longitude                  Float?
+  region                     String?
+  province                   String?
+  barangay                   String?
+  district                   String?
+  cdss                       Json?
+  isValid                    Boolean                    @default(true)
+  clinicalVerification       Json?
+  clinicalVerificationStatus ClinicalVerificationStatus?
+  bmiAdvice                  String?
+  heightCm                   Float?
+  temperature                Float?
+  temperatureUnit            String?
+  weightKg                   Float?
+  rejectedAt                 DateTime?
+  rejectedBy                 Int?
+  status                     DiagnosisStatus            @default(PENDING)
+  verifiedAt                 DateTime?
+  verifiedBy                 Int?
+  originalStatus             DiagnosisStatus?
+  alerts                     Alert[]
+  chat                       Chat                       @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+  rejectedByUser             User?                      @relation("DiagnosisRejector", fields: [rejectedBy], references: [id])
+  user                       User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verifiedByUser             User?                      @relation("DiagnosisVerifier", fields: [verifiedBy], references: [id])
+  notes                      DiagnosisNote[]
+  override                   DiagnosisOverride?
+  explanation                Explanation?
 
   @@index([createdAt])
   @@index([disease])
@@ -362,6 +366,12 @@ enum DiagnosisStatus {
   VERIFIED
   REJECTED
   INCONCLUSIVE
+}
+
+enum ClinicalVerificationStatus {
+  CONFIRMED
+  BORDERLINE
+  UNCONFIRMED
 }
 
 enum DeletionScheduleStatus {

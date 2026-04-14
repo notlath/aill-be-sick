@@ -120,6 +120,11 @@ const ChatDataLoader = async ({
         dbConfidence={diagnosis?.confidence ?? null}
         dbUncertainty={diagnosis?.uncertainty ?? null}
         dbIsValid={diagnosis?.isValid ?? null}
+        diagnosisDisease={diagnosis?.disease ?? null}
+        clinicalVerificationStatus={
+          diagnosis?.clinicalVerificationStatus ?? null
+        }
+        clinicalVerification={diagnosis?.clinicalVerification ?? null}
         diagnosisId={diagnosis?.id}
       />
     );

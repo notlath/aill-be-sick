@@ -1,5 +1,6 @@
 "use client";
 
+import type { ClinicalVerificationStatus } from "@/types/clinical-verification";
 import { User } from "@/lib/generated/prisma";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, ExternalLink, RotateCcw } from "lucide-react";
@@ -33,6 +34,8 @@ export type RejectedDiagnosisRow = {
   rejectedByUser?: { id: number; name: string | null } | null;
   rejectedAt?: Date | null;
   rejectionReason?: string;
+  clinicalVerification?: unknown;
+  clinicalVerificationStatus?: ClinicalVerificationStatus | null;
 };
 
 export const rejectedColumns: ColumnDef<RejectedDiagnosisRow>[] = [

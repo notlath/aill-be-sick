@@ -275,6 +275,9 @@ class MCDClassifierWithSHAP:
 
                 # Reshape logits: [n_iterations, num_classes]
                 logits = outputs.logits
+                if getattr(config, "USE_TEMPERATURE_SCALING", False):
+                    temperature = getattr(config, "TEMPERATURE", 1.5)
+                    logits = logits / temperature
                 probabilities = torch.softmax(
                     logits, dim=-1
                 )  # [n_iterations, n_classes]
@@ -849,13 +852,13 @@ print("[ML] Initializing Classifiers...")
 eng_classifier = MCDClassifierWithSHAP(
     config.ENG_MODEL_PATH,
     n_iterations=50,
-    inference_dropout_rate=0.1,
+    inference_dropout_rate=0.2,
     model_revision=config.ENG_MODEL_REVISION,
 )
 fil_classifier = MCDClassifierWithSHAP(
     config.FIL_MODEL_PATH,
     n_iterations=50,
-    inference_dropout_rate=0.1,
+    inference_dropout_rate=0.2,
     model_revision=config.FIL_MODEL_REVISION,
 )
 print("[ML] Classifiers Initialized")

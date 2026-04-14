@@ -33,6 +33,7 @@ const PatientHomePage = () => {
   });
   const router = useRouter();
   const pathname = usePathname();
+  const symptomsValue = form.watch("symptoms");
 
   // Guard: only navigate on an intentional submission within this lifecycle.
   const hasSubmittedRef = useRef(false);
@@ -54,6 +55,7 @@ const PatientHomePage = () => {
     hasSubmittedRef.current = false;
     form.reset({ symptoms: "", chatId: crypto.randomUUID() });
     if (textareaRef.current) {
+      textareaRef.current.value = "";
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = "44px";
     }
@@ -75,6 +77,7 @@ const PatientHomePage = () => {
         checklist.clear();
         setIsNavigating(true);
         if (textareaRef.current) {
+          textareaRef.current.value = "";
           textareaRef.current.style.height = "auto";
           textareaRef.current.style.height = "44px";
         }
@@ -196,6 +199,7 @@ const PatientHomePage = () => {
                   <div className="flex-1 min-w-0 flex items-center">
                     <textarea
                       ref={textareaRef}
+                      value={symptomsValue}
                       className="w-full px-4 py-2.5 sm:py-3 border-none outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none bg-base-200/50 rounded-xl resize-none overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] text-base text-base-content placeholder:text-base-content/40 transition-colors duration-200 focus:bg-base-200/80 min-h-[44px] max-h-[200px]"
                       placeholder="I'm feeling..."
                       aria-label="Describe your symptoms"

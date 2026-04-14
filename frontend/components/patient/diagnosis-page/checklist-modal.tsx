@@ -107,7 +107,8 @@ const ChecklistModal = ({
               type="button"
               onClick={() => onLanguageChange(language === "en" ? "tl" : "en")}
               disabled={isPending}
-              className="btn btn-ghost btn-sm gap-1.5"
+              className="btn btn-ghost btn-sm gap-1.5 cursor-pointer"
+              aria-label={language === "en" ? "Switch to Filipino" : "Switch to English"}
             >
               <ArrowLeftRight className="size-3.5" strokeWidth={2} />
               <span className="hidden xs:inline">
@@ -120,7 +121,8 @@ const ChecklistModal = ({
               type="button"
               onClick={onClear}
               disabled={isPending || count === 0}
-              className="btn btn-ghost btn-sm gap-1.5 text-error/70 hover:text-error hover:bg-error/10 disabled:opacity-40"
+              className="btn btn-ghost btn-sm gap-1.5 text-error/70 hover:text-error hover:bg-error/10 disabled:opacity-40 cursor-pointer"
+              aria-label="Clear selected symptoms"
             >
               <RotateCcw className="size-3.5" strokeWidth={2} />
               <span className="hidden sm:inline">Clear</span>
@@ -132,7 +134,7 @@ const ChecklistModal = ({
               type="button"
               onClick={onClose}
               disabled={isPending}
-              className="btn btn-ghost btn-sm btn-square"
+              className="btn btn-ghost btn-sm btn-square cursor-pointer"
               aria-label="Close checklist"
             >
               <X className="size-4" strokeWidth={2} />
@@ -169,7 +171,7 @@ const ChecklistModal = ({
 
       {/* Backdrop - click to close */}
       <form method="dialog" className="modal-backdrop">
-        <button type="button" onClick={onClose} disabled={isPending}>
+        <button type="button" onClick={onClose} disabled={isPending} className="cursor-pointer">
           Close
         </button>
       </form>
