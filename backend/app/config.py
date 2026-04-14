@@ -53,7 +53,6 @@ VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.75"))  # Thesis: 70%
 
 # Mutual Information (epistemic uncertainty)
 VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.04"))  # Thesis: 5%
-TRIAGE_LOW_UNCERTAINTY = float(os.getenv("TRIAGE_LOW_UNCERTAINTY", "0.02"))
 
 # Variance threshold (prediction stability)
 VALID_MAX_VARIANCE = float(os.getenv("VALID_MAX_VARIANCE", "0.02"))
