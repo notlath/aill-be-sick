@@ -54,10 +54,10 @@ CONTRADICTION_MAX_UNCERTAINTY = float(
 )
 
 # Confidence thresholds
-VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.75"))  # Thesis: 70%
+VALID_MIN_CONF = float(os.getenv("VALID_MIN_CONF", "0.70"))  # Thesis: 70%
 
 # Mutual Information (epistemic uncertainty)
-VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.04"))  # Thesis: 5%
+VALID_MAX_UNCERTAINTY = float(os.getenv("VALID_MAX_UNCERTAINTY", "0.05"))  # Thesis: 5%
 
 # Variance threshold (prediction stability)
 VALID_MAX_VARIANCE = float(os.getenv("VALID_MAX_VARIANCE", "0.02"))

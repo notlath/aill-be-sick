@@ -240,7 +240,7 @@ const ClinicalVerificationSummary = ({
         </div>
         <div className="rounded-xl bg-base-200 p-3">
           <p className="text-xs uppercase tracking-wide text-base-content/50">
-            Contradictions
+            Other noted
           </p>
           <p className="mt-1 text-lg font-semibold text-base-content">
             {record?.payload.contradictionCount ?? 0}
@@ -261,10 +261,9 @@ const ClinicalVerificationSummary = ({
             emptyLabel="None of the checked symptoms matched the protocol list."
           />
           <SymptomPills
-            title="Findings that point away from this condition"
+            title="Other noted symptoms"
             symptoms={contradictionSymptoms}
-            emptyLabel="No contradiction symptoms were checked."
-            tone="warning"
+            emptyLabel="No other symptoms were noted."
           />
         </div>
       ) : (
@@ -510,14 +509,13 @@ export default function ClinicalVerificationCard({
             />
 
             <SymptomSection
-              title="Symptoms that point away from this condition"
-              description="Check these only if they are also present. They lower confidence in the suggested condition."
+              title="Other symptoms to note"
+              description="Please check any of these if you are experiencing them. This helps your healthcare provider get a complete picture."
               symptoms={protocol.contradictionSymptoms}
               selectedIds={selectedSymptomSet}
               onToggle={toggleSymptom}
               disabled={isExecuting}
               forcedDisabledIds={extractedSymptomSet}
-              tone="warning"
             />
 
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
