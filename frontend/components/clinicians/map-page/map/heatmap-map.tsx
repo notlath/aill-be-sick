@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
 import HeatmapLayer from "./heatmap-layer";
@@ -49,10 +49,9 @@ type HeatmapMapProps = {
 };
 
 const HeatmapMap = ({ diagnoses, showReasons = false }: HeatmapMapProps) => {
-  const id = useId();
-  const mountRef = useRef(0);
-  mountRef.current += 1;
-  const mapKey = `${id}-${mountRef.current}`;
+  // Generate a unique, stable key per mount cycle so each navigation produces
+  // a fresh MapContainer and avoids the "container is being reused" error.
+  const [mapKey] = useState(() => `heatmap-map-${Math.random().toString(36).substring(2, 9)}`);
   const searchParams = useSearchParams();
   const [selectedPoint, setSelectedPoint] = useState<GeoPoint | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);

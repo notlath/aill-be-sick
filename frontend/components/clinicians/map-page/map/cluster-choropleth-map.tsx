@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef } from "react";
+import { useState } from "react";
 import type { GeoJsonObject } from "geojson";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -34,10 +34,9 @@ const ClusterChoroplethMap = ({
   onFeatureClick,
   selectedGroupLabel,
 }: ClusterChoroplethMapProps) => {
-  const id = useId();
-  const mountRef = useRef(0);
-  mountRef.current += 1;
-  const mapKey = `${id}-${mountRef.current}`;
+  // Generate a unique, stable key per mount cycle so each navigation produces
+  // a fresh MapContainer and avoids the "container is being reused" error.
+  const [mapKey] = useState(() => `cluster-map-${Math.random().toString(36).substring(2, 9)}`);
 
   return (
     <div className="rounded-xl overflow-hidden">

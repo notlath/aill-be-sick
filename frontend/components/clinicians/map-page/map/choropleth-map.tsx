@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { GeoJsonObject } from "geojson";
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from "react-leaflet";
@@ -45,12 +45,8 @@ type ChoroplethMapProps = {
 const ChoroplethMap = ({ casesData, geoData, diagnoses, onFeatureClick }: ChoroplethMapProps) => {
   // Generate a unique, stable key per mount cycle so each navigation produces
   // a fresh MapContainer and avoids the "container is being reused" error.
-  const id = useId();
-  const mountRef = useRef(0);
-
-  mountRef.current += 1;
-
-  const mapKey = `${id}-${mountRef.current}`;
+  // We use useState with an initializer to ensure it's generated once per mount.
+  const [mapKey] = useState(() => `choropleth-map-${Math.random().toString(36).substring(2, 9)}`);
   const searchParams = useSearchParams();
 
   // Custom icon for targeted outbreak (GPS Pin)

@@ -277,16 +277,67 @@ const ByDiseaseTab = () => {
     const originalConsoleError = console.error;
     console.error = () => {};
 
+    // Temporary style injection to fix Leaflet tile gaps and hide UI outlines
+    const style = document.createElement('style');
+    style.id = 'pdf-export-style-overrides';
+    style.innerHTML = `
+      /* Fix dom-to-image black border grid issue with Tailwind */
+      * {
+        border-color: transparent !important;
+      }
+      /* Fix Leaflet tile gaps by slightly over-sizing tiles */
+      .leaflet-tile-container img {
+        width: 256.5px !important;
+        height: 256.5px !important;
+        margin: -0.25px !important;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+      }
+      /* Remove outlines and borders from map and chart containers */
+      .leaflet-container, 
+      .recharts-wrapper, 
+      .card, 
+      .card-content, 
+      [data-surveillance-map], 
+      [data-surveillance-chart] {
+        border: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+        background-color: transparent !important;
+      }
+      /* Clean up Recharts grid lines */
+      .recharts-cartesian-grid-horizontal line,
+      .recharts-cartesian-grid-vertical line {
+        stroke: #ebebe8 !important;
+        stroke-opacity: 0.5 !important;
+      }
+      /* Hide map controls and attribution for cleaner export */
+      .leaflet-control-container, .leaflet-control-attribution {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+
+    const captureOptions = {
+      quality: 0.95,
+      bgcolor: '#f8f8f5', // Match base-100
+      filter: (node: Node) => {
+        if (node instanceof Element) {
+          const tagName = node.tagName.toLowerCase();
+          if (tagName === 'link' || tagName === 'script') return false;
+        }
+        return true;
+      },
+    };
+
     try {
-      // Capture map
-      const mapElement = document.querySelector('[data-surveillance-map]');
+      // Capture map - target the content area
+      const mapElement = document.querySelector('[data-surveillance-map] .card-content') || 
+                         document.querySelector('[data-surveillance-map]');
+      
       if (mapElement) {
-        const dataUrl = await domtoimage.toPng(mapElement as HTMLElement, {
-          quality: 0.8,
-          filter: (node: Node) => {
-            return !(node instanceof Element && node.tagName && node.tagName.toLowerCase() === 'link');
-          },
-        });
+        const dataUrl = await domtoimage.toPng(mapElement as HTMLElement, captureOptions);
         const img = new Image();
         img.src = dataUrl;
         await new Promise(resolve => img.onload = resolve);
@@ -299,14 +350,11 @@ const ByDiseaseTab = () => {
       }
 
       // Capture chart
-      const chartElement = document.querySelector('[data-surveillance-chart]');
+      const chartElement = document.querySelector('[data-surveillance-chart] .card-content') || 
+                           document.querySelector('[data-surveillance-chart]');
+      
       if (chartElement) {
-        const dataUrl = await domtoimage.toPng(chartElement as HTMLElement, {
-          quality: 0.8,
-          filter: (node: Node) => {
-            return !(node instanceof Element && node.tagName && node.tagName.toLowerCase() === 'link');
-          },
-        });
+        const dataUrl = await domtoimage.toPng(chartElement as HTMLElement, captureOptions);
         const img = new Image();
         img.src = dataUrl;
         await new Promise(resolve => img.onload = resolve);
@@ -318,6 +366,8 @@ const ByDiseaseTab = () => {
         });
       }
     } finally {
+      // Cleanup
+      document.head.removeChild(style);
       console.error = originalConsoleError;
     }
 
