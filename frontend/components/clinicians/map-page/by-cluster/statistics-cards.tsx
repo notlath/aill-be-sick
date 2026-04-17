@@ -45,7 +45,7 @@ const StatisticsCards = ({ totalCases, stat }: StatisticsCardsProps) => {
           </CardTitle>
           <Activity className="h-4 w-4 text-primary" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           <div className="text-2xl font-bold">{totalCases.toLocaleString()}</div>
           <p className="text-xs text-muted-foreground mt-1">
             In the selected group and period
@@ -61,7 +61,7 @@ const StatisticsCards = ({ totalCases, stat }: StatisticsCardsProps) => {
           </CardTitle>
           <Stethoscope className="h-4 w-4 text-primary" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           <div className="text-2xl font-bold capitalize">
             {topDisease
               ? topDisease.disease.charAt(0).toUpperCase() +
@@ -84,7 +84,7 @@ const StatisticsCards = ({ totalCases, stat }: StatisticsCardsProps) => {
           </CardTitle>
           <Users className="h-4 w-4 text-primary" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           <div className="text-2xl font-bold">
             {minAge != null && maxAge != null
               ? `${minAge} – ${maxAge}`
@@ -106,7 +106,7 @@ const StatisticsCards = ({ totalCases, stat }: StatisticsCardsProps) => {
           </CardTitle>
           <UserRound className="h-4 w-4 text-primary" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           {malePct != null && femalePct != null ? (
             <div className="space-y-0.5">
               <div className="text-2xl font-bold">{malePct}% male</div>

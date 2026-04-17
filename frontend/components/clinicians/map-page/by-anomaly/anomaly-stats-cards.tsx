@@ -146,7 +146,7 @@ const AnomalyCoordinatesStatsCards = ({
           </CardTitle>
           <Activity className="h-4 w-4 text-primary" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           <div className="text-2xl font-bold">
             {totalAnomalies.toLocaleString()}
           </div>
@@ -166,7 +166,7 @@ const AnomalyCoordinatesStatsCards = ({
           </CardTitle>
           <CheckCircle2 className="h-4 w-4 text-emerald-500" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           <div className="text-2xl font-bold">
             {normalDiagnosesCount.toLocaleString()}
           </div>
@@ -183,7 +183,7 @@ const AnomalyCoordinatesStatsCards = ({
           </CardTitle>
           <MapPin className="h-4 w-4 text-primary" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           <div className="text-2xl font-bold">
             {uniqueLocations.toLocaleString()}
           </div>

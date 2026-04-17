@@ -149,7 +149,7 @@ const CoordinatesStatsCards = ({
           </CardTitle>
           <Activity className="h-4 w-4 text-primary" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           <div className="text-2xl font-bold">
             {totalAllCases.toLocaleString()}
           </div>
@@ -166,7 +166,7 @@ const CoordinatesStatsCards = ({
           </CardTitle>
           <Clock className="h-4 w-4 text-orange-500" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           <div className="text-2xl font-bold">{newestCaseLabel}</div>
           <p className="text-xs text-base-content/60 mt-1">
             {newestCaseSubtitle}
@@ -181,7 +181,7 @@ const CoordinatesStatsCards = ({
           </CardTitle>
           <Users className="h-4 w-4 text-emerald-500" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           <div className="text-2xl font-bold">
             {uniquePatientsCount.toLocaleString()}
           </div>
@@ -198,7 +198,7 @@ const CoordinatesStatsCards = ({
           </CardTitle>
           <CalendarDays className="h-4 w-4 text-primary" />
         </CardHeader>
-        <CardContent className="p-6 pt-0">
+        <CardContent className="p-6 !pt-0">
           <div className="text-2xl font-bold">
             {casesThisWeek.toLocaleString()}
           </div>
