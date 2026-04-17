@@ -21,11 +21,11 @@ export default function NeedAccountPage() {
                 <MapPin className="w-6 h-6 text-primary shrink-0 mt-0.5" />
                 <div className="space-y-2">
                   <h2 className="text-lg font-semibold">
-                    Visit Bagong Silangan Barangay Health Center
+                    Visit your local health center
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    To create an account, please visit the{" "}
-                    <strong>Bagong Silangan Barangay Health Center</strong>. Our
+                    To create an account, please visit your local{" "}
+                    <strong>Barangay Health Center</strong>. Our
                     health staff will assist you in setting up your account and
                     getting started with the system.
                   </p>
@@ -38,12 +38,11 @@ export default function NeedAccountPage() {
                 <Info className="w-6 h-6 text-secondary shrink-0 mt-0.5" />
                 <div className="space-y-2">
                   <h2 className="text-lg font-semibold">
-                    Not from Bagong Silangan?
+                    Not from this area?
                   </h2>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     We appreciate your interest in AI'll Be Sick! Currently,
-                    this system only serves residents of{" "}
-                    <strong>Barangay Bagong Silangan</strong>. Stay tuned — we
+                    this system only serves residents of this area. Stay tuned — we
                     may expand to more areas in the future.
                   </p>
                 </div>

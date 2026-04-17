@@ -9,7 +9,7 @@ export default async function MapPage() {
             Disease Map
           </h1>
           <p className="text-base sm:text-lg text-muted max-w-2xl">
-            Visualizing disease spread and statistics across Brgy. Bagong Silangan
+            Visualizing disease spread and statistics across the area
           </p>
         </div>
       </div>

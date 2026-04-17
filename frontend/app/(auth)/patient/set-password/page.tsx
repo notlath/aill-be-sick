@@ -233,7 +233,7 @@ const PatientSetPasswordPage = () => {
                     What should you do?
                   </h3>
                   <p className="text-sm text-muted">
-                    Please return to Bagong Silangan Barangay Health Center and
+                    Please return to your local health center and
                     ask the staff to send you a new invitation link.
                   </p>
                 </div>

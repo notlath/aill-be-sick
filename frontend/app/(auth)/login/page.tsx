@@ -281,7 +281,7 @@ const LoginContent = () => {
                 className="animate-slide-up text-center text-sm text-muted mt-5"
                 style={{ animationDelay: "0.3s" }}
               >
-                Need an account? Visit Bagong Silangan Health Center to have a
+                Need an account? Visit your local health center to have a
                 clinician create one for you.
               </p>
             </>
@@ -500,8 +500,7 @@ const LoginContent = () => {
                 className="text-3xl font-bold text-neutral-content leading-snug"
                 style={{ textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}
               >
-                AI-assisted symptom checking for{" "}
-                <span className="text-primary">Bagong Silangan</span>
+                AI-assisted symptom checking
               </h2>
               <p
                 className="text-neutral-content/80 text-sm leading-relaxed max-w-md"
