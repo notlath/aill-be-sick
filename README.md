@@ -2,20 +2,34 @@
 
 A full-stack disease screening application combining a **Flask** backend (Monte Carlo Dropout classification, neuro-symbolic verification, SHAP explanations) with a **Next.js** frontend (TypeScript, Prisma, Supabase).
 
-## AI-Assisted Development
+## About the Project
 
-For AI-assisted work in this repository, the single source of truth is `AGENTS.md` (root). Sub-directories have their own scoped files — prefer `frontend/AGENTS.md` or `backend/AGENTS.md` for in-directory work.
+This thesis details the development and evaluation of **"AI’ll Be Sick,"** a responsive, web-based clinical decision support system (CDSS) designed to assist patients and frontline healthcare workers in the early diagnosis and monitoring of common infectious diseases. 
 
-Skill files for targeted tasks:
+### The Problem It Solves
+The project was created to address severe challenges within the Philippine healthcare system, including persistent shortages of medical professionals, overcrowded facilities, long patient waiting times, and a lack of diagnostic resources in rural communities. Furthermore, it tackles a significant hurdle in medical artificial intelligence: the "black-box" nature of deep learning models, which traditionally fail to explain their reasoning or communicate how confident they are in their predictions, making it difficult for clinicians to trust them.
 
-| Task type | Skill file |
-|-----------|------------|
-| Diagnosis server actions, Zod schemas | `frontend/.github/skills/medical-diagnosis-actions/SKILL.md` |
-| Patient/clinician-facing copy | `frontend/.github/skills/clinical-copywriting/SKILL.md` |
-| Flask endpoints & config-driven API | `backend/.github/skills/flask-diagnostic-api/SKILL.md` |
-| D3 charts, map visualizations | `frontend/.github/skills/d3-viz/SKILL.md` |
+### Core Technology and Target Diseases
+The system uses an adaptive questionnaire that allows patients to describe their symptoms in natural language, supporting both English and Filipino (Taglish). To process these inputs, the system routes English text to **BioClinical ModernBERT** (a transformer model specialized for long clinical text) and Filipino text to **RoBERTa-Tagalog**. 
 
-## Project Structure
+The model is trained specifically to detect six high-burden infectious diseases prioritized by the Department of Health (DOH): **Dengue, Diarrhea, Influenza, Measles, Pneumonia, and Typhoid Fever**.
+
+### Technical Innovations (MCD and SHAP)
+The defining novelty of the thesis is how it augments the language models to make them safer and more transparent for clinical use:
+*   **Monte Carlo Dropout (MCD):** Instead of giving a single definitive answer, the model performs 50 stochastic forward passes to generate a distribution of predictions. This allows the system to calculate **epistemic uncertainty**, successfully distinguishing between highly confident diagnoses and ambiguous cases that require a doctor's manual review. 
+*   **SHapley Additive exPlanations (SHAP):** To make the AI interpretable, the system calculates token-level feature attributions. This means the system highlights the exact words or symptoms in a patient's description that most heavily influenced the model's final diagnosis, providing a clear explanation for its decision.
+
+### Public Health Surveillance Features
+Beyond individual patient diagnosis, the application serves as a community surveillance tool for local health centers. It aggregates diagnostic data using **K-Means clustering** to group patients by spatial and temporal illness patterns, and employs **Isolation Forest** algorithms to detect statistical anomalies. This allows the dashboard to automatically alert healthcare workers to potential disease outbreaks and abnormal trends.
+
+### Data and Final Results
+To train the model while navigating strict health data privacy laws and the lack of localized electronic records, the researchers generated a dataset of 6,000 synthetic patient narratives using Google Gemini 2.5 Pro. Crucially, this data underwent strict "Human-in-the-Loop" validation by three physicians to ensure medical accuracy. 
+
+The finalized augmented model achieved an exceptional **98.7% macro-averaged accuracy, precision, recall, and F1-score**, outperforming traditional models like BioBERT and ClinicalBERT. Furthermore, the web application prototype received "Strongly Agree" and "Agree" ratings across usability, functional suitability, performance efficiency, reliability, and security during its ISO 25010 standard evaluations by IT professionals and healthcare workers.
+
+---
+
+## Project Architecture & Structure
 
 ```text
 aill-be-sick/
@@ -38,10 +52,6 @@ aill-be-sick/
 │   │   └── (auth)/           #     Authentication pages
 │   ├── actions/              #   Server actions (mutations via next-safe-action)
 │   ├── components/           #   UI components
-│   │   ├── clinicians/       #     Clinician dashboard components
-│   │   ├── patient/          #     Patient interface components
-│   │   ├── shared/           #     Shared components
-│   │   └── ui/               #     Base UI components
 │   ├── constants/            #   Static data (disease definitions, census data)
 │   ├── documentations/       #   Feature write-ups and PR notes
 │   ├── hooks/                #   Custom React hooks
@@ -56,153 +66,92 @@ aill-be-sick/
 └── README.md
 ```
 
-## Prerequisites
+### Key Technologies
+- **Backend:** Python, Flask, PyTorch, BioClinical ModernBERT, RoBERTa-Tagalog
+- **Frontend:** Next.js 15 (App Router), TypeScript, Tailwind CSS, DaisyUI, Lucide React
+- **Database:** PostgreSQL (Prisma ORM), Supabase (Auth & Database)
+- **Architecture Features:**
+  - `next-safe-action` for type-safe server mutations paired with Zod schemas
+  - Centralized thresholds and tunables via `backend/app/config.py`
+
+---
+
+## Getting Started / Installation
+
+### Prerequisites
 
 - **Python 3.10+** and **pip** (or [uv](https://docs.astral.sh/uv/))
 - **Node.js 18+** and **npm** (or **bun**)
 - **PostgreSQL** database (local or hosted, e.g. Supabase)
 - **Git**
 
----
+### Backend Setup
 
-## Backend Setup
+1. **Create & Activate Virtual Environment**
+   ```bash
+   cd backend
+   # Using uv (recommended)
+   uv venv && source .venv/bin/activate
+   # Or using venv (Windows: .venv\Scripts\activate)
+   python3 -m venv .venv && source .venv/bin/activate
+   ```
 
-### 1. Create & Activate Virtual Environment
+2. **Install Dependencies**
+   ```bash
+   # Using uv (faster)
+   uv pip install -r requirements.txt
+   # Or using pip
+   pip install -r requirements.txt
+   ```
 
-```bash
-cd backend
+3. **Environment Variables**
+   Create a `.env` file in `backend/`:
+   ```env
+   DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
+   FLASK_ENV=development
+   ```
 
-# Using uv (recommended)
-uv venv && source .venv/bin/activate
+### Frontend Setup
 
-# Or using venv
-python3 -m venv .venv && source .venv/bin/activate
-```
+1. **Install Dependencies**
+   ```bash
+   cd frontend
+   bun install
+   ```
 
-> **Windows:** use `.venv\Scripts\activate` instead.
+2. **Environment Variables**
+   Create `.env.local` in `frontend/`:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:10000
+   DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
+   ```
+   > `NEXT_PUBLIC_BACKEND_URL` is normalized at runtime through `frontend/utils/backend-url.ts`.
 
-### 2. Install Dependencies
-
-```bash
-# Using pip
-pip install -r requirements.txt
-
-# Using uv (faster)
-uv pip install -r requirements.txt
-```
-
-### 3. Environment Variables
-
-Create a `.env` file in `backend/` (or set these in your shell):
-
-| Variable                | Description                                 | Default                     |
-| ----------------------- | ------------------------------------------- | --------------------------- |
-| `DATABASE_URL`          | PostgreSQL connection string                | _(required)_                |
-| `FLASK_ENV`             | `development` or `production`               | `production`                |
-| `SESSION_COOKIE_SECURE` | `true` / `false` — override cookie security | auto (based on `FLASK_ENV`) |
-
-Thresholds for symptom validation, confidence, triage levels, etc. are defined in [`app/config.py`](backend/app/config.py) and can be overridden with environment variables where noted.
-
-### 4. Start the Server
-
-```bash
-# Development
-python run.py
-
-# Production (Gunicorn)
-gunicorn -w 4 -b 0.0.0.0:10000 "run:app"
-```
-
-The API will be available at **http://localhost:10000**.
-
-### API Endpoints
-
-| Method | Path                                  | Description                            |
-| ------ | ------------------------------------- | -------------------------------------- |
-| `GET`  | `/diagnosis/`                         | Health check                           |
-| `POST` | `/diagnosis/new`                      | Initial symptom classification         |
-| `POST` | `/diagnosis/follow-up`                | Follow-up question & re-classification |
-| `POST` | `/diagnosis/explain`                  | SHAP-based symptom attribution         |
-| `GET`  | `/api/patient-clusters`               | K-Means patient clustering             |
-| `GET`  | `/api/patient-clusters/silhouette`    | Silhouette analysis                    |
-| `GET`  | `/api/surveillance/outbreaks`         | Isolation Forest outbreak detection    |
-| `GET`  | `/api/surveillance/outbreaks/details` | Detailed outbreak information          |
-| `GET`  | `/api/illness-clusters`              | Illness-based clustering               |
-
-### Key Features
-
-- **Monte Carlo Dropout** — uncertainty-aware classification with confidence & mutual information scores
-- **Neuro-Symbolic Verification** — ontology-based concept matching to flag out-of-scope predictions
-- **GradientSHAP Explanations** — token-level attribution for model transparency
-- **Bilingual Support** — English and Tagalog symptom input with automatic language detection
-- **Dynamic Follow-Up** — evidence-weighted question selection with deduplication and early stopping
-
-**Supported diseases:** Dengue, Pneumonia, Typhoid, Diarrhea, Measles, Influenza
-
----
-
-## Frontend Setup
-
-### 1. Install Dependencies
-
-```bash
-cd frontend
-
-# Using bun (recommended)
-bun install
-
-# Or using npm
-npm install
-```
-
-### 2. Environment Variables
-
-Create `.env.local` in `frontend/`:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:10000
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DB_NAME?schema=public
-```
-
-> `NEXT_PUBLIC_BACKEND_URL` is normalized at runtime through `frontend/utils/backend-url.ts` to ensure consistent localhost resolution across environments.
-
-### 3. Database & Prisma
-
-```bash
-npx prisma generate
-npx prisma db push
-
-# Optional: seed diagnosis data
-node scripts/seed-diagnoses.js
-```
-
-### 4. Start Dev Server
-
-```bash
-bun dev       # preferred
-npm run dev   # alternative
-```
-
-The frontend runs at **http://localhost:3000**.
-
-### Key Technologies
-
-- Next.js 15 (App Router, TypeScript)
-- Prisma ORM with PostgreSQL
-- Supabase authentication & middleware
-- Tailwind CSS + DaisyUI component library
-- `next-safe-action` for type-safe server mutations paired with Zod schemas
-- Lucide React for icons
+3. **Database & Prisma**
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   # Optional: seed diagnosis data
+   node scripts/seed-diagnoses.js
+   ```
 
 ---
 
 ## Running the Full Application
 
-1. **Backend** — in `backend/`: `python run.py` (runs on port 10000)
-2. **Frontend** — in `frontend/`: `bun dev` (runs on port 3000)
-3. Open **http://localhost:3000**
+1. **Backend** — in `backend/`: 
+   ```bash
+   python run.py
+   ```
+   The API will be available at **http://localhost:10000**.
+2. **Frontend** — in `frontend/`: 
+   ```bash
+   bun dev
+   ```
+   The frontend runs at **http://localhost:3000**.
+3. Open **http://localhost:3000** in your browser.
 
 ### User Flows
 
@@ -210,13 +159,6 @@ The frontend runs at **http://localhost:3000**.
 | --------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
 | Patient   | `/login`           | Symptom chat → diagnosis → BMI & temperature input → history, profile management                     |
 | Clinician | `/clinician-login` | Dashboard, patient groups, outbreak surveillance, diagnosis override, alerts, healthcare reports, map |
-
-### Notable Features (Recent)
-
-- **Clinician Diagnosis Override** — clinicians can override AI assessments with a full audit trail preserving the original AI prediction, confidence, and uncertainty scores
-- **BMI & Temperature Tracking** — patients can optionally log height/weight (BMI) and temperature during a session; BMI advice is generated via AI and cached against the diagnosis record
-- **Endemic Disease Tracking** — dashboard surfaces endemic disease summaries and badges for regional patterns
-- **AI Insights Explanation** — extended SHAP-based token explanations surfaced in the Insights modal
 
 ---
 
@@ -230,6 +172,21 @@ The frontend runs at **http://localhost:3000**.
 | Prisma client stale        | Re-run `npx prisma generate` after schema changes                              |
 | Model loading slow         | First run downloads transformer models (~500 MB); subsequent starts use cache  |
 | Supabase auth failure      | Check `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`          |
+
+---
+
+## AI-Assisted Development
+
+For AI-assisted work in this repository, the single source of truth is `AGENTS.md` (root). Sub-directories have their own scoped files — prefer `frontend/AGENTS.md` or `backend/AGENTS.md` for in-directory work.
+
+Skill files for targeted tasks:
+
+| Task type | Skill file |
+|-----------|------------|
+| Diagnosis server actions, Zod schemas | `frontend/.github/skills/medical-diagnosis-actions/SKILL.md` |
+| Patient/clinician-facing copy | `frontend/.github/skills/clinical-copywriting/SKILL.md` |
+| Flask endpoints & config-driven API | `backend/.github/skills/flask-diagnostic-api/SKILL.md` |
+| D3 charts, map visualizations | `frontend/.github/skills/d3-viz/SKILL.md` |
 
 ---
 

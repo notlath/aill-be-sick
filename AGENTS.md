@@ -47,20 +47,20 @@ AI'll Be Sick is a full-stack disease detection application. Users submit sympto
 
 ### Architecture
 
-| Layer       | Technology                                                    |
-| ----------- | ------------------------------------------------------------- |
-| Backend API | Python, Flask (port `10000`)                                  |
-| ML Models   | BioClinical-ModernBERT (EN), RoBERTa-Tagalog (FIL)            |
-| Frontend    | TypeScript, Next.js 16 App Router, React 19                   |
-| Database    | PostgreSQL (Supabase) + Prisma ORM v6.19.2                    |
-| Auth        | Supabase Auth                                                 |
-| Styling     | Tailwind CSS v4 + DaisyUI v5                                  |
-| Icons       | Lucide React                                                  |
-| State       | Zustand                                                       |
-| Charts      | D3 v7, Recharts v3                                            |
-| Maps        | Leaflet + Mapbox                                              |
-| AI          | Google Generative AI SDK                                      |
-| Testing     | Vitest (frontend), pytest (backend)                           |
+| Layer       | Technology                                         |
+| ----------- | -------------------------------------------------- |
+| Backend API | Python, Flask (port `10000`)                       |
+| ML Models   | BioClinical-ModernBERT (EN), RoBERTa-Tagalog (FIL) |
+| Frontend    | TypeScript, Next.js 16 App Router, React 19        |
+| Database    | PostgreSQL (Supabase) + Prisma ORM v6.19.2         |
+| Auth        | Supabase Auth                                      |
+| Styling     | Tailwind CSS v4 + DaisyUI v5                       |
+| Icons       | Lucide React                                       |
+| State       | Zustand                                            |
+| Charts      | D3 v7, Recharts v3                                 |
+| Maps        | Leaflet + Mapbox                                   |
+| AI          | Google Generative AI SDK                           |
+| Testing     | Vitest (frontend), pytest (backend)                |
 
 ### Project Structure
 
@@ -152,27 +152,27 @@ aill-be-sick/
 
 #### Frontend (`.env.local`)
 
-| Variable                        | Description                                              |
-| ------------------------------- | -------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL                                     |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous client key                            |
-| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service role key (SECRET — never commit)        |
-| `DATABASE_URL`                  | PostgreSQL connection string (pgBouncer mode)            |
-| `DIRECT_DATABASE_URL`           | Direct PostgreSQL connection (for migrations)            |
-| `DIRECT_URL`                    | Direct connection to database (for migrations)           |
-| `NEXT_PUBLIC_BACKEND_URL`       | Flask backend URL (default: `http://localhost:10000`)    |
-| `NEXT_PUBLIC_DIAGNOSIS_MODE`    | Diagnosis mode: `adaptive` or other modes                |
-| `NEXT_PUBLIC_MAPBOX_TOKEN`      | Mapbox access token for map features                     |
-| `NODE_ENV`                      | Environment: `development` or `production`               |
+| Variable                        | Description                                           |
+| ------------------------------- | ----------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL                                  |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous client key                         |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Supabase service role key (SECRET — never commit)     |
+| `DATABASE_URL`                  | PostgreSQL connection string (pgBouncer mode)         |
+| `DIRECT_DATABASE_URL`           | Direct PostgreSQL connection (for migrations)         |
+| `DIRECT_URL`                    | Direct connection to database (for migrations)        |
+| `NEXT_PUBLIC_BACKEND_URL`       | Flask backend URL (default: `http://localhost:10000`) |
+| `NEXT_PUBLIC_DIAGNOSIS_MODE`    | Diagnosis mode: `adaptive` or other modes             |
+| `NEXT_PUBLIC_MAPBOX_TOKEN`      | Mapbox access token for map features                  |
+| `NODE_ENV`                      | Environment: `development` or `production`            |
 
 #### Backend
 
-| Variable                  | Description                                    |
-| ------------------------- | ---------------------------------------------- |
-| `FLASK_ENV`               | Flask environment mode                         |
-| `FRONTEND_URL`            | Frontend URL for CORS                          |
-| `DATABASE_URL`            | PostgreSQL connection string for SQLAlchemy    |
-| Model-related env vars    | See `backend/app/config.py` for all thresholds |
+| Variable               | Description                                    |
+| ---------------------- | ---------------------------------------------- |
+| `FLASK_ENV`            | Flask environment mode                         |
+| `FRONTEND_URL`         | Frontend URL for CORS                          |
+| `DATABASE_URL`         | PostgreSQL connection string for SQLAlchemy    |
+| Model-related env vars | See `backend/app/config.py` for all thresholds |
 
 ---
 
@@ -243,47 +243,47 @@ The application uses PostgreSQL with Prisma ORM. Key models:
 
 ### Core Models
 
-| Model                 | Description                                                    |
-| --------------------- | -------------------------------------------------------------- |
-| `User`                | User accounts with role, demographics, location, consent       |
-| `Chat`                | Conversational sessions linked to users                        |
-| `Message`             | Individual chat messages with role and type                    |
-| `TempDiagnosis`       | Temporary diagnosis suggestions during conversations           |
-| `Diagnosis`           | Confirmed diagnoses with confidence, uncertainty, verification |
-| `Explanation`         | SHAP-based token importance scores                             |
+| Model           | Description                                                    |
+| --------------- | -------------------------------------------------------------- |
+| `User`          | User accounts with role, demographics, location, consent       |
+| `Chat`          | Conversational sessions linked to users                        |
+| `Message`       | Individual chat messages with role and type                    |
+| `TempDiagnosis` | Temporary diagnosis suggestions during conversations           |
+| `Diagnosis`     | Confirmed diagnoses with confidence, uncertainty, verification |
+| `Explanation`   | SHAP-based token importance scores                             |
 
 ### Clinical & Surveillance Models
 
-| Model                 | Description                                                    |
-| --------------------- | -------------------------------------------------------------- |
-| `DiagnosisOverride`   | Clinician overrides of AI diagnoses with audit trail           |
-| `Alert`               | Clinician alerts for outbreak/anomaly surveillance             |
-| `AlertNote`           | Notes attached to alerts                                       |
-| `DiagnosisNote`       | Notes attached to diagnoses                                    |
-| `AuditLog`            | System-wide audit trail                                        |
-| `diagnosis_sessions`  | Raw session data from backend                                  |
+| Model                | Description                                          |
+| -------------------- | ---------------------------------------------------- |
+| `DiagnosisOverride`  | Clinician overrides of AI diagnoses with audit trail |
+| `Alert`              | Clinician alerts for outbreak/anomaly surveillance   |
+| `AlertNote`          | Notes attached to alerts                             |
+| `DiagnosisNote`      | Notes attached to diagnoses                          |
+| `AuditLog`           | System-wide audit trail                              |
+| `diagnosis_sessions` | Raw session data from backend                        |
 
 ### Privacy & Access Control Models
 
-| Model                      | Description                                      |
-| -------------------------- | ------------------------------------------------ |
-| `DeletionSchedule`         | Privacy-compliant deletion scheduling            |
-| `AllowedClinicianEmail`    | Allowlist for clinician signup                   |
+| Model                   | Description                           |
+| ----------------------- | ------------------------------------- |
+| `DeletionSchedule`      | Privacy-compliant deletion scheduling |
+| `AllowedClinicianEmail` | Allowlist for clinician signup        |
 
 ### Key Enums
 
-| Enum                    | Values                                                        |
-| ----------------------- | ------------------------------------------------------------- |
-| `Role`                  | PATIENT, CLINICIAN, ADMIN, DEVELOPER                          |
-| `DiagnosisStatus`       | PENDING, VERIFIED, REJECTED, INCONCLUSIVE                     |
-| `ApprovalStatus`        | PENDING_ADMIN_APPROVAL, ACTIVE, REJECTED                      |
-| `Disease`               | DENGUE, PNEUMONIA, TYPHOID, DIARRHEA, MEASLES, INFLUENZA      |
-| `Model`                 | BIOCLINICAL_MODERNBERT, ROBERTA_TAGALOG                       |
-| `AlertType`             | ANOMALY, OUTBREAK                                             |
-| `AlertSeverity`         | LOW, MEDIUM, HIGH, CRITICAL                                   |
-| `AlertStatus`           | NEW, ACKNOWLEDGED, DISMISSED, RESOLVED                        |
-| `MessageType`           | SYMPTOMS, ANSWER, QUESTION, DIAGNOSIS, URGENT_WARNING, ERROR, INFO |
-| `DeletionScheduleStatus`| SCHEDULED, RESTORED, ANONYMIZED                               |
+| Enum                     | Values                                                             |
+| ------------------------ | ------------------------------------------------------------------ |
+| `Role`                   | PATIENT, CLINICIAN, ADMIN, DEVELOPER                               |
+| `DiagnosisStatus`        | PENDING, VERIFIED, REJECTED, INCONCLUSIVE                          |
+| `ApprovalStatus`         | PENDING_ADMIN_APPROVAL, ACTIVE, REJECTED                           |
+| `Disease`                | DENGUE, PNEUMONIA, TYPHOID, DIARRHEA, MEASLES, INFLUENZA           |
+| `Model`                  | BIOCLINICAL_MODERNBERT, ROBERTA_TAGALOG                            |
+| `AlertType`              | ANOMALY, OUTBREAK                                                  |
+| `AlertSeverity`          | LOW, MEDIUM, HIGH, CRITICAL                                        |
+| `AlertStatus`            | NEW, ACKNOWLEDGED, DISMISSED, RESOLVED                             |
+| `MessageType`            | SYMPTOMS, ANSWER, QUESTION, DIAGNOSIS, URGENT_WARNING, ERROR, INFO |
+| `DeletionScheduleStatus` | SCHEDULED, RESTORED, ANONYMIZED                                    |
 
 ---
 
@@ -322,20 +322,20 @@ bun dev                                              # Runs on http://localhost:
 
 **Available scripts:**
 
-| Script                     | Description                                                |
-| -------------------------- | ---------------------------------------------------------- |
-| `bun run dev`              | Start development server with Turbopack                    |
-| `bun run build`            | Production build                                           |
-| `bun run start`            | Production server                                          |
-| `bun run lint`             | Next.js linting                                            |
-| `npx tsc --noEmit`         | TypeScript type check (run before committing)              |
-| `bun run seed:diagnoses`   | Seed diagnosis data                                        |
-| `bun run seed:users`       | Seed user data                                             |
-| `bun run seed:realistic`   | Seed realistic patient/diagnosis data (requires .env.local)|
-| `bun run db:backup`        | Export database backup                                     |
-| `bun run db:backup:list`   | List available backups                                     |
-| `bun run db:backup:restore`| Restore from a backup                                      |
-| `bun run db:backfill-consent`| Backfill consent records for existing users              |
+| Script                        | Description                                                 |
+| ----------------------------- | ----------------------------------------------------------- |
+| `bun run dev`                 | Start development server with Turbopack                     |
+| `bun run build`               | Production build                                            |
+| `bun run start`               | Production server                                           |
+| `bun run lint`                | Next.js linting                                             |
+| `npx tsc --noEmit`            | TypeScript type check (run before committing)               |
+| `bun run seed:diagnoses`      | Seed diagnosis data                                         |
+| `bun run seed:users`          | Seed user data                                              |
+| `bun run seed:realistic`      | Seed realistic patient/diagnosis data (requires .env.local) |
+| `bun run db:backup`           | Export database backup                                      |
+| `bun run db:backup:list`      | List available backups                                      |
+| `bun run db:backup:restore`   | Restore from a backup                                       |
+| `bun run db:backfill-consent` | Backfill consent records for existing users                 |
 
 ---
 
@@ -592,3 +592,24 @@ The agent **MUST** actively check for and eliminate duplicated code. Before writ
 | Wrong diagnosis mode      | Verify `NEXT_PUBLIC_DIAGNOSIS_MODE` in `.env.local` (default: `adaptive`)                 |
 | Migration failures        | Use `DIRECT_DATABASE_URL` or `DIRECT_URL` for migrations, not `DATABASE_URL` (pgBouncer)  |
 | Secret key exposed        | `SUPABASE_SERVICE_ROLE_KEY` must never be committed to version control                    |
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+**Graphify is the primary token-saving mechanism for this codebase.** A graphify query typically returns 1–5% of the tokens that grep/glob/read/task would require. The hierarchy below is a cost-enforcement rule, not a suggestion.
+
+When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"` before doing anything else.
+
+Rules (strict precedence):
+
+1. **graphify query/path/explain** — Always start here for any codebase question when graphify-out/graph.json exists. Use `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"`. These return scoped subgraphs only.
+2. **wiki/index.md** — If query/path/explain don't surface enough context AND graphify-out/wiki/index.md exists, use it for broad navigation. Still far cheaper than raw source browsing.
+3. **GRAPH_REPORT.md** — Read graphify-out/GRAPH_REPORT.md only for broad architecture review, and only when steps 1–2 are exhausted.
+4. **Raw tools (grep, glob, read, task)** — Last resort. Never use these for codebase exploration without first exhausting steps 1–3.
+
+Skip conditions (exhaustive): Only skip the graphify step if graphify-out/graph.json does not exist, or the user explicitly says not to use it. Dirty graph files, stale metadata, or incremental hook artifacts are NOT valid reasons to skip — graphify still returns useful subgraphs from dirty state.
+
+Token discipline: If you're tempted to grep or glob for something, first ask: "Can graphify query/path/explain answer this with fewer tokens?" The answer is almost always yes — verify with a query before reaching for raw tools.
+
+After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
